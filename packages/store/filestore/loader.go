@@ -1,0 +1,268 @@
+package filestore
+
+import (
+	"fmt"
+	"github.com/datatug/datatug/packages/models"
+	"github.com/datatug/datatug/packages/parallel"
+	"github.com/datatug/datatug/packages/server/dto"
+	"github.com/datatug/datatug/packages/store"
+	"github.com/strongo/validation"
+	"os"
+	"path"
+	"strings"
+	"sync"
+)
+
+// fileSystemLoader implements store.Loader interface
+type fileSystemLoader struct {
+	pathByID map[string]string
+}
+
+// GetEnvironmentDbSummary return DB summary for specific environment
+func (loader fileSystemLoader) GetEnvironmentDbSummary(projectID, environmentID, databaseID string) (dto.DatabaseSummary, error) {
+	panic(fmt.Sprintf("implement me: %v, %v, %v", projectID, environmentID, databaseID))
+}
+
+var _ store.Loader = (*fileSystemLoader)(nil)
+
+func newLoader(pathByID map[string]string) fileSystemLoader {
+	return fileSystemLoader{
+		pathByID: pathByID,
+	}
+}
+
+// NewSingleProjectLoader create new single project loader
+func NewSingleProjectLoader(path string) (loader store.Loader, projectID string) {
+	return newLoader(map[string]string{store.SingleProjectID: path}), store.SingleProjectID
+}
+
+// GetProject loads project
+func (loader fileSystemLoader) GetProject(projID string) (project *models.DataTugProject, err error) {
+	var projPath string
+	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
+		return
+	}
+	project = new(models.DataTugProject)
+	if err = loadProjectFile(projPath, project); err != nil {
+		return nil, err
+	}
+	if err = parallel.Run(
+		func() error {
+			return loadEnvironments(projPath, project)
+		},
+		func() error {
+			return loadEntities(projPath, project)
+		},
+		func() error {
+			return loadBoards(projPath, project)
+		},
+		func() error {
+			return loadDbModels(projPath, project)
+		},
+		func() error {
+			projDbServers, err := loadDbDrivers(projPath)
+			if err != nil {
+				return err
+			}
+			project.DbServers = projDbServers
+			return nil
+		},
+	); err != nil {
+		err = fmt.Errorf("failed to load project by ID=[%v]: %w", projID, err)
+		return
+	}
+	return project, err
+}
+
+func loadDbDrivers(projPath string) (dbServers models.ProjDbServers, err error) {
+	dbServersPath := path.Join(projPath, DatatugFolder, ServersFolder, DbFolder)
+	if err = loadDir(dbServersPath, processDirs, func(files []os.FileInfo) {
+		dbServers = make(models.ProjDbServers, 0, len(files))
+	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
+		dbDriver, err := loadDbDriver(dbServersPath, f.Name())
+		if err != nil {
+			return err
+		}
+		mutex.Lock()
+		dbServers = append(dbServers, dbDriver...)
+		mutex.Unlock()
+		return err
+	}); err != nil {
+		return dbServers, err
+	}
+	return dbServers, nil
+}
+
+func loadDbDriver(dbServersPath, driverName string) (dbServers models.ProjDbServers, err error) {
+	driverDirPath := path.Join(dbServersPath, driverName)
+	if err = loadDir(driverDirPath, processDirs, func(files []os.FileInfo) {
+		dbServers = make(models.ProjDbServers, 0, len(files))
+	}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
+		var dbServer *models.ProjDbServer
+		dbServer, err = loadDbServer(driverDirPath, driverName, f.Name())
+		if err != nil {
+			return
+		}
+		mutex.Lock()
+		dbServers = append(dbServers, dbServer)
+		mutex.Unlock()
+		return
+	}); err != nil {
+		return
+	}
+	return
+}
+
+func loadDbServer(driverDirPath, driver, serverName string) (dbServer *models.ProjDbServer, err error) {
+	dbServer = new(models.ProjDbServer)
+	if dbServer.DbServer, err = models.NewDbServer(driver, serverName, "@"); err != nil {
+		return
+	}
+	dbServerDirPath := path.Join(driverDirPath, serverName)
+	err = parallel.Run(
+		func() (err error) {
+			err = loadFile(path.Join(dbServerDirPath, fmt.Sprintf("%v.%v.json", driver, serverName)), true, dbServer)
+			if err != nil {
+				err = fmt.Errorf("failed to load db server summary file: %w", err)
+			}
+			if dbServer.ID == "" {
+				dbServer.ID = serverName
+			} else if dbServer.ID != serverName {
+				return fmt.Errorf("dbServer.ID != serverName: %v != %v", dbServer.ID, serverName)
+			}
+			return err
+		},
+		func() (err error) {
+			return loadDatabases(path.Join(dbServerDirPath, DatabasesFolder), dbServer)
+		},
+	)
+	return
+}
+
+func (loader fileSystemLoader) LoadEntity(projID, entityID string) (entity models.Entity, err error) {
+	var projPath string
+	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
+		return
+	}
+	fileName := path.Join(projPath, DatatugFolder, EntitiesFolder, fmt.Sprintf("%v.json", entityID))
+	if err = loadFile(fileName, true, &entity); err != nil {
+		err = fmt.Errorf("faile to load entity [%v] from project [%v]: %w", entityID, projID, err)
+		return
+	}
+	return
+}
+
+func (loader fileSystemLoader) LoadEntities(projID string) (entities []models.Entity, err error) {
+	var projPath string
+	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
+		return
+	}
+	entitiesPath := path.Join(projPath, DatatugFolder, EntitiesFolder)
+	isEntityFile := func(fileName string) bool {
+		return strings.HasSuffix(fileName, ".json")
+	}
+	err = loadDir(entitiesPath, processFiles, func(files []os.FileInfo) {
+		count := 0
+		for _, f := range files {
+			if isEntityFile(f.Name()) {
+				count++
+			}
+		}
+		entities = make([]models.Entity, count)
+	}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
+		if !isEntityFile(f.Name()) {
+			return nil
+		}
+		if err = loadFile(path.Join(entitiesPath, f.Name()), true, &entities[i]); err != nil {
+			err = fmt.Errorf("faile to load entity from file [%v] from project [%v]: %w", f.Name(), projID, err)
+			return
+		}
+		return nil
+	})
+	return
+}
+
+// LoadBoard loads board
+func (loader fileSystemLoader) LoadBoard(projID, boardID string) (board models.Board, err error) {
+	var projPath string
+	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
+		return
+	}
+	fileName := path.Join(projPath, DatatugFolder, BoardsFolder, fmt.Sprintf("%v.json", boardID))
+	if err = loadFile(fileName, true, &board); err != nil {
+		err = fmt.Errorf("faile to load board [%v] from project [%v]: %w", boardID, projID, err)
+		return
+	}
+	return
+}
+
+// GetProjectSummary loads project summary
+func (loader fileSystemLoader) GetProjectSummary(projID string) (projectSummary models.ProjectSummary, err error) {
+	var projPath string
+	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
+		return
+	}
+	projectSummary.ProjectFile.ID = projID
+	if projectSummary.ProjectFile, err = loader.LoadProjectFile(projPath); err != nil {
+		return projectSummary, err
+	}
+	return
+}
+
+// LoadProjectFile loads project file
+func (loader fileSystemLoader) LoadProjectFile(projPath string) (v models.ProjectFile, err error) {
+	fileName := path.Join(projPath, DatatugFolder, ProjectSummaryFileName)
+	if err = loadFile(fileName, true, &v); os.IsNotExist(err) {
+		err = fmt.Errorf("%w: %v", models.ErrProjectDoesNotExist, err)
+	}
+	return
+}
+
+// GetProjectPath returns project path by project ID
+func (loader fileSystemLoader) GetProjectPath(projectID string) (projID string, projPath string, err error) {
+	if projectID == "" && len(projectPaths) == 1 {
+		projID = store.SingleProjectID
+	} else {
+		projID = projectID
+	}
+	projPath, knownProjectID := loader.pathByID[projID]
+	if !knownProjectID {
+		err = validation.NewErrBadRequestFieldValue("unknown project ID: [%v]'", projectID)
+		return
+	}
+	return
+}
+
+// GetEnvironmentSummary loads environment summary
+func (loader fileSystemLoader) GetEnvironmentSummary(projID, envID string) (envSummary dto.EnvironmentSummary, err error) {
+	var projPath string
+	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
+		return
+	}
+	env := models.Environment{ProjectEntity: models.ProjectEntity{ID: envID}}
+	if err = loadEnvironment(path.Join(projPath, DatatugFolder, EnvironmentsFolder, envID), &env); err != nil {
+		err = fmt.Errorf("failed to load environment [%v] from project [%v]: %w", envID, projID, err)
+		return
+	}
+	envSummary.ProjectEntity = env.ProjectEntity
+	for _, dbServer := range env.DbServers {
+		envSummary.Servers = append(envSummary.Servers, *dbServer)
+	}
+	return
+}
+
+// GetEnvironmentDb return information about environment DB
+func (loader fileSystemLoader) GetEnvironmentDb(projID, environmentID, databaseID string) (envDb *dto.EnvDb, err error) {
+	var projPath string
+	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
+		return
+	}
+	filePath := path.Join(projPath, DatatugFolder, EnvironmentsFolder, environmentID, DatabasesFolder, databaseID, fmt.Sprintf("%v.db.json", databaseID))
+	envDb = new(dto.EnvDb)
+	if err = loadFile(filePath, true, envDb); err != nil {
+		err = fmt.Errorf("failed to load DB [%v] from env [%v] from project [%v]: %w", envDb, environmentID, projID, err)
+		return nil, err
+	}
+	envDb.ID = databaseID
+	return
+}

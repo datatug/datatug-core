@@ -1,0 +1,20 @@
+{
+  "type": "table",
+  "name": "Customers",
+  "columns": [
+    {
+      "name": "CustomerID",
+      "data_type": "nchar",
+      "max_length": 5,
+      "nullable": false
+    }
+  ],
+  "primary_key": {
+    "columns": [
+      "CustomerID"
+    ],
+    "clustered": true
+  },
+  "foreign_keys": [
+  ]
+}

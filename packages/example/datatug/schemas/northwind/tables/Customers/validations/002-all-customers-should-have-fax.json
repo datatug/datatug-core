@@ -1,0 +1,3 @@
+{
+  "where": "t.Fax IS NULL"
+}
