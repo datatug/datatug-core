@@ -1,3 +1,0 @@
-{
-  "where": "LEN(t.CustomerId) <> 5"
-}

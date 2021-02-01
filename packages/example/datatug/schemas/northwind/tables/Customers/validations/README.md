@@ -1,1 +1,0 @@
-# Validations for Customers table
