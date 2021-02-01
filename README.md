@@ -2,7 +2,7 @@
 
 Open source codes in Go language under [MIT license](./LICENSE).
 
-![Test](https://github.com/datatug/datatug/workflows/Test/badge.svg)
+![Build](https://github.com/datatug/datatug/workflows/Build/badge.svg)
 
 ## What it is and why?
 
