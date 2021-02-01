@@ -3,6 +3,7 @@ module github.com/datatug/datatug
 go 1.15
 
 require (
+	github.com/mitchellh/go-homedir v1.1.0
 	github.com/datatug/sql2csv v0.0.0-20200927071952-a7fb986d1ec2
 	github.com/denisenkom/go-mssqldb v0.0.0-20200910202707-1e08a3fab204
 	github.com/fatih/color v1.10.0 // indirect

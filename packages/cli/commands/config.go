@@ -1,9 +1,12 @@
 package commands
 
 import (
+	"fmt"
+	"github.com/mitchellh/go-homedir"
 	"gopkg.in/yaml.v2"
 	"io"
 	"os"
+	"path"
 )
 
 // ConfigFile hold DataTug executable configuration for commands like `serve`
@@ -19,7 +22,17 @@ type ProjectConfig struct {
 
 func getConfig() (config ConfigFile, err error) {
 	var f *os.File
-	if f, err = os.Open("datatug.yaml"); err != nil {
+	var homeDir string
+	if homeDir, err = homedir.Dir(); err != nil {
+		_ = fmt.Sprintf("Failed to get user's home dir: %v", err)
+		err = nil
+	}
+
+	filePath := ".datatug.yaml"
+	if homeDir != "" {
+		filePath = path.Join(homeDir, filePath)
+	}
+	if f, err = os.Open(filePath); err != nil {
 		return
 	}
 	decoder := yaml.NewDecoder(f)
