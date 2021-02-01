@@ -9,16 +9,33 @@ import (
 )
 
 func init() {
-	_, err := Parser.AddCommand("projects",
+	projectsCommand, err := Parser.AddCommand("projects",
 		"List registered projects",
 		"",
 		&projectsCommand{})
 	if err != nil {
 		log.Fatal(err)
 	}
+	projectsCommand.SubcommandsOptional = true
+	_, err = projectsCommand.AddCommand("add",
+		"Adds a <name>=<path> to list of known projects",
+		"",
+		&addProjectCommand{},
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 type projectsCommand struct {
+}
+
+func getProjPathsByID(config ConfigFile) (pathsByID map[string]string) {
+	pathsByID = make(map[string]string, len(config.Projects))
+	for id, p := range config.Projects {
+		pathsByID[id] = p.Path
+	}
+	return
 }
 
 func (v *projectsCommand) Execute(_ []string) error {
@@ -29,11 +46,8 @@ func (v *projectsCommand) Execute(_ []string) error {
 	if err = printConfig(config, os.Stdout); err != nil {
 		return err
 	}
-	projectPaths := make([]string, len(config.Projects))
-	for i, p := range config.Projects {
-		projectPaths[i] = p.Path
-	}
-	if store.Current, err = filestore.NewStore(projectPaths); err != nil {
+	pathsByID := getProjPathsByID(config)
+	if store.Current, err = filestore.NewStore(pathsByID); err != nil {
 		return err
 	}
 	projects, err := store.Current.GetProjects()

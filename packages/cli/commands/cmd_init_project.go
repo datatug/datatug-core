@@ -25,7 +25,7 @@ func init() {
 
 // initProjectCommand defines parameters for a command to init a new DataTug project
 type initProjectCommand struct {
-	ProjectDir string `short:"t" long:"directory"  required:"true" description:"Project directory, example: /t <project_dir>"`
+	projectBaseCommand
 	//Driver      string `short:"d" long:"driver" required:"true"`
 	//Host        string `short:"s" long:"server" required:"true" default:"localhost"`
 	//User        string `short:"u" long:"user"`

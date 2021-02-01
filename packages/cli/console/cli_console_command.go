@@ -1,6 +1,7 @@
 package console
 
 import (
+	"fmt"
 	"github.com/datatug/datatug/packages/cli/commands"
 	"log"
 	"os"
@@ -18,7 +19,6 @@ func init() {
 
 // command defines parameters for console command
 type command struct {
-	ProjectDir string `short:"f" long:"folder" description:"Project directory"`
 }
 
 // Execute executes serve command
@@ -26,7 +26,6 @@ func (v *command) Execute(_ []string) (err error) {
 	if err = os.Setenv("GO_FLAGS_COMPLETION", "1"); err != nil {
 		return err
 	}
-	//p := NewCommandsPrompt()
-	//p.Run()
+	_, _ = fmt.Println("To be implemented")
 	return nil
 }

@@ -11,7 +11,8 @@ import (
 
 // ConfigFile hold DataTug executable configuration for commands like `serve`
 type ConfigFile struct {
-	Projects []ProjectConfig `yaml:"projects"`
+	Path     string                   `yaml:"-"`
+	Projects map[string]ProjectConfig `yaml:"projects"`
 }
 
 // ProjectConfig hold project configuration, specifically path to project directory
@@ -28,13 +29,18 @@ func getConfig() (config ConfigFile, err error) {
 		err = nil
 	}
 
-	filePath := ".datatug.yaml"
+	config.Path = ".datatug.yaml"
 	if homeDir != "" {
-		filePath = path.Join(homeDir, filePath)
+		config.Path = path.Join(homeDir, config.Path)
 	}
-	if f, err = os.Open(filePath); err != nil {
+	if f, err = os.Open(config.Path); err != nil {
 		return
 	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Printf("failed to closed config file opened for read: %v", err)
+		}
+	}()
 	decoder := yaml.NewDecoder(f)
 	if err = decoder.Decode(&config); err != nil {
 		return

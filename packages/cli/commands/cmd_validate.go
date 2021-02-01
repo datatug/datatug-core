@@ -19,7 +19,7 @@ func init() {
 
 // validateCommand defines parameters for validate command
 type validateCommand struct {
-	ProjectDir string `short:"t" long:"directory"  required:"true" description:"Project directory"`
+	projectBaseCommand
 }
 
 // Execute executes validate command

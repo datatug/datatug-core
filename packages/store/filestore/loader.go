@@ -203,14 +203,14 @@ func (loader fileSystemLoader) GetProjectSummary(projID string) (projectSummary 
 		return
 	}
 	projectSummary.ProjectFile.ID = projID
-	if projectSummary.ProjectFile, err = loader.LoadProjectFile(projPath); err != nil {
+	if projectSummary.ProjectFile, err = LoadProjectFile(projPath); err != nil {
 		return projectSummary, err
 	}
 	return
 }
 
 // LoadProjectFile loads project file
-func (loader fileSystemLoader) LoadProjectFile(projPath string) (v models.ProjectFile, err error) {
+func LoadProjectFile(projPath string) (v models.ProjectFile, err error) {
 	fileName := path.Join(projPath, DatatugFolder, ProjectSummaryFileName)
 	if err = loadFile(fileName, true, &v); os.IsNotExist(err) {
 		err = fmt.Errorf("%w: %v", models.ErrProjectDoesNotExist, err)

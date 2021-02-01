@@ -23,7 +23,7 @@ func init() {
 
 // showProjectCommand defines parameters for show project command
 type showProjectCommand struct {
-	ProjectDir string `short:"t" long:"directory"  required:"true" description:"Project directory"`
+	projectBaseCommand
 }
 
 // Execute executes show project command

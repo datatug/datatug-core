@@ -2,12 +2,10 @@ package filestore
 
 import (
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/store"
 )
 
 func (s FileSystemSaver) loadProjectFile() (v models.ProjectFile, err error) {
-	loader := newLoader(map[string]string{store.SingleProjectID: s.path})
-	return loader.LoadProjectFile(s.path)
+	return LoadProjectFile(s.path)
 }
 
 func (s FileSystemSaver) updateProjectFileWithBoard(board models.Board) (err error) {

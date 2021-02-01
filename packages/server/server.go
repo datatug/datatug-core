@@ -17,10 +17,10 @@ func init() {
 }
 
 // ServeHTTP starts HTTP server
-func ServeHTTP(projectPaths []string, host string, port int) error {
+func ServeHTTP(pathsByID map[string]string, host string, port int) error {
 	var err error
 
-	if store.Current, err = filestore.NewStore(projectPaths); err != nil {
+	if store.Current, err = filestore.NewStore(pathsByID); err != nil {
 		return err
 	}
 

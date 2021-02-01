@@ -27,7 +27,7 @@ func init() {
 
 // executeSQLCommand defines parameters for execute SQL command
 type executeSQLCommand struct {
-	Driver       string `short:"d" long:"driver" required:"true"`
+	Driver       string `long:"driver" required:"true"`
 	Host         string `short:"t" long:"host" required:"true" default:"localhost"`
 	User         string `short:"u" long:"user"`
 	Port         string `long:"port"`
