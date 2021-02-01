@@ -54,7 +54,7 @@ Get from source codes by running:
 ```
 > go install github.com/datatug/datatug
 ```
-If iy passes you are good to go:
+If it passes you are good to go:
 ```
 > datatug --help
 ```
