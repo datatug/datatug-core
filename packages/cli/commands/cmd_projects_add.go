@@ -16,12 +16,8 @@ type addProjectCommand struct {
 func (v *addProjectCommand) Execute(_ []string) error {
 	_, _ = fmt.Println("Reading config file...")
 	config, err := getConfig()
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			err = nil
-		} else {
-			return fmt.Errorf("failed to read config file: %v", err)
-		}
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("failed to read config file: %v", err)
 	}
 	projectID := strings.ToLower(v.ProjectName)
 	project, ok := config.Projects[projectID]
