@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
+	"github.com/datatug/datatug/packages/store"
 	"github.com/datatug/datatug/packages/store/filestore"
 	"github.com/gosuri/uitable"
 	"log"
@@ -28,7 +29,21 @@ type showProjectCommand struct {
 
 // Execute executes show project command
 func (v *showProjectCommand) Execute(_ []string) (err error) {
-	loader, projectID := filestore.NewSingleProjectLoader(v.ProjectDir)
+	projectID := strings.ToLower(v.ProjectName)
+	var loader store.Loader
+	if v.ProjectDir != "" && projectID == "" {
+		loader, projectID = filestore.NewSingleProjectLoader(v.ProjectDir)
+	} else {
+		config, err := getConfig()
+		if err != nil {
+			return err
+		}
+		pathsById := getProjPathsByID(config)
+		loader, err = filestore.NewStore(pathsById)
+		if err != nil {
+			return err
+		}
+	}
 
 	var project *models.DataTugProject
 	if project, err = loader.GetProject(projectID); err != nil {
