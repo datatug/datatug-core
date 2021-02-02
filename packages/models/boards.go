@@ -39,7 +39,7 @@ func (v Board) Validate() error {
 
 // ProjBoardBrief defines brief information of Board
 type ProjBoardBrief struct {
-	ProjectEntity
+	ProjectItem
 	Parameters     Parameters `json:"parameters,omitempty"`
 	RequiredParams [][]string `json:"requiredParams,omitempty"`
 }

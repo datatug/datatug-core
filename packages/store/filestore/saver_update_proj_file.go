@@ -23,8 +23,8 @@ func (s FileSystemSaver) updateProjectFileWithBoard(board models.Board) (err err
 		}
 	}
 	projFile.Boards = append(projFile.Boards, &models.ProjBoardBrief{
-		ProjectEntity: models.ProjectEntity{ID: board.ID, Title: board.Title},
-		Parameters:    board.Parameters,
+		ProjectItem: models.ProjectItem{ID: board.ID, Title: board.Title},
+		Parameters:  board.Parameters,
 	})
 UPDATED:
 	err = s.putProjectFile(projFile)
@@ -47,7 +47,7 @@ func (s FileSystemSaver) updateProjectFileWithEntity(entity models.Entity) (err 
 		}
 	}
 	projFile.Entities = append(projFile.Entities, &models.ProjEntityBrief{
-		ProjectEntity: models.ProjectEntity{ID: entity.ID, Title: entity.Title},
+		ProjectItem: models.ProjectItem{ID: entity.ID, Title: entity.Title},
 	})
 UPDATED:
 	err = s.putProjectFile(projFile)

@@ -240,12 +240,12 @@ func (loader fileSystemLoader) GetEnvironmentSummary(projID, envID string) (envS
 	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
 		return
 	}
-	env := models.Environment{ProjectEntity: models.ProjectEntity{ID: envID}}
+	env := models.Environment{ProjectItem: models.ProjectItem{ID: envID}}
 	if err = loadEnvironment(path.Join(projPath, DatatugFolder, EnvironmentsFolder, envID), &env); err != nil {
 		err = fmt.Errorf("failed to load environment [%v] from project [%v]: %w", envID, projID, err)
 		return
 	}
-	envSummary.ProjectEntity = env.ProjectEntity
+	envSummary.ProjectItem = env.ProjectItem
 	for _, dbServer := range env.DbServers {
 		envSummary.Servers = append(envSummary.Servers, *dbServer)
 	}
@@ -272,9 +272,20 @@ func (fileSystemLoader) LoadDatasets(projectID string) (datasets []models.Datase
 	return nil, errors.New("not implemented yet")
 }
 
-func (fileSystemLoader) LoadDatasetDefinition(projectID, datasetName string) (dataset *models.DatasetDefinition, err error) {
-	return nil, errors.New("not implemented yet")
+func (loader fileSystemLoader) LoadDatasetDefinition(projectID, datasetName string) (dataset *models.DatasetDefinition, err error) {
+	var projPath string
+	if projectID, projPath, err = loader.GetProjectPath(projectID); err != nil {
+		return
+	}
+	filePath := path.Join(projPath, DatatugFolder, DataFolder, datasetName, fmt.Sprintf(".%v.datatug.json", datasetName))
+	dataset = new(models.DatasetDefinition)
+	if err = loadFile(filePath, true, dataset); err != nil {
+		err = fmt.Errorf("failed to load dataset [%v] from project [%v]: %w", datasetName, projectID, err)
+		return nil, err
+	}
+	return
 }
+
 func (fileSystemLoader) LoadRecordset(projectID, datasetName, fileName string) (recordset *models.Recordset, err error) {
 	return nil, errors.New("not implemented yet")
 }

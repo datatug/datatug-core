@@ -154,7 +154,7 @@ func (s FileSystemSaver) saveProjectFile(project models.DataTugProject) error {
 	//	return err
 	//}
 	projFile := models.ProjectFile{
-		ProjectEntity: models.ProjectEntity{
+		ProjectItem: models.ProjectItem{
 			ID: project.ID,
 		},
 		Access: project.Access,
@@ -178,7 +178,7 @@ func (s FileSystemSaver) saveProjectFile(project models.DataTugProject) error {
 	//}
 	for _, env := range project.Environments {
 		envBrief := models.ProjEnvBrief{
-			ProjectEntity: env.ProjectEntity,
+			ProjectItem: env.ProjectItem,
 			NumberOf: models.ProjEnvNumbers{
 				DbServers: len(env.DbServers),
 			},
@@ -191,14 +191,14 @@ func (s FileSystemSaver) saveProjectFile(project models.DataTugProject) error {
 	for _, board := range project.Boards {
 		projFile.Boards = append(projFile.Boards,
 			&models.ProjBoardBrief{
-				ProjectEntity: board.ProjectEntity,
-				Parameters:    board.Parameters,
+				ProjectItem: board.ProjectItem,
+				Parameters:  board.Parameters,
 			},
 		)
 	}
 	for _, dbModel := range project.DbModels {
 		brief := models.ProjDbModelBrief{
-			ProjectEntity: dbModel.ProjectEntity,
+			ProjectItem: dbModel.ProjectItem,
 			NumberOf: models.ProjDbModelNumbers{
 				Schemas: len(dbModel.Schemas),
 			},

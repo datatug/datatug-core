@@ -41,7 +41,7 @@ func (v DbModels) IDs() (ids []string) {
 
 // DbModel holds a model of a database
 type DbModel struct {
-	ProjectEntity
+	ProjectItem
 	Schemas      SchemaModels        `json:"schemas,omitempty"`
 	Environments DbModelEnvironments `json:"environments,omitempty"`
 }
@@ -85,7 +85,7 @@ type DbModelDb struct {
 
 // Validate returns error if not valid
 func (v DbModel) Validate() error {
-	if err := v.ProjectEntity.Validate(false); err != nil {
+	if err := v.ProjectItem.Validate(false); err != nil {
 		return err
 	}
 	for i, schema := range v.Schemas {
@@ -111,14 +111,14 @@ func (v SchemaModels) GetByID(id string) (schemaModel *SchemaModel) {
 
 // SchemaModel holds model for a DB schema
 type SchemaModel struct {
-	ProjectEntity
+	ProjectItem
 	Tables TableModels `json:"tables"`
 	Views  TableModels `json:"views"`
 }
 
 // Validate returns error if not valid
 func (v SchemaModel) Validate() error {
-	if err := v.ProjectEntity.Validate(false); err != nil {
+	if err := v.ProjectItem.Validate(false); err != nil {
 		return err
 	}
 	for i, table := range v.Tables {

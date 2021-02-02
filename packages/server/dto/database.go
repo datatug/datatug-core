@@ -4,7 +4,7 @@ import "github.com/datatug/datatug/packages/models"
 
 // DatabaseSummary holds database summary
 type DatabaseSummary struct {
-	models.ProjectEntity
+	models.ProjectItem
 	Environments []string       `json:"environments"`
 	NumberOf     DatabaseCounts `json:"numberOf"`
 }
@@ -23,7 +23,7 @@ type DbCatalog struct {
 
 // ProjDbServerSummary holds summary info about DB server
 type ProjDbServerSummary struct {
-	models.ProjectEntity
+	models.ProjectItem
 	DbServer  models.DbServer   `json:"dbServer"`
 	Databases []DatabaseSummary `json:"databases,omitempty"`
 }

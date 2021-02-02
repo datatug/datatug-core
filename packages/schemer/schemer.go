@@ -23,7 +23,7 @@ func NewInformationSchema(server models.DbServer, db *sql.DB) InformationSchema 
 // GetDatabase returns complete information about a database
 func (s InformationSchema) GetDatabase(name string) (database *models.Database, err error) {
 	database = &models.Database{
-		ProjectEntity: models.ProjectEntity{ID: name},
+		ProjectItem: models.ProjectItem{ID: name},
 	}
 	var tables []*models.Table
 	if tables, err = s.getTables(name); err != nil {
@@ -32,7 +32,7 @@ func (s InformationSchema) GetDatabase(name string) (database *models.Database, 
 	for _, t := range tables {
 		schema := database.Schemas.GetByID(t.Schema)
 		if schema == nil {
-			schema = &models.DbSchema{ProjectEntity: models.ProjectEntity{ID: t.Schema}}
+			schema = &models.DbSchema{ProjectItem: models.ProjectItem{ID: t.Schema}}
 			database.Schemas = append(database.Schemas, schema)
 		}
 		switch t.DbType {

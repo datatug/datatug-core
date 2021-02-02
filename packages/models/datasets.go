@@ -9,12 +9,12 @@ import (
 
 // DatasetDefinition describes dataset
 type DatasetDefinition struct {
-	ProjectEntity
-	Tags       []string           `json:"tags,omitempty"` // consider moving to ProjectEntity
-	Type       string             `json:"type"`           // Supported types: "recordset", "json"
-	JSONSchema string             `json:"jsonSchema,omitempty"`
-	Fields     RecordsetFieldDefs `json:"fields,omitempty"`
-	Files      []string           `json:"files,omitempty"`
+	ProjectItem `yaml:"project_item"`
+	Tags        []string           `json:"tags,omitempty" yaml:",omitempty"` // consider moving to ProjectItem
+	Type        string             `json:"type" yaml:",omitempty"`           // Supported types: "recordset", "json"
+	JSONSchema  string             `json:"jsonSchema,omitempty" yaml:",omitempty"`
+	Fields      RecordsetFieldDefs `json:"fields,omitempty" yaml:",omitempty"`
+	Files       []string           `json:"files,omitempty" yaml:",omitempty"`
 }
 
 type RecordsetFieldDefs []RecordsetFieldDef
@@ -42,7 +42,7 @@ func (v RecordsetFieldDef) Validate() error {
 
 // Validate returns error if not valid
 func (v DatasetDefinition) Validate() error {
-	if err := v.ProjectEntity.Validate(true); err != nil {
+	if err := v.ProjectItem.Validate(true); err != nil {
 		return err
 	}
 	switch v.Type {

@@ -64,7 +64,7 @@ func (v DataTugProject) Validate() error {
 
 // ProjectBrief hold project brief info (e.g. for list)
 type ProjectBrief struct {
-	ProjectEntity
+	ProjectItem
 }
 
 // ProjectSummary hold project summary
@@ -74,7 +74,7 @@ type ProjectSummary struct {
 
 // ProjectFile defines what to store to project file
 type ProjectFile struct {
-	ProjectEntity
+	ProjectItem
 	//UUID         uuid.UUID           `json:"uuid"`
 	Created      *ProjectCreated     `json:"created,omitempty"`
 	Access       string              `json:"access"` // e.g. "private", "protected", "public"
@@ -87,7 +87,7 @@ type ProjectFile struct {
 // Validate return error if not valid
 func (v ProjectFile) Validate() error {
 	// Do not check ID or title as they can be nil for project
-	//if err := v.ProjectEntity.Validate(); err != nil {
+	//if err := v.ProjectItem.Validate(); err != nil {
 	//	return err
 	//}
 	if v.Created == nil {

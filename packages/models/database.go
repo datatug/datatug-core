@@ -7,14 +7,14 @@ import (
 
 // Database hold information about a database
 type Database struct {
-	ProjectEntity
+	ProjectItem
 	DbModel string `json:"dbModel"`
 	Schemas DbSchemas
 }
 
 // Validate returns error if not valid
 func (v Database) Validate() error {
-	if err := v.ProjectEntity.Validate(false); err != nil {
+	if err := v.ProjectItem.Validate(false); err != nil {
 		return err
 	}
 	if err := v.Schemas.Validate(); err != nil {
@@ -48,14 +48,14 @@ func (v DbSchemas) GetByID(id string) *DbSchema {
 
 // DbSchema represents a schema in a database
 type DbSchema struct {
-	ProjectEntity
+	ProjectItem
 	Tables []*Table `json:"tables"`
 	Views  []*Table `json:"views"`
 }
 
 // Validate returns error if not valid
 func (v DbSchema) Validate() error {
-	if err := v.ProjectEntity.Validate(false); err != nil {
+	if err := v.ProjectItem.Validate(false); err != nil {
 		return err
 	}
 	for i, t := range v.Tables {

@@ -16,14 +16,14 @@ type projectBaseCommand struct {
 	projectDirCommand
 	ProjectName string `short:"n" long:"name"  required:"false" description:"Project name"`
 	projectID   string
-	loader store.Loader
+	loader      store.Loader
 }
 
 type projectCommandOptions struct {
 	projNameRequired, projDirRequired, projNameOrDirRequired bool
 }
 
-func (v projectBaseCommand) initProjectCommand(o projectCommandOptions) error {
+func (v *projectBaseCommand) initProjectCommand(o projectCommandOptions) error {
 	if o.projNameRequired && v.ProjectName == "" {
 		return errors.New("project name parameter is required")
 	}
@@ -47,9 +47,6 @@ func (v projectBaseCommand) initProjectCommand(o projectCommandOptions) error {
 	if v.ProjectDir != "" && v.projectID == "" {
 		v.loader, v.projectID = filestore.NewSingleProjectLoader(v.ProjectDir)
 	} else {
-		if err != nil {
-			return err
-		}
 		pathsById := getProjPathsByID(config)
 		v.loader, err = filestore.NewStore(pathsById)
 		if err != nil {

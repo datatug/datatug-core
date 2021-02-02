@@ -31,13 +31,13 @@ func (v Environments) GetEnvByID(id string) (environment *Environment) {
 
 // Environment holds information about environment
 type Environment struct {
-	ProjectEntity
+	ProjectItem
 	DbServers EnvDbServers `json:"dbServers"`
 }
 
 // Validate returns error if failed
 func (v Environment) Validate() error {
-	if err := v.ProjectEntity.Validate(false); err != nil {
+	if err := v.ProjectItem.Validate(false); err != nil {
 		return err
 	}
 	if err := v.DbServers.Validate(); err != nil {
@@ -48,13 +48,13 @@ func (v Environment) Validate() error {
 
 // ProjEnvBrief hold env brief in project summary
 type ProjEnvBrief struct {
-	ProjectEntity
+	ProjectItem
 	NumberOf ProjEnvNumbers `json:"numberOf"`
 }
 
 // ProjDbModelBrief hold env brief in project summary
 type ProjDbModelBrief struct {
-	ProjectEntity
+	ProjectItem
 	NumberOf ProjDbModelNumbers `json:"numberOf"`
 }
 

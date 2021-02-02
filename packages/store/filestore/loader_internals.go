@@ -23,7 +23,7 @@ func loadEnvironments(projPath string, project *models.DataTugProject) (err erro
 		project.Environments = make(models.Environments, 0, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) (err error) {
 		env := &models.Environment{
-			ProjectEntity: models.ProjectEntity{
+			ProjectItem: models.ProjectItem{
 				ID: f.Name(),
 			},
 		}
@@ -100,7 +100,7 @@ func loadBoards(projPath string, project *models.DataTugProject) (err error) {
 			}
 			board := &models.Board{
 				ProjBoardBrief: models.ProjBoardBrief{
-					ProjectEntity: models.ProjectEntity{
+					ProjectItem: models.ProjectItem{
 						ID: f.Name(),
 					},
 				},
@@ -130,7 +130,7 @@ func loadEntities(projPath string, project *models.DataTugProject) error {
 			entityID := f.Name()
 			entity := &models.Entity{
 				ProjEntityBrief: models.ProjEntityBrief{
-					ProjectEntity: models.ProjectEntity{
+					ProjectItem: models.ProjectItem{
 						ID: entityID,
 					},
 				},
@@ -208,7 +208,7 @@ func loadDbModel(dbModelsDirPath, id string) (dbModel *models.DbModel, err error
 
 func loadSchemaModel(dbModelDirPath, schemaID string) (schemaModel *models.SchemaModel, err error) {
 	schemaModel = &models.SchemaModel{
-		ProjectEntity: models.ProjectEntity{ID: schemaID},
+		ProjectItem: models.ProjectItem{ID: schemaID},
 	}
 	schemaDirPath := path.Join(dbModelDirPath, schemaID)
 
@@ -294,7 +294,7 @@ func loadDatabases(dirPath string, dbServer *models.ProjDbServer) (err error) {
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
 		id := f.Name()
 		dbServer.Databases[i] = &models.Database{
-			ProjectEntity: models.ProjectEntity{ID: id},
+			ProjectItem: models.ProjectItem{ID: id},
 		}
 		if err = loadDatabase(path.Join(dirPath, id), dbServer.Databases[i]); err != nil {
 			return err
@@ -322,7 +322,7 @@ func loadDatabase(dirPath string, db *models.Database) (err error) {
 func loadSchema(schemasDirPath string, id string) (dbSchema *models.DbSchema, err error) {
 	log.Printf("Loading schema: %v...", id)
 	dbSchema = &models.DbSchema{
-		ProjectEntity: models.ProjectEntity{ID: id},
+		ProjectItem: models.ProjectItem{ID: id},
 	}
 	err = parallel.Run(
 		func() (err error) {

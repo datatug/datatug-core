@@ -73,14 +73,14 @@ func (v DbServer) Validate() error {
 
 // ProjDbServer hold info about a project DB server - NOT sure if right way
 type ProjDbServer struct {
-	ProjectEntity
+	ProjectItem
 	DbServer  DbServer  `json:"dbServer"`
 	Databases Databases `json:"databases"`
 }
 
 // Validate returns error if not valid
 func (v ProjDbServer) Validate() error {
-	if err := v.ProjectEntity.Validate(false); err != nil {
+	if err := v.ProjectItem.Validate(false); err != nil {
 		return err
 	}
 	if err := v.DbServer.Validate(); err != nil {

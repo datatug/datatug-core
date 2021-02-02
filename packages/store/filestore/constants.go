@@ -5,6 +5,7 @@ const (
 	ProjectSummaryFileName = "datatug-project.json"
 	DatatugFolder          = "datatug"
 	BoardsFolder           = "boards"
+	DataFolder             = "data"
 	DatabasesFolder        = "databases"
 	DbFolder               = "db"
 	DbModelsFolder         = "dbmodels"

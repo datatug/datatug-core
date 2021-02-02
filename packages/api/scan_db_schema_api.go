@@ -86,7 +86,7 @@ func updateProjectWithDatabase(project *models.DataTugProject, envID string, dbS
 	{
 		if environment := project.Environments.GetEnvByID(envID); environment == nil {
 			environment = &models.Environment{
-				ProjectEntity: models.ProjectEntity{
+				ProjectItem: models.ProjectItem{
 					ID: envID,
 				},
 				DbServers: models.EnvDbServers{
@@ -109,7 +109,7 @@ func updateProjectWithDatabase(project *models.DataTugProject, envID string, dbS
 	// Update DB server
 	{
 		for i, projDbServer := range project.DbServers {
-			if projDbServer.ProjectEntity.ID == dbServer.ID() {
+			if projDbServer.ProjectItem.ID == dbServer.ID() {
 				for j, db := range project.DbServers[i].Databases {
 					if db.ID == latestDb.ID {
 						project.DbServers[i].Databases[j] = latestDb
@@ -122,9 +122,9 @@ func updateProjectWithDatabase(project *models.DataTugProject, envID string, dbS
 			}
 		}
 		project.DbServers = append(project.DbServers, &models.ProjDbServer{
-			ProjectEntity: models.ProjectEntity{ID: dbServer.ID()},
-			DbServer:      dbServer,
-			Databases:     models.Databases{latestDb},
+			ProjectItem: models.ProjectItem{ID: dbServer.ID()},
+			DbServer:    dbServer,
+			Databases:   models.Databases{latestDb},
 		})
 	ProjDbServerUpdate:
 	}
@@ -146,12 +146,12 @@ func newProjectWithDatabase(environment string, dbServer models.DbServer, databa
 		},
 		DbModels: models.DbModels{
 			&models.DbModel{
-				ProjectEntity: models.ProjectEntity{ID: database.DbModel},
+				ProjectItem: models.ProjectItem{ID: database.DbModel},
 			},
 		},
 		Environments: models.Environments{
 			{
-				ProjectEntity: models.ProjectEntity{ID: environment},
+				ProjectItem: models.ProjectItem{ID: environment},
 				DbServers: []*models.EnvDbServer{
 					{
 						DbServer:  dbServer,
@@ -162,8 +162,8 @@ func newProjectWithDatabase(environment string, dbServer models.DbServer, databa
 		},
 		DbServers: models.ProjDbServers{
 			{
-				ProjectEntity: models.ProjectEntity{ID: dbServer.ID()},
-				DbServer:      dbServer,
+				ProjectItem: models.ProjectItem{ID: dbServer.ID()},
+				DbServer:    dbServer,
 				Databases: models.Databases{
 					database,
 				},
@@ -217,7 +217,7 @@ func updateDbModelWithDatabase(envID string, dbModel *models.DbModel, database *
 			}
 		}
 		schemaModel = &models.SchemaModel{
-			ProjectEntity: schema.ProjectEntity,
+			ProjectItem: schema.ProjectItem,
 		}
 		dbModel.Schemas = append(dbModel.Schemas, schemaModel)
 	UpdateSchemaModel:

@@ -6,13 +6,13 @@ import (
 
 // EnvironmentSummary holds environment summary
 type EnvironmentSummary struct {
-	models.ProjectEntity
+	models.ProjectItem
 	Servers   []models.EnvDbServer `json:"servers"`
 	Databases []EnvDb              `json:"databases"`
 }
 
 // EnvDb hold info about DB in specific environment
 type EnvDb struct {
-	models.ProjectEntity
+	models.ProjectItem
 	Server models.DbServer `json:"server"`
 }

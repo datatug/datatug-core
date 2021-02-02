@@ -6,18 +6,10 @@ import (
 )
 
 func init() {
-	datasetsCmd, err := Parser.AddCommand("datasets",
+	_, err := Parser.AddCommand("datasets",
 		"Lists datasets if no sub-command provided",
 		"Lists datasets if no sub-command provided",
 		&datasetsCommand{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	datasetsCmd.SubcommandsOptional = true
-	_, err = datasetsCmd.AddCommand("show",
-		"Shows dataset data",
-		"Shows dataset data",
-		&showDatasetsCommand{})
 	if err != nil {
 		log.Fatal(err)
 	}

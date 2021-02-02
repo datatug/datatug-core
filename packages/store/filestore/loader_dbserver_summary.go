@@ -41,7 +41,7 @@ func loadDatabasesForDbServerSummary(dbServerPath string, dbsByEnv map[string][]
 		databases = make([]dto.DatabaseSummary, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
 		databases[i] = dto.DatabaseSummary{
-			ProjectEntity: models.ProjectEntity{ID: f.Name()},
+			ProjectItem: models.ProjectItem{ID: f.Name()},
 		}
 		for env, dbs := range dbsByEnv {
 			if slice.IndexOfString(dbs, databases[i].ID) >= 0 {

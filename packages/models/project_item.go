@@ -6,10 +6,10 @@ import (
 	"strings"
 )
 
-// ProjectEntity base class with ID and Title
-type ProjectEntity struct {
-	ID    string `json:"id,omitempty" firestore:"id,omitempty"`
-	Title string `json:"title,omitempty" firestore:"title,omitempty"`
+// ProjectItem base class with ID and Title
+type ProjectItem struct {
+	ID    string `json:"id,omitempty" firestore:"id,omitempty" yaml:"id"`
+	Title string `json:"title,omitempty" firestore:"title,omitempty" yaml:"title,omitempty"`
 }
 
 // MaxTitleLength defines maximum length of a title = 100
@@ -29,7 +29,7 @@ func validateStringField(name, value string, isRequired bool, maxLen int) error 
 }
 
 // Validate return error if not valid
-func (v ProjectEntity) Validate(isTitleRequired bool) error {
+func (v ProjectItem) Validate(isTitleRequired bool) error {
 	if v.ID == "" {
 		return validation.NewErrRecordIsMissingRequiredField("id")
 	}

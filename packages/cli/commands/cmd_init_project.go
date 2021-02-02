@@ -90,7 +90,7 @@ func (v *initProjectCommand) Execute(_ []string) (err error) {
 		Access: "private",
 		//Environments: []*models.Environment{
 		//	{
-		//		ProjectEntity: models.ProjectEntity{ID: v.Environment},
+		//		ProjectItem: models.ProjectItem{ID: v.Environment},
 		//		DbServers: []*models.EnvDbServer{
 		//			{
 		//				Driver:    v.Driver,

@@ -53,13 +53,13 @@ type TableModelColumnsFile struct {
 
 // DbModelFile defines what to store to dbmodel file
 type DbModelFile struct {
-	models.ProjectEntity
+	models.ProjectItem
 	Environments models.DbModelEnvironments `json:"environments,omitempty"`
 }
 
 // ProjDbServerFile stores info about project DB server
 type ProjDbServerFile struct {
-	models.ProjectEntity
+	models.ProjectItem
 }
 
 // DatabaseFile defines metadata to be stored in a JSON file in the db folder
