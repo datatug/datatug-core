@@ -24,7 +24,7 @@ func init() {
 // scanDbCommand defines parameters for scan command
 type scanDbCommand struct {
 	projectBaseCommand
-	Driver      string `short:"d" long:"driver" required:"true" description:"Supported values: sqlserver."`
+	Driver      string `long:"driver" required:"true" description:"Supported values: sqlserver."`
 	Host        string `short:"s" long:"server" required:"true" default:"localhost" description:"Network server name."`
 	Port        int    `long:"port" description:"DbServer network port, if not specified default is used."`
 	User        string `short:"u" long:"user" description:"User name to login to DB."`
