@@ -23,7 +23,7 @@ func init() {
 
 // scanDbCommand defines parameters for scan command
 type scanDbCommand struct {
-	ProjectDir  string `short:"t" long:"directory"  required:"true" description:"Path to DataTug project directory."`
+	projectBaseCommand
 	Driver      string `short:"d" long:"driver" required:"true" description:"Supported values: sqlserver."`
 	Host        string `short:"s" long:"server" required:"true" default:"localhost" description:"Network server name."`
 	Port        int    `long:"port" description:"DbServer network port, if not specified default is used."`
@@ -38,6 +38,9 @@ var scanDb scanDbCommand
 
 // Execute executes scan command
 func (v *scanDbCommand) Execute(_ []string) (err error) {
+	if err = v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
+		return err
+	}
 	log.Println("Initiating project...")
 	if _, err := os.Stat(v.ProjectDir); os.IsNotExist(err) {
 		return err
@@ -45,17 +48,15 @@ func (v *scanDbCommand) Execute(_ []string) (err error) {
 
 	connString := execute.NewConnectionString(v.Host, v.User, v.Password, v.Database, v.Port)
 
-	loader, projectID := filestore.NewSingleProjectLoader(v.ProjectDir)
-
 	var dataTugProject *models.DataTugProject
-	if dataTugProject, err = api.UpdateDbSchema(loader, projectID, v.Environment, v.Driver, v.DbModel, connString); err != nil {
+	if dataTugProject, err = api.UpdateDbSchema(v.loader, v.projectID, v.Environment, v.Driver, v.DbModel, connString); err != nil {
 		return err
 	}
 
 	log.Println("Saving project", dataTugProject.ID, "...")
-	store.Current, projectID = filestore.NewSingleProjectStore(v.ProjectDir, projectID)
+	store.Current, _ = filestore.NewSingleProjectStore(v.ProjectDir, v.projectID)
 	if err = store.Current.Save(*dataTugProject); err != nil {
-		err = fmt.Errorf("failed to save datatug project [%v]: %w", projectID, err)
+		err = fmt.Errorf("failed to save datatug project [%v]: %w", v.projectID, err)
 		return err
 	}
 

@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/store/filestore"
 	"log"
 )
 
@@ -24,10 +23,12 @@ type validateCommand struct {
 
 // Execute executes validate command
 func (v *validateCommand) Execute([]string) (err error) {
-	loader, projectID := filestore.NewSingleProjectLoader(v.ProjectDir)
+	if err = v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
+		return err
+	}
 
 	var project *models.DataTugProject
-	if project, err = loader.GetProject(projectID); err != nil {
+	if project, err = v.loader.GetProject(v.projectID); err != nil {
 		return fmt.Errorf("failed to load project from [%v]: %w", v.ProjectDir, err)
 	}
 	fmt.Println("Validating loaded project...")
