@@ -33,7 +33,7 @@ func (e Executor) Execute(request Request) (response Response, err error) {
 
 // ExecuteSingle executes single DB command
 func (e Executor) ExecuteSingle(command RequestCommand) (response Response, err error) {
-	var recordset Recordset
+	var recordset models.Recordset
 	if recordset, err = executeCommand(command, e.getDbByID); err != nil {
 		return
 	}
@@ -50,7 +50,7 @@ func (e Executor) executeMulti(request Request) (response Response, err error) {
 	for _, command := range request.Commands {
 		go func(cmd RequestCommand) {
 			var (
-				recordset  Recordset
+				recordset  models.Recordset
 				commandErr error
 			)
 			if recordset, commandErr = executeCommand(cmd, e.getDbByID); commandErr != nil {
@@ -69,7 +69,7 @@ func (e Executor) executeMulti(request Request) (response Response, err error) {
 	return
 }
 
-func executeCommand(command RequestCommand, getDbByID func(envID, dbID string) (*dto.EnvDb, error)) (recordset Recordset, err error) {
+func executeCommand(command RequestCommand, getDbByID func(envID, dbID string) (*dto.EnvDb, error)) (recordset models.Recordset, err error) {
 
 	var dbServer models.DbServer
 
@@ -127,7 +127,7 @@ func executeCommand(command RequestCommand, getDbByID func(envID, dbID string) (
 	}
 
 	for _, col := range columnTypes {
-		recordset.Columns = append(recordset.Columns, Column{
+		recordset.Columns = append(recordset.Columns, models.RecordsetColumn{
 			Name:   col.Name(),
 			DbType: col.DatabaseTypeName(),
 		})

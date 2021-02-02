@@ -10,9 +10,11 @@ import (
 // DatasetDefinition describes dataset
 type DatasetDefinition struct {
 	ProjectEntity
-	Type       string             `json:"type"` // Supported types: "recordset", "json"
+	Tags       []string           `json:"tags,omitempty"` // consider moving to ProjectEntity
+	Type       string             `json:"type"`           // Supported types: "recordset", "json"
 	JSONSchema string             `json:"jsonSchema,omitempty"`
 	Fields     RecordsetFieldDefs `json:"fields,omitempty"`
+	Files      []string           `json:"files,omitempty"`
 }
 
 type RecordsetFieldDefs []RecordsetFieldDef

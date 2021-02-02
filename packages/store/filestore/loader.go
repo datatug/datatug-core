@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"errors"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
@@ -265,4 +266,15 @@ func (loader fileSystemLoader) GetEnvironmentDb(projID, environmentID, databaseI
 	}
 	envDb.ID = databaseID
 	return
+}
+
+func (fileSystemLoader) LoadDatasets(projectID string) (datasets []models.DatasetDefinition, err error) {
+	return nil, errors.New("not implemented yet")
+}
+
+func (fileSystemLoader) LoadDatasetDefinition(projectID, datasetName string) (dataset *models.DatasetDefinition, err error) {
+	return nil, errors.New("not implemented yet")
+}
+func (fileSystemLoader) LoadRecordset(projectID, datasetName, fileName string) (recordset *models.Recordset, err error) {
+	return nil, errors.New("not implemented yet")
 }

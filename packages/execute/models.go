@@ -11,21 +11,8 @@ import (
 
 // Response holds execute response
 type Response struct {
-	Duration   time.Duration `json:"durationNanoseconds"`
-	Recordsets []Recordset   `json:"recordsets"`
-}
-
-// Recordset holds data & stats for recordset returned by executed command
-type Recordset struct {
-	Duration time.Duration   `json:"durationNanoseconds"`
-	Columns  []Column        `json:"columns"`
-	Rows     [][]interface{} `json:"rows"`
-}
-
-// Column describes column in a recordset
-type Column struct {
-	Name   string `json:"name"`
-	DbType string `json:"dbType"`
+	Duration   time.Duration      `json:"durationNanoseconds"`
+	Recordsets []models.Recordset `json:"recordsets"`
 }
 
 // Request defines what needs to be executed

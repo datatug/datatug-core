@@ -24,6 +24,10 @@ type Loader interface {
 	LoadEntity(projectID, entityID string) (entity models.Entity, err error)
 	LoadEntities(projectID string) (entities []models.Entity, err error)
 
+	LoadDatasets(projectID string) (datasets []models.DatasetDefinition, err error)
+	LoadDatasetDefinition(projectID, datasetName string) (dataset *models.DatasetDefinition, err error)
+	LoadRecordset(projectID, datasetName, fileName string) (recordset *models.Recordset, err error)
+
 	GetDbServerSummary(projectID string, dbServer models.DbServer) (summary *dto.ProjDbServerSummary, err error)
 }
 
