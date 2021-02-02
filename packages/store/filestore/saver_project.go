@@ -150,7 +150,7 @@ func (s FileSystemSaver) DeleteEntity(entityID string) error {
 func (s FileSystemSaver) saveProjectFile(project models.DataTugProject) error {
 
 	//var existingProject models.ProjectFile
-	//if err := loadFile(path.Join(s.path, DatatugFolder, ProjectSummaryFileName), false, &existingProject); err != nil {
+	//if err := readJsonFile(path.Join(s.path, DatatugFolder, ProjectSummaryFileName), false, &existingProject); err != nil {
 	//	return err
 	//}
 	projFile := models.ProjectFile{

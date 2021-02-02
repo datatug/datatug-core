@@ -1,7 +1,6 @@
 package filestore
 
 import (
-	"errors"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
@@ -122,7 +121,7 @@ func loadDbServer(driverDirPath, driver, serverName string) (dbServer *models.Pr
 	dbServerDirPath := path.Join(driverDirPath, serverName)
 	err = parallel.Run(
 		func() (err error) {
-			err = loadFile(path.Join(dbServerDirPath, fmt.Sprintf("%v.%v.json", driver, serverName)), true, dbServer)
+			err = readJsonFile(path.Join(dbServerDirPath, fmt.Sprintf("%v.%v.json", driver, serverName)), true, dbServer)
 			if err != nil {
 				err = fmt.Errorf("failed to load db server summary file: %w", err)
 			}
@@ -146,7 +145,7 @@ func (loader fileSystemLoader) LoadEntity(projID, entityID string) (entity model
 		return
 	}
 	fileName := path.Join(projPath, DatatugFolder, EntitiesFolder, fmt.Sprintf("%v.json", entityID))
-	if err = loadFile(fileName, true, &entity); err != nil {
+	if err = readJsonFile(fileName, true, &entity); err != nil {
 		err = fmt.Errorf("faile to load entity [%v] from project [%v]: %w", entityID, projID, err)
 		return
 	}
@@ -174,7 +173,7 @@ func (loader fileSystemLoader) LoadEntities(projID string) (entities []models.En
 		if !isEntityFile(f.Name()) {
 			return nil
 		}
-		if err = loadFile(path.Join(entitiesPath, f.Name()), true, &entities[i]); err != nil {
+		if err = readJsonFile(path.Join(entitiesPath, f.Name()), true, &entities[i]); err != nil {
 			err = fmt.Errorf("faile to load entity from file [%v] from project [%v]: %w", f.Name(), projID, err)
 			return
 		}
@@ -190,7 +189,7 @@ func (loader fileSystemLoader) LoadBoard(projID, boardID string) (board models.B
 		return
 	}
 	fileName := path.Join(projPath, DatatugFolder, BoardsFolder, fmt.Sprintf("%v.json", boardID))
-	if err = loadFile(fileName, true, &board); err != nil {
+	if err = readJsonFile(fileName, true, &board); err != nil {
 		err = fmt.Errorf("faile to load board [%v] from project [%v]: %w", boardID, projID, err)
 		return
 	}
@@ -213,7 +212,7 @@ func (loader fileSystemLoader) GetProjectSummary(projID string) (projectSummary 
 // LoadProjectFile loads project file
 func LoadProjectFile(projPath string) (v models.ProjectFile, err error) {
 	fileName := path.Join(projPath, DatatugFolder, ProjectSummaryFileName)
-	if err = loadFile(fileName, true, &v); os.IsNotExist(err) {
+	if err = readJsonFile(fileName, true, &v); os.IsNotExist(err) {
 		err = fmt.Errorf("%w: %v", models.ErrProjectDoesNotExist, err)
 	}
 	return
@@ -260,7 +259,7 @@ func (loader fileSystemLoader) GetEnvironmentDb(projID, environmentID, databaseI
 	}
 	filePath := path.Join(projPath, DatatugFolder, EnvironmentsFolder, environmentID, DatabasesFolder, databaseID, fmt.Sprintf("%v.db.json", databaseID))
 	envDb = new(dto.EnvDb)
-	if err = loadFile(filePath, true, envDb); err != nil {
+	if err = readJsonFile(filePath, true, envDb); err != nil {
 		err = fmt.Errorf("failed to load DB [%v] from env [%v] from project [%v]: %w", envDb, environmentID, projID, err)
 		return nil, err
 	}
@@ -268,24 +267,3 @@ func (loader fileSystemLoader) GetEnvironmentDb(projID, environmentID, databaseI
 	return
 }
 
-func (fileSystemLoader) LoadDatasets(projectID string) (datasets []models.DatasetDefinition, err error) {
-	return nil, errors.New("not implemented yet")
-}
-
-func (loader fileSystemLoader) LoadDatasetDefinition(projectID, datasetName string) (dataset *models.DatasetDefinition, err error) {
-	var projPath string
-	if projectID, projPath, err = loader.GetProjectPath(projectID); err != nil {
-		return
-	}
-	filePath := path.Join(projPath, DatatugFolder, DataFolder, datasetName, fmt.Sprintf(".%v.datatug.json", datasetName))
-	dataset = new(models.DatasetDefinition)
-	if err = loadFile(filePath, true, dataset); err != nil {
-		err = fmt.Errorf("failed to load dataset [%v] from project [%v]: %w", datasetName, projectID, err)
-		return nil, err
-	}
-	return
-}
-
-func (fileSystemLoader) LoadRecordset(projectID, datasetName, fileName string) (recordset *models.Recordset, err error) {
-	return nil, errors.New("not implemented yet")
-}

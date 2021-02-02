@@ -11,6 +11,7 @@ type Recordset struct {
 
 // RecordsetColumn describes column in a recordset
 type RecordsetColumn struct {
-	Name   string `json:"name"`
-	DbType string `json:"dbType"`
+	Name   string          `json:"name"`
+	DbType string          `json:"dbType"`
+	Meta   *EntityFieldRef `json:"meta"`
 }

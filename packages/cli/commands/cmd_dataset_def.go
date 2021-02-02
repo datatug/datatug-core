@@ -7,7 +7,6 @@ import (
 
 type datasetDefCommand struct {
 	datasetBaseCommand
-	Dataset string `long:"dataset" required:"true"`
 }
 
 // Execute command
