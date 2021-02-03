@@ -14,7 +14,7 @@ type projectDirCommand struct {
 // ProjectBaseCommand defines parameters for show project command
 type projectBaseCommand struct {
 	projectDirCommand
-	ProjectName string `short:"n" long:"name"  required:"false" description:"Project name"`
+	ProjectName string `short:"p" long:"project"  required:"false" description:"Project name"`
 	projectID   string
 	loader      store.Loader
 }

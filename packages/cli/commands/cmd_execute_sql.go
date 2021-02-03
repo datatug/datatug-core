@@ -29,9 +29,9 @@ func init() {
 type executeSQLCommand struct {
 	Driver       string `long:"driver" required:"true"`
 	Host         string `short:"t" long:"host" required:"true" default:"localhost"`
-	User         string `short:"u" long:"user"`
+	User         string `short:"U" long:"user"`
 	Port         string `long:"port"`
-	Password     string `short:"p" long:"password"`
+	Password     string `short:"P" long:"password"`
 	Schema       string `short:"s" long:"schema"`
 	CommandText  string `short:"q" long:"command-text" required:"true"`
 	OutputPath   string `short:"o" long:"output-path"`

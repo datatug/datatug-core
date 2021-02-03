@@ -27,8 +27,8 @@ type scanDbCommand struct {
 	Driver      string `long:"driver" required:"true" description:"Supported values: sqlserver."`
 	Host        string `short:"s" long:"server" required:"true" default:"localhost" description:"Network server name."`
 	Port        int    `long:"port" description:"DbServer network port, if not specified default is used."`
-	User        string `short:"u" long:"user" description:"User name to login to DB."`
-	Password    string `short:"p" long:"password" description:"Password to login to DB."`
+	User        string `short:"U" long:"user" description:"User name to login to DB."`
+	Password    string `short:"P" long:"password" description:"Password to login to DB."`
 	Database    string `long:"db" required:"true" description:"Name of database to be scanned."`
 	DbModel     string `long:"dbmodel" required:"false" description:"Name of DB model, is required for newly scanned databases."`
 	Environment string `long:"env" required:"true" description:"Specify environment the DB belongs to. E.g.: LOCAL, DEV, SIT, UAT, PERF, PROD."`
