@@ -70,6 +70,6 @@ func (loader fileSystemLoader) LoadRecordset(projectID, datasetName, fileName st
 		recordset.Rows = append(recordset.Rows, values)
 	}
 
-	recordset.Duration = time.Now().Sub(started)
+	recordset.Duration = time.Since(started)
 	return &recordset, nil
 }
