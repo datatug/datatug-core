@@ -7,14 +7,14 @@ import (
 
 func deleteItem(w http.ResponseWriter, request *http.Request, idParam string, del func(projectID string, id string) error) {
 	query := request.URL.Query()
-	projectID := query.Get("project")
+	projectID := query.Get(urlQueryParamProjectID)
 	id := query.Get(idParam)
 	err := del(projectID, id)
 	ReturnJSON(w, request, http.StatusOK, err, true)
 }
 
 func saveItem(w http.ResponseWriter, r *http.Request, target interface{}, saveFunc func(projectID string) error) {
-	projectID := r.URL.Query().Get("project")
+	projectID := r.URL.Query().Get(urlQueryParamProjectID)
 
 	decoder := json.NewDecoder(r.Body)
 

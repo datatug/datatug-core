@@ -47,6 +47,13 @@ func initRouter() {
 	handlerFunc(http.MethodPost, "/boards/create_board", endpoints.CreateBoard)
 	handlerFunc(http.MethodPut, "/boards/save_board", endpoints.SaveBoard)
 	handlerFunc(http.MethodDelete, "/boards/delete_board", endpoints.DeleteBoard)
+
+	handlerFunc(http.MethodGet, "/data/recordsets", endpoints.GetRecordsetsSummary)
+	handlerFunc(http.MethodGet, "/data/recordset_definition", endpoints.GetRecordsetDefinition)
+	handlerFunc(http.MethodGet, "/data/recordset_data", endpoints.GetRecordsetData)
+	handlerFunc(http.MethodPost, "/data/recordset_add_rows", endpoints.AddRowsToRecordset)
+	handlerFunc(http.MethodDelete, "/data/recordset_delete_rows", endpoints.DeleteRowsFromRecordset)
+	handlerFunc(http.MethodPut, "/data/recordset_update_rows", endpoints.UpdateRowsInRecordset)
 }
 
 // globalOptionsHandler handles OPTIONS requests

@@ -6,6 +6,7 @@ const (
 	DatatugFolder          = "datatug"
 	BoardsFolder           = "boards"
 	DataFolder             = "data"
+	RecordsetsFolder       = "recordsets"
 	DatabasesFolder        = "databases"
 	DbFolder               = "db"
 	DbModelsFolder         = "dbmodels"

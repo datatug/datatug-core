@@ -218,6 +218,14 @@ func LoadProjectFile(projPath string) (v models.ProjectFile, err error) {
 	return
 }
 
+func (loader fileSystemLoader) GetFolderPath(projectID string, folder ...string) (folderPath string, err error) {
+	_, projectPath, err := loader.GetProjectPath(projectID)
+	if err != nil {
+		return "", err
+	}
+	return path.Join(projectPath, DatatugFolder, path.Join(folder...)), nil
+}
+
 // GetProjectPath returns project path by project ID
 func (loader fileSystemLoader) GetProjectPath(projectID string) (projID string, projPath string, err error) {
 	if projectID == "" && len(projectPaths) == 1 {
@@ -266,4 +274,3 @@ func (loader fileSystemLoader) GetEnvironmentDb(projID, environmentID, databaseI
 	envDb.ID = databaseID
 	return
 }
-

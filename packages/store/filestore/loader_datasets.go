@@ -1,34 +1,66 @@
 package filestore
 
 import (
-	"errors"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
+	"github.com/strongo/validation"
+	"os"
 	"path"
+	"sync"
 	"time"
 )
 
-func (fileSystemLoader) LoadDatasets(projectID string) (datasets []models.DatasetDefinition, err error) {
-	return nil, errors.New("not implemented yet")
-}
-
-func (loader fileSystemLoader) LoadDatasetDefinition(projectID, datasetName string) (dataset *models.DatasetDefinition, err error) {
-	var projPath string
-	if projectID, projPath, err = loader.GetProjectPath(projectID); err != nil {
-		return
+func (loader fileSystemLoader) LoadRecordsetDefinitions(projectID string) (datasets []*models.RecordsetDefinition, err error) {
+	if projectID == "" {
+		return nil, validation.NewErrRequestIsMissingRequiredField("projectID")
 	}
-	filePath := path.Join(projPath, DatatugFolder, DataFolder, datasetName, fmt.Sprintf(".%v.datatug.json", datasetName))
-	dataset = new(models.DatasetDefinition)
-	if err = readJsonFile(filePath, true, dataset); err != nil {
-		err = fmt.Errorf("failed to load dataset [%v] from project [%v]: %w", datasetName, projectID, err)
+	recordsetsDirPath, err := loader.GetFolderPath(projectID, DataFolder, RecordsetsFolder)
+	if err != nil {
 		return nil, err
 	}
+	if err = loadDir(recordsetsDirPath, processDirs, func(files []os.FileInfo) {
+		datasets = make([]*models.RecordsetDefinition, 0, len(files))
+	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
+		datasetID := f.Name()
+		dataset, err := loader.LoadRecordsetDefinition(projectID, datasetID)
+		if err != nil {
+			return err
+		}
+		if err = dataset.Validate(); err != nil {
+			dataset.Errors = append(dataset.Errors, err.Error())
+		}
+		if mutex != nil {
+			mutex.Lock()
+		}
+		datasets = append(datasets, dataset)
+		if mutex != nil {
+			mutex.Unlock()
+		}
+		return nil
+	}); err != nil {
+		return datasets, err
+	}
+	return datasets, nil
+}
+
+func (loader fileSystemLoader) LoadRecordsetDefinition(projectID, recordsetID string) (dataset *models.RecordsetDefinition, err error) {
+	var recordsetsDirPath string
+	if recordsetsDirPath, err = loader.GetFolderPath(projectID, DataFolder, RecordsetsFolder); err != nil {
+		return
+	}
+	dataset = new(models.RecordsetDefinition)
+	filePath := path.Join(recordsetsDirPath, recordsetID, fmt.Sprintf(".%v.recordset.json", recordsetID))
+	if err = readJsonFile(filePath, true, dataset); err != nil {
+		err = fmt.Errorf("failed to load dataset [%v] from project [%v]: %w", recordsetID, projectID, err)
+		return nil, err
+	}
+	dataset.ID = recordsetID
 	return
 }
 
-func (loader fileSystemLoader) LoadRecordset(projectID, datasetName, fileName string) (*models.Recordset, error) {
+func (loader fileSystemLoader) LoadRecordsetData(projectID, datasetName, fileName string) (*models.Recordset, error) {
 	started := time.Now()
-	datasetDef, err := loader.LoadDatasetDefinition(projectID, datasetName)
+	datasetDef, err := loader.LoadRecordsetDefinition(projectID, datasetName)
 	if err != nil {
 		return nil, err
 	}
@@ -44,8 +76,8 @@ func (loader fileSystemLoader) LoadRecordset(projectID, datasetName, fileName st
 		return nil, err
 	}
 
-	recordset.Columns = make([]models.RecordsetColumn, len(datasetDef.Fields))
-	for i, field := range datasetDef.Fields {
+	recordset.Columns = make([]models.RecordsetColumn, len(datasetDef.Columns))
+	for i, field := range datasetDef.Columns {
 		recordset.Columns[i] = models.RecordsetColumn{
 			Name:   field.Name,
 			DbType: field.Type,

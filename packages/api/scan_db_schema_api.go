@@ -252,7 +252,7 @@ func updateSchemaModel(envID string, schemaModel *models.SchemaModel, dbSchema *
 				}
 				result = append(result, tableModel)
 			} else {
-				panic("not implemented")
+				panic(errNotImplementedYet)
 			}
 		}
 		return

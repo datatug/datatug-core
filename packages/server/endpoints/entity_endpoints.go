@@ -8,15 +8,15 @@ import (
 
 // GetEntity handles get entity endpoint
 func GetEntity(w http.ResponseWriter, request *http.Request) {
-	projectID := request.URL.Query().Get("project")
-	id := request.URL.Query().Get("id")
+	projectID := request.URL.Query().Get(urlQueryParamProjectID)
+	id := request.URL.Query().Get(urlQueryParamID)
 	v, err := api.GetEntity(projectID, id)
 	ReturnJSON(w, request, http.StatusOK, err, v)
 }
 
 // GetEntities returns list of project entities
 func GetEntities(w http.ResponseWriter, request *http.Request) {
-	projectID := request.URL.Query().Get("project")
+	projectID := request.URL.Query().Get(urlQueryParamProjectID)
 	v, err := api.GetAllEntities(projectID)
 	ReturnJSON(w, request, http.StatusOK, err, v)
 }

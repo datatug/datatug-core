@@ -8,11 +8,11 @@ import (
 func TestDatasetDefinition_Validate(t *testing.T) {
 	projectEntity := ProjectItem{
 		ID:    "dataset-id",
-		Title: "Dataset title",
+		Title: "DatasetDef title",
 	}
 	t.Run("should fail", func(t *testing.T) {
 		t.Run("no project entity", func(t *testing.T) {
-			datasetDef := DatasetDefinition{
+			datasetDef := RecordsetDefinition{
 				Type:       "json",
 				JSONSchema: "{}",
 			}
@@ -21,7 +21,7 @@ func TestDatasetDefinition_Validate(t *testing.T) {
 			}
 		})
 		t.Run("type field", func(t *testing.T) {
-			datasetDef := DatasetDefinition{
+			datasetDef := RecordsetDefinition{
 				ProjectItem: projectEntity,
 			}
 			if err := datasetDef.Validate(); err == nil {
@@ -30,7 +30,7 @@ func TestDatasetDefinition_Validate(t *testing.T) {
 		})
 		t.Run("type=json", func(t *testing.T) {
 			t.Run("no schema", func(t *testing.T) {
-				datasetDef := DatasetDefinition{
+				datasetDef := RecordsetDefinition{
 					ProjectItem: projectEntity,
 					Type:        "json",
 				}
@@ -47,7 +47,7 @@ func TestDatasetDefinition_Validate(t *testing.T) {
 	})
 	t.Run("should pass", func(t *testing.T) {
 		t.Run("type=recordset", func(t *testing.T) {
-			datasetDef := DatasetDefinition{
+			datasetDef := RecordsetDefinition{
 				ProjectItem: projectEntity,
 				Type:        "recordset",
 			}
@@ -56,7 +56,7 @@ func TestDatasetDefinition_Validate(t *testing.T) {
 			}
 		})
 		t.Run("type=json", func(t *testing.T) {
-			datasetDef := DatasetDefinition{
+			datasetDef := RecordsetDefinition{
 				ProjectItem: projectEntity,
 				Type:        "json",
 				JSONSchema:  "{}",

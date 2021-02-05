@@ -7,7 +7,7 @@ import (
 
 // GetProjectSummary a handler to return project summary
 func GetProjectSummary(w http.ResponseWriter, request *http.Request) {
-	id := request.URL.Query().Get("id")
+	id := request.URL.Query().Get(urlQueryParamID)
 	projectSummary, err := api.GetProjectSummary(id)
 	ReturnJSON(w, request, http.StatusOK, err, projectSummary)
 }

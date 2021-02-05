@@ -10,8 +10,8 @@ import (
 // GetBoard handles get board endpoint
 func GetBoard(w http.ResponseWriter, request *http.Request) {
 	query := request.URL.Query()
-	projectID := query.Get("project")
-	boardID := query.Get("id")
+	projectID := query.Get(urlQueryParamProjectID)
+	boardID := query.Get(urlQueryParamID)
 	board, err := api.GetBoard(projectID, boardID)
 	ReturnJSON(w, request, http.StatusOK, err, board)
 }

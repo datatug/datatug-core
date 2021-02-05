@@ -7,8 +7,8 @@ import (
 
 func init() {
 	datasetCmd, err := Parser.AddCommand("dataset",
-		"Dataset commands: def, data",
-		"Dataset commands: def, data",
+		"Recordset commands: def, data",
+		"Recordset commands: def, data",
 		&datasetCommand{})
 	if err != nil {
 		log.Fatal(err)
