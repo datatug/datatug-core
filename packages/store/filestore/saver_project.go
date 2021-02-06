@@ -212,7 +212,7 @@ func (s FileSystemSaver) saveProjectFile(project models.DataTugProject) error {
 		)
 	}
 	if err := s.writeProjectReadme(project); err != nil {
-		return fmt.Errorf("failed to write project README.md: %w", err)
+		return fmt.Errorf("failed to write project doc file: %w", err)
 	}
 	if err := s.putProjectFile(projFile); err != nil {
 		return fmt.Errorf("failed to save project file: %w", err)
