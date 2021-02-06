@@ -123,8 +123,10 @@ func (v RecordsetDefinition) Validate() error {
 		}
 		return nil
 	}
-	if err := validateKeyColumnNames("primaryKey", v.PrimaryKey.Columns); err != nil {
-		return err
+	if v.PrimaryKey != nil {
+		if err := validateKeyColumnNames("primaryKey", v.PrimaryKey.Columns); err != nil {
+			return err
+		}
 	}
 	for k, fk := range v.AlternateKeys {
 		if err := validateKeyColumnNames(fmt.Sprintf("alternateKeys[%v]", k), fk.Columns); err != nil {
