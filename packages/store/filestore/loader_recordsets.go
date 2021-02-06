@@ -1,16 +1,19 @@
 package filestore
 
 import (
+	"errors"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/strongo/validation"
 	"os"
 	"path"
+	"path/filepath"
 	"sync"
 	"time"
 )
 
-func (loader fileSystemLoader) LoadRecordsetDefinitions(projectID string) (datasets []*models.RecordsetDefinition, err error) {
+// LoadRecordsetDefinitions returns flat list of recordsets that might be stored in a tree structure directories
+func (loader fileSystemLoader) LoadRecordsetDefinitions(projectID string) (recordsetDefs []*models.RecordsetDefinition, err error) {
 	if projectID == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("projectID")
 	}
@@ -18,12 +21,32 @@ func (loader fileSystemLoader) LoadRecordsetDefinitions(projectID string) (datas
 	if err != nil {
 		return nil, err
 	}
-	if err = loadDir(recordsetsDirPath, processDirs, func(files []os.FileInfo) {
-		datasets = make([]*models.RecordsetDefinition, 0, len(files))
+	return loader.loadRecordsetsDir(projectID, "", recordsetsDirPath)
+}
+
+func (loader fileSystemLoader) loadRecordsetsDir(projectID, folder, dirPath string) (recordsetDefs []*models.RecordsetDefinition, err error) {
+	if err := loadDir(nil, dirPath, processDirs, func(files []os.FileInfo) {
+		recordsetDefs = make([]*models.RecordsetDefinition, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
-		datasetID := f.Name()
-		dataset, err := loader.LoadRecordsetDefinition(projectID, datasetID)
-		if err != nil {
+		recordsetID := f.Name() // directory name
+		dataset, err := loader.loadRecordsetDefinition(dirPath, folder, recordsetID, projectID)
+		if err != nil { // there is no ".<recordsetID>.recordset.json" file in the dir, might be a folder of recordsets
+			if errors.Is(err, os.ErrNotExist) {
+				subRecordsets, err := loader.loadRecordsetsDir(projectID, path.Join(folder, recordsetID), path.Join(dirPath, recordsetID))
+				if err != nil {
+					return err
+				}
+				if len(subRecordsets) > 0 {
+					if mutex != nil {
+						mutex.Lock()
+					}
+					recordsetDefs = append(recordsetDefs, subRecordsets...)
+					if mutex != nil {
+						mutex.Unlock()
+					}
+				}
+				return nil
+			}
 			return err
 		}
 		if err = dataset.Validate(); err != nil {
@@ -32,15 +55,15 @@ func (loader fileSystemLoader) LoadRecordsetDefinitions(projectID string) (datas
 		if mutex != nil {
 			mutex.Lock()
 		}
-		datasets = append(datasets, dataset)
+		recordsetDefs = append(recordsetDefs, dataset)
 		if mutex != nil {
 			mutex.Unlock()
 		}
 		return nil
 	}); err != nil {
-		return datasets, err
+		return recordsetDefs, err
 	}
-	return datasets, nil
+	return recordsetDefs, nil
 }
 
 func (loader fileSystemLoader) LoadRecordsetDefinition(projectID, recordsetID string) (dataset *models.RecordsetDefinition, err error) {
@@ -48,13 +71,26 @@ func (loader fileSystemLoader) LoadRecordsetDefinition(projectID, recordsetID st
 	if recordsetsDirPath, err = loader.GetFolderPath(projectID, DataFolder, RecordsetsFolder); err != nil {
 		return
 	}
+	folder := filepath.Dir(recordsetID)
+	if len(folder) > 0 {
+		recordsetID = recordsetID[len(folder)+1:]
+	}
+	dirPath := path.Join(recordsetsDirPath, folder)
+	return loader.loadRecordsetDefinition(dirPath, folder, recordsetID, projectID)
+}
+
+func (loader fileSystemLoader) loadRecordsetDefinition(dirPath, folder, recordsetID, projectID string) (dataset *models.RecordsetDefinition, err error) {
 	dataset = new(models.RecordsetDefinition)
-	filePath := path.Join(recordsetsDirPath, recordsetID, fmt.Sprintf(".%v.recordset.json", recordsetID))
+	filePath := path.Join(dirPath, recordsetID, fmt.Sprintf(".%v.recordset.json", recordsetID))
 	if err = readJsonFile(filePath, true, dataset); err != nil {
 		err = fmt.Errorf("failed to load dataset [%v] from project [%v]: %w", recordsetID, projectID, err)
 		return nil, err
 	}
-	dataset.ID = recordsetID
+	if folder == "" {
+		dataset.ID = recordsetID
+	} else {
+		dataset.ID = path.Join(folder, recordsetID)
+	}
 	return
 }
 

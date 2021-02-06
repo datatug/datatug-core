@@ -6,10 +6,11 @@ import (
 	"github.com/datatug/datatug/packages/server/dto"
 	"github.com/datatug/datatug/packages/store"
 	"github.com/strongo/validation"
+	"strings"
 )
 
 // GetBoard returns board by ID
-func GetRecordsetsSummary(projectID string) ([]dto.ProjRecordsetSummary, error) {
+func GetRecordsetsSummary(projectID string) (*dto.ProjRecordsetSummary, error) {
 	if projectID == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("project")
 	}
@@ -17,8 +18,17 @@ func GetRecordsetsSummary(projectID string) ([]dto.ProjRecordsetSummary, error) 
 	if err != nil {
 		return nil, err
 	}
-	datasets := make([]dto.ProjRecordsetSummary, 0, len(datasetDefinitions))
+	root := dto.ProjRecordsetSummary{ID: "/"}
 	for _, dsDef := range datasetDefinitions {
+		dsPath := strings.Split(dsDef.ID, "/")
+
+		var folder *dto.ProjRecordsetSummary
+		if len(dsPath) > 1 {
+			folder = getRecordsetFolder(&root, dsPath[1:])
+		} else {
+			folder = &root
+		}
+
 		ds := dto.ProjRecordsetSummary{
 			ID:    dsDef.ID,
 			Title: dsDef.Title,
@@ -28,9 +38,27 @@ func GetRecordsetsSummary(projectID string) ([]dto.ProjRecordsetSummary, error) 
 			ds.Columns = append(ds.Columns, col.Name)
 		}
 
-		datasets = append(datasets, ds)
+		folder.Recordsets = append(folder.Recordsets, &ds)
 	}
-	return datasets, err
+	return &root, err
+}
+
+func getRecordsetFolder(folder *dto.ProjRecordsetSummary, paths []string) *dto.ProjRecordsetSummary {
+	if len(paths) == 0 {
+		return folder
+	}
+	for _, p := range paths {
+		for _, rs := range folder.Recordsets {
+			if rs.ID == p {
+				folder = rs
+				continue
+			}
+		}
+		newFolder := &dto.ProjRecordsetSummary{ID: p}
+		folder.Recordsets = append(folder.Recordsets, newFolder)
+		folder = newFolder
+	}
+	return folder
 }
 
 // GetDatasetDefinition returns definition of a dataset by ID

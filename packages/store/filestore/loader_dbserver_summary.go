@@ -37,7 +37,7 @@ func loadDbServerForDbServerSummary(projPath string, dbServer models.DbServer) (
 
 func loadDatabasesForDbServerSummary(dbServerPath string, dbsByEnv map[string][]string) (databases []dto.DatabaseSummary, err error) {
 	databasesPath := path.Join(dbServerPath, "databases")
-	err = loadDir(databasesPath, processDirs, func(files []os.FileInfo) {
+	err = loadDir(nil, databasesPath, processDirs, func(files []os.FileInfo) {
 		databases = make([]dto.DatabaseSummary, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
 		databases[i] = dto.DatabaseSummary{
@@ -68,7 +68,7 @@ func loadDatabasesForDbServerSummary(dbServerPath string, dbsByEnv map[string][]
 
 func loadServerDatabaseNamesByEnvironments(projPath string, dbServer models.DbServer) (dbsByEnv map[string][]string, err error) {
 	envsPath := path.Join(projPath, "environments")
-	err = loadDir(envsPath, processDirs, func(files []os.FileInfo) {
+	err = loadDir(nil, envsPath, processDirs, func(files []os.FileInfo) {
 		dbsByEnv = make(map[string][]string, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
 		env := f.Name()

@@ -76,7 +76,7 @@ func (loader fileSystemLoader) GetProject(projID string) (project *models.DataTu
 
 func loadDbDrivers(projPath string) (dbServers models.ProjDbServers, err error) {
 	dbServersPath := path.Join(projPath, DatatugFolder, ServersFolder, DbFolder)
-	if err = loadDir(dbServersPath, processDirs, func(files []os.FileInfo) {
+	if err = loadDir(nil, dbServersPath, processDirs, func(files []os.FileInfo) {
 		dbServers = make(models.ProjDbServers, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 		dbDriver, err := loadDbDriver(dbServersPath, f.Name())
@@ -95,7 +95,7 @@ func loadDbDrivers(projPath string) (dbServers models.ProjDbServers, err error) 
 
 func loadDbDriver(dbServersPath, driverName string) (dbServers models.ProjDbServers, err error) {
 	driverDirPath := path.Join(dbServersPath, driverName)
-	if err = loadDir(driverDirPath, processDirs, func(files []os.FileInfo) {
+	if err = loadDir(nil, driverDirPath, processDirs, func(files []os.FileInfo) {
 		dbServers = make(models.ProjDbServers, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
 		var dbServer *models.ProjDbServer
@@ -161,7 +161,7 @@ func (loader fileSystemLoader) LoadEntities(projID string) (entities []models.En
 	isEntityFile := func(fileName string) bool {
 		return strings.HasSuffix(fileName, ".json")
 	}
-	err = loadDir(entitiesPath, processFiles, func(files []os.FileInfo) {
+	err = loadDir(nil, entitiesPath, processFiles, func(files []os.FileInfo) {
 		count := 0
 		for _, f := range files {
 			if isEntityFile(f.Name()) {

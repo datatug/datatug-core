@@ -113,7 +113,7 @@ func (s FileSystemSaver) DeleteEntity(entityID string) error {
 		}
 
 		var entityIds []string
-		if err := loadDir(s.entitiesDirPath(), processFiles, func(files []os.FileInfo) {
+		if err := loadDir(nil, s.entitiesDirPath(), processFiles, func(files []os.FileInfo) {
 			entityIds = make([]string, 0, len(files))
 		}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
 			fileName := f.Name()

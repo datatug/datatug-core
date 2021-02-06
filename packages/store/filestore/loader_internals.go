@@ -18,7 +18,7 @@ func loadProjectFile(projPath string, project *models.DataTugProject) (err error
 
 func loadEnvironments(projPath string, project *models.DataTugProject) (err error) {
 	envsDirPath := path.Join(projPath, DatatugFolder, EnvironmentsFolder)
-	err = loadDir(envsDirPath, processDirs, func(files []os.FileInfo) {
+	err = loadDir(nil, envsDirPath, processDirs, func(files []os.FileInfo) {
 		project.Environments = make(models.Environments, 0, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) (err error) {
 		env := &models.Environment{
@@ -46,6 +46,7 @@ const (
 )
 
 func loadDir(
+	mutex *sync.Mutex, // pass null by default unless you want to use existing shared mutex
 	dirPath string,
 	filter process,
 	init func(files []os.FileInfo),
@@ -53,7 +54,6 @@ func loadDir(
 ) (err error) {
 	//log.Println("Loading dir:", dirPath)
 	var dir *os.File
-	var mutex sync.Mutex
 	if dir, err = os.Open(dirPath); err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -67,13 +67,16 @@ func loadDir(
 	}
 	workers := make([]func() error, 0, len(files))
 	j := 0
+	if mutex == nil {
+		mutex = new(sync.Mutex)
+	}
 	for i := range files {
 		file := files[i]
 		isDir := file.IsDir()
 		if isDir && filter&processDirs == processDirs || !isDir && filter&processFiles == processFiles {
 			k := j
 			workers = append(workers, func() error {
-				return loader(file, k, &mutex)
+				return loader(file, k, mutex)
 			})
 			j++
 		}
@@ -89,7 +92,7 @@ func loadDir(
 
 func loadBoards(projPath string, project *models.DataTugProject) (err error) {
 	boardsDirPath := path.Join(projPath, DatatugFolder, "boards")
-	if err = loadDir(boardsDirPath, processFiles,
+	if err = loadDir(nil, boardsDirPath, processFiles,
 		func(files []os.FileInfo) {
 			project.Boards = make(models.Boards, len(files))
 		},
@@ -118,7 +121,7 @@ func loadBoards(projPath string, project *models.DataTugProject) (err error) {
 
 func loadEntities(projPath string, project *models.DataTugProject) error {
 	entitiesDirPath := path.Join(projPath, DatatugFolder, "entities")
-	if err := loadDir(entitiesDirPath, processDirs,
+	if err := loadDir(nil, entitiesDirPath, processDirs,
 		func(files []os.FileInfo) {
 			project.Entities = make(models.Entities, 0, len(files))
 		},
@@ -152,7 +155,7 @@ func loadEntities(projPath string, project *models.DataTugProject) error {
 
 func loadDbModels(projPath string, project *models.DataTugProject) error {
 	dbModelsDirPath := path.Join(projPath, DatatugFolder, "dbmodels")
-	if err := loadDir(dbModelsDirPath, processDirs,
+	if err := loadDir(nil, dbModelsDirPath, processDirs,
 		func(files []os.FileInfo) {
 			project.DbModels = make(models.DbModels, 0, len(files))
 		},
@@ -189,7 +192,7 @@ func loadDbModel(dbModelsDirPath, id string) (dbModel *models.DbModel, err error
 			return err
 		},
 		func() (err error) {
-			return loadDir(dbModelDirPath, processDirs,
+			return loadDir(nil, dbModelDirPath, processDirs,
 				func(files []os.FileInfo) {
 					dbModel.Schemas = make([]*models.SchemaModel, 0, len(files))
 				},
@@ -214,7 +217,7 @@ func loadSchemaModel(dbModelDirPath, schemaID string) (schemaModel *models.Schem
 	loadTableModels := func(dir, dbType string) (tables models.TableModels, err error) {
 		dirPath := path.Join(schemaDirPath, dir)
 
-		err = loadDir(dirPath, processDirs, func(files []os.FileInfo) {
+		err = loadDir(nil, dirPath, processDirs, func(files []os.FileInfo) {
 			tables = make(models.TableModels, len(files))
 		}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
 			tables[i], err = loadTableModel(f.Name())
@@ -253,7 +256,7 @@ func loadEnvironment(dirPath string, env *models.Environment) (err error) {
 }
 
 func loadEnvServers(dirPath string, env *models.Environment) error {
-	return loadDir(dirPath, processFiles, func(files []os.FileInfo) {
+	return loadDir(nil, dirPath, processFiles, func(files []os.FileInfo) {
 		env.DbServers = make([]*models.EnvDbServer, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 		fileName := f.Name()
@@ -268,7 +271,7 @@ func loadEnvServers(dirPath string, env *models.Environment) error {
 }
 
 func loadDatabases(dirPath string, dbServer *models.ProjDbServer) (err error) {
-	return loadDir(dirPath, processDirs, func(files []os.FileInfo) {
+	return loadDir(nil, dirPath, processDirs, func(files []os.FileInfo) {
 		dbServer.Databases = make(models.Databases, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
 		id := f.Name()
@@ -290,7 +293,7 @@ func loadDatabase(dirPath string, db *models.Database) (err error) {
 	}
 
 	schemasDirPath := path.Join(dirPath, "schemas")
-	return loadDir(schemasDirPath, processDirs, func(files []os.FileInfo) {
+	return loadDir(nil, schemasDirPath, processDirs, func(files []os.FileInfo) {
 		db.Schemas = make(models.DbSchemas, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
 		db.Schemas[i], err = loadSchema(schemasDirPath, f.Name())
@@ -346,7 +349,7 @@ func loadTables(schemasDirPath, schema, folder string) (tables models.Tables, er
 	//if dirs, err = getSortedSubDirNames(dirPath); err != nil {
 	//	return err
 	//}
-	err = loadDir(dirPath, processDirs,
+	err = loadDir(nil, dirPath, processDirs,
 		func(files []os.FileInfo) {
 			tables = make(models.Tables, len(files))
 		}, func(f os.FileInfo, i int, _ *sync.Mutex) (err error) {
