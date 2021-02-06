@@ -1,5 +1,6 @@
 package dto
 
+// ProjRecordsetSummary holds summary info about recordset definition
 type ProjRecordsetSummary struct {
 	ID         string                 `json:"id"`
 	//

@@ -66,6 +66,7 @@ func (loader fileSystemLoader) loadRecordsetsDir(projectID, folder, dirPath stri
 	return recordsetDefs, nil
 }
 
+// LoadRecordsetDefinition loads recordset definition
 func (loader fileSystemLoader) LoadRecordsetDefinition(projectID, recordsetID string) (dataset *models.RecordsetDefinition, err error) {
 	var recordsetsDirPath string
 	if recordsetsDirPath, err = loader.GetFolderPath(projectID, DataFolder, RecordsetsFolder); err != nil {
@@ -94,6 +95,7 @@ func (loader fileSystemLoader) loadRecordsetDefinition(dirPath, folder, recordse
 	return
 }
 
+// LoadRecordsetData loads recordset data
 func (loader fileSystemLoader) LoadRecordsetData(projectID, datasetName, fileName string) (*models.Recordset, error) {
 	started := time.Now()
 	datasetDef, err := loader.LoadRecordsetDefinition(projectID, datasetName)

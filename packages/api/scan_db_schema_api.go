@@ -16,8 +16,10 @@ import (
 
 // ProjectLoader defines an interface to load project info
 type ProjectLoader interface {
-	GetProjectSummary(id string) (projectSummary models.ProjectSummary, err error)
-	GetProject(id string) (project *models.DataTugProject, err error)
+	// Loads project summary
+	LoadProjectSummary(id string) (projectSummary models.ProjectSummary, err error)
+	// Loads the whole project
+	LoadProject(id string) (project *models.DataTugProject, err error)
 }
 
 // UpdateDbSchema updates DB schema
@@ -27,7 +29,7 @@ func UpdateDbSchema(loader ProjectLoader, projectID, environment, driver, dbMode
 	)
 	var projSummaryErr error
 	getProjectSummaryWorker := func() error {
-		_, projSummaryErr = loader.GetProjectSummary(projectID)
+		_, projSummaryErr = loader.LoadProjectSummary(projectID)
 		if models.ProjectDoesNotExist(projSummaryErr) {
 			return nil
 		}
@@ -60,7 +62,7 @@ func UpdateDbSchema(loader ProjectLoader, projectID, environment, driver, dbMode
 		}
 	} else {
 		log.Printf("Loading existign project...")
-		if project, err = loader.GetProject(projectID); err != nil {
+		if project, err = loader.LoadProject(projectID); err != nil {
 			err = fmt.Errorf("failed to load DataTug project: %w", err)
 			return
 		}

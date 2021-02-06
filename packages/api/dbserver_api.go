@@ -26,6 +26,6 @@ func GetDbServerSummary(projID string, dbServer models.DbServer) (summary *dto.P
 		err = validation.NewBadRequestError(err)
 		return
 	}
-	summary, err = store.Current.GetDbServerSummary(projID, dbServer)
+	summary, err = store.Current.LoadDbServerSummary(projID, dbServer)
 	return
 }

@@ -13,7 +13,7 @@ import (
 )
 
 // GetDbServerSummary returns ProjDbServerSummary
-func (loader fileSystemLoader) GetDbServerSummary(projID string, dbServer models.DbServer) (summary *dto.ProjDbServerSummary, err error) {
+func (loader fileSystemLoader) LoadDbServerSummary(projID string, dbServer models.DbServer) (summary *dto.ProjDbServerSummary, err error) {
 	if projID == "" && len(projectPaths) == 1 {
 		projID = store.SingleProjectID
 	}

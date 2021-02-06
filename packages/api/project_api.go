@@ -18,11 +18,11 @@ func GetProjectSummary(id string) (*models.ProjectSummary, error) {
 	if id == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("id")
 	}
-	projectSummary, err := store.Current.GetProjectSummary(id)
+	projectSummary, err := store.Current.LoadProjectSummary(id)
 	return &projectSummary, err
 }
 
 // GetProjectFull returns full project metadata
 func GetProjectFull(id string) (project *models.DataTugProject, err error) {
-	return store.Current.GetProject(id)
+	return store.Current.LoadProject(id)
 }

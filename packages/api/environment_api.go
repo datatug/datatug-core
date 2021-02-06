@@ -14,6 +14,6 @@ func GetEnvironmentSummary(projID, envID string) (envSummary *dto.EnvironmentSum
 	if envID == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("envID")
 	}
-	summary, err := store.Current.GetEnvironmentSummary(projID, envID)
+	summary, err := store.Current.LoadEnvironmentSummary(projID, envID)
 	return &summary, err
 }

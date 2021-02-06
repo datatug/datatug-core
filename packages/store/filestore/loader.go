@@ -19,7 +19,7 @@ type fileSystemLoader struct {
 }
 
 // GetEnvironmentDbSummary return DB summary for specific environment
-func (loader fileSystemLoader) GetEnvironmentDbSummary(projectID, environmentID, databaseID string) (dto.DatabaseSummary, error) {
+func (loader fileSystemLoader) LoadEnvironmentDbSummary(projectID, environmentID, databaseID string) (dto.DatabaseSummary, error) {
 	panic(fmt.Sprintf("implement me: %v, %v, %v", projectID, environmentID, databaseID))
 }
 
@@ -36,8 +36,8 @@ func NewSingleProjectLoader(path string) (loader store.Loader, projectID string)
 	return newLoader(map[string]string{store.SingleProjectID: path}), store.SingleProjectID
 }
 
-// GetProject loads project
-func (loader fileSystemLoader) GetProject(projID string) (project *models.DataTugProject, err error) {
+// LoadProject loads project
+func (loader fileSystemLoader) LoadProject(projID string) (project *models.DataTugProject, err error) {
 	var projPath string
 	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
 		return
@@ -196,8 +196,8 @@ func (loader fileSystemLoader) LoadBoard(projID, boardID string) (board models.B
 	return
 }
 
-// GetProjectSummary loads project summary
-func (loader fileSystemLoader) GetProjectSummary(projID string) (projectSummary models.ProjectSummary, err error) {
+// LoadProjectSummary loads project summary
+func (loader fileSystemLoader) LoadProjectSummary(projID string) (projectSummary models.ProjectSummary, err error) {
 	var projPath string
 	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
 		return
@@ -242,7 +242,7 @@ func (loader fileSystemLoader) GetProjectPath(projectID string) (projID string, 
 }
 
 // GetEnvironmentSummary loads environment summary
-func (loader fileSystemLoader) GetEnvironmentSummary(projID, envID string) (envSummary dto.EnvironmentSummary, err error) {
+func (loader fileSystemLoader) LoadEnvironmentSummary(projID, envID string) (envSummary dto.EnvironmentSummary, err error) {
 	var projPath string
 	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
 		return
@@ -260,7 +260,7 @@ func (loader fileSystemLoader) GetEnvironmentSummary(projID, envID string) (envS
 }
 
 // GetEnvironmentDb return information about environment DB
-func (loader fileSystemLoader) GetEnvironmentDb(projID, environmentID, databaseID string) (envDb *dto.EnvDb, err error) {
+func (loader fileSystemLoader) LoadEnvironmentDb(projID, environmentID, databaseID string) (envDb *dto.EnvDb, err error) {
 	var projPath string
 	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
 		return
