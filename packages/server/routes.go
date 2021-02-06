@@ -24,18 +24,21 @@ func initRouter() {
 	router.GlobalOPTIONS = http.HandlerFunc(globalOptionsHandler)
 	handlerFunc(http.MethodGet, "/ping", endpoints.Ping)
 
+	handlerFunc(http.MethodGet, "/", root)
+
 	handlerFunc(http.MethodGet, "/projects", endpoints.GetProjects)
 	handlerFunc(http.MethodGet, "/project-summary", endpoints.GetProjectSummary)
-	handlerFunc(http.MethodGet, "/", root)
+	handlerFunc(http.MethodGet, "/project-full", endpoints.GetProjectFull)
+
+	handlerFunc(http.MethodGet, "/environment-summary", endpoints.GetEnvironmentSummary)
 
 	handlerFunc(http.MethodPost, "/dbserver-add", endpoints.AddDbServer)
 	handlerFunc(http.MethodDelete, "/dbserver-delete", endpoints.DeleteDbServer)
 	handlerFunc(http.MethodGet, "/dbserver-summary", endpoints.GetDbServerSummary)
 	handlerFunc(http.MethodGet, "/dbserver-databases", endpoints.GetServerDatabases)
-	handlerFunc(http.MethodGet, "/project-full", endpoints.GetProjectFull)
-	handlerFunc(http.MethodGet, "/environment-summary", endpoints.GetEnvironmentSummary)
-	handlerFunc(http.MethodPost, "/execute", endpoints.ExecuteCommandsHandler)
-	handlerFunc(http.MethodGet, "/select", endpoints.ExecuteSelectHandler)
+
+	handlerFunc(http.MethodPost, "/exec/execute", endpoints.ExecuteCommandsHandler)
+	handlerFunc(http.MethodGet, "/exec/select", endpoints.ExecuteSelectHandler)
 
 	handlerFunc(http.MethodGet, "/entities/all_entities", endpoints.GetEntities)
 	handlerFunc(http.MethodGet, "/entities/entity", endpoints.GetEntity)
@@ -48,12 +51,12 @@ func initRouter() {
 	handlerFunc(http.MethodPut, "/boards/save_board", endpoints.SaveBoard)
 	handlerFunc(http.MethodDelete, "/boards/delete_board", endpoints.DeleteBoard)
 
-	handlerFunc(http.MethodGet, "/data/recordsets", endpoints.GetRecordsetsSummary)
+	handlerFunc(http.MethodGet, "/data/recordsets_summary", endpoints.GetRecordsetsSummary)
 	handlerFunc(http.MethodGet, "/data/recordset_definition", endpoints.GetRecordsetDefinition)
 	handlerFunc(http.MethodGet, "/data/recordset_data", endpoints.GetRecordsetData)
 	handlerFunc(http.MethodPost, "/data/recordset_add_rows", endpoints.AddRowsToRecordset)
-	handlerFunc(http.MethodDelete, "/data/recordset_delete_rows", endpoints.DeleteRowsFromRecordset)
 	handlerFunc(http.MethodPut, "/data/recordset_update_rows", endpoints.UpdateRowsInRecordset)
+	handlerFunc(http.MethodDelete, "/data/recordset_delete_rows", endpoints.DeleteRowsFromRecordset)
 }
 
 // globalOptionsHandler handles OPTIONS requests
