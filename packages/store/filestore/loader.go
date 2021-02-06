@@ -121,7 +121,7 @@ func loadDbServer(driverDirPath, driver, serverName string) (dbServer *models.Pr
 	dbServerDirPath := path.Join(driverDirPath, serverName)
 	err = parallel.Run(
 		func() (err error) {
-			err = readJsonFile(path.Join(dbServerDirPath, fmt.Sprintf("%v.%v.json", driver, serverName)), true, dbServer)
+			err = readJSONFile(path.Join(dbServerDirPath, fmt.Sprintf("%v.%v.json", driver, serverName)), true, dbServer)
 			if err != nil {
 				err = fmt.Errorf("failed to load db server summary file: %w", err)
 			}
@@ -145,7 +145,7 @@ func (loader fileSystemLoader) LoadEntity(projID, entityID string) (entity model
 		return
 	}
 	fileName := path.Join(projPath, DatatugFolder, EntitiesFolder, fmt.Sprintf("%v.json", entityID))
-	if err = readJsonFile(fileName, true, &entity); err != nil {
+	if err = readJSONFile(fileName, true, &entity); err != nil {
 		err = fmt.Errorf("faile to load entity [%v] from project [%v]: %w", entityID, projID, err)
 		return
 	}
@@ -173,7 +173,7 @@ func (loader fileSystemLoader) LoadEntities(projID string) (entities []models.En
 		if !isEntityFile(f.Name()) {
 			return nil
 		}
-		if err = readJsonFile(path.Join(entitiesPath, f.Name()), true, &entities[i]); err != nil {
+		if err = readJSONFile(path.Join(entitiesPath, f.Name()), true, &entities[i]); err != nil {
 			err = fmt.Errorf("faile to load entity from file [%v] from project [%v]: %w", f.Name(), projID, err)
 			return
 		}
@@ -189,7 +189,7 @@ func (loader fileSystemLoader) LoadBoard(projID, boardID string) (board models.B
 		return
 	}
 	fileName := path.Join(projPath, DatatugFolder, BoardsFolder, fmt.Sprintf("%v.json", boardID))
-	if err = readJsonFile(fileName, true, &board); err != nil {
+	if err = readJSONFile(fileName, true, &board); err != nil {
 		err = fmt.Errorf("faile to load board [%v] from project [%v]: %w", boardID, projID, err)
 		return
 	}
@@ -212,7 +212,7 @@ func (loader fileSystemLoader) LoadProjectSummary(projID string) (projectSummary
 // LoadProjectFile loads project file
 func LoadProjectFile(projPath string) (v models.ProjectFile, err error) {
 	fileName := path.Join(projPath, DatatugFolder, ProjectSummaryFileName)
-	if err = readJsonFile(fileName, true, &v); os.IsNotExist(err) {
+	if err = readJSONFile(fileName, true, &v); os.IsNotExist(err) {
 		err = fmt.Errorf("%w: %v", models.ErrProjectDoesNotExist, err)
 	}
 	return
@@ -267,7 +267,7 @@ func (loader fileSystemLoader) LoadEnvironmentDb(projID, environmentID, database
 	}
 	filePath := path.Join(projPath, DatatugFolder, EnvironmentsFolder, environmentID, DatabasesFolder, databaseID, fmt.Sprintf("%v.db.json", databaseID))
 	envDb = new(dto.EnvDb)
-	if err = readJsonFile(filePath, true, envDb); err != nil {
+	if err = readJSONFile(filePath, true, envDb); err != nil {
 		err = fmt.Errorf("failed to load DB [%v] from env [%v] from project [%v]: %w", envDb, environmentID, projID, err)
 		return nil, err
 	}

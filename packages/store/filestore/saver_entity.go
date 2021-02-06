@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-func (s FileSystemSaver) saveEntities(entities models.Entities) (err error) {
+func (s fileSystemSaver) saveEntities(entities models.Entities) (err error) {
 	return s.saveItems(EntitiesFolder, len(entities), func(i int) func() error {
 		return func() error {
 			return s.SaveEntity(entities[i])
@@ -15,8 +15,8 @@ func (s FileSystemSaver) saveEntities(entities models.Entities) (err error) {
 }
 
 // SaveEntity saves entity
-func (s FileSystemSaver) SaveEntity(entity *models.Entity) (err error) {
-	log.Printf("FileSystemSaver.SaveEntity: %+v", entity)
+func (s fileSystemSaver) SaveEntity(entity *models.Entity) (err error) {
+	log.Printf("fileSystemSaver.SaveEntity: %+v", entity)
 	if err = s.updateProjectFileWithEntity(*entity); err != nil {
 		return fmt.Errorf("failed to update project file with entity: %w", err)
 	}

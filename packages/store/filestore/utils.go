@@ -7,11 +7,12 @@ import (
 	"os"
 )
 
+// Decoder decodes
 type Decoder interface {
 	Decode(o interface{}) error
 }
 
-func readJsonFile(filePath string, required bool, o interface{}) (err error) {
+func readJSONFile(filePath string, required bool, o interface{}) (err error) {
 	jsonDecoderFactory := func(r io.Reader) Decoder {
 		return json.NewDecoder(r)
 	}

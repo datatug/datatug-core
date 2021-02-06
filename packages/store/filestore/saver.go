@@ -2,6 +2,7 @@ package filestore
 
 import (
 	"github.com/datatug/datatug/packages/models"
+	"github.com/datatug/datatug/packages/models2md"
 	"github.com/datatug/datatug/packages/store"
 	"github.com/strongo/validation"
 	"log"
@@ -13,14 +14,14 @@ type storeSaver struct {
 
 var _ store.Saver = (*storeSaver)(nil)
 
-func (saver storeSaver) newProjectSaver(projID string) (projSaver FileSystemSaver, err error) {
+func (saver storeSaver) newProjectSaver(projID string) (projSaver fileSystemSaver, err error) {
 	projPath, knownProjID := saver.pathByID[projID]
 	if !knownProjID {
 		err = validation.NewErrBadRequestFieldValue("projectID", "unknown project ID")
 		return
 	}
 	log.Println("Saving to: ", projPath)
-	projSaver = FileSystemSaver{path: projPath}
+	projSaver = newSaver(projPath, models2md.NewEncoder())
 	return
 }
 func (saver storeSaver) Save(project models.DataTugProject) (err error) {

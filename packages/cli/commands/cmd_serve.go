@@ -32,7 +32,7 @@ type serveCommand struct {
 	Host      string `short:"h" long:"host"`
 	Port      int    `short:"o" long:"port" default:"8989"`
 	Dev       bool   `long:"dev"`
-	ClientUrl string `long:"client-url"`
+	ClientURL string `long:"client-url"`
 }
 
 // Execute executes serve command
@@ -60,8 +60,8 @@ func (v *serveCommand) Execute(_ []string) (err error) {
 		v.Host = "localhost"
 	}
 
-	if v.ClientUrl == "" {
-		v.ClientUrl = "http://localhost:8100"
+	if v.ClientURL == "" {
+		v.ClientURL = "http://localhost:8100"
 	}
 
 	var agent string
@@ -71,7 +71,7 @@ func (v *serveCommand) Execute(_ []string) (err error) {
 		agent = fmt.Sprintf("%v:%v", v.Host, v.Port)
 	}
 
-	url := v.ClientUrl + "/agent/" + agent
+	url := v.ClientURL + "/agent/" + agent
 
 	if err := openBrowser(url); err != nil {
 		_, _ = fmt.Printf("failed to open browser with URl=%v: %v", url, err)

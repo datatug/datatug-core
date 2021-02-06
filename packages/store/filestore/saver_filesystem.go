@@ -3,19 +3,29 @@ package filestore
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
 	"log"
 	"os"
 	"path"
 )
 
-// FileSystemSaver saves or updates DataTug project
-type FileSystemSaver struct {
+// fileSystemSaver saves or updates DataTug project
+type fileSystemSaver struct {
 	// pathByID map[string]string
-	path string
+	path          string
+	readmeEncoder models.ReadmeEncoder
 }
 
-func (s FileSystemSaver) saveJSONFile(dirPath, fileName string, v interface{}) (err error) {
+// newSaver creates a new project saver
+func newSaver(path string, readmeEncoder models.ReadmeEncoder) fileSystemSaver {
+	return fileSystemSaver{
+		path:          path,
+		readmeEncoder: readmeEncoder,
+	}
+}
+
+func (s fileSystemSaver) saveJSONFile(dirPath, fileName string, v interface{}) (err error) {
 	if err = os.MkdirAll(dirPath, os.ModeDir); err != nil {
 		return fmt.Errorf("failed to create boards folder: %w", err)
 	}
@@ -36,7 +46,7 @@ func (s FileSystemSaver) saveJSONFile(dirPath, fileName string, v interface{}) (
 }
 
 // Saves each item in a parallel
-func (s FileSystemSaver) saveItems(plural string, count int, getWorker func(i int) func() error) error {
+func (s fileSystemSaver) saveItems(plural string, count int, getWorker func(i int) func() error) error {
 	log.Printf("Saving %v %v...", count, plural)
 	switch count {
 	case 0:

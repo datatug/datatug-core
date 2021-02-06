@@ -47,8 +47,8 @@ func (v *projectBaseCommand) initProjectCommand(o projectCommandOptions) error {
 	if v.ProjectDir != "" && v.projectID == "" {
 		v.loader, v.projectID = filestore.NewSingleProjectLoader(v.ProjectDir)
 	} else {
-		pathsById := getProjPathsByID(config)
-		v.loader, err = filestore.NewStore(pathsById)
+		pathsByID := getProjPathsByID(config)
+		v.loader, err = filestore.NewStore(pathsByID)
 		if err != nil {
 			return err
 		}

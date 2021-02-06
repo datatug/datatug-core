@@ -4,11 +4,11 @@ import (
 	"github.com/datatug/datatug/packages/models"
 )
 
-func (s FileSystemSaver) loadProjectFile() (v models.ProjectFile, err error) {
+func (s fileSystemSaver) loadProjectFile() (v models.ProjectFile, err error) {
 	return LoadProjectFile(s.path)
 }
 
-func (s FileSystemSaver) updateProjectFileWithBoard(board models.Board) (err error) {
+func (s fileSystemSaver) updateProjectFileWithBoard(board models.Board) (err error) {
 	projFile, err := s.loadProjectFile()
 	if err != nil {
 		return err
@@ -32,7 +32,7 @@ SAVED:
 	return err
 }
 
-func (s FileSystemSaver) updateProjectFileWithEntity(entity models.Entity) (err error) {
+func (s fileSystemSaver) updateProjectFileWithEntity(entity models.Entity) (err error) {
 	projFile, err := s.loadProjectFile()
 	if err != nil {
 		return err
@@ -56,7 +56,7 @@ SAVED:
 }
 
 /*
-func (s FileSystemSaver) updateProjectFileDeleteEntity(id string) (err error) {
+func (s fileSystemSaver) updateProjectFileDeleteEntity(id string) (err error) {
 	// Almost duplicates updateProjectFileDeleteBoard and other deletes
 	projFile, err := s.loadProjectFile()
 	if err != nil {
@@ -78,7 +78,7 @@ func (s FileSystemSaver) updateProjectFileDeleteEntity(id string) (err error) {
 	return err
 }
 
-func (s FileSystemSaver) updateProjectFileDeleteBoard(id string) (err error) {
+func (s fileSystemSaver) updateProjectFileDeleteBoard(id string) (err error) {
 	// Almost duplicates updateProjectFileDeleteEntity and other deletes
 	projFile, err := s.loadProjectFile()
 	if err != nil {

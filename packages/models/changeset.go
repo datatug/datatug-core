@@ -6,6 +6,7 @@ type ChangesetDef struct {
 	Datasets []ChangesetRefToDataset `json:"datasets"`
 }
 
+// ChangesetRefToDataset defines a reference to a dataset
 type ChangesetRefToDataset struct {
 	ID       string `json:"id"`
 	Required bool   `json:"required"`

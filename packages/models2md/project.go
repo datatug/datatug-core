@@ -7,7 +7,8 @@ import (
 	"strings"
 )
 
-func EncodeProjectSummary(w io.Writer, project models.DataTugProject) error {
+// EncodeProjectSummary encodes project summary to markdown file format
+func (encoder) EncodeProjectSummary(w io.Writer, project models.DataTugProject) error {
 	dbModels := make([]string, len(project.DbModels))
 	for i, dbModel := range project.DbModels {
 		dbModels[i] = fmt.Sprintf("- [%v](dbmodels/%v)", dbModel.ID, dbModel.ID)

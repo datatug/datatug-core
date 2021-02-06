@@ -66,6 +66,7 @@ func GetRecordsetData(w http.ResponseWriter, r *http.Request) {
 	ReturnJSON(w, r, http.StatusOK, err, recordset)
 }
 
+// AddRowsToRecordset adds rows to a recordset
 func AddRowsToRecordset(w http.ResponseWriter, r *http.Request) {
 	var err error
 	params, err := getRecordsetDataParams(r)
@@ -90,6 +91,7 @@ func AddRowsToRecordset(w http.ResponseWriter, r *http.Request) {
 	ReturnJSON(w, r, http.StatusCreated, err, numberOfRecords)
 }
 
+// DeleteRowsFromRecordset deletes rows from a recordset
 func DeleteRowsFromRecordset(w http.ResponseWriter, r *http.Request) {
 	params, err := getRecordsetDataParams(r)
 	if err != nil {
@@ -105,6 +107,7 @@ func DeleteRowsFromRecordset(w http.ResponseWriter, r *http.Request) {
 	ReturnJSON(w, r, http.StatusCreated, err, numberOfRecords)
 }
 
+// UpdateRowsInRecordset updates rows in a recordset
 func UpdateRowsInRecordset(w http.ResponseWriter, r *http.Request) {
 	params, err := getRecordsetDataParams(r)
 	if err != nil {

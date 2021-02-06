@@ -14,7 +14,7 @@ import (
 )
 
 // Save saves project
-func (s FileSystemSaver) Save(project models.DataTugProject) (err error) {
+func (s fileSystemSaver) Save(project models.DataTugProject) (err error) {
 	if err = project.Validate(); err != nil {
 		return fmt.Errorf("project validation failed: %w", err)
 	}
@@ -43,7 +43,7 @@ func (s FileSystemSaver) Save(project models.DataTugProject) (err error) {
 }
 
 // SaveBoard saves board
-func (s FileSystemSaver) SaveBoard(board models.Board) (err error) {
+func (s fileSystemSaver) SaveBoard(board models.Board) (err error) {
 	if err = s.updateProjectFileWithBoard(board); err != nil {
 		return fmt.Errorf("failed to update project file with board: %w", err)
 	}
@@ -59,18 +59,18 @@ func (s FileSystemSaver) SaveBoard(board models.Board) (err error) {
 	return err
 }
 
-func (s FileSystemSaver) putProjectFile(projFile models.ProjectFile) error {
+func (s fileSystemSaver) putProjectFile(projFile models.ProjectFile) error {
 	if err := projFile.Validate(); err != nil {
 		return fmt.Errorf("invalid project file: %w", err)
 	}
 	return s.saveJSONFile(path.Join(s.path, DatatugFolder), ProjectSummaryFileName, projFile)
 }
 
-func (s FileSystemSaver) boardsDirPath() string {
+func (s fileSystemSaver) boardsDirPath() string {
 	return path.Join(s.path, DatatugFolder, BoardsFolder)
 }
 
-func (s FileSystemSaver) entitiesDirPath() string {
+func (s fileSystemSaver) entitiesDirPath() string {
 	return path.Join(s.path, DatatugFolder, EntitiesFolder)
 }
 
@@ -83,7 +83,7 @@ func projItemFileName(id, prefix string) string {
 }
 
 // DeleteBoard deletes board
-func (s FileSystemSaver) DeleteBoard(boardID string) error {
+func (s fileSystemSaver) DeleteBoard(boardID string) error {
 	filePath := path.Join(s.boardsDirPath(), projItemFileName(boardID, BoardPrefix))
 	if _, err := os.Stat(filePath); err != nil {
 		if os.IsNotExist(err) {
@@ -95,7 +95,7 @@ func (s FileSystemSaver) DeleteBoard(boardID string) error {
 }
 
 // DeleteEntity deletes entity
-func (s FileSystemSaver) DeleteEntity(entityID string) error {
+func (s fileSystemSaver) DeleteEntity(entityID string) error {
 	deleteFile := func() (err error) {
 		filePath := path.Join(s.entitiesDirPath(), projItemFileName(entityID, EntityPrefix))
 		if _, err := os.Stat(filePath); err != nil {
@@ -147,10 +147,10 @@ func (s FileSystemSaver) DeleteEntity(entityID string) error {
 	return nil
 }
 
-func (s FileSystemSaver) saveProjectFile(project models.DataTugProject) error {
+func (s fileSystemSaver) saveProjectFile(project models.DataTugProject) error {
 
 	//var existingProject models.ProjectFile
-	//if err := readJsonFile(path.Join(s.path, DatatugFolder, ProjectSummaryFileName), false, &existingProject); err != nil {
+	//if err := readJSONFile(path.Join(s.path, DatatugFolder, ProjectSummaryFileName), false, &existingProject); err != nil {
 	//	return err
 	//}
 	projFile := models.ProjectFile{
@@ -220,7 +220,7 @@ func (s FileSystemSaver) saveProjectFile(project models.DataTugProject) error {
 	return nil
 }
 
-func (s FileSystemSaver) saveEnvironments(project models.DataTugProject) (err error) {
+func (s fileSystemSaver) saveEnvironments(project models.DataTugProject) (err error) {
 	return s.saveItems("environments", len(project.Environments), func(i int) func() error {
 		return func() error {
 			return s.saveEnvironment(*project.Environments[i])
@@ -228,7 +228,7 @@ func (s FileSystemSaver) saveEnvironments(project models.DataTugProject) (err er
 	})
 }
 
-func (s FileSystemSaver) saveDbModels(dbModels models.DbModels) (err error) {
+func (s fileSystemSaver) saveDbModels(dbModels models.DbModels) (err error) {
 	return s.saveItems(DbModelsFolder, len(dbModels), func(i int) func() error {
 		return func() error {
 			return s.saveDbModel(dbModels[i])
@@ -236,7 +236,7 @@ func (s FileSystemSaver) saveDbModels(dbModels models.DbModels) (err error) {
 	})
 }
 
-func (s FileSystemSaver) saveDbModel(dbModel *models.DbModel) (err error) {
+func (s fileSystemSaver) saveDbModel(dbModel *models.DbModel) (err error) {
 	if err = dbModel.Validate(); err != nil {
 		return err
 	}
@@ -256,7 +256,7 @@ func (s FileSystemSaver) saveDbModel(dbModel *models.DbModel) (err error) {
 	)
 }
 
-func (s FileSystemSaver) saveBoards(boards models.Boards) (err error) {
+func (s fileSystemSaver) saveBoards(boards models.Boards) (err error) {
 	return s.saveItems(BoardsFolder, len(boards), func(i int) func() error {
 		return func() error {
 			return s.SaveBoard(*boards[i])
@@ -264,7 +264,7 @@ func (s FileSystemSaver) saveBoards(boards models.Boards) (err error) {
 	})
 }
 
-func (s FileSystemSaver) saveDbServers(dbServers models.ProjDbServers) (err error) {
+func (s fileSystemSaver) saveDbServers(dbServers models.ProjDbServers) (err error) {
 	return s.saveItems("dbservers", len(dbServers), func(i int) func() error {
 		return func() error {
 			return s.SaveDbServer(dbServers[i])
@@ -272,7 +272,7 @@ func (s FileSystemSaver) saveDbServers(dbServers models.ProjDbServers) (err erro
 	})
 }
 
-func (s FileSystemSaver) saveEnvironment(env models.Environment) (err error) {
+func (s fileSystemSaver) saveEnvironment(env models.Environment) (err error) {
 	log.Printf("Saving environment: %v", env.ID)
 	dirPath := path.Join(s.path, DatatugFolder, EnvironmentsFolder, env.ID)
 	if err = os.MkdirAll(dirPath, os.ModeDir); err != nil {
@@ -294,7 +294,7 @@ func (s FileSystemSaver) saveEnvironment(env models.Environment) (err error) {
 	)
 }
 
-func (s FileSystemSaver) saveEnvServers(env string, servers []*models.EnvDbServer) (err error) {
+func (s fileSystemSaver) saveEnvServers(env string, servers []*models.EnvDbServer) (err error) {
 	dirPath := path.Join(s.path, DatatugFolder, EnvironmentsFolder, env, ServersFolder, DbFolder)
 	if err = os.MkdirAll(dirPath, os.ModeDir); err != nil {
 		return fmt.Errorf("failed to create environment servers folder: %w", err)
@@ -310,7 +310,7 @@ func (s FileSystemSaver) saveEnvServers(env string, servers []*models.EnvDbServe
 	})
 }
 
-func (s FileSystemSaver) saveDatabases(dbServer models.DbServer, databases []*models.Database) (err error) {
+func (s fileSystemSaver) saveDatabases(dbServer models.DbServer, databases []*models.Database) (err error) {
 	return s.saveItems("databases", len(databases), func(i int) func() error {
 		return func() error {
 			return s.saveDatabase(dbServer, databases[i])
@@ -318,7 +318,7 @@ func (s FileSystemSaver) saveDatabases(dbServer models.DbServer, databases []*mo
 	})
 }
 
-func (s FileSystemSaver) saveDatabase(dbServer models.DbServer, database *models.Database) (err error) {
+func (s fileSystemSaver) saveDatabase(dbServer models.DbServer, database *models.Database) (err error) {
 	if database == nil {
 		return errors.New("database is nil")
 	}
@@ -348,11 +348,11 @@ func (s FileSystemSaver) saveDatabase(dbServer models.DbServer, database *models
 	)
 }
 
-//func (s FileSystemSaver) createStrFile() io.StringWriter {
+//func (s fileSystemSaver) createStrFile() io.StringWriter {
 //
 //}
 //
-//func (s FileSystemSaver) getDatabasesReadme(project DataTugProject) (content bytes.Buffer, err error) {
+//func (s fileSystemSaver) getDatabasesReadme(project DataTugProject) (content bytes.Buffer, err error) {
 //
 //	_, err = w.WriteString("# DatabaseDiffs\n\n")
 //	l, err := f.WriteString("Hello World")
@@ -364,12 +364,12 @@ func (s FileSystemSaver) saveDatabase(dbServer models.DbServer, database *models
 //	return err
 //}
 //
-//func (s FileSystemSaver) writeDatabaseReadme(database *schemer.Database, dbDirPath string) (err error) {
+//func (s fileSystemSaver) writeDatabaseReadme(database *schemer.Database, dbDirPath string) (err error) {
 //
 //	return err
 //}
 
-func (s FileSystemSaver) saveSchemaModels(dirPath string, schemas []*models.SchemaModel) error {
+func (s fileSystemSaver) saveSchemaModels(dirPath string, schemas []*models.SchemaModel) error {
 	return s.saveItems("schemaModel", len(schemas), func(i int) func() error {
 		return func() error {
 			schema := schemas[i]
@@ -382,7 +382,7 @@ func (s FileSystemSaver) saveSchemaModels(dirPath string, schemas []*models.Sche
 	})
 }
 
-func (s FileSystemSaver) saveSchemaModel(schemaDirPath string, schema models.SchemaModel) error {
+func (s fileSystemSaver) saveSchemaModel(schemaDirPath string, schema models.SchemaModel) error {
 	saveTables := func(plural string, tables []*models.TableModel) func() error {
 		dirPath := path.Join(schemaDirPath, plural)
 		return func() error {
@@ -399,7 +399,7 @@ func (s FileSystemSaver) saveSchemaModel(schemaDirPath string, schema models.Sch
 	)
 }
 
-func (s FileSystemSaver) saveDbSchemas(dirPath string, schemas []*models.DbSchema) error {
+func (s fileSystemSaver) saveDbSchemas(dirPath string, schemas []*models.DbSchema) error {
 	return s.saveItems("schemas", len(schemas), func(i int) func() error {
 		return func() error {
 			schema := schemas[i]
@@ -408,7 +408,7 @@ func (s FileSystemSaver) saveDbSchemas(dirPath string, schemas []*models.DbSchem
 	})
 }
 
-func (s FileSystemSaver) saveDbSchema(schemaDirPath string, dbSchema *models.DbSchema) error {
+func (s fileSystemSaver) saveDbSchema(schemaDirPath string, dbSchema *models.DbSchema) error {
 	return parallel.Run(
 		func() error {
 			return s.saveTables(schemaDirPath, TablesFolder, dbSchema.Tables)
@@ -419,7 +419,7 @@ func (s FileSystemSaver) saveDbSchema(schemaDirPath string, dbSchema *models.DbS
 	)
 }
 
-func (s FileSystemSaver) saveTables(schemaDirPath, plural string, tables []*models.Table) error {
+func (s fileSystemSaver) saveTables(schemaDirPath, plural string, tables []*models.Table) error {
 	dirPath := path.Join(schemaDirPath, plural)
 	if len(tables) > 0 {
 		if err := os.MkdirAll(dirPath, os.ModeDir); err != nil {
@@ -434,7 +434,7 @@ func (s FileSystemSaver) saveTables(schemaDirPath, plural string, tables []*mode
 	})
 }
 
-func (s FileSystemSaver) saveTableModel(dirPath string, table models.TableModel) error {
+func (s fileSystemSaver) saveTableModel(dirPath string, table models.TableModel) error {
 	tableDirPath := path.Join(dirPath, table.Name)
 	if err := os.MkdirAll(tableDirPath, os.ModeDir); err != nil {
 		return err
@@ -461,7 +461,7 @@ func (s FileSystemSaver) saveTableModel(dirPath string, table models.TableModel)
 
 }
 
-func (s FileSystemSaver) saveToFile(tableDirPath, fileName string, data interface{}) func() error {
+func (s fileSystemSaver) saveToFile(tableDirPath, fileName string, data interface{}) func() error {
 	return func() (err error) {
 		if err = s.saveJSONFile(tableDirPath, fileName, data); err != nil {
 			return fmt.Errorf("failed to write json to file %v: %w", fileName, err)
@@ -470,7 +470,7 @@ func (s FileSystemSaver) saveToFile(tableDirPath, fileName string, data interfac
 	}
 }
 
-func (s FileSystemSaver) saveTable(dirPath string, table *models.Table) (err error) {
+func (s fileSystemSaver) saveTable(dirPath string, table *models.Table) (err error) {
 	tableDirPath := path.Join(dirPath, table.Name)
 	if err = os.MkdirAll(tableDirPath, os.ModeDir); err != nil {
 		return err

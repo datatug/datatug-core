@@ -13,7 +13,7 @@ import (
 
 func loadProjectFile(projPath string, project *models.DataTugProject) (err error) {
 	filePath := path.Join(projPath, DatatugFolder, ProjectSummaryFileName)
-	return readJsonFile(filePath, true, project)
+	return readJSONFile(filePath, true, project)
 }
 
 func loadEnvironments(projPath string, project *models.DataTugProject) (err error) {
@@ -109,7 +109,7 @@ func loadBoards(projPath string, project *models.DataTugProject) (err error) {
 			}
 			project.Boards[i] = board
 			fileName := path.Join(boardsDirPath, board.ID)
-			if err = readJsonFile(fileName, true, board); err != nil {
+			if err = readJSONFile(fileName, true, board); err != nil {
 				return err
 			}
 			return nil
@@ -140,7 +140,7 @@ func loadEntities(projPath string, project *models.DataTugProject) error {
 			entityFileName := projItemFileName(entity.ID, EntityPrefix)
 			project.Entities = append(project.Entities, entity)
 			entityFilePath := path.Join(entitiesDirPath, entityFileName)
-			if err := readJsonFile(entityFilePath, true, entity); err != nil {
+			if err := readJSONFile(entityFilePath, true, entity); err != nil {
 				return err
 			}
 			if entity.ID != entityID {
@@ -181,7 +181,7 @@ func loadDbModel(dbModelsDirPath, id string) (dbModel *models.DbModel, err error
 	return dbModel, parallel.Run(
 		func() (err error) {
 			fileName := path.Join(dbModelDirPath, id+".dbmodel.json")
-			if err = readJsonFile(fileName, true, dbModel); err != nil {
+			if err = readJSONFile(fileName, true, dbModel); err != nil {
 				return err
 			}
 			if dbModel.ID == "" {
@@ -241,7 +241,7 @@ func loadSchemaModel(dbModelDirPath, schemaID string) (schemaModel *models.Schem
 
 func loadEnvFile(envDirPath string, environment *models.Environment) (err error) {
 	filePath := path.Join(envDirPath, fmt.Sprintf("%v.environment.json", environment.ID))
-	return readJsonFile(filePath, true, environment)
+	return readJSONFile(filePath, true, environment)
 }
 
 func loadEnvironment(dirPath string, env *models.Environment) (err error) {
@@ -262,7 +262,7 @@ func loadEnvServers(dirPath string, env *models.Environment) error {
 		fileName := f.Name()
 		serverName := fileName[0:strings.Index(fileName, ".")]
 		server := models.EnvDbServer{DbServer: models.DbServer{Host: serverName}}
-		if err := readJsonFile(path.Join(dirPath, fileName), false, &server); err != nil {
+		if err := readJSONFile(path.Join(dirPath, fileName), false, &server); err != nil {
 			return err
 		}
 		env.DbServers = append(env.DbServers, &server)
@@ -288,7 +288,7 @@ func loadDatabases(dirPath string, dbServer *models.ProjDbServer) (err error) {
 func loadDatabase(dirPath string, db *models.Database) (err error) {
 	log.Println("Loading database", db.ID)
 	filePath := path.Join(dirPath, fmt.Sprintf("%v.db.json", db.ID))
-	if err = readJsonFile(filePath, false, db); err != nil {
+	if err = readJSONFile(filePath, false, db); err != nil {
 		return err
 	}
 
@@ -376,7 +376,7 @@ func loadTable(dirPath, schema, tableName string) (table *models.Table, err erro
 	table = new(models.Table)
 	loadTableFile := func(suffix string, required bool) (err error) {
 		filePath := path.Join(tableDirPath, prefix+suffix)
-		return readJsonFile(filePath, required, table)
+		return readJSONFile(filePath, required, table)
 	}
 	suffixes := []string{
 		"json",

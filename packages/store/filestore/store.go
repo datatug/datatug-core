@@ -33,8 +33,8 @@ func (store FileSystemStore) GetProjects() (projectBriefs []models.ProjectBrief,
 }
 
 // NewStore create a store for multiple projects by their dir paths
-func NewStore(pathsById map[string]string) (fsStore *FileSystemStore, err error) {
-	return newStore(pathsById), nil
+func NewStore(pathsByID map[string]string) (fsStore *FileSystemStore, err error) {
+	return newStore(pathsByID), nil
 }
 
 // newStore creates an instance of store that implements store.Interface

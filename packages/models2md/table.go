@@ -7,7 +7,8 @@ import (
 	"strings"
 )
 
-func EncodeTable(w io.Writer, table *models.Table) error {
+// EncodeTable encodes table summary to markdown file format
+func (encoder) EncodeTable(w io.Writer, table *models.Table) error {
 	var primaryKey string
 	if table.PrimaryKey == nil {
 		primaryKey = "*None*"
@@ -68,4 +69,3 @@ func EncodeTable(w io.Writer, table *models.Table) error {
 `, table.Schema, table.Name, primaryKey, foreignKeys, referencedBy, strings.Join(columns, "\n"))
 	return err
 }
-

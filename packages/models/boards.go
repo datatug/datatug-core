@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/strongo/validation"
 	"reflect"
+	"strings"
 )
 
 // Boards is a slice of *Board
@@ -106,6 +107,17 @@ func (v Parameters) Validate() error {
 type EntityFieldRef struct {
 	Entity string `json:"entity"`
 	Field  string `json:"field"`
+}
+
+// Validate returns error if not valid
+func (v EntityFieldRef) Validate() error {
+	if strings.TrimSpace(v.Entity) == "" {
+		return validation.NewErrRecordIsMissingRequiredField("entity")
+	}
+	if strings.TrimSpace(v.Field) == "" {
+		return validation.NewErrRecordIsMissingRequiredField("field")
+	}
+	return nil
 }
 
 // ParameterLookup holds definition for parameter lookup

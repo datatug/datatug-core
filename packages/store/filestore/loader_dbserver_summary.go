@@ -75,7 +75,7 @@ func loadServerDatabaseNamesByEnvironments(projPath string, dbServer models.DbSe
 		dbServersPath := path.Join(envsPath, env, "servers", "db")
 		filePath := path.Join(dbServersPath, fmt.Sprintf("%v.server.json", dbServer.FileName()))
 		var envDbServer = new(models.EnvDbServer)
-		if err = readJsonFile(filePath, false, envDbServer); err != nil {
+		if err = readJSONFile(filePath, false, envDbServer); err != nil {
 			return err
 		}
 		log.Println("file:", filePath)

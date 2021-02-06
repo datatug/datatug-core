@@ -10,7 +10,7 @@ import (
 )
 
 // SaveDbServer saves DbServer
-func (s FileSystemSaver) SaveDbServer(dbServer *models.ProjDbServer) (err error) {
+func (s fileSystemSaver) SaveDbServer(dbServer *models.ProjDbServer) (err error) {
 	return parallel.Run(
 		func() error {
 			dbServerDirPath := path.Join(s.path, "servers", "db", dbServer.DbServer.Driver, dbServer.DbServer.FileName())
@@ -31,7 +31,7 @@ func (s FileSystemSaver) SaveDbServer(dbServer *models.ProjDbServer) (err error)
 }
 
 // DeleteDbServer deletes DB server
-func (s FileSystemSaver) DeleteDbServer(dbServer models.DbServer) (err error) {
+func (s fileSystemSaver) DeleteDbServer(dbServer models.DbServer) (err error) {
 	dbServerDirPath := path.Join(s.path, "servers", "db", dbServer.Driver, dbServer.FileName())
 	log.Println("Deleting folder:", dbServerDirPath)
 	if err = os.RemoveAll(dbServerDirPath); err != nil {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/qri-io/jsonschema"
 	"github.com/strongo/validation"
+	"strings"
 	"time"
 )
 
@@ -35,13 +36,16 @@ type RecordsetDefinition struct {
 	AlternateKeys []AlternateKey      `json:"alternateKey,omitempty"`
 }
 
+// AlternateKey defines alternate (e.g. unique) key
 type AlternateKey struct {
 	ID      string
 	Columns []string
 }
 
+// RecordsetColumnDefs is a slice of RecordsetColumnDef
 type RecordsetColumnDefs []RecordsetColumnDef
 
+// HasColumn checks if set of columns has a column with a given name
 func (v RecordsetColumnDefs) HasColumn(name string) bool {
 	for _, c := range v {
 		if c.Name == name {
@@ -61,6 +65,7 @@ func (v RecordsetColumnDefs) Validate() error {
 	return nil
 }
 
+// RecordsetColumnDef defines a column of a recordset
 type RecordsetColumnDef struct {
 	Name     string          `json:"name"`
 	Type     string          `json:"type"`
@@ -68,7 +73,19 @@ type RecordsetColumnDef struct {
 	Meta     *EntityFieldRef `json:"meta,omitempty"`
 }
 
+// Validate returns error if not valid
 func (v RecordsetColumnDef) Validate() error {
+	if strings.TrimSpace(v.Name) == "" {
+		return validation.NewErrRecordIsMissingRequiredField("name")
+	}
+	if strings.TrimSpace(v.Type) == "" {
+		return validation.NewErrRecordIsMissingRequiredField("type")
+	}
+	if v.Meta != nil {
+		if err := v.Meta.Validate(); err != nil {
+			return validation.NewErrBadRecordFieldValue("meta", err.Error())
+		}
+	}
 	return nil
 }
 

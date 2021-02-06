@@ -75,6 +75,7 @@ func (v *datasetDataCommand) Execute([]string) error {
 	return writeRows(*recordset, encoder)
 }
 
+// Encoder defines interface to encode
 type Encoder interface {
 	Encode(v interface{}) error
 }
