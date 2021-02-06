@@ -131,7 +131,7 @@ func (v RecordsetDefinition) Validate() error {
 		return err
 	}
 	for k, fk := range v.AlternateKeys {
-		if err := validateKeyColumnNames(fmt.Sprintf("alternateKeys[%]", k), fk.Columns); err != nil {
+		if err := validateKeyColumnNames(fmt.Sprintf("alternateKeys[%v]", k), fk.Columns); err != nil {
 			return err
 		}
 	}
