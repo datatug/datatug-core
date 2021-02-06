@@ -18,7 +18,8 @@ func GetRecordsetsSummary(projectID string) (*dto.ProjRecordsetSummary, error) {
 	if err != nil {
 		return nil, err
 	}
-	root := dto.ProjRecordsetSummary{ID: "/"}
+	root := dto.ProjRecordsetSummary{}
+	root.ID = "/"
 	for _, dsDef := range datasetDefinitions {
 		dsPath := strings.Split(dsDef.ID, "/")
 
@@ -30,9 +31,11 @@ func GetRecordsetsSummary(projectID string) (*dto.ProjRecordsetSummary, error) {
 		}
 
 		ds := dto.ProjRecordsetSummary{
-			ID:    dsDef.ID,
-			Title: dsDef.Title,
-			Tags:  dsDef.Tags,
+			ProjectItem: models.ProjectItem{
+				ID:    dsDef.ID,
+				Title: dsDef.Title,
+				Tags:  dsDef.Tags,
+			},
 		}
 		for _, col := range dsDef.Columns {
 			ds.Columns = append(ds.Columns, col.Name)
@@ -54,7 +57,9 @@ func getRecordsetFolder(folder *dto.ProjRecordsetSummary, paths []string) *dto.P
 				continue
 			}
 		}
-		newFolder := &dto.ProjRecordsetSummary{ID: p}
+		newFolder := &dto.ProjRecordsetSummary{
+			ProjectItem: models.ProjectItem{ID: p},
+		}
 		folder.Recordsets = append(folder.Recordsets, newFolder)
 		folder = newFolder
 	}

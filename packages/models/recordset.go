@@ -25,30 +25,26 @@ type RecordsetColumn struct {
 
 // RecordsetDefinition describes dataset
 type RecordsetDefinition struct {
-	ProjectItem   `yaml:"project_item"`
-	Tags          []string            `json:"tags,omitempty" yaml:",omitempty"` // consider moving to ProjectItem
-	Type          string              `json:"type" yaml:",omitempty"`           // Supported types: "recordset", "json"
-	JSONSchema    string              `json:"jsonSchema,omitempty" yaml:",omitempty"`
-	Columns       RecordsetColumnDefs `json:"columns,omitempty" yaml:",omitempty"`
-	Files         []string            `json:"files,omitempty" yaml:",omitempty"`
-	Errors        []string            `json:"errors,omitempty"`
-	PrimaryKey    []string            `json:"primaryKey,omitempty"`
-	AlternateKeys []AlternateKey      `json:"alternateKey,omitempty"`
-}
-
-// AlternateKey defines alternate (e.g. unique) key
-type AlternateKey struct {
-	ID      string
-	Columns []string
+	ProjectItem
+	RecordsetBaseDef
+	Columns RecordsetColumnDefs `json:"columns,omitempty" yaml:"columns,omitempty"`
+	// -- formatting spacer --
+	Type       string   `json:"type" yaml:"type,omitempty"` // Supported types: "recordset", "json"
+	JSONSchema string   `json:"jsonSchema,omitempty" yaml:"jsonSchema,omitempty"`
+	Files      []string `json:"files,omitempty" yaml:"files,omitempty"`
+	Errors     []string `json:"errors,omitempty"`
 }
 
 // RecordsetColumnDefs is a slice of RecordsetColumnDef
 type RecordsetColumnDefs []RecordsetColumnDef
 
 // HasColumn checks if set of columns has a column with a given name
-func (v RecordsetColumnDefs) HasColumn(name string) bool {
+func (v RecordsetColumnDefs) HasColumn(name string, caseSensitive bool) bool {
+	if !caseSensitive {
+		name = strings.ToLower(name)
+	}
 	for _, c := range v {
-		if c.Name == name {
+		if caseSensitive && c.Name == name || strings.ToLower(c.Name) == name {
 			return true
 		}
 	}
@@ -115,8 +111,8 @@ func (v RecordsetDefinition) Validate() error {
 	}
 
 	validateKeyColumnNames := func(field string, columnNames []string) error {
-		for i, columnName := range v.PrimaryKey {
-			if !v.Columns.HasColumn(columnName) {
+		for i, columnName := range columnNames {
+			if !v.Columns.HasColumn(columnName, true) {
 				return validation.NewErrBadRecordFieldValue(field, fmt.Sprintf("references unknown column at index=%v", i))
 			}
 			for j := 0; j < i; j++ {
@@ -127,7 +123,7 @@ func (v RecordsetDefinition) Validate() error {
 		}
 		return nil
 	}
-	if err := validateKeyColumnNames("primaryKey", v.PrimaryKey); err != nil {
+	if err := validateKeyColumnNames("primaryKey", v.PrimaryKey.Columns); err != nil {
 		return err
 	}
 	for k, fk := range v.AlternateKeys {

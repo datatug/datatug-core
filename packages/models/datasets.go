@@ -2,7 +2,7 @@ package models
 
 // DatasetDef is a set of recordsets
 type DatasetDef struct {
-	Recordsets []DatasetRefToRecordset `json:"recordsets"`
+	Recordsets []RecordsetDefinition `json:"recordsets"`
 }
 
 // DatasetRefToRecordset is a reference from dataset to recordset definition and settings specific for the dataset

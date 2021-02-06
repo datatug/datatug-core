@@ -8,7 +8,7 @@ type TableFile struct {
 	PrimaryKey   *models.UniqueKey           `json:"primaryKey,omitempty"`
 	ForeignKeys  []*models.ForeignKey        `json:"foreignKeys,omitempty"`
 	ReferencedBy []*models.TableReferencedBy `json:"referencedBy,omitempty"`
-	Columns      []*models.Column            `json:"columns,omitempty"`
+	Columns      []*models.TableColumn       `json:"columns,omitempty"`
 }
 
 // TableRefsByFile info to be stored about reference in a JSON file
@@ -32,7 +32,7 @@ type TablePrimaryKeyFile struct {
 // TableColumnsFile info to be stored about column in a JSON file
 type TableColumnsFile struct {
 	models.TableKey
-	Columns []*models.Column `json:"columns,omitempty"`
+	Columns []*models.TableColumn `json:"columns,omitempty"`
 }
 
 // TablePropsFile info to be stored about table in a JSON file

@@ -245,8 +245,8 @@ func updateSchemaModel(envID string, schemaModel *models.SchemaModel, dbSchema *
 				tableModel.Columns = make(models.ColumnModels, len(table.Columns))
 				for i, c := range table.Columns {
 					tableModel.Columns[i] = &models.ColumnModel{
-						Column: *c,
-						ByEnv:  make(models.StateByEnv),
+						TableColumn: *c,
+						ByEnv:       make(models.StateByEnv),
 					}
 					tableModel.Columns[i].ByEnv[envID] = &models.EnvState{
 						Status: "exists",

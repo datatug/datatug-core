@@ -278,7 +278,7 @@ from INFORMATION_SCHEMA.COLUMNS ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSIT
 	i := 0
 	for rows.Next() {
 		i++
-		c := new(models.Column)
+		c := new(models.TableColumn)
 		var tSchema, tName string
 		if err = rows.Scan(
 			&tSchema,
@@ -297,7 +297,7 @@ from INFORMATION_SCHEMA.COLUMNS ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSIT
 			&collationSchema,
 			&collationName,
 		); err != nil {
-			return fmt.Errorf("failed to scan INFORMATION_SCHEMA.COLUMNS row into Column struct: %w", err)
+			return fmt.Errorf("failed to scan INFORMATION_SCHEMA.COLUMNS row into TableColumn struct: %w", err)
 		}
 		switch isNullable {
 		case "YES":
