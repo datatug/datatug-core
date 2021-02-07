@@ -5,4 +5,5 @@ const (
 	urlQueryParamProjectID   = "project"
 	urlQueryParamRecordsetID = "recordset"
 	urlQueryParamDataID      = "data"
+	urlQueryParamFolder      = "folder"
 )

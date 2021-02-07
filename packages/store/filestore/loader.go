@@ -274,3 +274,7 @@ func (loader fileSystemLoader) LoadEnvironmentDb(projID, environmentID, database
 	envDb.ID = databaseID
 	return
 }
+
+func (loader fileSystemLoader) LoadQueries(projectID, folder string) (datasets []models.Query, err error) {
+	return nil, err
+}

@@ -80,3 +80,20 @@ func (saver storeSaver) SaveEntity(projID string, entity *models.Entity) (err er
 	}
 	return projSaver.SaveEntity(entity)
 }
+
+func (saver storeSaver) DeleteQuery(projID, queryID string) (err error) {
+	projSaver, err := saver.newProjectSaver(projID)
+	if err != nil {
+		return err
+	}
+	return projSaver.DeleteQuery(queryID)
+}
+
+func (saver storeSaver) SaveQuery(projID string, query models.Query) (err error) {
+	log.Printf("storeSaver.SaveQuery: %+v", query)
+	projSaver, err := saver.newProjectSaver(projID)
+	if err != nil {
+		return err
+	}
+	return projSaver.SaveQuery(query)
+}

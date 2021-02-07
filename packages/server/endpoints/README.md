@@ -17,6 +17,11 @@ When DataTug agent is started with a `serve` command it listens on HTTP port (*b
 | POST | /entities/create_entity | |
 | PUT | /entities/save_entity | |
 | DELETE | /entities/delete_entity | |
+|  **Queries** |
+| GET | /queries/all_queries | |
+| POST | /queries/create_query | |
+| PUT | /queries/save_query | |
+| DELETE | /queries/delete_query | |
 |  **Recordsets** |
 | GET | /data/recordsets | |
 | GET | /data/recordset_definition | |
