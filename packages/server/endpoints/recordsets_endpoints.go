@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-func getRecordsetParams(r *http.Request) (params api.RecordsetQueryParams, err error) {
+func getRecordsetRequestParams(r *http.Request) (params api.RecordsetRequestParams, err error) {
 	query := r.URL.Query()
 	if params.Project = query.Get(urlQueryParamProjectID); params.Project == "" {
 		err = validation.NewErrRequestIsMissingRequiredField(urlQueryParamProjectID)
@@ -23,9 +23,9 @@ func getRecordsetParams(r *http.Request) (params api.RecordsetQueryParams, err e
 	return
 }
 
-func getRecordsetDataParams(r *http.Request) (params api.RecordsetDataQueryParams, err error) {
+func getRecordsetDataParams(r *http.Request) (params api.RecordsetDataRequestParams, err error) {
 	query := r.URL.Query()
-	params.RecordsetQueryParams, err = getRecordsetParams(r)
+	params.RecordsetRequestParams, err = getRecordsetRequestParams(r)
 
 	if params.Data = query.Get(urlQueryParamDataID); params.Data == "" {
 		err = validation.NewErrRequestIsMissingRequiredField(urlQueryParamDataID)
@@ -48,7 +48,7 @@ func GetRecordsetsSummary(w http.ResponseWriter, r *http.Request) {
 
 // GetRecordsetDefinition returns list of dataset definitions
 func GetRecordsetDefinition(w http.ResponseWriter, r *http.Request) {
-	params, err := getRecordsetParams(r)
+	params, err := getRecordsetRequestParams(r)
 	if handleError(err, w, r) {
 		return
 	}

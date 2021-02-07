@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"errors"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
@@ -277,4 +278,9 @@ func (loader fileSystemLoader) LoadEnvironmentDb(projID, environmentID, database
 
 func (loader fileSystemLoader) LoadQueries(projectID, folder string) (datasets []models.Query, err error) {
 	return nil, err
+}
+
+func (loader fileSystemLoader) LoadQuery(projectID, queryID string) (datasets models.Query, err error) {
+	err = errors.New("not implemented yet")
+	return
 }

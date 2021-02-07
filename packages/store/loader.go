@@ -63,4 +63,7 @@ type dbServerLoader interface {
 type queriesLoader interface {
 	// LoadQueries loads tree of queries
 	LoadQueries(projectID, folder string) (datasets []models.Query, err error)
+
+	//
+	LoadQuery(projectID, queryID string) (query models.Query, err error)
 }

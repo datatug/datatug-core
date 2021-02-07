@@ -6,4 +6,5 @@ const (
 	urlQueryParamRecordsetID = "recordset"
 	urlQueryParamDataID      = "data"
 	urlQueryParamFolder      = "folder"
+	urlQueryParamQuery      = "query"
 )

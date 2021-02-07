@@ -67,12 +67,12 @@ func getRecordsetFolder(folder *dto.ProjRecordsetSummary, paths []string) *dto.P
 }
 
 // GetDatasetDefinition returns definition of a dataset by ID
-func GetDatasetDefinition(params RecordsetQueryParams) (dataset *models.RecordsetDefinition, err error) {
+func GetDatasetDefinition(params RecordsetRequestParams) (dataset *models.RecordsetDefinition, err error) {
 	return store.Current.LoadRecordsetDefinition(params.Project, params.Recordset)
 }
 
 // GetRecordset saves board
-func GetRecordset(params RecordsetDataQueryParams) (recordset *models.Recordset, err error) {
+func GetRecordset(params RecordsetDataRequestParams) (recordset *models.Recordset, err error) {
 	return store.Current.LoadRecordsetData(params.Project, params.Recordset, params.Data)
 }
 
@@ -81,20 +81,20 @@ func AddRecords(projectID, datasetID, recordsetID string, _ []map[string]interfa
 	return errNotImplementedYet
 }
 
-// RecordsetQueryParams is a set of common request parameters
-type RecordsetQueryParams struct {
+// RecordsetRequestParams is a set of common request parameters
+type RecordsetRequestParams struct {
 	Project   string `json:"project"`
 	Recordset string `json:"recordset"`
 }
 
-// RecordsetDataQueryParams is a set of common request parameters
-type RecordsetDataQueryParams struct {
-	RecordsetQueryParams
+// RecordsetDataRequestParams is a set of common request parameters
+type RecordsetDataRequestParams struct {
+	RecordsetRequestParams
 	Data string `json:"data"`
 }
 
 // Validate returns error if not valid
-func (v RecordsetQueryParams) Validate() error {
+func (v RecordsetRequestParams) Validate() error {
 	if v.Project == "" {
 		return validation.NewErrRequestIsMissingRequiredField("project")
 	}
@@ -105,8 +105,8 @@ func (v RecordsetQueryParams) Validate() error {
 }
 
 // Validate returns error if not valid
-func (v RecordsetDataQueryParams) Validate() error {
-	if err := v.RecordsetQueryParams.Validate(); err != nil {
+func (v RecordsetDataRequestParams) Validate() error {
+	if err := v.RecordsetRequestParams.Validate(); err != nil {
 		return err
 	}
 	if v.Data == "" {
@@ -139,7 +139,7 @@ type RowWithIndexAndNewValues struct {
 }
 
 // AddRowsToRecordset adds rows to a recordset
-func AddRowsToRecordset(params RecordsetDataQueryParams, _ []RowValues) (numberOfRecords int, err error) {
+func AddRowsToRecordset(params RecordsetDataRequestParams, _ []RowValues) (numberOfRecords int, err error) {
 	if err = params.Validate(); err != nil {
 		return 0, err
 	}
@@ -147,7 +147,7 @@ func AddRowsToRecordset(params RecordsetDataQueryParams, _ []RowValues) (numberO
 }
 
 // RemoveRowsFromRecordset removes rows from a recordset
-func RemoveRowsFromRecordset(params RecordsetDataQueryParams, rows []RowWithIndex) (numberOfRecords int, err error) {
+func RemoveRowsFromRecordset(params RecordsetDataRequestParams, rows []RowWithIndex) (numberOfRecords int, err error) {
 	if err = params.Validate(); err != nil {
 		return 0, err
 	}
@@ -160,7 +160,7 @@ func RemoveRowsFromRecordset(params RecordsetDataQueryParams, rows []RowWithInde
 }
 
 // UpdateRowsInRecordset updates rows in a recordset
-func UpdateRowsInRecordset(params RecordsetDataQueryParams, rows []RowWithIndexAndNewValues) (numberOfRecords int, err error) {
+func UpdateRowsInRecordset(params RecordsetDataRequestParams, rows []RowWithIndexAndNewValues) (numberOfRecords int, err error) {
 	if err = params.Validate(); err != nil {
 		return 0, err
 	}

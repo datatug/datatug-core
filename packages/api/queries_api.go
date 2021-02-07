@@ -3,7 +3,25 @@ package api
 import (
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/store"
+	"github.com/strongo/validation"
 )
+
+// RecordsetRequestParams is a set of common request parameters
+type QueryRequestParams struct {
+	Project string `json:"project"`
+	Query   string `json:"query"`
+}
+
+// Validate returns error if not valid
+func (v QueryRequestParams) Validate() error {
+	if v.Project == "" {
+		return validation.NewErrRequestIsMissingRequiredField("project")
+	}
+	if v.Query == "" {
+		return validation.NewErrRequestIsMissingRequiredField("query")
+	}
+	return nil
+}
 
 // GetQueries returns queries
 func GetQueries(projectID, folder string) ([]models.Query, error) {
@@ -11,11 +29,29 @@ func GetQueries(projectID, folder string) ([]models.Query, error) {
 }
 
 // SaveQuery saves query
-func SaveQuery(projectID string, query models.Query) error {
-	return store.Current.SaveQuery(projectID, query)
+func SaveQuery(params QueryRequestParams, query models.Query) error {
+	if err := params.Validate(); err != nil {
+		return err
+	}
+	if err := query.Validate(); err != nil {
+		return err
+	}
+	return store.Current.SaveQuery(params.Project, query)
 }
 
 // DeleteQuery deletes query
-func DeleteQuery(projectID, queryID string) error {
-	return store.Current.DeleteQuery(projectID, queryID)
+func DeleteQuery(projectID string, queryID string) error {
+	params := QueryRequestParams{Project: projectID, Query: queryID}
+	if err := params.Validate(); err != nil {
+		return err
+	}
+	return store.Current.DeleteQuery(params.Project, params.Query)
+}
+
+// DeleteQuery deletes query
+func GetQuery(params QueryRequestParams) error {
+	if err := params.Validate(); err != nil {
+		return err
+	}
+	return store.Current.DeleteQuery(params.Project, params.Query)
 }
