@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/server/dto"
 	"github.com/strongo/validation"
 	"time"
 )
@@ -37,7 +36,7 @@ func (v Request) Validate() error {
 
 // RequestCommand holds parameters for command to be executed
 type RequestCommand struct {
-	dto.Credentials // holds username & password, if not provided trusted connection
+	models.Credentials // holds username & password, if not provided trusted connection
 	models.DbServer
 	Env  string `json:"env"`
 	DB   string `json:"db"`

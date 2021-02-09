@@ -5,7 +5,7 @@ import (
 )
 
 func (s fileSystemSaver) loadProjectFile() (v models.ProjectFile, err error) {
-	return LoadProjectFile(s.path)
+	return LoadProjectFile(s.projDirPath)
 }
 
 func (s fileSystemSaver) updateProjectFileWithBoard(board models.Board) (err error) {

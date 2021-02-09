@@ -44,7 +44,7 @@ func ExecuteCommandsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response, err := api.ExecuteCommands(executeRequest)
-	ReturnJSON(w, r, http.StatusOK, err, response)
+	returnJSON(w, r, http.StatusOK, err, response)
 }
 
 // ExecuteSelectHandler executes select command
@@ -76,5 +76,5 @@ func ExecuteSelectHandler(w http.ResponseWriter, r *http.Request) {
 		request.Columns = strings.Split(cols, ",")
 	}
 	response, err := api.ExecuteSelect(request)
-	ReturnJSON(w, r, http.StatusOK, err, response)
+	returnJSON(w, r, http.StatusOK, err, response)
 }

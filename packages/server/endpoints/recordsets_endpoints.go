@@ -43,7 +43,7 @@ func GetRecordsetsSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	datasets, err := api.GetRecordsetsSummary(projectID)
-	ReturnJSON(w, r, http.StatusOK, err, datasets)
+	returnJSON(w, r, http.StatusOK, err, datasets)
 }
 
 // GetRecordsetDefinition returns list of dataset definitions
@@ -53,7 +53,7 @@ func GetRecordsetDefinition(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	datasets, err := api.GetDatasetDefinition(params)
-	ReturnJSON(w, r, http.StatusOK, err, datasets)
+	returnJSON(w, r, http.StatusOK, err, datasets)
 }
 
 // GetRecordsetData returns data
@@ -63,7 +63,7 @@ func GetRecordsetData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	recordset, err := api.GetRecordset(params)
-	ReturnJSON(w, r, http.StatusOK, err, recordset)
+	returnJSON(w, r, http.StatusOK, err, recordset)
 }
 
 // AddRowsToRecordset adds rows to a recordset
@@ -88,7 +88,7 @@ func AddRowsToRecordset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	numberOfRecords, err := api.AddRowsToRecordset(params, nil)
-	ReturnJSON(w, r, http.StatusCreated, err, numberOfRecords)
+	returnJSON(w, r, http.StatusCreated, err, numberOfRecords)
 }
 
 // DeleteRowsFromRecordset deletes rows from a recordset
@@ -104,7 +104,7 @@ func DeleteRowsFromRecordset(w http.ResponseWriter, r *http.Request) {
 	}
 	rows := make([]api.RowWithIndex, 0, count)
 	numberOfRecords, err := api.RemoveRowsFromRecordset(params, rows)
-	ReturnJSON(w, r, http.StatusCreated, err, numberOfRecords)
+	returnJSON(w, r, http.StatusCreated, err, numberOfRecords)
 }
 
 // UpdateRowsInRecordset updates rows in a recordset
@@ -120,5 +120,5 @@ func UpdateRowsInRecordset(w http.ResponseWriter, r *http.Request) {
 	}
 	rows := make([]api.RowWithIndexAndNewValues, 0, count)
 	numberOfRecords, err := api.UpdateRowsInRecordset(params, rows)
-	ReturnJSON(w, r, http.StatusCreated, err, numberOfRecords)
+	returnJSON(w, r, http.StatusCreated, err, numberOfRecords)
 }

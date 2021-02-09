@@ -11,5 +11,5 @@ func GetEnvironmentSummary(w http.ResponseWriter, request *http.Request) {
 	envID := q.Get("env")
 	projID := q.Get("proj")
 	summary, err := api.GetEnvironmentSummary(projID, envID)
-	ReturnJSON(w, request, http.StatusOK, err, summary)
+	returnJSON(w, request, http.StatusOK, err, summary)
 }

@@ -24,19 +24,30 @@ func (v QueryRequestParams) Validate() error {
 }
 
 // GetQueries returns queries
-func GetQueries(projectID, folder string) ([]models.Query, error) {
+func GetQueries(projectID, folder string) ([]models.QueryDef, error) {
 	return store.Current.LoadQueries(projectID, folder)
 }
 
-// SaveQuery saves query
-func SaveQuery(params QueryRequestParams, query models.Query) error {
+// CreateQuery creates a new query
+func CreateQuery(params QueryRequestParams, query models.QueryDef) error {
 	if err := params.Validate(); err != nil {
 		return err
 	}
 	if err := query.Validate(); err != nil {
 		return err
 	}
-	return store.Current.SaveQuery(params.Project, query)
+	return store.Current.CreateQuery(params.Project, query)
+}
+
+// UpdateQuery updates existing query
+func UpdateQuery(params QueryRequestParams, query models.QueryDef) error {
+	if err := params.Validate(); err != nil {
+		return err
+	}
+	if err := query.Validate(); err != nil {
+		return err
+	}
+	return store.Current.UpdateQuery(params.Project, query)
 }
 
 // DeleteQuery deletes query

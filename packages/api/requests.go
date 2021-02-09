@@ -2,7 +2,6 @@ package api
 
 import (
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/server/dto"
 	"github.com/strongo/validation"
 	"strings"
 )
@@ -12,7 +11,7 @@ type GetServerDatabasesRequest struct {
 	Project     string `json:"proj"`
 	Environment string `json:"env"`
 	models.DbServer
-	Credentials *dto.Credentials `json:"credentials"`
+	Credentials *models.Credentials `json:"credentials"`
 }
 
 // Validate returns error if not valid

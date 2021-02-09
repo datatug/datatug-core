@@ -13,14 +13,14 @@ import (
 // fileSystemSaver saves or updates DataTug project
 type fileSystemSaver struct {
 	// pathByID map[string]string
-	path          string
+	projDirPath   string
 	readmeEncoder models.ReadmeEncoder
 }
 
 // newSaver creates a new project saver
-func newSaver(path string, readmeEncoder models.ReadmeEncoder) fileSystemSaver {
+func newSaver(projDirPath string, readmeEncoder models.ReadmeEncoder) fileSystemSaver {
 	return fileSystemSaver{
-		path:          path,
+		projDirPath:   projDirPath,
 		readmeEncoder: readmeEncoder,
 	}
 }

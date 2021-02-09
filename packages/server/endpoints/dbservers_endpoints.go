@@ -22,7 +22,7 @@ func AddDbServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	summary, err := api.GetDbServerSummary(projID, dbServer)
-	ReturnJSON(w, r, http.StatusOK, err, summary)
+	returnJSON(w, r, http.StatusOK, err, summary)
 }
 
 // GetDbServerSummary returns summary about environment
@@ -35,7 +35,7 @@ func GetDbServerSummary(w http.ResponseWriter, request *http.Request) {
 		Host:   q.Get("host"),
 	}
 	summary, err := api.GetDbServerSummary(projID, dbServer)
-	ReturnJSON(w, request, http.StatusOK, err, summary)
+	returnJSON(w, request, http.StatusOK, err, summary)
 }
 
 // DeleteDbServer removes a DB server from project
@@ -53,5 +53,5 @@ func DeleteDbServer(w http.ResponseWriter, r *http.Request) {
 		handleError(err, w, r)
 		return
 	}
-	ReturnJSON(w, r, http.StatusOK, err, nil)
+	returnJSON(w, r, http.StatusOK, err, nil)
 }

@@ -46,9 +46,10 @@ func initRouter() {
 	handlerFunc(http.MethodPut, "/entities/save_entity", endpoints.SaveEntity)
 	handlerFunc(http.MethodDelete, "/entities/delete_entity", endpoints.DeleteEntity)
 
-	handlerFunc(http.MethodGet, "/queries/all_entities", endpoints.GetQueries)
-	handlerFunc(http.MethodPost, "/queries/create_query", endpoints.SaveQuery)
-	handlerFunc(http.MethodPut, "/queries/save_query", endpoints.SaveQuery)
+	handlerFunc(http.MethodGet, "/queries/all_queries", endpoints.GetQueries)
+	handlerFunc(http.MethodGet, "/queries/query", endpoints.GetQuery)
+	handlerFunc(http.MethodPost, "/queries/create_query", endpoints.CreateQuery)
+	handlerFunc(http.MethodPut, "/queries/update_query", endpoints.UpdateQuery)
 	handlerFunc(http.MethodDelete, "/queries/delete_query", endpoints.DeleteQuery)
 
 	handlerFunc(http.MethodGet, "/boards/board", endpoints.GetBoard)

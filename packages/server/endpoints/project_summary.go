@@ -9,5 +9,5 @@ import (
 func GetProjectSummary(w http.ResponseWriter, request *http.Request) {
 	id := request.URL.Query().Get(urlQueryParamID)
 	projectSummary, err := api.GetProjectSummary(id)
-	ReturnJSON(w, request, http.StatusOK, err, projectSummary)
+	returnJSON(w, request, http.StatusOK, err, projectSummary)
 }

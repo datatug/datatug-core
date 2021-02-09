@@ -7,20 +7,29 @@ import (
 	"time"
 )
 
-// Query holds query data
-type Query struct {
+// QueryDef holds query data
+type QueryDef struct {
 	ProjectItem
-	Type       string     `json:"type"` // Possible value: folder, SQL, GraphQL, etc.
-	Text       string     `json:"text,omitempty"`
-	Parameters Parameters `json:"parameters,omitempty"`
+	Type       string           `json:"type"` // Possible value: folder, SQL, GraphQL, etc.
+	Text       string           `json:"text,omitempty" yaml:"text,omitempty"`
+	Draft      bool             `json:"draft,omitempty" yaml:"draft,omitempty"`
+	Parameters Parameters       `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	Targets    []QueryDefTarget `json:"targets,omitempty" yaml:"targets,omitempty"`
 	// This is to be used by "folders" only
-	Queries []Query `json:"queries,omitempty"`
+	Queries []QueryDef `json:"queries,omitempty" yaml:"queries,omitempty"`
 	// User might want to now what set of cols is returned even before hitting the RUN button.
-	Recordsets []RecordsetDefinition `json:"recordsets,omitempty"`
+	Recordsets []RecordsetDefinition `json:"recordsets,omitempty" yaml:"recordsets,omitempty"`
+}
+
+type QueryDefTarget struct {
+	Driver string `json:"driver,omitempty" yaml:"driver,omitempty"`
+	Host   string `json:"host,omitempty" yaml:"host,omitempty"`
+	Port   int    `json:"port,omitempty" yaml:"port,omitempty"`
+	Credentials
 }
 
 // Validate returns error if not valid
-func (v Query) Validate() error {
+func (v QueryDef) Validate() error {
 	if err := v.ProjectItem.Validate(true); err != nil {
 		return err
 	}

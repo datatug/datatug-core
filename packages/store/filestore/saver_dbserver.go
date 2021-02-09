@@ -13,8 +13,8 @@ import (
 func (s fileSystemSaver) SaveDbServer(dbServer *models.ProjDbServer) (err error) {
 	return parallel.Run(
 		func() error {
-			dbServerDirPath := path.Join(s.path, "servers", "db", dbServer.DbServer.Driver, dbServer.DbServer.FileName())
-			log.Println("s.path:", s.path)
+			dbServerDirPath := path.Join(s.projDirPath, "servers", "db", dbServer.DbServer.Driver, dbServer.DbServer.FileName())
+			log.Println("s.projDirPath:", s.projDirPath)
 			log.Println("dbServerDirPath:", dbServerDirPath)
 			if err := os.MkdirAll(dbServerDirPath, os.ModeDir); err != nil {
 				return err
@@ -32,7 +32,7 @@ func (s fileSystemSaver) SaveDbServer(dbServer *models.ProjDbServer) (err error)
 
 // DeleteDbServer deletes DB server
 func (s fileSystemSaver) DeleteDbServer(dbServer models.DbServer) (err error) {
-	dbServerDirPath := path.Join(s.path, "servers", "db", dbServer.Driver, dbServer.FileName())
+	dbServerDirPath := path.Join(s.projDirPath, "servers", "db", dbServer.Driver, dbServer.FileName())
 	log.Println("Deleting folder:", dbServerDirPath)
 	if err = os.RemoveAll(dbServerDirPath); err != nil {
 		return fmt.Errorf("failed to remove db server directory: %w", err)

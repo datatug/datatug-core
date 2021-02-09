@@ -10,7 +10,7 @@ func deleteItem(w http.ResponseWriter, request *http.Request, idParam string, de
 	projectID := query.Get(urlQueryParamProjectID)
 	id := query.Get(idParam)
 	err := del(projectID, id)
-	ReturnJSON(w, request, http.StatusOK, err, true)
+	returnJSON(w, request, http.StatusOK, err, true)
 }
 
 func saveItem(w http.ResponseWriter, r *http.Request, target interface{}, saveFunc func(projectID string) error) {
@@ -23,5 +23,5 @@ func saveItem(w http.ResponseWriter, r *http.Request, target interface{}, saveFu
 		handleError(err, w, r)
 	}
 	err = saveFunc(projectID)
-	ReturnJSON(w, r, http.StatusOK, err, target)
+	returnJSON(w, r, http.StatusOK, err, target)
 }

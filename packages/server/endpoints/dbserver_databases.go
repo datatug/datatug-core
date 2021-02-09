@@ -26,7 +26,7 @@ func GetServerDatabases(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	databases, err := api.GetServerDatabases(request)
-	ReturnJSON(w, r, http.StatusOK, err, databases)
+	returnJSON(w, r, http.StatusOK, err, databases)
 }
 
 func newDbServerFromQueryParams(query url.Values) (dbServer models.DbServer, err error) {

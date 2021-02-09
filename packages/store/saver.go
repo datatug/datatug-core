@@ -4,7 +4,8 @@ import "github.com/datatug/datatug/packages/models"
 
 type querySaver interface {
 	DeleteQuery(projID, queryID string) (err error)
-	SaveQuery(projID string, query models.Query) (err error)
+	CreateQuery(projID string, query models.QueryDef) (err error)
+	UpdateQuery(projID string, query models.QueryDef) (err error)
 }
 
 type dbServerSaver interface {

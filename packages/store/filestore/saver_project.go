@@ -18,7 +18,7 @@ func (s fileSystemSaver) Save(project models.DataTugProject) (err error) {
 	if err = project.Validate(); err != nil {
 		return fmt.Errorf("project validation failed: %w", err)
 	}
-	if err = os.MkdirAll(path.Join(s.path, DatatugFolder), os.ModeDir); err != nil {
+	if err = os.MkdirAll(path.Join(s.projDirPath, DatatugFolder), os.ModeDir); err != nil {
 		return err
 	}
 	if err = s.saveProjectFile(project); err != nil {
@@ -63,16 +63,21 @@ func (s fileSystemSaver) putProjectFile(projFile models.ProjectFile) error {
 	if err := projFile.Validate(); err != nil {
 		return fmt.Errorf("invalid project file: %w", err)
 	}
-	return s.saveJSONFile(path.Join(s.path, DatatugFolder), ProjectSummaryFileName, projFile)
+	return s.saveJSONFile(path.Join(s.projDirPath, DatatugFolder), ProjectSummaryFileName, projFile)
 }
 
 func (s fileSystemSaver) boardsDirPath() string {
-	return path.Join(s.path, DatatugFolder, BoardsFolder)
+	return path.Join(s.projDirPath, DatatugFolder, BoardsFolder)
 }
 
 func (s fileSystemSaver) entitiesDirPath() string {
-	return path.Join(s.path, DatatugFolder, EntitiesFolder)
+	return path.Join(s.projDirPath, DatatugFolder, EntitiesFolder)
 }
+
+func (s fileSystemSaver) queriesDirPath() string {
+	return path.Join(s.projDirPath, DatatugFolder, QueriesFolder)
+}
+
 
 func projItemFileName(id, prefix string) string {
 	id = strings.ToLower(id)
@@ -150,7 +155,7 @@ func (s fileSystemSaver) DeleteEntity(entityID string) error {
 func (s fileSystemSaver) saveProjectFile(project models.DataTugProject) error {
 
 	//var existingProject models.ProjectFile
-	//if err := readJSONFile(path.Join(s.path, DatatugFolder, ProjectSummaryFileName), false, &existingProject); err != nil {
+	//if err := readJSONFile(projDirPath.Join(s.projDirPath, DatatugFolder, ProjectSummaryFileName), false, &existingProject); err != nil {
 	//	return err
 	//}
 	projFile := models.ProjectFile{
@@ -240,7 +245,7 @@ func (s fileSystemSaver) saveDbModel(dbModel *models.DbModel) (err error) {
 	if err = dbModel.Validate(); err != nil {
 		return err
 	}
-	dirPath := path.Join(s.path, DatatugFolder, DbModelsFolder, dbModel.ID)
+	dirPath := path.Join(s.projDirPath, DatatugFolder, DbModelsFolder, dbModel.ID)
 	if err = os.MkdirAll(dirPath, os.ModeDir); err != nil {
 		return fmt.Errorf("failed to create db model folder: %w", err)
 	}
@@ -274,7 +279,7 @@ func (s fileSystemSaver) saveDbServers(dbServers models.ProjDbServers) (err erro
 
 func (s fileSystemSaver) saveEnvironment(env models.Environment) (err error) {
 	log.Printf("Saving environment: %v", env.ID)
-	dirPath := path.Join(s.path, DatatugFolder, EnvironmentsFolder, env.ID)
+	dirPath := path.Join(s.projDirPath, DatatugFolder, EnvironmentsFolder, env.ID)
 	if err = os.MkdirAll(dirPath, os.ModeDir); err != nil {
 		return fmt.Errorf("failed to create environemtn folder: %w", err)
 	}
@@ -295,7 +300,7 @@ func (s fileSystemSaver) saveEnvironment(env models.Environment) (err error) {
 }
 
 func (s fileSystemSaver) saveEnvServers(env string, servers []*models.EnvDbServer) (err error) {
-	dirPath := path.Join(s.path, DatatugFolder, EnvironmentsFolder, env, ServersFolder, DbFolder)
+	dirPath := path.Join(s.projDirPath, DatatugFolder, EnvironmentsFolder, env, ServersFolder, DbFolder)
 	if err = os.MkdirAll(dirPath, os.ModeDir); err != nil {
 		return fmt.Errorf("failed to create environment servers folder: %w", err)
 	}
@@ -323,7 +328,7 @@ func (s fileSystemSaver) saveDatabase(dbServer models.DbServer, database *models
 		return errors.New("database is nil")
 	}
 	serverName := dbServer.FileName()
-	dbDirPath := path.Join(s.path, DatatugFolder, ServersFolder, DbFolder, dbServer.Driver, serverName, DatabasesFolder, database.ID)
+	dbDirPath := path.Join(s.projDirPath, DatatugFolder, ServersFolder, DbFolder, dbServer.Driver, serverName, DatabasesFolder, database.ID)
 	if err := os.MkdirAll(dbDirPath, os.ModeDir); err != nil {
 		return err
 	}

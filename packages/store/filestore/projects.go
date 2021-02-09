@@ -6,24 +6,24 @@ import (
 
 var projectPaths = make(map[string]string, 1) // TODO(refactoring): global package level states are bad
 
-// GetProjectPath gets project path
+// GetProjectPath gets project projDirPath
 func GetProjectPath(id string) string {
 	return projectPaths[id]
 }
 
-// SetProjectPath sets project path
+// SetProjectPath sets project projDirPath
 func SetProjectPath(id, path string) {
 	if id == "" {
 		panic("id is a required parameter")
 	}
 	if path == "" {
-		panic("path is a required parameter")
+		panic("projDirPath is a required parameter")
 	}
 	if p, ok := projectPaths[id]; ok {
 		if p != path {
-			panic("attempt to overwrite project path")
+			panic("attempt to overwrite project projDirPath")
 		} else {
-			log.Printf("Duplicate set of projcet path %v: %v", id, path)
+			log.Printf("Duplicate set of projcet projDirPath %v: %v", id, path)
 		}
 	}
 	projectPaths[id] = path

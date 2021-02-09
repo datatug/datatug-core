@@ -20,7 +20,7 @@ func (s fileSystemSaver) writeTableReadme(dirPath string, table *models.Table) f
 }
 
 func (s fileSystemSaver) writeProjectReadme(project models.DataTugProject) error {
-	file, _ := os.OpenFile(path.Join(s.path, DatatugFolder, "README.md"), os.O_CREATE, os.ModePerm)
+	file, _ := os.OpenFile(path.Join(s.projDirPath, DatatugFolder, "README.md"), os.O_CREATE, os.ModePerm)
 	defer func() {
 		_ = file.Close()
 	}()

@@ -2,11 +2,13 @@ package commands
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/datatug/datatug/packages/execute"
 	"github.com/datatug/sql2csv"
 	"github.com/google/uuid"
 	"github.com/gosuri/uitable"
+	"github.com/strongo/validation"
 	"io"
 	"log"
 	"os"
@@ -17,8 +19,8 @@ import (
 
 func init() {
 	_, err := Parser.AddCommand("execute",
-		"Runs SQL",
-		"The `execute` command executes SQL command",
+		"Executes query or a command",
+		"The `execute` command executes command or query. Like an SQL query or an SQL stored procedure.",
 		&executeSQLCommand{})
 	if err != nil {
 		log.Fatal(err)
@@ -28,14 +30,23 @@ func init() {
 // executeSQLCommand defines parameters for execute SQL command
 type executeSQLCommand struct {
 	Driver       string `short:"D" long:"driver" required:"true"`
-	Host         string `short:"t" long:"host" required:"true" default:"localhost"`
-	User         string `short:"U" long:"user"`
+	Host         string `short:"h" long:"host" required:"true" default:"localhost"`
 	Port         string `long:"port"`
+	User         string `short:"U" long:"user"`
 	Password     string `short:"P" long:"password"`
+	Project      string `short:"p" long:"project"`
 	Schema       string `short:"s" long:"schema"`
-	CommandText  string `short:"q" long:"command-text" required:"true"`
+	Query        string `short:"q" long:"query"`
+	CommandText  string `short:"t" long:"command-text" required:"true"`
 	OutputPath   string `short:"o" long:"output-path"`
 	OutputFormat string `short:"f" long:"output-format" choice:"csv" default:"csv"`
+}
+
+func (v executeSQLCommand) Validate() error {
+	if v.Query != "" && v.CommandText != "" {
+		return validation.NewBadRequestError(errors.New("either 'query' or 'command-text' arguments should be specified but not both at the same time"))
+	}
+	return nil
 }
 
 // Execute - executes SQL command

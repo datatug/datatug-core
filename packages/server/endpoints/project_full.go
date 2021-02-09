@@ -9,5 +9,5 @@ import (
 func GetProjectFull(writer http.ResponseWriter, request *http.Request) {
 	projectID := request.URL.Query().Get(urlQueryParamID)
 	project, err := api.GetProjectFull(projectID)
-	ReturnJSON(writer, request, http.StatusOK, err, project)
+	returnJSON(writer, request, http.StatusOK, err, project)
 }

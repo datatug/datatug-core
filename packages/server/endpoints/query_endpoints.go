@@ -3,6 +3,7 @@ package endpoints
 import (
 	"github.com/datatug/datatug/packages/api"
 	"github.com/datatug/datatug/packages/models"
+	"github.com/datatug/datatug/packages/store"
 	"github.com/strongo/validation"
 	"net/http"
 )
@@ -13,7 +14,7 @@ func GetQueries(w http.ResponseWriter, r *http.Request) {
 	projectID := q.Get(urlQueryParamProjectID)
 	folder := q.Get(urlQueryParamFolder)
 	v, err := api.GetQueries(projectID, folder)
-	ReturnJSON(w, r, http.StatusOK, err, v)
+	returnJSON(w, r, http.StatusOK, err, v)
 }
 
 // SaveQuery handles save query endpoint
@@ -21,23 +22,34 @@ func GetQuery(w http.ResponseWriter, r *http.Request) {
 	params, err := getQueryRequestParams(r)
 	if err != nil {
 		handleError(err, w, r)
+		return
 	}
-	var query models.Query
-	saveFunc := func(projectID string) error {
-		return api.SaveQuery(params, query)
+	query, err := store.Current.LoadQuery(params.Project, params.Query)
+	if err != nil {
+		handleError(err, w, r)
+		return
 	}
-	saveItem(w, r, &query, saveFunc)
+	returnJSON(w, r, http.StatusOK, err, query)
 }
 
-// SaveQuery handles save query endpoint
-func SaveQuery(w http.ResponseWriter, r *http.Request) {
+// CreateQuery handles create query endpoint
+func CreateQuery(w http.ResponseWriter, r *http.Request) {
+	saveQuery(w, r, api.CreateQuery)
+}
+
+// UpdateQuery handles update query endpoint
+func UpdateQuery(w http.ResponseWriter, r *http.Request) {
+	saveQuery(w, r, api.UpdateQuery)
+}
+
+func saveQuery(w http.ResponseWriter, r *http.Request, save func(params api.QueryRequestParams, query models.QueryDef) error) {
 	params, err := getQueryRequestParams(r)
 	if err != nil {
 		handleError(err, w, r)
 	}
-	var query models.Query
+	var query models.QueryDef
 	saveFunc := func(projectID string) error {
-		return api.SaveQuery(params, query)
+		return save(params, query)
 	}
 	saveItem(w, r, &query, saveFunc)
 }

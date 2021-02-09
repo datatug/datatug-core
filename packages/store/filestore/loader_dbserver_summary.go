@@ -56,7 +56,7 @@ func loadDatabasesForDbServerSummary(dbServerPath string, dbsByEnv map[string][]
 }
 
 //func loadEnvironmentIds(projPath string) (environments []string, err error) {
-//	envsPath := path.Join(projPath, "environments")
+//	envsPath := projDirPath.Join(projPath, "environments")
 //	err = loadDir(envsPath, processDirs, func(count int) {
 //		environments = make([]string, count)
 //	}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {

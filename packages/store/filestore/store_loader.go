@@ -1,7 +1,6 @@
 package filestore
 
 import (
-	"errors"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
@@ -227,7 +226,7 @@ func (loader fileSystemLoader) GetFolderPath(projectID string, folder ...string)
 	return path.Join(projectPath, DatatugFolder, path.Join(folder...)), nil
 }
 
-// GetProjectPath returns project path by project ID
+// GetProjectPath returns project projDirPath by project ID
 func (loader fileSystemLoader) GetProjectPath(projectID string) (projID string, projPath string, err error) {
 	if projectID == "" && len(projectPaths) == 1 {
 		projID = store.SingleProjectID
@@ -276,11 +275,3 @@ func (loader fileSystemLoader) LoadEnvironmentDb(projID, environmentID, database
 	return
 }
 
-func (loader fileSystemLoader) LoadQueries(projectID, folder string) (datasets []models.Query, err error) {
-	return nil, err
-}
-
-func (loader fileSystemLoader) LoadQuery(projectID, queryID string) (datasets models.Query, err error) {
-	err = errors.New("not implemented yet")
-	return
-}
