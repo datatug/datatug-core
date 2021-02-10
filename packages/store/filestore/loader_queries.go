@@ -1,7 +1,7 @@
 package filestore
 
 import (
-	"errors"
+	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"os"
 	"path"
@@ -19,7 +19,16 @@ func (loader fileSystemLoader) LoadQueries(projectID, folder string) (queries []
 }
 
 func (loader fileSystemLoader) LoadQuery(projectID, queryID string) (query models.QueryDef, err error) {
-	err = errors.New("not implemented yet")
+	var projPath string
+	if _, projPath, err = loader.GetProjectPath(projectID); err != nil {
+		return
+	}
+	queriesDirPath := path.Join(projPath, DatatugFolder, QueriesFolder)
+	_, queryFileName, queryDir, gueryPath, err := getQueryPaths(queryID, queriesDirPath)
+	if err = readJSONFile(gueryPath, true, &query); err != nil {
+		return query, fmt.Errorf("failed to load query definition from file: %v: %w", path.Join(queryDir, queryFileName), err)
+	}
+	query.ID = queryID
 	return
 }
 

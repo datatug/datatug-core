@@ -37,7 +37,7 @@ func initRouter() {
 	handlerFunc(http.MethodGet, "/dbserver-summary", endpoints.GetDbServerSummary)
 	handlerFunc(http.MethodGet, "/dbserver-databases", endpoints.GetServerDatabases)
 
-	handlerFunc(http.MethodPost, "/exec/execute", endpoints.ExecuteCommandsHandler)
+	handlerFunc(http.MethodPost, "/exec/execute_commands", endpoints.ExecuteCommandsHandler)
 	handlerFunc(http.MethodGet, "/exec/select", endpoints.ExecuteSelectHandler)
 
 	handlerFunc(http.MethodGet, "/entities/all_entities", endpoints.GetEntities)
@@ -47,7 +47,7 @@ func initRouter() {
 	handlerFunc(http.MethodDelete, "/entities/delete_entity", endpoints.DeleteEntity)
 
 	handlerFunc(http.MethodGet, "/queries/all_queries", endpoints.GetQueries)
-	handlerFunc(http.MethodGet, "/queries/query", endpoints.GetQuery)
+	handlerFunc(http.MethodGet, "/queries/get_query", endpoints.GetQuery)
 	handlerFunc(http.MethodPost, "/queries/create_query", endpoints.CreateQuery)
 	handlerFunc(http.MethodPut, "/queries/update_query", endpoints.UpdateQuery)
 	handlerFunc(http.MethodDelete, "/queries/delete_query", endpoints.DeleteQuery)

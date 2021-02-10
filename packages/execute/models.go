@@ -10,8 +10,17 @@ import (
 
 // Response holds execute response
 type Response struct {
-	Duration   time.Duration      `json:"durationNanoseconds"`
-	Recordsets []models.Recordset `json:"recordsets"`
+	Duration time.Duration      `json:"durationNanoseconds"`
+	Commands []*CommandResponse `json:"commands"`
+}
+
+type CommandResponse struct {
+	Items []CommandResponseItem `json:"items"`
+}
+
+type CommandResponseItem struct {
+	Type  string      `json:"type"` // e.g. recordset
+	Value interface{} `json:"value"`
 }
 
 // Request defines what needs to be executed

@@ -74,8 +74,8 @@ func (s fileSystemSaver) entitiesDirPath() string {
 	return path.Join(s.projDirPath, DatatugFolder, EntitiesFolder)
 }
 
-func (s fileSystemSaver) queriesDirPath() string {
-	return path.Join(s.projDirPath, DatatugFolder, QueriesFolder)
+func  queriesDirPath(projDirPath string) string {
+	return path.Join(projDirPath, DatatugFolder, QueriesFolder)
 }
 
 

@@ -17,6 +17,8 @@ func ExecuteCommandsHandler(w http.ResponseWriter, r *http.Request) {
 
 	var executeRequest execute.Request
 
+	executeRequest.Project = r.URL.Query().Get("project")
+
 	switch r.Method {
 	//case "GET":
 	//	q := r.URL.ExecuteSingle()

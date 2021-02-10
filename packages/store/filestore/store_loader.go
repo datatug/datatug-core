@@ -235,7 +235,7 @@ func (loader fileSystemLoader) GetProjectPath(projectID string) (projID string, 
 	}
 	projPath, knownProjectID := loader.pathByID[projID]
 	if !knownProjectID {
-		err = validation.NewErrBadRequestFieldValue("unknown project ID: [%v]'", projectID)
+		err = validation.NewErrBadRequestFieldValue("projectID", fmt.Sprintf("unknown: [%v]ro", projectID))
 		return
 	}
 	return
@@ -268,7 +268,7 @@ func (loader fileSystemLoader) LoadEnvironmentDb(projID, environmentID, database
 	filePath := path.Join(projPath, DatatugFolder, EnvironmentsFolder, environmentID, DatabasesFolder, databaseID, fmt.Sprintf("%v.db.json", databaseID))
 	envDb = new(dto.EnvDb)
 	if err = readJSONFile(filePath, true, envDb); err != nil {
-		err = fmt.Errorf("failed to load DB [%v] from env [%v] from project [%v]: %w", envDb, environmentID, projID, err)
+		err = fmt.Errorf("failed to load DB [%v] from env [%v] from project [%v]: %w", databaseID, environmentID, projID, err)
 		return nil, err
 	}
 	envDb.ID = databaseID

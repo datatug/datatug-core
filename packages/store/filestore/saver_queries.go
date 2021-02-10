@@ -11,19 +11,19 @@ import (
 	"strings"
 )
 
-func (s fileSystemSaver) getQueryPaths(queryID string) (qID, queryFileName, queryDir, queryPath string, err error) {
+func getQueryPaths(queryID, queriesDirPath string) (qID, queryFileName, queryDir, queryPath string, err error) {
 	if strings.TrimSpace(queryID) == "" {
 		return "", "", "", "", validation.NewErrRequestIsMissingRequiredField("queryID")
 	}
 	queryDir = filepath.Dir(queryID)
 	qID = filepath.Base(queryID)
 	queryFileName = fmt.Sprintf("%v.json", qID)
-	queryPath = path.Join(s.queriesDirPath(), queryDir, queryFileName)
+	queryPath = path.Join(queriesDirPath, queryDir, queryFileName)
 	return
 }
 
 func (s fileSystemSaver) DeleteQuery(queryID string) error {
-	_, queryFileName, queryDir, queryPath, err := s.getQueryPaths(queryID)
+	_, queryFileName, queryDir, queryPath, err := getQueryPaths(queryID, queriesDirPath(s.projDirPath))
 	if err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func (s fileSystemSaver) saveQuery(query models.QueryDef, isNew bool) (err error
 	if err := query.Validate(); err != nil {
 		return fmt.Errorf("invalid query: %w", err)
 	}
-	_, queryFileName, queryDir, queryPath, err := s.getQueryPaths(query.ID)
+	_, queryFileName, queryDir, queryPath, err := getQueryPaths(query.ID, queriesDirPath(s.projDirPath))
 
 	if isNew {
 		if _, err := os.Stat(queryPath); err == nil {

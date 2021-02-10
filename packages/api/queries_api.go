@@ -60,9 +60,9 @@ func DeleteQuery(projectID string, queryID string) error {
 }
 
 // DeleteQuery deletes query
-func GetQuery(params QueryRequestParams) error {
-	if err := params.Validate(); err != nil {
-		return err
+func GetQuery(params QueryRequestParams) (query models.QueryDef, err error) {
+	if err = params.Validate(); err != nil {
+		return query, err
 	}
-	return store.Current.DeleteQuery(params.Project, params.Query)
+	return store.Current.LoadQuery(params.Project, params.Query)
 }

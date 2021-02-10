@@ -37,7 +37,16 @@ func (e Executor) ExecuteSingle(command RequestCommand) (response Response, err 
 	if recordset, err = executeCommand(command, e.getDbByID); err != nil {
 		return
 	}
-	response.Recordsets = append(response.Recordsets, recordset)
+	response.Commands = []*CommandResponse{
+		{
+			Items: []CommandResponseItem{
+				{
+					Type:  "recordset",
+					Value: recordset,
+				},
+			},
+		},
+	}
 	response.Duration = recordset.Duration
 	return
 }
@@ -45,9 +54,11 @@ func (e Executor) ExecuteSingle(command RequestCommand) (response Response, err 
 func (e Executor) executeMulti(request Request) (response Response, err error) {
 	started := time.Now()
 	var wg sync.WaitGroup
-	var mutex sync.Mutex
 	wg.Add(len(request.Commands))
+	response.Commands = make([]*CommandResponse, 0, len(request.Commands))
 	for _, command := range request.Commands {
+		var commandResponse CommandResponse
+		response.Commands = append(response.Commands, &commandResponse)
 		go func(cmd RequestCommand) {
 			var (
 				recordset  models.Recordset
@@ -58,9 +69,12 @@ func (e Executor) executeMulti(request Request) (response Response, err error) {
 				wg.Done()
 				return
 			}
-			mutex.Lock()
-			response.Recordsets = append(response.Recordsets, recordset)
-			mutex.Unlock()
+			commandResponse.Items = []CommandResponseItem{
+				{
+					Type:  "recordset",
+					Value: recordset,
+				},
+			}
 			wg.Done()
 		}(command)
 	}

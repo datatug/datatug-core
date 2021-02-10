@@ -3,7 +3,6 @@ package endpoints
 import (
 	"github.com/datatug/datatug/packages/api"
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/store"
 	"github.com/strongo/validation"
 	"net/http"
 )
@@ -24,7 +23,7 @@ func GetQuery(w http.ResponseWriter, r *http.Request) {
 		handleError(err, w, r)
 		return
 	}
-	query, err := store.Current.LoadQuery(params.Project, params.Query)
+	query, err := api.GetQuery(params)
 	if err != nil {
 		handleError(err, w, r)
 		return

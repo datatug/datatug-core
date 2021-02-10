@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/datatug/datatug/packages/execute"
+	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/server/dto"
 	"github.com/strongo/validation"
 )
@@ -22,7 +23,7 @@ func GetServerDatabases(request GetServerDatabasesRequest) (databases []dto.DbCa
 	if response, err = executor.ExecuteSingle(command); err != nil {
 		return nil, err
 	}
-	recordset := response.Recordsets[0]
+	recordset := response.Commands[0].Items[0].Value.(models.Recordset)
 	databases = make([]dto.DbCatalog, len(recordset.Rows))
 	for i, row := range recordset.Rows {
 		databases[i] = dto.DbCatalog{

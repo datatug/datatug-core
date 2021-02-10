@@ -22,9 +22,10 @@ type QueryDef struct {
 }
 
 type QueryDefTarget struct {
-	Driver string `json:"driver,omitempty" yaml:"driver,omitempty"`
-	Host   string `json:"host,omitempty" yaml:"host,omitempty"`
-	Port   int    `json:"port,omitempty" yaml:"port,omitempty"`
+	Driver  string `json:"driver,omitempty" yaml:"driver,omitempty"`
+	Catalog string `json:"catalog,omitempty" yaml:"catalog,omitempty"`
+	Host    string `json:"host,omitempty" yaml:"host,omitempty"`
+	Port    int    `json:"port,omitempty" yaml:"port,omitempty"`
 	Credentials
 }
 
