@@ -44,6 +44,9 @@ func (loader fileSystemLoader) loadQueriesDir(dirPath string) (queries []models.
 			}
 			folder := models.QueryDef{
 				Type:    "folder",
+				ProjectItem: models.ProjectItem{
+					ID: fileName,
+				},
 				Queries: subQueries,
 			}
 			if mutex != nil {
