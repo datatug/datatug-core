@@ -21,8 +21,9 @@ jobs:
 
       - name: Install Go
         uses: actions/setup-go@v1
-        with:
-          go-version: ${{ matrix.go-version }}
+
+      - name: go version
+        run: go version
 
       - name: Checkout code
         uses: actions/checkout@v2
