@@ -41,7 +41,7 @@ jobs:
         run: go test ./...
 
       - name: Build DataTug CLI
-        run: go build
+        run: go build -mod=mod
 
 #      - name: list root directory
 #        run: ls
