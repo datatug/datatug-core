@@ -20,7 +20,6 @@ func (saver storeSaver) newProjectSaver(projID string) (projSaver fileSystemSave
 		err = validation.NewErrBadRequestFieldValue("projectID", "unknown project ID")
 		return
 	}
-	log.Println("Saving to: ", projPath)
 	projSaver = newSaver(projPath, models2md.NewEncoder())
 	return
 }

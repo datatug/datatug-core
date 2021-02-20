@@ -121,7 +121,7 @@ func loadDbServer(driverDirPath, driver, serverName string) (dbServer *models.Pr
 	dbServerDirPath := path.Join(driverDirPath, serverName)
 	err = parallel.Run(
 		func() (err error) {
-			err = readJSONFile(path.Join(dbServerDirPath, fmt.Sprintf("%v.%v.json", driver, serverName)), true, dbServer)
+			err = readJSONFile(path.Join(dbServerDirPath, jsonFileName(fmt.Sprintf("%v.%v", driver, serverName), dbServerFileSuffix)), true, dbServer)
 			if err != nil {
 				err = fmt.Errorf("failed to load db server summary file: %w", err)
 			}
@@ -133,7 +133,7 @@ func loadDbServer(driverDirPath, driver, serverName string) (dbServer *models.Pr
 			return err
 		},
 		func() (err error) {
-			return loadDatabases(path.Join(dbServerDirPath, DatabasesFolder), dbServer)
+			return loadDatabases(path.Join(dbServerDirPath, DbCatalogsFolder), dbServer)
 		},
 	)
 	return
@@ -144,7 +144,7 @@ func (loader fileSystemLoader) LoadEntity(projID, entityID string) (entity model
 	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
 		return
 	}
-	fileName := path.Join(projPath, DatatugFolder, EntitiesFolder, fmt.Sprintf("%v.json", entityID))
+	fileName := path.Join(projPath, DatatugFolder, EntitiesFolder, jsonFileName(entityID, entityFileSuffix))
 	if err = readJSONFile(fileName, true, &entity); err != nil {
 		err = fmt.Errorf("faile to load entity [%v] from project [%v]: %w", entityID, projID, err)
 		return
@@ -265,7 +265,7 @@ func (loader fileSystemLoader) LoadEnvironmentDb(projID, environmentID, database
 	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
 		return
 	}
-	filePath := path.Join(projPath, DatatugFolder, EnvironmentsFolder, environmentID, DatabasesFolder, databaseID, fmt.Sprintf("%v.db.json", databaseID))
+	filePath := path.Join(projPath, DatatugFolder, EnvironmentsFolder, environmentID, DbCatalogsFolder, databaseID, jsonFileName(databaseID, dbCatalogFileSuffix))
 	envDb = new(dto.EnvDb)
 	if err = readJSONFile(filePath, true, envDb); err != nil {
 		err = fmt.Errorf("failed to load DB [%v] from env [%v] from project [%v]: %w", databaseID, environmentID, projID, err)

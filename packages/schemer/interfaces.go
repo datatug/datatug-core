@@ -2,6 +2,7 @@ package schemer
 
 import (
 	"context"
+	"database/sql"
 	"github.com/datatug/datatug/packages/models"
 )
 
@@ -81,5 +82,9 @@ type ConstraintsReader interface {
 
 type Constraint struct {
 	TableRef
-	models.Constraint
+	ColumnName string
+	UniqueConstraintCatalog, UniqueConstraintSchema, UniqueConstraintName sql.NullString
+	MatchOption, UpdateRule, DeleteRule                                   sql.NullString
+	RefTableCatalog, RefTableSchema, RefTableName, RefColName             sql.NullString
+	*models.Constraint
 }

@@ -82,7 +82,7 @@ func (loader fileSystemLoader) LoadRecordsetDefinition(projectID, recordsetID st
 
 func (loader fileSystemLoader) loadRecordsetDefinition(dirPath, folder, recordsetID, projectID string) (dataset *models.RecordsetDefinition, err error) {
 	dataset = new(models.RecordsetDefinition)
-	filePath := path.Join(dirPath, recordsetID, fmt.Sprintf(".%v.recordset.json", recordsetID))
+	filePath := path.Join(dirPath, recordsetID, jsonFileName(recordsetID, recordsetFileSuffix))
 	if err = readJSONFile(filePath, true, dataset); err != nil {
 		err = fmt.Errorf("failed to load dataset [%v] from project [%v]: %w", recordsetID, projectID, err)
 		return nil, err

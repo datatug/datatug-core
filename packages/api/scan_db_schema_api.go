@@ -63,13 +63,13 @@ func UpdateDbSchema(ctx context.Context, loader ProjectLoader, projectID, enviro
 			return project, err
 		}
 	} else {
-		log.Printf("Loading existign project...")
+		log.Printf("Loading existing project...")
 		if project, err = loader.LoadProject(projectID); err != nil {
 			err = fmt.Errorf("failed to load DataTug project: %w", err)
 			return
 		}
 		log.Println("Updating project with latest database info...", environment)
-		if err = updateProjectWithDatabase(project, environment, dbServer, latestDb); err != nil {
+		if err = updateProjectWithDbCatalog(project, environment, dbServer, latestDb); err != nil {
 			return project, err
 		}
 	}
@@ -85,7 +85,7 @@ func UpdateDbSchema(ctx context.Context, loader ProjectLoader, projectID, enviro
 	return project, err
 }
 
-func updateProjectWithDatabase(project *models.DataTugProject, envID string, dbServer models.DbServer, latestDb *models.DbCatalog) (err error) {
+func updateProjectWithDbCatalog(project *models.DataTugProject, envID string, dbServer models.DbServer, latestDbCatalog *models.DbCatalog) (err error) {
 	// Update environment
 	{
 		if environment := project.Environments.GetEnvByID(envID); environment == nil {
@@ -96,7 +96,7 @@ func updateProjectWithDatabase(project *models.DataTugProject, envID string, dbS
 				DbServers: models.EnvDbServers{
 					{
 						DbServer:  dbServer,
-						Databases: []string{latestDb.ID},
+						Databases: []string{latestDbCatalog.ID},
 					},
 				},
 			}
@@ -104,23 +104,23 @@ func updateProjectWithDatabase(project *models.DataTugProject, envID string, dbS
 		} else if envDbServer := environment.DbServers.GetByID(dbServer.ID()); envDbServer == nil {
 			environment.DbServers = append(environment.DbServers, &models.EnvDbServer{
 				DbServer:  dbServer,
-				Databases: []string{latestDb.ID},
+				Databases: []string{latestDbCatalog.ID},
 			})
-		} else if i := slice.IndexOfString(envDbServer.Databases, latestDb.ID); i < 0 {
-			envDbServer.Databases = append(envDbServer.Databases, latestDb.ID)
+		} else if i := slice.IndexOfString(envDbServer.Databases, latestDbCatalog.ID); i < 0 {
+			envDbServer.Databases = append(envDbServer.Databases, latestDbCatalog.ID)
 		}
 	}
 	// Update DB server
 	{
 		for i, projDbServer := range project.DbServers {
 			if projDbServer.ProjectItem.ID == dbServer.ID() {
-				for j, db := range project.DbServers[i].Databases {
-					if db.ID == latestDb.ID {
-						project.DbServers[i].Databases[j] = latestDb
+				for j, db := range project.DbServers[i].DbCatalogs {
+					if db.ID == latestDbCatalog.ID {
+						project.DbServers[i].DbCatalogs[j] = latestDbCatalog
 						goto ProjectDbServerDatabaseUpdated
 					}
 				}
-				project.DbServers[i].Databases = append(project.DbServers[i].Databases, latestDb)
+				project.DbServers[i].DbCatalogs = append(project.DbServers[i].DbCatalogs, latestDbCatalog)
 			ProjectDbServerDatabaseUpdated:
 				goto ProjDbServerUpdate
 			}
@@ -128,7 +128,7 @@ func updateProjectWithDatabase(project *models.DataTugProject, envID string, dbS
 		project.DbServers = append(project.DbServers, &models.ProjDbServer{
 			ProjectItem: models.ProjectItem{ID: dbServer.ID()},
 			DbServer:    dbServer,
-			Databases:   models.Databases{latestDb},
+			DbCatalogs:  models.DbCatalogs{latestDbCatalog},
 		})
 	ProjDbServerUpdate:
 	}
@@ -168,7 +168,7 @@ func newProjectWithDatabase(environment string, dbServer models.DbServer, databa
 			{
 				ProjectItem: models.ProjectItem{ID: dbServer.ID()},
 				DbServer:    dbServer,
-				Databases: models.Databases{
+				DbCatalogs: models.DbCatalogs{
 					database,
 				},
 			},

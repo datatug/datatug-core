@@ -21,7 +21,7 @@ func (encoder) EncodeProjectSummary(w io.Writer, project models.DataTugProject) 
 
 	boards := make([]string, len(project.Boards))
 	for i, board := range project.Boards {
-		environments[i] = fmt.Sprintf("- [%v](boards/%v)", board.Title, board.ID)
+		boards[i] = fmt.Sprintf("- [%v](boards/%v)", board.Title, board.ID)
 	}
 
 	_, err := fmt.Fprintf(w, `# DataTug project: %v

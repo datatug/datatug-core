@@ -1,7 +1,6 @@
 package filestore
 
 import (
-	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/server/dto"
 	"github.com/datatug/datatug/packages/slice"
@@ -73,7 +72,7 @@ func loadServerDatabaseNamesByEnvironments(projPath string, dbServer models.DbSe
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
 		env := f.Name()
 		dbServersPath := path.Join(envsPath, env, "servers", "db")
-		filePath := path.Join(dbServersPath, fmt.Sprintf("%v.server.json", dbServer.FileName()))
+		filePath := path.Join(dbServersPath, jsonFileName(dbServer.FileName(), serverFileSuffix))
 		var envDbServer = new(models.EnvDbServer)
 		if err = readJSONFile(filePath, false, envDbServer); err != nil {
 			return err

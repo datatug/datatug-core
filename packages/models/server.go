@@ -74,8 +74,8 @@ func (v DbServer) Validate() error {
 // ProjDbServer hold info about a project DB server - NOT sure if right way
 type ProjDbServer struct {
 	ProjectItem
-	DbServer  DbServer  `json:"dbServer"`
-	Databases Databases `json:"databases"`
+	DbServer   DbServer   `json:"dbServer"`
+	DbCatalogs DbCatalogs `json:"dbCatalogs"`
 }
 
 // Validate returns error if not valid
@@ -86,13 +86,13 @@ func (v ProjDbServer) Validate() error {
 	if err := v.DbServer.Validate(); err != nil {
 		return err
 	}
-	if err := v.Databases.Validate(); err != nil {
+	if err := v.DbCatalogs.Validate(); err != nil {
 		return err
 	}
 	return nil
 }
 
-// ProjDbServers slice of ProjDbServer which holds DbServer and Databases
+// ProjDbServers slice of ProjDbServer which holds DbServer and DbCatalogs
 type ProjDbServers []*ProjDbServer
 
 // Validate returns error if not valid

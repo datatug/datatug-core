@@ -39,10 +39,11 @@ func (v *projectBaseCommand) initProjectCommand(o projectCommandOptions) error {
 	}
 	if v.ProjectName != "" {
 		v.projectID = strings.ToLower(v.ProjectName)
-		_, ok := config.Projects[v.projectID]
+		project, ok := config.Projects[v.projectID]
 		if !ok {
 			return ErrUnknownProjectName
 		}
+		v.ProjectDir = project.Path
 	}
 	if v.ProjectDir != "" && v.projectID == "" {
 		v.loader, v.projectID = filestore.NewSingleProjectLoader(v.ProjectDir)

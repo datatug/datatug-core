@@ -72,11 +72,11 @@ func (v DbSchema) Validate() error {
 	return nil
 }
 
-// Databases is a slice of pointers to Database
-type Databases []*DbCatalog
+// DbCatalogs is a slice of pointers to Database
+type DbCatalogs []*DbCatalog
 
 // Validate returns error if failed
-func (v Databases) Validate() error {
+func (v DbCatalogs) Validate() error {
 	for i, db := range v {
 		if err := db.Validate(); err != nil {
 			return fmt.Errorf("validaiton failed for db at index %v: %w", i, err)
@@ -86,7 +86,7 @@ func (v Databases) Validate() error {
 }
 
 // GetDbByID returns Database by ID
-func (v Databases) GetDbByID(id string) *DbCatalog {
+func (v DbCatalogs) GetDbByID(id string) *DbCatalog {
 	for _, db := range v {
 		if strings.EqualFold(db.ID, id) {
 			return db
@@ -165,14 +165,16 @@ type UniqueKey struct {
 
 // Index holds info about DB table index
 type Index struct {
-	Name          string        `json:"name"`
-	Type          string        `json:"type"`
-	Columns       []IndexColumn `json:"columns"`
-	IsClustered   bool          `json:"clustered,omitempty"`
-	IsXml         bool          `json:"xml,omitempty"`
-	IsColumnStore bool          `json:"columnstore,omitempty"`
-	IsHash        bool          `json:"hash,omitempty"`
-	Unique        bool          `json:"unique,omitempty"`
+	Name               string        `json:"name"`
+	Type               string        `json:"type"`
+	Columns            []IndexColumn `json:"columns"`
+	IsClustered        bool          `json:"clustered,omitempty"`
+	IsXml              bool          `json:"xml,omitempty"`
+	IsColumnStore      bool          `json:"columnstore,omitempty"`
+	IsHash             bool          `json:"hash,omitempty"`
+	IsUnique           bool          `json:"unique,omitempty"`
+	IsUniqueConstraint bool          `json:"uniqueConstraint,omitempty"`
+	IsPrimaryKey       bool          `json:"primaryKey,omitempty"`
 }
 
 // IndexColumn holds info about a col in a DB table index

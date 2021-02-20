@@ -52,7 +52,7 @@ func (v *showProjectCommand) Execute(_ []string) error {
 	_, _ = fmt.Fprintln(w, "DB servers: ", len(project.DbServers))
 	for _, dbServer := range project.DbServers {
 		_, _ = fmt.Fprintf(w, "\t🛢️🛢️ %v: %v\n", dbServer.DbServer.Driver, dbServer.DbServer.Address())
-		for _, db := range dbServer.Databases {
+		for _, db := range dbServer.DbCatalogs {
 			_, _ = fmt.Fprintln(w, "\t\t🛢️ Database: ", db.ID)
 			for _, schema := range db.Schemas {
 				_, _ = fmt.Fprintln(w, "\t\t\t Schema: ", db.ID)

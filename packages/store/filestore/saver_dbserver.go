@@ -19,10 +19,11 @@ func (s fileSystemSaver) SaveDbServer(dbServer *models.ProjDbServer) (err error)
 			if err := os.MkdirAll(dbServerDirPath, os.ModeDir); err != nil {
 				return err
 			}
-			return s.saveJSONFile(dbServerDirPath, fmt.Sprintf("%v.%v.json", dbServer.DbServer.Driver, dbServer.DbServer.FileName()), models.ProjDbServerFile{})
+			fileId := fmt.Sprintf("%v.%v", dbServer.DbServer.Driver, dbServer.DbServer.FileName())
+			return s.saveJSONFile(dbServerDirPath, jsonFileName(fileId, dbServerFileSuffix), models.ProjDbServerFile{})
 		},
 		func() error {
-			if err = s.saveDatabases(dbServer.DbServer, dbServer.Databases); err != nil {
+			if err = s.saveDbCatalogs(dbServer.DbServer, dbServer.DbCatalogs); err != nil {
 				return fmt.Errorf("failed to save environment databases: %w", err)
 			}
 			return nil

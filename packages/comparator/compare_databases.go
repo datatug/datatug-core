@@ -16,7 +16,7 @@ type DatabasesToCompare struct {
 // EnvToCompare defines env to compare
 type EnvToCompare struct {
 	ID        string
-	Databases models.Databases
+	Databases models.DbCatalogs
 }
 
 type schemaToCompare struct { // should it be rather called `schemaToCompare`?

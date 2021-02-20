@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"log"
 )
 
 // DbModels is a slice of *DbModel
@@ -88,7 +89,9 @@ func (v DbModel) Validate() error {
 	if err := v.ProjectItem.Validate(false); err != nil {
 		return err
 	}
+	log.Printf("Validating %v schemas for Db model [%v]", len(v.Schemas), v.ID)
 	for i, schema := range v.Schemas {
+		log.Printf("Validating schema #%v out of %v\n", i, len(v.Schemas))
 		if err := schema.Validate(); err != nil {
 			return fmt.Errorf("invalid schema at index=%v, id=%v: %w", i, schema.ID, err)
 		}
@@ -121,13 +124,15 @@ func (v SchemaModel) Validate() error {
 	if err := v.ProjectItem.Validate(false); err != nil {
 		return err
 	}
+	log.Printf("Validating %v tables for scheme %v\n", len(v.Tables), v.ID)
 	for i, table := range v.Tables {
 		if err := table.Validate(); err != nil {
 			return fmt.Errorf("invalid table model at index=%v, name=%v: %w", i, table.Name, err)
 		}
 	}
+	log.Printf("Validating %v views for scheme %v\n", len(v.Views), v.ID)
 	for i, view := range v.Views {
-		if err := v.Validate(); err != nil {
+		if err := view.Validate(); err != nil {
 			return fmt.Errorf("invalid view model at index=%v, name=%v: %w", i, view.Name, err)
 		}
 	}

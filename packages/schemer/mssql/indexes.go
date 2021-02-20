@@ -13,25 +13,24 @@ type indexesReader struct {
 	rows *sql.Rows
 }
 
+/*
+case when i.type = 1 then 'Clustered index'
+when i.type = 2 then 'Nonclustered unique index'
+when i.type = 3 then 'XML index'
+when i.type = 4 then 'Spatial index'
+when i.type = 5 then 'Clustered columnstore index'
+when i.type = 6 then 'Nonclustered columnstore index'
+when i.type = 7 then 'Nonclustered hash index'
+end as type_description,
+*/
+
 //goland:noinspection SqlNoDataSourceInspection
 const indexesSQL = `
 SELECT 
     SCHEMA_NAME(o.schema_id) AS schema_name,
 	o.name AS object_name,
-    CASE WHEN o.type = 'U' THEN 'Table'
-        WHEN o.type = 'V' THEN 'View'
-		ELSE o.type
-        END AS object_type,
+    CASE WHEN o.type = 'U' THEN 'Table' WHEN o.type = 'V' THEN 'View' ELSE o.type END AS object_type,
     i.name,
-	/*
-    case when i.type = 1 then 'Clustered index'
-        when i.type = 2 then 'Nonclustered unique index'
-        when i.type = 3 then 'XML index'
-        when i.type = 4 then 'Spatial index'
-        when i.type = 5 then 'Clustered columnstore index'
-        when i.type = 6 then 'Nonclustered columnstore index'
-        when i.type = 7 then 'Nonclustered hash index'
-        end as type_description,*/
 	i.type,
 	i.type_desc,
 	is_unique,
@@ -45,7 +44,11 @@ ORDER BY SCHEMA_NAME(o.schema_id) + '.' + o.name, i.name
 
 func (s indexesReader) NextIndex() (index schemer.Index, err error) {
 	if !s.rows.Next() {
-		return index, fmt.Errorf("failed to retrieve index row: %w", s.rows.Err())
+		err = s.rows.Err()
+		if err != nil {
+			err = fmt.Errorf("failed to retrieve index row: %w", s.rows.Err())
+		}
+		return index, err
 	}
 	index.Index = new(models.Index)
 	var iType int
@@ -56,6 +59,9 @@ func (s indexesReader) NextIndex() (index schemer.Index, err error) {
 		&index.Name,
 		&iType,
 		&index.Type,
+		&index.IsUnique,
+		&index.IsPrimaryKey,
+		&index.IsUniqueConstraint,
 	); err != nil {
 		return index, fmt.Errorf("failed to scan index row: %w", err)
 	}

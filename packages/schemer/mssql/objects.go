@@ -20,12 +20,16 @@ var _ schemer.ObjectsReader = (*objectsReader)(nil)
 
 type objectsReader struct {
 	catalog string
-	rows *sql.Rows
+	rows    *sql.Rows
 }
 
 func (s objectsReader) NextObject() (*models.Table, error) {
 	if !s.rows.Next() {
-		return nil, s.rows.Err()
+		err := s.rows.Err()
+		if err != nil {
+			err = fmt.Errorf("failed to retrieve db object row: %w", err)
+		}
+		return nil, err
 	}
 	var table models.Table
 	if err := s.rows.Scan(&table.Schema, &table.Name, &table.DbType); err != nil {

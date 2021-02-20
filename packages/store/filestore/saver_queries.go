@@ -17,7 +17,7 @@ func getQueryPaths(queryID, queriesDirPath string) (qID, queryFileName, queryDir
 	}
 	queryDir = filepath.Dir(queryID)
 	qID = filepath.Base(queryID)
-	queryFileName = fmt.Sprintf("%v.json", qID)
+	queryFileName = jsonFileName(qID, queryFileSuffix)
 	queryPath = path.Join(queriesDirPath, queryDir, queryFileName)
 	return
 }

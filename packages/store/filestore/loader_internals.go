@@ -180,7 +180,7 @@ func loadDbModel(dbModelsDirPath, id string) (dbModel *models.DbModel, err error
 	dbModel = &models.DbModel{}
 	return dbModel, parallel.Run(
 		func() (err error) {
-			fileName := path.Join(dbModelDirPath, id+".dbmodel.json")
+			fileName := path.Join(dbModelDirPath, jsonFileName(id, dbModelFileSuffix))
 			if err = readJSONFile(fileName, true, dbModel); err != nil {
 				return err
 			}
@@ -240,7 +240,7 @@ func loadSchemaModel(dbModelDirPath, schemaID string) (schemaModel *models.Schem
 }
 
 func loadEnvFile(envDirPath string, environment *models.Environment) (err error) {
-	filePath := path.Join(envDirPath, fmt.Sprintf("%v.environment.json", environment.ID))
+	filePath := path.Join(envDirPath, jsonFileName(environment.ID, environmentFileSuffix))
 	return readJSONFile(filePath, true, environment)
 }
 
@@ -272,13 +272,13 @@ func loadEnvServers(dirPath string, env *models.Environment) error {
 
 func loadDatabases(dirPath string, dbServer *models.ProjDbServer) (err error) {
 	return loadDir(nil, dirPath, processDirs, func(files []os.FileInfo) {
-		dbServer.Databases = make(models.Databases, len(files))
+		dbServer.DbCatalogs = make(models.DbCatalogs, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
 		id := f.Name()
-		dbServer.Databases[i] = &models.DbCatalog{
+		dbServer.DbCatalogs[i] = &models.DbCatalog{
 			ProjectItem: models.ProjectItem{ID: id},
 		}
-		if err = loadDatabase(path.Join(dirPath, id), dbServer.Databases[i]); err != nil {
+		if err = loadDatabase(path.Join(dirPath, id), dbServer.DbCatalogs[i]); err != nil {
 			return err
 		}
 		return nil
@@ -287,7 +287,7 @@ func loadDatabases(dirPath string, dbServer *models.ProjDbServer) (err error) {
 
 func loadDatabase(dirPath string, db *models.DbCatalog) (err error) {
 	log.Println("Loading database", db.ID)
-	filePath := path.Join(dirPath, fmt.Sprintf("%v.db.json", db.ID))
+	filePath := path.Join(dirPath, jsonFileName(db.ID, dbCatalogFileSuffix))
 	if err = readJSONFile(filePath, false, db); err != nil {
 		return err
 	}

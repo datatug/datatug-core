@@ -9,6 +9,7 @@ type TableFile struct {
 	ForeignKeys  []*models.ForeignKey        `json:"foreignKeys,omitempty"`
 	ReferencedBy []*models.TableReferencedBy `json:"referencedBy,omitempty"`
 	Columns      []*models.TableColumn       `json:"columns,omitempty"`
+	Indexes      []*models.Index             `json:"indexes,omitempty"`
 }
 
 // TableRefsByFile info to be stored about reference in a JSON file

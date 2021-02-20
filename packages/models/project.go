@@ -3,8 +3,8 @@ package models
 import (
 	"fmt"
 	"github.com/strongo/validation"
+	"log"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -33,27 +33,33 @@ func (v DataTugProject) Validate() error {
 	default:
 		return validation.NewErrBadRecordFieldValue("access", "unknown value")
 	}
-	if strings.TrimSpace(v.Title) == "" {
-		return validation.NewErrRecordIsMissingRequiredField("title")
-	}
+	//if strings.TrimSpace(v.Title) == "" {
+	//	return validation.NewErrRecordIsMissingRequiredField("title")
+	//}
 	if l := len(v.Title); l > 100 {
 		return validation.NewErrBadRecordFieldValue("title", "too long title (max 100): "+strconv.Itoa(l))
 	}
+	log.Println("Validating environments...")
 	if err := v.Environments.Validate(); err != nil {
 		return fmt.Errorf("validation failed for project environments: %w", err)
 	}
+	log.Println("Validating entities...")
 	if err := v.Entities.Validate(); err != nil {
 		return fmt.Errorf("validation failed for project entities: %w", err)
 	}
+	log.Println("Validating DB models...")
 	if err := v.DbModels.Validate(); err != nil {
 		return fmt.Errorf("validation failed for project db models: %w", err)
 	}
+	log.Println("Validating boards...")
 	if err := v.Boards.Validate(); err != nil {
 		return fmt.Errorf("validation failed for project boards: %w", err)
 	}
+	log.Println("Validating DB servers...")
 	if err := v.DbServers.Validate(); err != nil {
 		return fmt.Errorf("validation failed for project db servers: %w", err)
 	}
+	log.Println("Validating actions...")
 	if err := v.Actions.Validate(); err != nil {
 		return fmt.Errorf("validation failed for project actions: %w", err)
 	}

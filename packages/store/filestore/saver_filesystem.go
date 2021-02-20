@@ -32,7 +32,7 @@ func (s fileSystemSaver) saveJSONFile(dirPath, fileName string, v interface{}) (
 
 	fullFileName := path.Join(dirPath, fileName)
 	log.Printf("Saving file: %v\n%+v", fullFileName, v)
-	file, _ := os.OpenFile(fullFileName, os.O_CREATE, os.ModePerm)
+	file, _ := os.Create(fullFileName)
 	defer func() {
 		_ = file.Close()
 	}()

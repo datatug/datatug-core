@@ -6,6 +6,7 @@ import (
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -110,31 +111,7 @@ func (s scanner) scanColumns(c context.Context, catalog string, tablesFinder sor
 	}
 }
 
-func (s scanner) scanConstraints(c context.Context, catalog string, tablesFinder sortedTables) error {
-	reader, err := s.schemaProvider.Constraints(c, catalog)
-	if err != nil {
-		return err
-	}
-	deadline, isDeadlineSet := c.Deadline()
-	for {
-		if isDeadlineSet && time.Now().After(deadline) {
-			return fmt.Errorf("exceeded deadline")
-		}
-		constraint, err := reader.NextConstraint()
-		if err != nil {
-			return err
-		}
-		if constraint.Name == "" {
-			break
-		}
-		table := tablesFinder.SequentialFind(catalog, constraint.SchemaName, constraint.TableName)
-		if table == nil {
-			return fmt.Errorf("unknown table referenced by constraint [%v]: %v.%v.%v",
-				constraint.Name, catalog, constraint.SchemaName, constraint.TableName)
-		}
-	}
-	return nil
-}
+
 
 func (s scanner) scanIndexes(c context.Context, catalog string, tablesFinder sortedTables) error {
 	reader, err := s.schemaProvider.Indexes(c, catalog)
@@ -143,7 +120,7 @@ func (s scanner) scanIndexes(c context.Context, catalog string, tablesFinder sor
 	}
 	deadline, isDeadlineSet := c.Deadline()
 	var indexes []Index
-	for {
+	for i := 0; ; i++ {
 		if isDeadlineSet && time.Now().After(deadline) {
 			return fmt.Errorf("exceeded deadline")
 		}
@@ -151,15 +128,19 @@ func (s scanner) scanIndexes(c context.Context, catalog string, tablesFinder sor
 		if err != nil {
 			return err
 		}
+		if index.Index == nil {
+			break
+		}
 		indexes = append(indexes, index)
 		if index.Name == "" {
-			break
+			return fmt.Errorf("got index with an empty name at iteration #%v", i)
 		}
 		table := tablesFinder.SequentialFind(catalog, index.SchemaName, index.TableName)
 		if table == nil {
 			return fmt.Errorf("unknown table referenced by constraint [%v]: %v.%v.%v",
 				index.Name, catalog, index.SchemaName, index.TableName)
 		}
+		table.Indexes = append(table.Indexes, index.Index)
 	}
 	if err = s.scanIndexColumns(c, catalog, sortedIndexes{indexes: indexes}); err != nil {
 		return fmt.Errorf("failed to retrieve index columns: %v", err)
@@ -173,21 +154,25 @@ func (s scanner) scanIndexColumns(c context.Context, catalog string, indexFinder
 		return err
 	}
 	deadline, isDeadlineSet := c.Deadline()
-	for {
+	for i := 0; ; i++ {
 		if isDeadlineSet && time.Now().After(deadline) {
 			return fmt.Errorf("exceeded deadline")
 		}
 		indexColumn, err := reader.NextIndexColumn()
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get next index column at iteration #%v: %w", i, err)
 		}
-		if indexColumn.Name == "" {
+		if indexColumn.IndexColumn == nil {
 			break
 		}
-		index := indexFinder.SequentialFind(indexColumn.SchemaName, indexColumn.TableName, indexColumn.Name)
+		index := indexFinder.SequentialFind(indexColumn.SchemaName, indexColumn.TableName, indexColumn.IndexName)
 		if index.Index == nil {
-			return fmt.Errorf("unknown index referenced by column [%v.%v.%v.%v]: %v",
-				catalog, indexColumn.SchemaName, indexColumn.TableName, indexColumn.Name, indexColumn.IndexName)
+			indexNames := make([]string, len(indexFinder.indexes))
+			for k, index := range indexFinder.indexes {
+				indexNames[k] = index.Name
+			}
+			return fmt.Errorf("unknown index referenced by column [%v.%v.%v.%v] at iteration #%v: %v\nKnown indexes: %v",
+				catalog, indexColumn.SchemaName, indexColumn.TableName, indexColumn.Name, i, indexColumn.IndexName, strings.Join(indexNames, ", "))
 		}
 	}
 	return nil

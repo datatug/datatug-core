@@ -44,7 +44,7 @@ func (v *scanDbCommand) Execute(_ []string) (err error) {
 	}
 	log.Println("Initiating project...")
 	if _, err := os.Stat(v.ProjectDir); os.IsNotExist(err) {
-		return err
+		return fmt.Errorf("ProjectDir=[%v] not found: %w", v.ProjectDir, err)
 	}
 
 	connString := execute.NewConnectionString(v.Host, v.User, v.Password, v.Database, v.Port)

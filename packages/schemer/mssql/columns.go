@@ -38,7 +38,11 @@ func (s columnsReader) NextColumn() (col schemer.Column, err error) {
 	var charSetCatalog, charSetSchema, charSetName sql.NullString
 	var collationCatalog, collationSchema, collationName sql.NullString
 	if !s.rows.Next() {
-		return col, fmt.Errorf("failed to retrieve column row: %w", s.rows.Err())
+		err = s.rows.Err()
+		if err != nil {
+			err = fmt.Errorf("failed to retrieve column row: %w", )
+		}
+		return col, err
 	}
 	if err = s.rows.Scan(
 		&col.SchemaName,

@@ -2,6 +2,8 @@ package mssql
 
 import (
 	"database/sql"
+	"fmt"
+	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/schemer"
 )
 
@@ -27,6 +29,25 @@ type constraintsReader struct {
 	rows *sql.Rows
 }
 
-func (constraintsReader) NextConstraint() (schemer.Constraint, error) {
-	return schemer.Constraint{}, nil
+func (s constraintsReader) NextConstraint() (constraint schemer.Constraint, err error) {
+	if !s.rows.Next() {
+		err = s.rows.Err()
+		if err != nil {
+			err = fmt.Errorf("failed to retrive constaint record: %w", err)
+		}
+		return
+	}
+	constraint.Constraint = new(models.Constraint)
+	if err = s.rows.Scan(
+		&constraint.SchemaName, &constraint.TableName,
+		&constraint.Type, &constraint.Name,
+		&constraint.ColumnName,
+		&constraint.UniqueConstraintCatalog, &constraint.UniqueConstraintSchema, &constraint.UniqueConstraintName,
+		&constraint.MatchOption, &constraint.UpdateRule, &constraint.DeleteRule,
+		&constraint.RefTableCatalog, &constraint.RefTableSchema, &constraint.RefTableName, &constraint.RefColName,
+	); err != nil {
+		err = fmt.Errorf("failed to scan constaints record: %w", err)
+		return
+	}
+	return
 }

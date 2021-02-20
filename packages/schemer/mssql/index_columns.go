@@ -18,6 +18,8 @@ const indexColumnsSQL = `
 SELECT
 	SCHEMA_NAME(o.schema_id) AS schema_name,
 	o.name AS object_name,
+	--o.type AS object_type,
+	--o.type_desc AS object_type_desc,
 	i.name AS index_name,
 	c.name AS column_name,
 	ic.key_ordinal,
@@ -35,14 +37,20 @@ ORDER BY SCHEMA_NAME(o.schema_id), o.name, i.name, ic.key_ordinal
 
 func (s indexColumnsReader) NextIndexColumn() (indexColumn schemer.IndexColumn, err error) {
 	if !s.rows.Next() {
-		return indexColumn, fmt.Errorf("failed to retrieve index row: %w", s.rows.Err())
+		err = s.rows.Err()
+		if err != nil {
+			err = fmt.Errorf("failed to retrieve index row: %w", err)
+		}
+		return indexColumn, err
 	}
 	indexColumn.IndexColumn = new(models.IndexColumn)
+	//var objType string
 	var keyOrdinal, partitionOrdinal, columnStoreOrderOrdinal int
 	if err = s.rows.Scan(
 		&indexColumn.SchemaName,
 		&indexColumn.TableName,
-		&indexColumn.TableType,
+		//&objType,
+		//&indexColumn.TableType,
 		&indexColumn.IndexName,
 		&indexColumn.Name,
 		&keyOrdinal,
@@ -55,5 +63,3 @@ func (s indexColumnsReader) NextIndexColumn() (indexColumn schemer.IndexColumn, 
 	}
 	return indexColumn, nil
 }
-
-
