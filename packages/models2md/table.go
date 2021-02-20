@@ -47,7 +47,12 @@ func (encoder) EncodeTable(w io.Writer, catalog string, table *models.Table) err
 	} else {
 		refBys := make([]string, len(table.ReferencedBy))
 		for i, refBy := range table.ReferencedBy {
-			refBys[i] = fmt.Sprintf("- [%v](../../../%v).[%v](../../../%v/tables/%v)", refBy.Schema, refBy.Schema, refBy.Name, refBy.Schema, refBy.Name)
+			s := make([]string, 1, 1+len(table.PrimaryKey.Columns)*len(refBy.ForeignKeys))
+			s[0] = fmt.Sprintf("- [%v](../../../%v).[%v](../../../%v/tables/%v)", refBy.Schema, refBy.Schema, refBy.Name, refBy.Schema, refBy.Name)
+			for _, fk := range refBy.ForeignKeys {
+				s = append(s, fmt.Sprintf("  - %v (%v)", fk.Name, strings.Join(fk.Columns, ", ")))
+			}
+			refBys[i] = strings.Join(s, "\n")
 		}
 		referencedBy = strings.Join(refBys, "\n")
 	}
@@ -151,7 +156,7 @@ SELECT * FROM %v.%v;
 ## Foreign keys
 %v
 
-## Refenced by
+## Referenced by
 %v
 
 ## Columns

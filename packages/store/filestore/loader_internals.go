@@ -94,7 +94,7 @@ func loadBoards(projPath string, project *models.DataTugProject) (err error) {
 	boardsDirPath := path.Join(projPath, DatatugFolder, "boards")
 	if err = loadDir(nil, boardsDirPath, processFiles,
 		func(files []os.FileInfo) {
-			project.Boards = make(models.Boards, len(files))
+			project.Boards = make(models.Boards, 0, len(files))
 		},
 		func(f os.FileInfo, i int, _ *sync.Mutex) error {
 			if f.IsDir() {
@@ -107,11 +107,16 @@ func loadBoards(projPath string, project *models.DataTugProject) (err error) {
 					},
 				},
 			}
-			project.Boards[i] = board
-			fileName := path.Join(boardsDirPath, board.ID)
-			if err = readJSONFile(fileName, true, board); err != nil {
+			var suffix string
+			board.ID, suffix = getProjItemIdFromFileName(f.Name())
+			if strings.ToLower(suffix) != boardFileSuffix {
+				return nil
+			}
+			fullFileName := path.Join(boardsDirPath, f.Name())
+			if err = readJSONFile(fullFileName, true, board); err != nil {
 				return err
 			}
+			project.Boards = append(project.Boards, board)
 			return nil
 		}); err != nil {
 		return err
@@ -137,7 +142,7 @@ func loadEntities(projPath string, project *models.DataTugProject) error {
 					},
 				},
 			}
-			entityFileName := projItemFileName(entity.ID, EntityPrefix)
+			entityFileName := jsonFileName(entity.ID, entityFileSuffix)
 			project.Entities = append(project.Entities, entity)
 			entityFilePath := path.Join(entitiesDirPath, entityFileName)
 			if err := readJSONFile(entityFilePath, true, entity); err != nil {

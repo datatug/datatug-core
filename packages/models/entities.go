@@ -69,35 +69,48 @@ func (v Entity) Validate() error {
 	return nil
 }
 
-// NamePattern hold patterns for names
-type NamePattern struct {
-	Regexp   string `json:"regexp,omitempty"`
-	Wildcard string `json:"wildcard,omitempty"`
+// StringPattern hold patterns for names
+type StringPattern struct {
+	Type          string `json:"type,omitempty"`
+	Value         string `json:"value,omitempty"`
+	CaseSensitive bool   `json:"caseSensitive,omitempty"`
+}
+
+// StringPatterns is a slice of *StringPattern
+type StringPatterns []*StringPattern
+
+// Validate returns error if not valid
+func (v StringPatterns) Validate() error {
+	for i, p := range v {
+		if err := p.Validate(); err != nil {
+			return fmt.Errorf("invalid pattern at index %v: %w", i, err)
+		}
+	}
+	return nil
 }
 
 // Validate returns error if not valid
-func (v NamePattern) Validate() error {
-	if v.Regexp != "" && v.Wildcard != "" {
-		return validation.NewErrBadRecordFieldValue("regexp&wildcard", "only 1 of pattern fields has to be set")
-	}
-	if v.Regexp == "" && v.Wildcard == "" {
-		return validation.NewErrRecordIsMissingRequiredField("regexp&wildcard")
-	}
-	if v.Regexp != "" {
-		if _, err := regexp.Compile(v.Regexp); err != nil {
+func (v StringPattern) Validate() error {
+	switch v.Type {
+	case "":
+		return validation.NewErrRequestIsMissingRequiredField("type")
+	case "regexp":
+		if _, err := regexp.Compile(v.Value); err != nil {
 			return validation.NewErrBadRecordFieldValue("regexp", err.Error())
 		}
+	default:
+		return validation.NewErrBadRecordFieldValue("type", fmt.Sprintf("unknown value: %v", v.Type))
 	}
 	return nil
 }
 
 // EntityField hold info about entity field
 type EntityField struct {
-	ID          string       `json:"id" firestore:"id"`
-	Type        string       `json:"type" firestore:"type"`
-	Title       string       `json:"title,omitempty" firestore:"title,omitempty"`
-	IsKeyField  bool         `json:"isKeyField,omitempty" firestore:"isKeyField,omitempty"`
-	NamePattern *NamePattern `json:"namePattern" firestore:"namePattern"`
+	ID           string         `json:"id" firestore:"id"`
+	Type         string         `json:"type" firestore:"type"`
+	Title        string         `json:"title,omitempty" firestore:"title,omitempty"`
+	IsKeyField   bool           `json:"isKeyField,omitempty" firestore:"isKeyField,omitempty"`
+	NamePatterns StringPatterns `json:"namePatterns" firestore:"namePattern"`
 }
 
 // Validate returns error if not valid
@@ -111,8 +124,8 @@ func (v EntityField) Validate() error {
 	if slice.IndexOfString(KnownTypes, v.Type) < 0 {
 		return validation.NewErrBadRecordFieldValue("type", fmt.Sprintf("unknown field type: %v: expected one of: %v", v.Type, strings.Join(KnownTypes, ", ")))
 	}
-	if err := v.NamePattern.Validate(); err != nil {
-		return validation.NewErrBadRecordFieldValue("namePattern", err.Error())
+	if err := v.NamePatterns.Validate(); err != nil {
+		return validation.NewErrBadRecordFieldValue("namePatterns", err.Error())
 	}
 	return nil
 }
@@ -146,4 +159,3 @@ func (v EntityFieldRef) Validate() error {
 	}
 	return nil
 }
-

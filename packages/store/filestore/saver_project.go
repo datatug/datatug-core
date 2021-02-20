@@ -99,7 +99,7 @@ func (s fileSystemSaver) SaveBoard(board models.Board) (err error) {
 	if err = s.updateProjectFileWithBoard(board); err != nil {
 		return fmt.Errorf("failed to update project file with board: %w", err)
 	}
-	fileName := projItemFileName(board.ID, BoardPrefix)
+	fileName := jsonFileName(board.ID, boardFileSuffix)
 	board.ID = ""
 	if err = s.saveJSONFile(
 		s.boardsDirPath(),
@@ -140,7 +140,7 @@ func projItemFileName(id, prefix string) string {
 
 // DeleteBoard deletes board
 func (s fileSystemSaver) DeleteBoard(boardID string) error {
-	filePath := path.Join(s.boardsDirPath(), projItemFileName(boardID, BoardPrefix))
+	filePath := path.Join(s.boardsDirPath(), jsonFileName(boardID, boardFileSuffix))
 	if _, err := os.Stat(filePath); err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -153,7 +153,7 @@ func (s fileSystemSaver) DeleteBoard(boardID string) error {
 // DeleteEntity deletes entity
 func (s fileSystemSaver) DeleteEntity(entityID string) error {
 	deleteFile := func() (err error) {
-		filePath := path.Join(s.entitiesDirPath(), projItemFileName(entityID, EntityPrefix))
+		filePath := path.Join(s.entitiesDirPath(), jsonFileName(entityID, entityFileSuffix))
 		if _, err := os.Stat(filePath); err != nil {
 			if os.IsNotExist(err) {
 				return nil

@@ -20,7 +20,7 @@ func (s fileSystemSaver) SaveEntity(entity *models.Entity) (err error) {
 	if err = s.updateProjectFileWithEntity(*entity); err != nil {
 		return fmt.Errorf("failed to update project file with entity: %w", err)
 	}
-	fileName := projItemFileName(entity.ID, EntityPrefix)
+	fileName := jsonFileName(entity.ID, entityFileSuffix)
 	if len(entity.Fields) == 0 && entity.Fields != nil {
 		entity.Fields = nil
 	}

@@ -1,6 +1,9 @@
 package filestore
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // DatatugFolder defines a folder name in a repo where to store DataTug project
 const (
@@ -24,6 +27,7 @@ const (
 func jsonFileName(id, suffix string) string {
 	switch suffix {
 	case
+		boardFileSuffix,
 		dbCatalogFileSuffix,
 		dbModelFileSuffix,
 		dbServerFileSuffix,
@@ -41,7 +45,19 @@ func jsonFileName(id, suffix string) string {
 	return fmt.Sprintf("%v.%v.json", id, suffix)
 }
 
+func getProjItemIdFromFileName(fileName string) (id string, suffix string) {
+	parts := strings.Split(fileName, ".")
+	if len(parts) < 3 {
+		return "", ""
+	}
+	suffixIndex := len(parts) - 2
+	suffix = parts[suffixIndex]
+	id = strings.Join(parts[:suffixIndex], ".")
+	return
+}
+
 const (
+	boardFileSuffix       = "board"
 	dbCatalogFileSuffix   = "db"
 	dbModelFileSuffix     = "dbmodel"
 	dbServerFileSuffix    = "dbserver"
@@ -51,11 +67,4 @@ const (
 	serverFileSuffix      = "server"
 	columnsFileSuffix     = "columns"
 	queryFileSuffix       = "q"
-)
-
-const (
-	// EntityPrefix = "entity"
-	EntityPrefix = "entity"
-	// BoardPrefix  = "board"
-	BoardPrefix = "board"
 )

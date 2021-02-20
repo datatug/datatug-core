@@ -78,10 +78,16 @@ type ProjectSummary struct {
 	ProjectFile
 }
 
+type ProjectRepository struct {
+	Type   string `json:"type"` // e.g. "git"
+	WebURL string `json:"webURL"`
+}
+
 // ProjectFile defines what to store to project file
 type ProjectFile struct {
 	ProjectItem
 	//UUID         uuid.UUID           `json:"uuid"`
+	Repository   *ProjectRepository  `json:"repository,omitempty"`
 	Created      *ProjectCreated     `json:"created,omitempty"`
 	Access       string              `json:"access"` // e.g. "private", "protected", "public"
 	DbModels     []*ProjDbModelBrief `json:"dbModels,omitempty"`
