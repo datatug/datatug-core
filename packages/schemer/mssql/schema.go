@@ -15,8 +15,23 @@ func NewSchemaProvider(db *sql.DB) schemer.SchemaProvider {
 var _ schemer.SchemaProvider = (*schemaProvider)(nil)
 
 type schemaProvider struct {
+
 	db *sql.DB
 }
+
+func (s schemaProvider) RecordsCount(c context.Context, catalog, schema, object string) (*int, error) {
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %v.%v", schema, object)
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get records count for %v.%v: %w", schema, object, err)
+	}
+	if rows.Next() {
+		var count int
+		return &count, rows.Scan(&count)
+	}
+	return nil, nil
+}
+
 
 func (s schemaProvider) Objects(_ context.Context, catalog string) (schemer.ObjectsReader, error) {
 	rows, err := s.db.Query(objectsSQL)

@@ -16,6 +16,7 @@ type SchemaProvider interface {
 	IndexesProvider
 	IndexColumnsProvider
 	ConstraintsProvider
+	RecordsCountProvider
 }
 
 type TableRef struct {
@@ -87,4 +88,8 @@ type Constraint struct {
 	MatchOption, UpdateRule, DeleteRule                                   sql.NullString
 	RefTableCatalog, RefTableSchema, RefTableName, RefColName             sql.NullString
 	*models.Constraint
+}
+
+type RecordsCountProvider interface {
+	RecordsCount(c context.Context, catalog, schema, object string) (*int, error)
 }

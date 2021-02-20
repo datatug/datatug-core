@@ -36,6 +36,26 @@ func (s scanner) scanTables(c context.Context, database *models.DbCatalog) error
 		return err
 	}
 	deadline, isDeadlineSet := c.Deadline()
+	var workers = []func() error{
+		func() error {
+			if err = s.scanColumns(c, database.ID, sortedTables{tables: tables}); err != nil {
+				return fmt.Errorf("failed to retrive columns metadata: %w", err)
+			}
+			return nil
+		},
+		func() error {
+			if err = s.scanConstraints(c, database.ID, sortedTables{tables: tables}); err != nil {
+				return fmt.Errorf("failed to retrive constraints metadata: %w", err)
+			}
+			return nil
+		},
+		func() error {
+			if err = s.scanIndexes(c, database.ID, sortedTables{tables: tables}); err != nil {
+				return fmt.Errorf("failed to retrive indexes metadata: %w", err)
+			}
+			return nil
+		},
+	}
 	for {
 		if isDeadlineSet && time.Now().After(deadline) {
 			return fmt.Errorf("exceeded deadline")
@@ -56,32 +76,20 @@ func (s scanner) scanTables(c context.Context, database *models.DbCatalog) error
 		switch t.DbType {
 		case "BASE TABLE":
 			schema.Tables = append(schema.Tables, t)
+			workers = append(workers, func() (err error) {
+				t.RecordsCount, err = s.schemaProvider.RecordsCount(c, database.ID, t.Schema, t.Name)
+				if err != nil {
+					return fmt.Errorf("failed to retiever records count for %v.%v.%v: %w", database.ID, t.Schema, t.Name, err)
+				}
+				return nil
+			})
 		case "VIEW":
 			schema.Views = append(schema.Views, t)
 		default:
 			return fmt.Errorf("object [%v] has unknown DB type: %v", t.Name, t.DbType)
 		}
 	}
-	err = parallel.Run(
-		func() error {
-			if err = s.scanColumns(c, database.ID, sortedTables{tables: tables}); err != nil {
-				return fmt.Errorf("failed to retrive columns metadata: %w", err)
-			}
-			return nil
-		},
-		func() error {
-			if err = s.scanConstraints(c, database.ID, sortedTables{tables: tables}); err != nil {
-				return fmt.Errorf("failed to retrive constraints metadata: %w", err)
-			}
-			return nil
-		},
-		func() error {
-			if err = s.scanIndexes(c, database.ID, sortedTables{tables: tables}); err != nil {
-				return fmt.Errorf("failed to retrive indexes metadata: %w", err)
-			}
-			return nil
-		},
-	)
+	err = parallel.Run(workers...)
 	return err
 }
 

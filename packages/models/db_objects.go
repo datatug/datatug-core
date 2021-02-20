@@ -267,6 +267,7 @@ type Table struct {
 	Columns      []*TableColumn       `json:"columns,omitempty"`
 	Indexes      []*Index             `json:"indexes,omitempty"`
 	ReferencedBy []*TableReferencedBy `json:"referencedBy,omitempty"`
+	RecordsCount *int                 `json:"recordsCount,omitempty"`
 }
 
 // Validate returns error if not valid
