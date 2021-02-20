@@ -21,8 +21,8 @@ func NewInformationSchema(server models.DbServer, db *sql.DB) InformationSchema 
 }
 
 // GetDatabase returns complete information about a database
-func (s InformationSchema) GetDatabase(name string) (database *models.Database, err error) {
-	database = &models.Database{
+func (s InformationSchema) GetDatabase(name string) (database *models.DbCatalog, err error) {
+	database = &models.DbCatalog{
 		ProjectItem: models.ProjectItem{ID: name},
 	}
 	var tables []*models.Table

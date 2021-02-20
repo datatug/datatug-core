@@ -6,7 +6,7 @@ import (
 )
 
 type Scanner interface {
-	ScanCatalog(c context.Context, name string) (database *models.Database, err error)
+	ScanCatalog(c context.Context, name string) (database *models.DbCatalog, err error)
 }
 
 type SchemaProvider interface {

@@ -315,7 +315,7 @@ func (s fileSystemSaver) saveEnvServers(env string, servers []*models.EnvDbServe
 	})
 }
 
-func (s fileSystemSaver) saveDatabases(dbServer models.DbServer, databases []*models.Database) (err error) {
+func (s fileSystemSaver) saveDatabases(dbServer models.DbServer, databases []*models.DbCatalog) (err error) {
 	return s.saveItems("databases", len(databases), func(i int) func() error {
 		return func() error {
 			return s.saveDatabase(dbServer, databases[i])
@@ -323,7 +323,7 @@ func (s fileSystemSaver) saveDatabases(dbServer models.DbServer, databases []*mo
 	})
 }
 
-func (s fileSystemSaver) saveDatabase(dbServer models.DbServer, database *models.Database) (err error) {
+func (s fileSystemSaver) saveDatabase(dbServer models.DbServer, database *models.DbCatalog) (err error) {
 	if database == nil {
 		return errors.New("database is nil")
 	}

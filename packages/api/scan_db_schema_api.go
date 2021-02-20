@@ -27,7 +27,7 @@ type ProjectLoader interface {
 // UpdateDbSchema updates DB schema
 func UpdateDbSchema(ctx context.Context, loader ProjectLoader, projectID, environment, driver, dbModelID string, connectionString execute.ConnectionString) (project *models.DataTugProject, err error) {
 	var (
-		latestDb *models.Database
+		latestDb *models.DbCatalog
 	)
 	var projSummaryErr error
 	getProjectSummaryWorker := func() error {
@@ -85,7 +85,7 @@ func UpdateDbSchema(ctx context.Context, loader ProjectLoader, projectID, enviro
 	return project, err
 }
 
-func updateProjectWithDatabase(project *models.DataTugProject, envID string, dbServer models.DbServer, latestDb *models.Database) (err error) {
+func updateProjectWithDatabase(project *models.DataTugProject, envID string, dbServer models.DbServer, latestDb *models.DbCatalog) (err error) {
 	// Update environment
 	{
 		if environment := project.Environments.GetEnvByID(envID); environment == nil {
@@ -135,7 +135,7 @@ func updateProjectWithDatabase(project *models.DataTugProject, envID string, dbS
 	return nil
 }
 
-func newProjectWithDatabase(environment string, dbServer models.DbServer, database *models.Database) (project *models.DataTugProject, err error) {
+func newProjectWithDatabase(environment string, dbServer models.DbServer, database *models.DbCatalog) (project *models.DataTugProject, err error) {
 	//var currentUser *user.User
 	//if currentUser, err = user.Current(); err != nil {
 	//	err = fmt.Errorf("failed to get current OS user")
@@ -179,7 +179,7 @@ func newProjectWithDatabase(environment string, dbServer models.DbServer, databa
 	return project, err
 }
 
-func scanDbSchema(server models.DbServer, connectionString execute.ConnectionString) (database *models.Database, err error) {
+func scanDbSchema(server models.DbServer, connectionString execute.ConnectionString) (database *models.DbCatalog, err error) {
 	var db *sql.DB
 
 	if db, err = sql.Open(server.Driver, connectionString.String()); err != nil {
@@ -202,7 +202,7 @@ func scanDbSchema(server models.DbServer, connectionString execute.ConnectionStr
 	return
 }
 
-func updateDbModelWithDatabase(envID string, dbModel *models.DbModel, database *models.Database) (err error) {
+func updateDbModelWithDatabase(envID string, dbModel *models.DbModel, database *models.DbCatalog) (err error) {
 	{ // Update dbmodel environments
 		environment := dbModel.Environments.GetByID(envID)
 		if environment == nil {

@@ -275,7 +275,7 @@ func loadDatabases(dirPath string, dbServer *models.ProjDbServer) (err error) {
 		dbServer.Databases = make(models.Databases, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
 		id := f.Name()
-		dbServer.Databases[i] = &models.Database{
+		dbServer.Databases[i] = &models.DbCatalog{
 			ProjectItem: models.ProjectItem{ID: id},
 		}
 		if err = loadDatabase(path.Join(dirPath, id), dbServer.Databases[i]); err != nil {
@@ -285,7 +285,7 @@ func loadDatabases(dirPath string, dbServer *models.ProjDbServer) (err error) {
 	})
 }
 
-func loadDatabase(dirPath string, db *models.Database) (err error) {
+func loadDatabase(dirPath string, db *models.DbCatalog) (err error) {
 	log.Println("Loading database", db.ID)
 	filePath := path.Join(dirPath, fmt.Sprintf("%v.db.json", db.ID))
 	if err = readJSONFile(filePath, false, db); err != nil {

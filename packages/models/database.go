@@ -6,14 +6,14 @@ import (
 )
 
 // Database hold information about a database
-type Database struct {
+type DbCatalog struct {
 	ProjectItem
 	DbModel string `json:"dbModel"`
 	Schemas DbSchemas
 }
 
 // Validate returns error if not valid
-func (v Database) Validate() error {
+func (v DbCatalog) Validate() error {
 	if err := v.ProjectItem.Validate(false); err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func (v DbSchema) Validate() error {
 }
 
 // Databases is a slice of pointers to Database
-type Databases []*Database
+type Databases []*DbCatalog
 
 // Validate returns error if failed
 func (v Databases) Validate() error {
@@ -85,7 +85,7 @@ func (v Databases) Validate() error {
 }
 
 // GetDbByID returns Database by ID
-func (v Databases) GetDbByID(id string) *Database {
+func (v Databases) GetDbByID(id string) *DbCatalog {
 	for _, db := range v {
 		if strings.EqualFold(db.ID, id) {
 			return db

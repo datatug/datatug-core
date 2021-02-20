@@ -17,8 +17,8 @@ type scanner struct {
 	schemaProvider SchemaProvider
 }
 
-func (s scanner) ScanCatalog(c context.Context, name string) (database *models.Database, err error) {
-	database = &models.Database{
+func (s scanner) ScanCatalog(c context.Context, name string) (database *models.DbCatalog, err error) {
+	database = &models.DbCatalog{
 		ProjectItem: models.ProjectItem{ID: name},
 	}
 	if err = s.scanTables(c, database); err != nil {
@@ -28,7 +28,7 @@ func (s scanner) ScanCatalog(c context.Context, name string) (database *models.D
 	return
 }
 
-func (s scanner) scanTables(c context.Context, database *models.Database) error {
+func (s scanner) scanTables(c context.Context, database *models.DbCatalog) error {
 	var tables []*models.Table
 	tablesReader, err := s.schemaProvider.Objects(c, database.ID)
 	if err != nil {
