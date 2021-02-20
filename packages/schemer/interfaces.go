@@ -68,7 +68,7 @@ type IndexColumnsReader interface {
 type IndexColumn struct {
 	TableRef
 	IndexName string
-	*models.Index
+	*models.IndexColumn
 }
 
 type ConstraintsProvider interface {

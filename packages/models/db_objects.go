@@ -87,8 +87,9 @@ type Index struct {
 
 // IndexColumn holds info about a col in a DB table index
 type IndexColumn struct {
-	Name       string `json:"name"`
-	Descending bool   `json:"descending,omitempty"`
+	Name             string `json:"name"`
+	IsDescending     bool   `json:"descending,omitempty"`
+	IsIncludedColumn bool   `json:"included,omitempty"`
 }
 
 // Validate returns error if not valid

@@ -7,6 +7,15 @@ import (
 	"github.com/datatug/datatug/packages/schemer"
 )
 
+//goland:noinspection SqlNoDataSourceInspection
+const objectsSQL = `
+SELECT
+       TABLE_SCHEMA,
+       TABLE_NAME,
+       TABLE_TYPE
+FROM INFORMATION_SCHEMA.TABLES
+ORDER BY TABLE_SCHEMA, TABLE_NAME`
+
 var _ schemer.ObjectsReader = (*objectsReader)(nil)
 
 type objectsReader struct {

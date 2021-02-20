@@ -7,6 +7,7 @@ import (
 
 var _ schemer.ConstraintsReader = (*constraintsReader)(nil)
 
+//goland:noinspection SqlNoDataSourceInspection
 const constraintsSQL = `
 SELECT
 	tc.TABLE_SCHEMA, tc.TABLE_NAME,
