@@ -32,10 +32,13 @@ func UpdateDbSchema(ctx context.Context, loader ProjectLoader, projectID, enviro
 	var projSummaryErr error
 	getProjectSummaryWorker := func() error {
 		_, projSummaryErr = loader.LoadProjectSummary(projectID)
-		if models.ProjectDoesNotExist(projSummaryErr) {
-			return nil
+		if err != nil {
+			if models.ProjectDoesNotExist(projSummaryErr) {
+				return nil
+			}
+			return fmt.Errorf("failed to load project sumary: %w", err)
 		}
-		return projSummaryErr
+		return nil
 	}
 	dbServer := models.DbServer{
 		Driver: driver,

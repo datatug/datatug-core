@@ -200,11 +200,12 @@ func (loader fileSystemLoader) LoadBoard(projID, boardID string) (board models.B
 func (loader fileSystemLoader) LoadProjectSummary(projID string) (projectSummary models.ProjectSummary, err error) {
 	var projPath string
 	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
+		err = fmt.Errorf("failed to get project path: %w", err)
 		return
 	}
 	projectSummary.ProjectFile.ID = projID
 	if projectSummary.ProjectFile, err = LoadProjectFile(projPath); err != nil {
-		return projectSummary, err
+		return projectSummary, fmt.Errorf("failed to load project file: %w", err)
 	}
 	return
 }
@@ -274,4 +275,3 @@ func (loader fileSystemLoader) LoadEnvironmentDb(projID, environmentID, database
 	envDb.ID = databaseID
 	return
 }
-

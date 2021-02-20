@@ -25,7 +25,7 @@ func (s scanner) ScanCatalog(c context.Context, name string) (database *models.D
 	if err = s.scanTables(c, database); err != nil {
 		return database, fmt.Errorf("failed to get tables & views: %w", err)
 	}
-	log.Println("GetDatabase completed")
+	log.Println("Scanner completed tables scan.")
 	return
 }
 
@@ -174,6 +174,7 @@ func (s scanner) scanIndexColumns(c context.Context, catalog string, indexFinder
 			return fmt.Errorf("unknown index referenced by column [%v.%v.%v.%v] at iteration #%v: %v\nKnown indexes: %v",
 				catalog, indexColumn.SchemaName, indexColumn.TableName, indexColumn.Name, i, indexColumn.IndexName, strings.Join(indexNames, ", "))
 		}
+		index.Columns = append(index.Columns, indexColumn.IndexColumn)
 	}
 	return nil
 }

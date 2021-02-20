@@ -165,16 +165,16 @@ type UniqueKey struct {
 
 // Index holds info about DB table index
 type Index struct {
-	Name               string        `json:"name"`
-	Type               string        `json:"type"`
-	Columns            []IndexColumn `json:"columns"`
-	IsClustered        bool          `json:"clustered,omitempty"`
-	IsXml              bool          `json:"xml,omitempty"`
-	IsColumnStore      bool          `json:"columnstore,omitempty"`
-	IsHash             bool          `json:"hash,omitempty"`
-	IsUnique           bool          `json:"unique,omitempty"`
-	IsUniqueConstraint bool          `json:"uniqueConstraint,omitempty"`
-	IsPrimaryKey       bool          `json:"primaryKey,omitempty"`
+	Name               string         `json:"name"`
+	Type               string         `json:"type"`
+	Columns            []*IndexColumn `json:"columns"`
+	IsClustered        bool           `json:"clustered,omitempty"`
+	IsXml              bool           `json:"xml,omitempty"`
+	IsColumnStore      bool           `json:"columnstore,omitempty"`
+	IsHash             bool           `json:"hash,omitempty"`
+	IsUnique           bool           `json:"unique,omitempty"`
+	IsUniqueConstraint bool           `json:"uniqueConstraint,omitempty"`
+	IsPrimaryKey       bool           `json:"primaryKey,omitempty"`
 }
 
 // IndexColumn holds info about a col in a DB table index

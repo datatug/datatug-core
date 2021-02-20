@@ -8,7 +8,7 @@ import (
 
 func (s fileSystemSaver) writeTableReadme(dirPath string, table *models.Table) func() error {
 	return func() error {
-		file, _ := os.OpenFile(path.Join(dirPath, "README.md"), os.O_CREATE, os.ModePerm)
+		file, _ := os.Create(path.Join(dirPath, "README.md"))
 		defer func() {
 			_ = file.Close()
 		}()
@@ -26,4 +26,3 @@ func (s fileSystemSaver) writeProjectReadme(project models.DataTugProject) error
 	}()
 	return s.readmeEncoder.EncodeProjectSummary(file, project)
 }
-
