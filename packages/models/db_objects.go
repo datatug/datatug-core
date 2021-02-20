@@ -75,10 +75,14 @@ type UniqueKey struct {
 
 // Index holds info about DB table index
 type Index struct {
-	Name      string        `json:"name"`
-	Columns   []IndexColumn `json:"columns"`
-	Clustered bool          `json:"clustered,omitempty"`
-	Unique    bool          `json:"unique,omitempty"`
+	Name          string        `json:"name"`
+	Type          string        `json:"type"`
+	Columns       []IndexColumn `json:"columns"`
+	IsClustered   bool          `json:"clustered,omitempty"`
+	IsXml         bool          `json:"xml,omitempty"`
+	IsColumnStore bool          `json:"columnstore,omitempty"`
+	IsHash        bool          `json:"hash,omitempty"`
+	Unique        bool          `json:"unique,omitempty"`
 }
 
 // IndexColumn holds info about a col in a DB table index
@@ -139,6 +143,11 @@ type RefByForeignKey struct {
 // Tables is a slice of *Table
 type Tables []*Table
 
+type Constraint struct {
+	Name string
+	Type string
+}
+
 // GetByKey return a *Table by key or nil if not found
 func (v Tables) GetByKey(k TableKey) *Table {
 	for _, t := range v {
@@ -163,7 +172,7 @@ type Table struct {
 	TableKey
 	TableProps
 	Columns      []*TableColumn       `json:"columns,omitempty"`
-	Indexes      []Index              `json:"indexes,omitempty"`
+	Indexes      []*Index             `json:"indexes,omitempty"`
 	ReferencedBy []*TableReferencedBy `json:"referencedBy,omitempty"`
 }
 

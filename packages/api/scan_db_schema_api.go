@@ -1,12 +1,14 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"github.com/datatug/datatug/packages/execute"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
 	"github.com/datatug/datatug/packages/schemer"
+	"github.com/datatug/datatug/packages/schemer/mssql"
 	"github.com/datatug/datatug/packages/slice"
 	"github.com/strongo/random"
 	"log"
@@ -23,7 +25,7 @@ type ProjectLoader interface {
 }
 
 // UpdateDbSchema updates DB schema
-func UpdateDbSchema(loader ProjectLoader, projectID, environment, driver, dbModelID string, connectionString execute.ConnectionString) (project *models.DataTugProject, err error) {
+func UpdateDbSchema(ctx context.Context, loader ProjectLoader, projectID, environment, driver, dbModelID string, connectionString execute.ConnectionString) (project *models.DataTugProject, err error) {
 	var (
 		latestDb *models.Database
 	)
@@ -187,11 +189,16 @@ func scanDbSchema(server models.DbServer, connectionString execute.ConnectionStr
 	// Close the database connection pool after command executes
 	defer func() { _ = db.Close() }()
 
-	informationSchema := schemer.NewInformationSchema(server, db)
+	//informationSchema := schemer.NewInformationSchema(server, db)
 
-	if database, err = informationSchema.GetDatabase(connectionString.Database()); err != nil {
-		return nil, fmt.Errorf("failed to get database metadata: %w", err)
+	scanner := schemer.NewScanner(mssql.NewSchemaProvider(db))
+	database, err = scanner.ScanCatalog(context.Background(), connectionString.Database())
+	if err != nil {
+		return database, fmt.Errorf("failed to get database metadata: %w", err)
 	}
+	//if database, err = informationSchema.GetDatabase(connectionString.Database()); err != nil {
+	//	return nil, fmt.Errorf("failed to get database metadata: %w", err)
+	//}
 	return
 }
 

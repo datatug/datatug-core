@@ -67,12 +67,12 @@ func (s InformationSchema) GetDatabase(name string) (database *models.Database, 
 func (s InformationSchema) getTables(catalog string) (tables []*models.Table, err error) {
 	var rows *sql.Rows
 	//goland:noinspection SqlNoDataSourceInspection
-	rows, err = s.db.Query(`select
+	rows, err = s.db.Query(`SELECT
        TABLE_SCHEMA,
        TABLE_NAME,
        TABLE_TYPE
-from INFORMATION_SCHEMA.TABLES
-order by TABLE_SCHEMA, TABLE_NAME`)
+FROM INFORMATION_SCHEMA.TABLES
+ORDER BY TABLE_SCHEMA, TABLE_NAME`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query INFORMATION_SCHEMA.TABLES: %w", err)
 	}
@@ -96,18 +96,18 @@ func (s InformationSchema) getConstraints(catalog string, tablesFinder sortedTab
 	log.Println("Getting constraints...")
 	var rows *sql.Rows
 	//goland:noinspection SqlNoDataSourceInspection
-	rows, err = s.db.Query(`select
+	rows, err = s.db.Query(`SELECT
 	tc.TABLE_SCHEMA, tc.TABLE_NAME,
     tc.CONSTRAINT_TYPE, kcu.CONSTRAINT_NAME,
     kcu.COLUMN_NAME,-- kcu.ORDINAL_POSITION,
 	rc.UNIQUE_CONSTRAINT_CATALOG, rc.UNIQUE_CONSTRAINT_SCHEMA, rc.UNIQUE_CONSTRAINT_NAME,
     rc.MATCH_OPTION, rc.UPDATE_RULE, rc.DELETE_RULE,
-	kcu2.TABLE_CATALOG as REF_TABLE_CATALOG, kcu2.TABLE_SCHEMA as REF_TABLE_SCHEMA, kcu2.TABLE_NAME as REF_TABLE_NAME, kcu2.COLUMN_NAME as REF_COL_NAME
-from INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS kcu
-inner join INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS tc on tc.CONSTRAINT_CATALOG = kcu.CONSTRAINT_CATALOG and tc.CONSTRAINT_SCHEMA = kcu.CONSTRAINT_SCHEMA and tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
-left join INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS rc ON tc.CONSTRAINT_TYPE = 'FOREIGN KEY' and rc.CONSTRAINT_CATALOG = tc.CONSTRAINT_CATALOG and rc.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA and rc.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
-left join INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS kcu2 on kcu2.CONSTRAINT_CATALOG = rc.UNIQUE_CONSTRAINT_CATALOG and kcu2.CONSTRAINT_SCHEMA = rc.UNIQUE_CONSTRAINT_SCHEMA and kcu2.CONSTRAINT_NAME = rc.UNIQUE_CONSTRAINT_NAME and kcu2.ORDINAL_POSITION = kcu.ORDINAL_POSITION
-order by tc.TABLE_SCHEMA, tc.TABLE_NAME, tc.CONSTRAINT_TYPE, kcu.CONSTRAINT_NAME, kcu.ORDINAL_POSITION`)
+	kcu2.TABLE_CATALOG AS REF_TABLE_CATALOG, kcu2.TABLE_SCHEMA AS REF_TABLE_SCHEMA, kcu2.TABLE_NAME AS REF_TABLE_NAME, kcu2.COLUMN_NAME AS REF_COL_NAME
+FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS kcu
+INNER JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS tc ON tc.CONSTRAINT_CATALOG = kcu.CONSTRAINT_CATALOG AND tc.CONSTRAINT_SCHEMA = kcu.CONSTRAINT_SCHEMA AND tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS rc ON tc.CONSTRAINT_TYPE = 'FOREIGN KEY' AND rc.CONSTRAINT_CATALOG = tc.CONSTRAINT_CATALOG AND rc.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA AND rc.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
+LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS kcu2 ON kcu2.CONSTRAINT_CATALOG = rc.UNIQUE_CONSTRAINT_CATALOG AND kcu2.CONSTRAINT_SCHEMA = rc.UNIQUE_CONSTRAINT_SCHEMA AND kcu2.CONSTRAINT_NAME = rc.UNIQUE_CONSTRAINT_NAME AND kcu2.ORDINAL_POSITION = kcu.ORDINAL_POSITION
+ORDER BY tc.TABLE_SCHEMA, tc.TABLE_NAME, tc.CONSTRAINT_TYPE, kcu.CONSTRAINT_NAME, kcu.ORDINAL_POSITION`)
 	if err != nil {
 		return err
 	}
@@ -215,23 +215,42 @@ order by tc.TABLE_SCHEMA, tc.TABLE_NAME, tc.CONSTRAINT_TYPE, kcu.CONSTRAINT_NAME
 
 type sortedTables struct {
 	tables []*models.Table
-	index  int
+	i      int
 }
 
 func (sorted *sortedTables) Reset() {
-	sorted.index = 0
+	sorted.i = 0
 }
 
 // SequentialFind will work if calls to it are issued in lexical order
 func (sorted *sortedTables) SequentialFind(catalog, schema, name string) *models.Table {
-	for i := sorted.index; i < len(sorted.tables); i++ {
-		t := sorted.tables[i]
+	for ; sorted.i < len(sorted.tables); sorted.i++ {
+		t := sorted.tables[sorted.i]
 		if t.Name == name && t.Schema == schema && t.Catalog == catalog {
-			sorted.index = i
 			return t
 		}
 	}
 	return nil
+}
+
+type sortedIndexes struct {
+	indexes []Index
+	i       int
+}
+
+func (sorted *sortedIndexes) Reset() {
+	sorted.i = 0
+}
+
+// SequentialFind will work if calls to it are issued in lexical order
+func (sorted *sortedIndexes) SequentialFind(schema, table, name string) Index {
+	for ; sorted.i < len(sorted.indexes); sorted.i++ {
+		index := sorted.indexes[sorted.i]
+		if index.Name == name && index.TableName == table && index.SchemaName == schema {
+			return index
+		}
+	}
+	return Index{}
 }
 
 // FullFind can be called in any order and always do a full table scan
@@ -252,7 +271,7 @@ func (s InformationSchema) getColumns(catalog string, tablesFinder sortedTables)
 	log.Println("Getting columns...")
 	var rows *sql.Rows
 	//goland:noinspection SqlNoDataSourceInspection
-	rows, err = s.db.Query(`select
+	rows, err = s.db.Query(`SELECT
     TABLE_SCHEMA,
     TABLE_NAME,
     COLUMN_NAME,
@@ -268,7 +287,115 @@ func (s InformationSchema) getColumns(catalog string, tablesFinder sortedTables)
 	COLLATION_CATALOG,
 	COLLATION_SCHEMA,
     COLLATION_NAME
-from INFORMATION_SCHEMA.COLUMNS ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION`)
+FROM INFORMATION_SCHEMA.COLUMNS ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION`)
+	if err != nil {
+		return fmt.Errorf("failed to query INFORMATION_SCHEMA.COLUMNS: %w", err)
+	}
+	var isNullable string
+	var charSetCatalog, charSetSchema, charSetName sql.NullString
+	var collationCatalog, collationSchema, collationName sql.NullString
+	i := 0
+	for rows.Next() {
+		i++
+		c := new(models.TableColumn)
+		var tSchema, tName string
+		if err = rows.Scan(
+			&tSchema,
+			&tName,
+			&c.Name,
+			&c.OrdinalPosition,
+			&c.Default,
+			&isNullable,
+			&c.DbType,
+			&c.CharMaxLength,
+			&c.CharOctetLength,
+			&charSetCatalog,
+			&charSetSchema,
+			&charSetName,
+			&collationCatalog,
+			&collationSchema,
+			&collationName,
+		); err != nil {
+			return fmt.Errorf("failed to scan INFORMATION_SCHEMA.COLUMNS row into TableColumn struct: %w", err)
+		}
+		switch isNullable {
+		case "YES":
+			c.IsNullable = true
+		case "NO":
+			c.IsNullable = false
+		default:
+			err = fmt.Errorf("unknown value for IS_NULLABLE: %v", isNullable)
+			return
+		}
+		if charSetName.Valid && charSetName.String != "" {
+			c.CharacterSet = &models.CharacterSet{Name: charSetName.String}
+			if charSetSchema.Valid {
+				c.CharacterSet.Schema = charSetSchema.String
+			}
+			if charSetCatalog.Valid {
+				c.CharacterSet.Catalog = charSetCatalog.String
+			}
+		}
+		if collationName.Valid && collationName.String != "" {
+			c.Collation = &models.Collation{Name: collationName.String}
+			//if collationSchema.Valid {
+			//	c.Collation.Schema = collationSchema.String
+			//}
+			//if collationCatalog.Valid {
+			//	c.Collation.Catalog = collationCatalog.String
+			//}
+		}
+		/*
+			if table == nil || tName != table.ID || tSchema != table.Schema || tCatalog != table.Catalog {
+				for _, t := range tables {
+					if t.ID == tName && t.Schema == tSchema && t.Catalog == tCatalog {
+						//log.Printf("Found table: %+v", t)
+						table = t
+						break
+					}
+				}
+			}
+			if table == nil || table.ID != tName || table.Schema != tSchema || table.Catalog != tCatalog {
+			}
+		*/
+		if table := tablesFinder.SequentialFind(catalog, tSchema, tName); table != nil {
+			table.Columns = append(table.Columns, c)
+		} else {
+			log.Printf("Table not found: %v.%v.%v, table: %+v", catalog, tSchema, tName, table)
+			continue
+		}
+	}
+	fmt.Println("Processed columns:", i)
+	return err
+}
+
+func (s InformationSchema) getIndexes(catalog string, tablesFinder sortedTables) (err error) {
+	log.Println("Getting indexes...")
+	var rows *sql.Rows
+	//goland:noinspection SqlNoDataSourceInspection
+	rows, err = s.db.Query(`SELECT 
+    SCHEMA_NAME(o.schema_id) AS schema_name,
+	o.name AS object_name,
+    CASE WHEN o.type = 'U' THEN 'Table'
+        WHEN o.type = 'V' THEN 'View'
+		ELSE o.type
+        END AS object_type,
+	--i.name as index_name,
+	--column_names,
+	/*
+    case when i.type = 1 then 'IsClustered index'
+        when i.type = 2 then 'Nonclustered unique index'
+        when i.type = 3 then 'XML index'
+        when i.type = 4 then 'Spatial index'
+        when i.type = 5 then 'IsClustered columnstore index'
+        when i.type = 6 then 'Nonclustered columnstore index'
+        when i.type = 7 then 'Nonclustered hash index'
+        end as type_description,*/
+    i.*
+FROM sys.indexes AS i
+INNER JOIN sys.objects o ON o.object_id = i.object_id
+WHERE o.is_ms_shipped <> 1 --and index_id > 0
+ORDER BY SCHEMA_NAME(o.schema_id) + '.' + o.name, i.name;`)
 	if err != nil {
 		return fmt.Errorf("failed to query INFORMATION_SCHEMA.COLUMNS: %w", err)
 	}

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/api"
 	"github.com/datatug/datatug/packages/execute"
@@ -49,7 +50,7 @@ func (v *scanDbCommand) Execute(_ []string) (err error) {
 	connString := execute.NewConnectionString(v.Host, v.User, v.Password, v.Database, v.Port)
 
 	var dataTugProject *models.DataTugProject
-	if dataTugProject, err = api.UpdateDbSchema(v.loader, v.projectID, v.Environment, v.Driver, v.DbModel, connString); err != nil {
+	if dataTugProject, err = api.UpdateDbSchema(context.Background(), v.loader, v.projectID, v.Environment, v.Driver, v.DbModel, connString); err != nil {
 		return err
 	}
 
