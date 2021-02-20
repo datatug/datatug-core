@@ -6,13 +6,13 @@ import (
 	"path"
 )
 
-func (s fileSystemSaver) writeTableReadme(dirPath string, table *models.Table) func() error {
+func (s fileSystemSaver) writeTableReadme(dirPath string, catalog string, table *models.Table) func() error {
 	return func() error {
 		file, _ := os.Create(path.Join(dirPath, "README.md"))
 		defer func() {
 			_ = file.Close()
 		}()
-		if err := s.readmeEncoder.EncodeTable(file, table); err != nil {
+		if err := s.readmeEncoder.EncodeTable(file, catalog, table); err != nil {
 			return err
 		}
 		return nil

@@ -396,7 +396,7 @@ func (s fileSystemSaver) saveDbCatalog(dbServer models.DbServer, dbCatalog *mode
 			return nil
 		},
 		func() error {
-			if err = s.saveDbSchemas(dbDirPath, dbCatalog.Schemas); err != nil {
+			if err = s.saveDbSchemas(dbDirPath, dbCatalog.ID, dbCatalog.Schemas); err != nil {
 				return err
 			}
 			return nil
@@ -455,27 +455,27 @@ func (s fileSystemSaver) saveSchemaModel(schemaDirPath string, schema models.Sch
 	)
 }
 
-func (s fileSystemSaver) saveDbSchemas(dirPath string, schemas []*models.DbSchema) error {
+func (s fileSystemSaver) saveDbSchemas(dirPath, catalog string, schemas []*models.DbSchema) error {
 	return s.saveItems("schemas", len(schemas), func(i int) func() error {
 		return func() error {
 			schema := schemas[i]
-			return s.saveDbSchema(path.Join(dirPath, SchemasFolder, schema.ID), schema)
+			return s.saveDbSchema(path.Join(dirPath, SchemasFolder, schema.ID), catalog, schema)
 		}
 	})
 }
 
-func (s fileSystemSaver) saveDbSchema(schemaDirPath string, dbSchema *models.DbSchema) error {
+func (s fileSystemSaver) saveDbSchema(schemaDirPath, catalog string, dbSchema *models.DbSchema) error {
 	return parallel.Run(
 		func() error {
-			return s.saveTables(schemaDirPath, TablesFolder, dbSchema.Tables)
+			return s.saveTables(schemaDirPath, TablesFolder, catalog, dbSchema.Tables)
 		},
 		func() error {
-			return s.saveTables(schemaDirPath, ViewsFolder, dbSchema.Views)
+			return s.saveTables(schemaDirPath, ViewsFolder, catalog, dbSchema.Views)
 		},
 	)
 }
 
-func (s fileSystemSaver) saveTables(schemaDirPath, plural string, tables []*models.Table) error {
+func (s fileSystemSaver) saveTables(schemaDirPath, plural, catalog string, tables []*models.Table) error {
 	dirPath := path.Join(schemaDirPath, plural)
 	if len(tables) > 0 {
 		if err := os.MkdirAll(dirPath, os.ModeDir); err != nil {
@@ -485,7 +485,7 @@ func (s fileSystemSaver) saveTables(schemaDirPath, plural string, tables []*mode
 	// TODO: Remove tables that does not exist anymore
 	return s.saveItems("tables", len(tables), func(i int) func() error {
 		return func() error {
-			return s.saveTable(dirPath, tables[i])
+			return s.saveTable(dirPath, catalog, tables[i])
 		}
 	})
 }
@@ -526,7 +526,7 @@ func (s fileSystemSaver) saveToFile(tableDirPath, fileName string, data interfac
 	}
 }
 
-func (s fileSystemSaver) saveTable(dirPath string, table *models.Table) (err error) {
+func (s fileSystemSaver) saveTable(dirPath, catalog string, table *models.Table) (err error) {
 	tableDirPath := path.Join(dirPath, table.Name)
 	if err = os.MkdirAll(tableDirPath, os.ModeDir); err != nil {
 		return err
@@ -555,7 +555,7 @@ func (s fileSystemSaver) saveTable(dirPath string, table *models.Table) (err err
 	}
 
 	workers = append(workers, s.saveToFile(tableDirPath, fmt.Sprintf("%v.json", filePrefix), tableFile))
-	workers = append(workers, s.writeTableReadme(tableDirPath, table))
+	workers = append(workers, s.writeTableReadme(tableDirPath, catalog, table))
 
 	return parallel.Run(workers...)
 }
