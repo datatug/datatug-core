@@ -110,8 +110,8 @@ FROM %v.%v
 					joinMD("INNER"),
 					joinMD("RIGHT"),
 				}
-				s = append(s, fmt.Sprintf("  - `%v`\n  <br>&nbsp;&nbsp;by columns: `%v` &mdash;", fk.Name, strings.Join(fk.Columns, "`, `"))+
-					"\n<small>JOIN:\n"+strings.Join(joins, " |\n") + "\n</small>")
+				s = append(s, fmt.Sprintf("  - `%v`\n    <br>&nbsp;&nbsp;by columns: `%v` &mdash;", fk.Name, strings.Join(fk.Columns, "`, `"))+
+					"\n    <small>JOIN:\n"+strings.Join(joins, " |\n    ") + "\n    </small>")
 			}
 			refBys[i] = strings.Join(s, "\n")
 		}
@@ -206,11 +206,7 @@ FROM %v.%v
 # Table: [%v](..).%v
 %v
 
-<div style="float: left; margin-right: 1em">
-<a href="https://datatug.app/">📝 Edit query</a> <i>or</i><br>
-<a href="https://datatug.app/">▶️ Execute query</a>
-</div>
-
+[📝 Edit query](https://datatug.app/edit-query) *or* [▶️ Execute query](https://datatug.app/execute-query) 
 %v
 USE %v;
 SELECT * FROM %v.%v;

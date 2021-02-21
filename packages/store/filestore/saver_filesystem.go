@@ -8,11 +8,13 @@ import (
 	"log"
 	"os"
 	"path"
+	"sync"
 )
 
 // fileSystemSaver saves or updates DataTug project
 type fileSystemSaver struct {
 	// pathByID map[string]string
+	projFileMutex *sync.Mutex
 	projDirPath   string
 	readmeEncoder models.ReadmeEncoder
 }
@@ -22,6 +24,7 @@ func newSaver(projDirPath string, readmeEncoder models.ReadmeEncoder) fileSystem
 	return fileSystemSaver{
 		projDirPath:   projDirPath,
 		readmeEncoder: readmeEncoder,
+		projFileMutex: new(sync.Mutex),
 	}
 }
 

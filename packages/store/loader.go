@@ -43,7 +43,7 @@ type entitiesLoader interface {
 	// LoadEntity loads entity
 	LoadEntity(projectID, entityID string) (entity models.Entity, err error)
 	// LoadEntities loads entities
-	LoadEntities(projectID string) (entities []models.Entity, err error)
+	LoadEntities(projectID string) (entities models.Entities, err error)
 }
 
 type recordsetsLoader interface {

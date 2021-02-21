@@ -124,40 +124,6 @@ func loadBoards(projPath string, project *models.DataTugProject) (err error) {
 	return err
 }
 
-func loadEntities(projPath string, project *models.DataTugProject) error {
-	entitiesDirPath := path.Join(projPath, DatatugFolder, "entities")
-	if err := loadDir(nil, entitiesDirPath, processDirs,
-		func(files []os.FileInfo) {
-			project.Entities = make(models.Entities, 0, len(files))
-		},
-		func(f os.FileInfo, i int, _ *sync.Mutex) error {
-			if f.IsDir() {
-				return nil
-			}
-			entityID := f.Name()
-			entity := &models.Entity{
-				ProjEntityBrief: models.ProjEntityBrief{
-					ProjectItem: models.ProjectItem{
-						ID: entityID,
-					},
-				},
-			}
-			entityFileName := jsonFileName(entity.ID, entityFileSuffix)
-			project.Entities = append(project.Entities, entity)
-			entityFilePath := path.Join(entitiesDirPath, entityFileName)
-			if err := readJSONFile(entityFilePath, true, entity); err != nil {
-				return err
-			}
-			if entity.ID != entityID {
-				entity.ID = entityID
-			}
-			return nil
-		}); err != nil {
-		return fmt.Errorf("failed to load entities: %w", err)
-	}
-	return nil
-}
-
 func loadDbModels(projPath string, project *models.DataTugProject) error {
 	dbModelsDirPath := path.Join(projPath, DatatugFolder, "dbmodels")
 	if err := loadDir(nil, dbModelsDirPath, processDirs,

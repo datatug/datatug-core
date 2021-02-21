@@ -27,7 +27,7 @@ func GetEntity(projectID, entityID string) (entity models.Entity, err error) {
 }
 
 // GetAllEntities returns all entities
-func GetAllEntities(projectID string) (entity []models.Entity, err error) {
+func GetAllEntities(projectID string) (entity models.Entities, err error) {
 	if err = validateProjectInput(projectID); err != nil {
 		return
 	}

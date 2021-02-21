@@ -9,7 +9,6 @@ import (
 	"github.com/strongo/validation"
 	"os"
 	"path"
-	"strings"
 	"sync"
 )
 
@@ -136,49 +135,6 @@ func loadDbServer(driverDirPath, driver, serverName string) (dbServer *models.Pr
 			return loadDatabases(path.Join(dbServerDirPath, DbCatalogsFolder), dbServer)
 		},
 	)
-	return
-}
-
-func (loader fileSystemLoader) LoadEntity(projID, entityID string) (entity models.Entity, err error) {
-	var projPath string
-	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
-		return
-	}
-	fileName := path.Join(projPath, DatatugFolder, EntitiesFolder, jsonFileName(entityID, entityFileSuffix))
-	if err = readJSONFile(fileName, true, &entity); err != nil {
-		err = fmt.Errorf("faile to load entity [%v] from project [%v]: %w", entityID, projID, err)
-		return
-	}
-	return
-}
-
-func (loader fileSystemLoader) LoadEntities(projID string) (entities []models.Entity, err error) {
-	var projPath string
-	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
-		return
-	}
-	entitiesPath := path.Join(projPath, DatatugFolder, EntitiesFolder)
-	isEntityFile := func(fileName string) bool {
-		return strings.HasSuffix(fileName, ".json")
-	}
-	err = loadDir(nil, entitiesPath, processFiles, func(files []os.FileInfo) {
-		count := 0
-		for _, f := range files {
-			if isEntityFile(f.Name()) {
-				count++
-			}
-		}
-		entities = make([]models.Entity, count)
-	}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
-		if !isEntityFile(f.Name()) {
-			return nil
-		}
-		if err = readJSONFile(path.Join(entitiesPath, f.Name()), true, &entities[i]); err != nil {
-			err = fmt.Errorf("faile to load entity from file [%v] from project [%v]: %w", f.Name(), projID, err)
-			return
-		}
-		return nil
-	})
 	return
 }
 

@@ -3,7 +3,7 @@ package filestore
 import (
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
-	"log"
+	"path"
 )
 
 func (s fileSystemSaver) saveEntities(entities models.Entities) (err error) {
@@ -16,7 +16,6 @@ func (s fileSystemSaver) saveEntities(entities models.Entities) (err error) {
 
 // SaveEntity saves entity
 func (s fileSystemSaver) SaveEntity(entity *models.Entity) (err error) {
-	log.Printf("fileSystemSaver.SaveEntity: %+v", entity)
 	if err = s.updateProjectFileWithEntity(*entity); err != nil {
 		return fmt.Errorf("failed to update project file with entity: %w", err)
 	}
@@ -24,8 +23,9 @@ func (s fileSystemSaver) SaveEntity(entity *models.Entity) (err error) {
 	if len(entity.Fields) == 0 && entity.Fields != nil {
 		entity.Fields = nil
 	}
+	dirPath := path.Join(s.entitiesDirPath(), entity.ID)
 	if err = s.saveJSONFile(
-		s.entitiesDirPath(),
+		dirPath,
 		fileName,
 		entity,
 	); err != nil {
