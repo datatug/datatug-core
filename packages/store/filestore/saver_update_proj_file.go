@@ -32,7 +32,7 @@ SAVED:
 	return err
 }
 
-func (s fileSystemSaver) updateProjectFileWithEntity(entity models.Entity) error {
+func (s fileSystemSaver) updateProjectFile(updater func(projFile *models.ProjectFile) error) error {
 	s.projFileMutex.Lock()
 	defer func() {
 		s.projFileMutex.Unlock()
@@ -41,20 +41,13 @@ func (s fileSystemSaver) updateProjectFileWithEntity(entity models.Entity) error
 	if err != nil {
 		return err
 	}
-	for _, item := range projFile.Entities {
-		if item.ID == entity.ID {
-			if item.Title == entity.Title {
-				return nil
-			}
-			item.Title = entity.Title
-			break
-		}
+	if err = updater(&projFile); err != nil {
+		return err
 	}
-	projFile.Entities = append(projFile.Entities, &models.ProjEntityBrief{
-		ProjectItem: models.ProjectItem{ID: entity.ID, Title: entity.Title},
-	})
-	err = s.putProjectFile(projFile)
-	return err
+	if err = s.putProjectFile(projFile); err != nil {
+		return err
+	}
+	return nil
 }
 
 /*

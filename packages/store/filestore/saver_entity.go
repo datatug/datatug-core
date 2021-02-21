@@ -3,6 +3,7 @@ package filestore
 import (
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
+	"github.com/strongo/validation"
 	"path"
 )
 
@@ -16,7 +17,29 @@ func (s fileSystemSaver) saveEntities(entities models.Entities) (err error) {
 
 // SaveEntity saves entity
 func (s fileSystemSaver) SaveEntity(entity *models.Entity) (err error) {
-	if err = s.updateProjectFileWithEntity(*entity); err != nil {
+	if entity == nil {
+		return validation.NewErrRequestIsMissingRequiredField("entity")
+	}
+	if entity.ID == "" {
+		return validation.NewErrBadRequestFieldValue("entity", validation.NewErrRecordIsMissingRequiredField("ID").Error())
+	}
+	updateProjFileWithEntity := func(projFile *models.ProjectFile) error {
+		for _, item := range projFile.Entities {
+			if item.ID == entity.ID {
+				if item.Title == entity.Title {
+					return nil
+				}
+				item.Title = entity.Title
+				break
+			}
+		}
+		projFile.Entities = append(projFile.Entities, &models.ProjEntityBrief{
+			ProjectItem: models.ProjectItem{ID: entity.ID, Title: entity.Title},
+		})
+		return nil
+	}
+	err = s.updateProjectFile(updateProjFileWithEntity)
+	if err != nil {
 		return fmt.Errorf("failed to update project file with entity: %w", err)
 	}
 	fileName := jsonFileName(entity.ID, entityFileSuffix)
