@@ -31,12 +31,12 @@ func (saver storeSaver) Save(project models.DataTugProject) (err error) {
 	return projSaver.Save(project)
 }
 
-func (saver storeSaver) SaveDbServer(projID string, dbServer *models.ProjDbServer) (err error) {
+func (saver storeSaver) SaveDbServer(projID string, dbServer *models.ProjDbServer, project models.DataTugProject) (err error) {
 	projSaver, err := saver.newProjectSaver(projID)
 	if err != nil {
 		return err
 	}
-	return projSaver.SaveDbServer(dbServer)
+	return projSaver.SaveDbServer(dbServer, project)
 }
 
 func (saver storeSaver) DeleteDbServer(projID string, dbServer models.DbServer) (err error) {

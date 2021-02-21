@@ -12,7 +12,7 @@ func AddDbServer(projectID string, dbServer models.DbServer) (err error) {
 	projDbServer := models.ProjDbServer{
 		DbServer: dbServer,
 	}
-	return store.Current.SaveDbServer(projectID, &projDbServer)
+	return store.Current.SaveDbServer(projectID, &projDbServer, models.DataTugProject{})
 }
 
 // DeleteDbServer adds db server to project

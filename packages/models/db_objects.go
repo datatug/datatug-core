@@ -75,6 +75,23 @@ func (v DbSchema) Validate() error {
 // DbCatalogs is a slice of pointers to Database
 type DbCatalogs []*DbCatalog
 
+func (v DbCatalogs) GetTable(catalog, schema, name string) *Table {
+	for _, c := range v {
+		if c.ID == catalog {
+			for _, s := range c.Schemas {
+				if s.ID == schema {
+					for _, t := range s.Tables {
+						if t.Name == name {
+							return t
+						}
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // Validate returns error if failed
 func (v DbCatalogs) Validate() error {
 	for i, db := range v {

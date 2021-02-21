@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"io"
+	"net/url"
 	"strings"
 )
 
 // EncodeTable encodes table summary to markdown file format
-func (encoder) EncodeTable(w io.Writer, catalog string, table *models.Table) error {
+func (encoder) EncodeTable(w io.Writer, catalog string, table *models.Table, dbServer models.ProjDbServer) error {
 
 	recordsCount := ""
 	if table.RecordsCount != nil {
@@ -22,7 +23,7 @@ func (encoder) EncodeTable(w io.Writer, catalog string, table *models.Table) err
 		for i, pkCol := range table.PrimaryKey.Columns {
 			pkCols[i] = fmt.Sprintf("**%v**", pkCol)
 		}
-		primaryKey = fmt.Sprintf("%v (%v)", table.PrimaryKey.Name, strings.Join(pkCols, ", "))
+		primaryKey = fmt.Sprintf("`%v` (%v)", table.PrimaryKey.Name, strings.Join(pkCols, ", "))
 	}
 
 	var foreignKeys string
@@ -31,13 +32,45 @@ func (encoder) EncodeTable(w io.Writer, catalog string, table *models.Table) err
 	} else {
 		fks := make([]string, len(table.ForeignKeys))
 		for i, fk := range table.ForeignKeys {
-			fks[i] = fmt.Sprintf("- %v (%v) `REFERENCES` [%v](../../../%v).[%v](../../../%v/tables/%v)",
+			joinSQL := strings.TrimSpace(fmt.Sprintf(`
+USE %v
+SELECT
+	*
+FROM %v.%v
+%v JOIN %v.%v ON`, catalog, table.Schema, table.Name, "%v", fk.RefTable.Schema, fk.RefTable.Name))
+
+			fkRefTable := dbServer.DbCatalogs.GetTable(catalog, fk.RefTable.Schema, fk.RefTable.Name)
+			if fkRefTable == nil {
+				return fmt.Errorf("table %v.%v is referencing via %v to unkown table %v.%v", table.Schema, table.Name, fk.Name, fk.RefTable.Schema, fk.RefTable.Name)
+			}
+			for i, fkCol := range fk.Columns {
+				if i > 0 {
+					joinSQL += " AND"
+				}
+				if fkRefTable.Name != table.Name {
+					joinSQL += fmt.Sprintf(" %v.%v = %v.%v", fkRefTable.Name, fkRefTable.PrimaryKey.Columns[i], table.Name, fkCol)
+				} else {
+					joinSQL += fmt.Sprintf(" %v.%v.%v = %v.%v.%v", fkRefTable.Schema, fkRefTable.Name, fkRefTable.PrimaryKey.Columns[i], table.Schema, table.Name, fkCol)
+				}
+			}
+
+			joinMD := func(kind string) string {
+				text := url.QueryEscape(fmt.Sprintf(joinSQL, kind))
+				return fmt.Sprintf("<a href='https://datatug.app/query#text=%v' target='_blank'>%v</a>", text, kind)
+			}
+			joins := []string{
+				joinMD("LEFT"),
+				joinMD("INNER"),
+				joinMD("RIGHT"),
+			}
+			fks[i] = fmt.Sprintf("- `%v` (%v) ⇒ [%v](../../../%v).[%v](../../../%v/tables/%v)",
 				fk.Name,
 				fmt.Sprintf("**%v**", strings.Join(fk.Columns, "**, **")),
 				fk.RefTable.Schema, fk.RefTable.Schema, fk.RefTable.Name,
 				fk.RefTable.Schema, fk.RefTable.Name,
-			)
+			) + "\n  <br>&nbsp;&nbsp;SQL *to* JOIN: " + strings.Join(joins, " | ")
 		}
+		//<br>&nbsp;&nbsp;&nbsp;&nbsp;SQL to JOIN: [LEFT](left) | [INNER](inner) | [RIGHT](right)
 		foreignKeys = strings.Join(fks, "\n")
 	}
 
@@ -50,7 +83,34 @@ func (encoder) EncodeTable(w io.Writer, catalog string, table *models.Table) err
 			s := make([]string, 1, 1+len(table.PrimaryKey.Columns)*len(refBy.ForeignKeys))
 			s[0] = fmt.Sprintf("- [%v](../../../%v).[%v](../../../%v/tables/%v)", refBy.Schema, refBy.Schema, refBy.Name, refBy.Schema, refBy.Name)
 			for _, fk := range refBy.ForeignKeys {
-				s = append(s, fmt.Sprintf("  - %v (%v)", fk.Name, strings.Join(fk.Columns, ", ")))
+				joinSQL := strings.TrimSpace(fmt.Sprintf(`
+USE %v
+SELECT
+	*
+FROM %v.%v
+%v JOIN %v.%v ON`, catalog, table.Schema, table.Name, "%v", refBy.Schema, refBy.Name))
+				for i, fkCol := range fk.Columns {
+					if i > 0 {
+						joinSQL += " AND"
+					}
+					if refBy.Name != table.Name {
+						joinSQL += fmt.Sprintf(" %v.%v = %v.%v", refBy.Name, fkCol, table.Name, table.PrimaryKey.Columns[i])
+					} else {
+						joinSQL += fmt.Sprintf(" %v.%v.%v = %v.%v.%v", refBy.Schema, refBy.Name, fkCol, table.Schema, table.Name, table.PrimaryKey.Columns[i])
+					}
+				}
+
+				joinMD := func(kind string) string {
+					text := url.QueryEscape(fmt.Sprintf(joinSQL, kind))
+					return fmt.Sprintf("<a href='https://datatug.app/query#text=%v' target='_blank'>%v</a>", text, kind)
+				}
+				joins := []string{
+					joinMD("LEFT"),
+					joinMD("INNER"),
+					joinMD("RIGHT"),
+				}
+				s = append(s, fmt.Sprintf("  - `%v`\n  <br>&nbsp;&nbsp;by columns: `%v` &mdash;", fk.Name, strings.Join(fk.Columns, "`, `"))+
+					"\n<small>JOIN:\n"+strings.Join(joins, " |\n") + "\n</small>")
 			}
 			refBys[i] = strings.Join(s, "\n")
 		}
@@ -144,9 +204,13 @@ func (encoder) EncodeTable(w io.Writer, catalog string, table *models.Table) err
 # Table: [%v](..).%v
 %v
 
+<div style="float: left; margin-right: 1em">
+<a href="https://datatug.app/">📝 Edit query</a> <i>or</i><br>
+<a href="https://datatug.app/">▶️ Execute query</a>
+</div>
+
 %v
 USE %v;
-
 SELECT * FROM %v.%v;
 %v
 

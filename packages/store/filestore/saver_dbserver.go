@@ -10,7 +10,7 @@ import (
 )
 
 // SaveDbServer saves DbServer
-func (s fileSystemSaver) SaveDbServer(dbServer *models.ProjDbServer) (err error) {
+func (s fileSystemSaver) SaveDbServer(dbServer *models.ProjDbServer, project models.DataTugProject) (err error) {
 	return parallel.Run(
 		func() error {
 			dbServerDirPath := path.Join(s.projDirPath, "servers", "db", dbServer.DbServer.Driver, dbServer.DbServer.FileName())
@@ -23,8 +23,8 @@ func (s fileSystemSaver) SaveDbServer(dbServer *models.ProjDbServer) (err error)
 			return s.saveJSONFile(dbServerDirPath, jsonFileName(fileId, dbServerFileSuffix), models.ProjDbServerFile{})
 		},
 		func() error {
-			if err = s.saveDbCatalogs(dbServer.DbServer, dbServer.DbCatalogs); err != nil {
-				return fmt.Errorf("failed to save environment databases: %w", err)
+			if err = s.saveDbCatalogs(*dbServer); err != nil {
+				return fmt.Errorf("failed to save DB catalogs: %w", err)
 			}
 			return nil
 		},
