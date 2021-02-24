@@ -40,7 +40,7 @@ func (s columnsReader) NextColumn() (col schemer.Column, err error) {
 	if !s.rows.Next() {
 		err = s.rows.Err()
 		if err != nil {
-			err = fmt.Errorf("failed to retrieve column row: %w", )
+			err = fmt.Errorf("failed to retrieve column row: %w", err)
 		}
 		return col, err
 	}
