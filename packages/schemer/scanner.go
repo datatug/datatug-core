@@ -79,7 +79,8 @@ func (s scanner) scanTables(c context.Context, database *models.DbCatalog) error
 			workers = append(workers, func() (err error) {
 				t.RecordsCount, err = s.schemaProvider.RecordsCount(c, database.ID, t.Schema, t.Name)
 				if err != nil {
-					return fmt.Errorf("failed to retiever records count for %v.%v.%v: %w", database.ID, t.Schema, t.Name, err)
+					log.Printf("failed to retiever records count for %v.%v.%v: %v", database.ID, t.Schema, t.Name, err)
+					//return fmt.Errorf()
 				}
 				return nil
 			})
@@ -118,8 +119,6 @@ func (s scanner) scanColumns(c context.Context, catalog string, tablesFinder sor
 		}
 	}
 }
-
-
 
 func (s scanner) scanIndexes(c context.Context, catalog string, tablesFinder sortedTables) error {
 	reader, err := s.schemaProvider.Indexes(c, catalog)

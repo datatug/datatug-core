@@ -49,6 +49,7 @@ func NewConnectionString(server, user, password, database string, port int) Conn
 func (v ConnectionString) String() string {
 	connectionParams := make([]string, 0, 8)
 	connectionParams = append(connectionParams, "server="+v.server)
+	//connectionParams = append(connectionParams, fmt.Sprintf("ServerSPN=MSSQLSvc/%v:1433", v.server))
 	if v.port != 0 {
 		connectionParams = append(connectionParams, "port="+strconv.Itoa(v.port))
 	}
@@ -64,6 +65,11 @@ func (v ConnectionString) String() string {
 	if v.database != "" {
 		connectionParams = append(connectionParams, "database="+v.database)
 	}
+	//return fmt.Sprintf(
+	//	"sqlserver://%v?Connection+Timeout=30&Database=%v&Integrated+Security=SSPI&TrustServerCertificate=true&encrypt=true",
+	//	v.server,
+	//	v.database,
+	//	)
 
 	return strings.Join(connectionParams, ";")
 }

@@ -25,8 +25,8 @@ func init() {
 // scanDbCommand defines parameters for scan command
 type scanDbCommand struct {
 	projectBaseCommand
-	Driver      string `short:"D" long:"driver" required:"true" description:"Supported values: sqlserver."`
-	Host        string `short:"s" long:"server" required:"true" default:"localhost" description:"Network server name."`
+	Driver      string `short:"D" long:"driver" description:"Supported values: sqlserver."`
+	Host        string `short:"s" long:"server" description:"Network server name."`
 	Port        int    `long:"port" description:"DbServer network port, if not specified default is used."`
 	User        string `short:"U" long:"user" description:"User name to login to DB."`
 	Password    string `short:"P" long:"password" description:"Password to login to DB."`
@@ -45,7 +45,30 @@ func (v *scanDbCommand) Execute(_ []string) (err error) {
 		return fmt.Errorf("ProjectDir=[%v] not found: %w", v.ProjectDir, err)
 	}
 
+	if v.Host == "" {
+		envDb, err := v.loader.LoadEnvironmentDb(v.projectID, v.Environment, v.Database)
+		if err != nil {
+			return err
+		}
+		if v.Driver == "" {
+			if envDb.Server.Driver == "" {
+				return fmt.Errorf("env DB has no driver specified: %v @ %v", v.Database, v.Host)
+			}
+			v.Driver = envDb.Server.Driver
+		} else if envDb.Server.Driver != v.Driver {
+			return fmt.Errorf("requested driver %v is different from one used by DB [%v]: %v", v.Driver, v.Database, envDb.Server.Driver)
+		}
+		v.Host = envDb.Server.Host
+		if v.DbModel == "" {
+			v.DbModel = envDb.DbModel
+		}
+	}
+
 	connString := execute.NewConnectionString(v.Host, v.User, v.Password, v.Database, v.Port)
+
+	if v.DbModel == "" {
+		v.DbModel = v.Database
+	}
 
 	var dataTugProject *models.DataTugProject
 	if dataTugProject, err = api.UpdateDbSchema(context.Background(), v.loader, v.projectID, v.Environment, v.Driver, v.DbModel, connString); err != nil {

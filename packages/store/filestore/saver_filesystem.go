@@ -34,7 +34,7 @@ func (s fileSystemSaver) saveJSONFile(dirPath, fileName string, v interface{}) (
 	}
 
 	fullFileName := path.Join(dirPath, fileName)
-	log.Printf("Saving file: %v\n%+v", fullFileName, v)
+	//log.Printf("Saving file: %v\n%+v", fullFileName, v)
 	file, _ := os.Create(fullFileName)
 	defer func() {
 		_ = file.Close()
@@ -50,7 +50,7 @@ func (s fileSystemSaver) saveJSONFile(dirPath, fileName string, v interface{}) (
 
 // Saves each item in a parallel
 func (s fileSystemSaver) saveItems(plural string, count int, getWorker func(i int) func() error) error {
-	log.Printf("Saving %v %v...", count, plural)
+	//log.Printf("Saving %v %v...", count, plural)
 	switch count {
 	case 0:
 		log.Printf("No " + plural)

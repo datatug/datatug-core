@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/datatug/datatug/packages/execute"
 	"github.com/datatug/datatug/packages/models"
@@ -26,6 +27,19 @@ type ProjectLoader interface {
 
 // UpdateDbSchema updates DB schema
 func UpdateDbSchema(ctx context.Context, loader ProjectLoader, projectID, environment, driver, dbModelID string, connectionString execute.ConnectionString) (project *models.DataTugProject, err error) {
+	log.Printf("Updating DB info for project=%v, env=%v, driver=%v, dbModelId=%v, connStr=%v", projectID, environment, driver, dbModelID, connectionString.String())
+	if projectID == "" {
+		return nil, errors.New("argument projectID must be provided")
+	}
+	if environment == "" {
+		return nil, errors.New("argument environment must be provided")
+	}
+	if driver == "" {
+		return nil, errors.New("argument driver must be provided")
+	}
+	if dbModelID == "" {
+		return nil, errors.New("argument dbModelID must be provided")
+	}
 	var (
 		latestDb *models.DbCatalog
 	)

@@ -212,7 +212,8 @@ func (s fileSystemSaver) saveProjectFile(project models.DataTugProject) error {
 		ProjectItem: models.ProjectItem{
 			ID: project.ID,
 		},
-		Access: project.Access,
+		Repository: project.Repository,
+		Access:     project.Access,
 		//UUID:    project.UUID,
 		Created: project.Created,
 	}
@@ -319,17 +320,9 @@ func (s fileSystemSaver) saveBoards(boards models.Boards) (err error) {
 	})
 }
 
-func (s fileSystemSaver) saveDbServers(dbServers models.ProjDbServers, project models.DataTugProject) (err error) {
-	return s.saveItems("dbservers", len(dbServers), func(i int) func() error {
-		return func() error {
-			return s.SaveDbServer(dbServers[i], project)
-		}
-	})
-}
-
 func (s fileSystemSaver) saveEnvironment(env models.Environment) (err error) {
-	log.Printf("Saving environment: %v", env.ID)
 	dirPath := path.Join(s.projDirPath, DatatugFolder, EnvironmentsFolder, env.ID)
+	log.Printf("Saving environment [%v]: %v", env.ID, dirPath)
 	if err = os.MkdirAll(dirPath, os.ModeDir); err != nil {
 		return fmt.Errorf("failed to create environemtn folder: %w", err)
 	}
@@ -349,38 +342,26 @@ func (s fileSystemSaver) saveEnvironment(env models.Environment) (err error) {
 	)
 }
 
-func (s fileSystemSaver) saveEnvServers(env string, servers []*models.EnvDbServer) (err error) {
-	dirPath := path.Join(s.projDirPath, DatatugFolder, EnvironmentsFolder, env, ServersFolder, DbFolder)
-	if err = os.MkdirAll(dirPath, os.ModeDir); err != nil {
-		return fmt.Errorf("failed to create environment servers folder: %w", err)
-	}
-	return s.saveItems("servers", len(servers), func(i int) func() error {
-		return func() error {
-			server := servers[i]
-			fileId := fmt.Sprintf("%v.%v", server.Driver, server.FileName())
-			if err = s.saveJSONFile(dirPath, jsonFileName(fileId, serverFileSuffix), server); err != nil {
-				return fmt.Errorf("failed to write server json to file: %w", err)
-			}
-			return nil
-		}
-	})
-}
-
-func (s fileSystemSaver) saveDbCatalogs(dbServer models.ProjDbServer) (err error) {
+func (s fileSystemSaver) saveDbCatalogs(dbServer models.ProjDbServer, repository *models.ProjectRepository) (err error) {
 	return s.saveItems("catalogs", len(dbServer.DbCatalogs), func(i int) func() error {
 		return func() error {
-			return s.saveDbCatalog(dbServer, dbServer.DbCatalogs[i])
+			return s.saveDbCatalog(dbServer, dbServer.DbCatalogs[i], repository)
 		}
 	})
 }
 
-func (s fileSystemSaver) saveDbCatalog(dbServer models.ProjDbServer, dbCatalog *models.DbCatalog) (err error) {
+func (s fileSystemSaver) saveDbCatalog(dbServer models.ProjDbServer, dbCatalog *models.DbCatalog, repository *models.ProjectRepository) (err error) {
 	if dbCatalog == nil {
 		return errors.New("dbCatalog is nil")
 	}
 	serverName := dbServer.DbServer.FileName()
-	dbDirPath := path.Join(s.projDirPath, DatatugFolder, ServersFolder, DbFolder, dbServer.DbServer.Driver, serverName, DbCatalogsFolder, dbCatalog.ID)
-	if err := os.MkdirAll(dbDirPath, os.ModeDir); err != nil {
+	saverCtx := saveDbServerObjContext{
+		catalog:  dbCatalog.ID,
+		dbServer: dbServer,
+		repository: repository,
+		dirPath:  path.Join(s.projDirPath, DatatugFolder, ServersFolder, DbFolder, dbServer.DbServer.Driver, serverName, DbCatalogsFolder, dbCatalog.ID),
+	}
+	if err := os.MkdirAll(saverCtx.dirPath, os.ModeDir); err != nil {
 		return err
 	}
 
@@ -390,13 +371,13 @@ func (s fileSystemSaver) saveDbCatalog(dbServer models.ProjDbServer, dbCatalog *
 	}
 	return parallel.Run(
 		func() error {
-			if err = s.saveJSONFile(dbDirPath, fileName, dbFile); err != nil {
+			if err = s.saveJSONFile(saverCtx.dirPath, fileName, dbFile); err != nil {
 				return fmt.Errorf("failed to write dbCatalog json to file: %w", err)
 			}
 			return nil
 		},
 		func() error {
-			if err = s.saveDbSchemas(dbDirPath, dbCatalog.ID, dbCatalog.Schemas, dbServer); err != nil {
+			if err = s.saveDbSchemas(dbCatalog.Schemas, saverCtx); err != nil {
 				return err
 			}
 			return nil
@@ -455,37 +436,44 @@ func (s fileSystemSaver) saveSchemaModel(schemaDirPath string, schema models.Sch
 	)
 }
 
-func (s fileSystemSaver) saveDbSchemas(dirPath, catalog string, schemas []*models.DbSchema,  dbServer models.ProjDbServer) error {
+func (s fileSystemSaver) saveDbSchemas(schemas []*models.DbSchema, dbServerSaverCtx saveDbServerObjContext) error {
 	return s.saveItems("schemas", len(schemas), func(i int) func() error {
 		return func() error {
 			schema := schemas[i]
-			return s.saveDbSchema(path.Join(dirPath, SchemasFolder, schema.ID), catalog, schema, dbServer)
+			schemaCtx := dbServerSaverCtx
+			schemaCtx.plural = "schemas"
+			schemaCtx.dirPath = path.Join(dbServerSaverCtx.dirPath, SchemasFolder, schema.ID)
+			return s.saveDbSchema(schema, schemaCtx)
 		}
 	})
 }
 
-func (s fileSystemSaver) saveDbSchema(schemaDirPath, catalog string, dbSchema *models.DbSchema,  dbServer models.ProjDbServer) error {
+func (s fileSystemSaver) saveDbSchema(dbSchema *models.DbSchema, dbServerSaverCtx saveDbServerObjContext) error {
 	return parallel.Run(
 		func() error {
-			return s.saveTables(schemaDirPath, TablesFolder, catalog, dbSchema.Tables, dbServer)
+			tablesCtx := dbServerSaverCtx
+			tablesCtx.plural = TablesFolder
+			return s.saveTables(dbSchema.Tables, tablesCtx)
 		},
 		func() error {
-			return s.saveTables(schemaDirPath, ViewsFolder, catalog, dbSchema.Views, dbServer)
+			viewsCtx := dbServerSaverCtx
+			viewsCtx.plural = ViewsFolder
+			return s.saveTables(dbSchema.Views, viewsCtx)
 		},
 	)
 }
 
-func (s fileSystemSaver) saveTables(schemaDirPath, plural, catalog string, tables []*models.Table,  dbServer models.ProjDbServer) error {
-	dirPath := path.Join(schemaDirPath, plural)
+func (s fileSystemSaver) saveTables(tables []*models.Table, save saveDbServerObjContext) error {
+	save.dirPath = path.Join(save.dirPath, save.plural)
 	if len(tables) > 0 {
-		if err := os.MkdirAll(dirPath, os.ModeDir); err != nil {
+		if err := os.MkdirAll(save.dirPath, os.ModeDir); err != nil {
 			return err
 		}
 	}
 	// TODO: Remove tables that does not exist anymore
 	return s.saveItems("tables", len(tables), func(i int) func() error {
 		return func() error {
-			return s.saveTable(dirPath, catalog, tables[i], dbServer)
+			return s.saveTable(tables[i], save)
 		}
 	})
 }
@@ -526,9 +514,17 @@ func (s fileSystemSaver) saveToFile(tableDirPath, fileName string, data interfac
 	}
 }
 
-func (s fileSystemSaver) saveTable(dirPath, catalog string, table *models.Table, dbServer models.ProjDbServer) (err error) {
-	tableDirPath := path.Join(dirPath, table.Name)
-	if err = os.MkdirAll(tableDirPath, os.ModeDir); err != nil {
+type saveDbServerObjContext struct {
+	dirPath    string
+	catalog    string
+	plural     string
+	dbServer   models.ProjDbServer
+	repository *models.ProjectRepository
+}
+
+func (s fileSystemSaver) saveTable(table *models.Table, save saveDbServerObjContext) (err error) {
+	save.dirPath = path.Join(save.dirPath, table.Name)
+	if err = os.MkdirAll(save.dirPath, os.ModeDir); err != nil {
 		return err
 	}
 
@@ -554,8 +550,8 @@ func (s fileSystemSaver) saveTable(dirPath, catalog string, table *models.Table,
 		Indexes:      table.Indexes,
 	}
 
-	workers = append(workers, s.saveToFile(tableDirPath, fmt.Sprintf("%v.json", filePrefix), tableFile))
-	workers = append(workers, s.writeTableReadme(tableDirPath, catalog, table, dbServer))
+	workers = append(workers, s.saveToFile(save.dirPath, fmt.Sprintf("%v.json", filePrefix), tableFile))
+	workers = append(workers, s.writeTableReadme(table, save))
 
 	return parallel.Run(workers...)
 }

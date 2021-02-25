@@ -226,20 +226,6 @@ func loadEnvironment(dirPath string, env *models.Environment) (err error) {
 	)
 }
 
-func loadEnvServers(dirPath string, env *models.Environment) error {
-	return loadDir(nil, dirPath, processFiles, func(files []os.FileInfo) {
-		env.DbServers = make([]*models.EnvDbServer, 0, len(files))
-	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
-		fileName := f.Name()
-		serverName := fileName[0:strings.Index(fileName, ".")]
-		server := models.EnvDbServer{DbServer: models.DbServer{Host: serverName}}
-		if err := readJSONFile(path.Join(dirPath, fileName), false, &server); err != nil {
-			return err
-		}
-		env.DbServers = append(env.DbServers, &server)
-		return nil
-	})
-}
 
 func loadDbCatalogs(dirPath string, dbServer *models.ProjDbServer) (err error) {
 	return loadDir(nil, dirPath, processDirs, func(files []os.FileInfo) {

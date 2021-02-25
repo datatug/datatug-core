@@ -12,7 +12,7 @@ import (
 type DataTugProject struct {
 	ID string `json:"id"`
 	//UUID          uuid.UUID           `json:"uuid"`
-	Title         string              `json:"title"`
+	Title         string              `json:"title,omitempty"`
 	Created       *ProjectCreated     `json:"created,omitempty"`
 	Access        string              `json:"access"` // e.g. "private", "protected", "public"
 	Boards        Boards              `json:"boards,omitempty"`
@@ -22,6 +22,7 @@ type DataTugProject struct {
 	DbServers     ProjDbServers       `json:"dbServers,omitempty"`
 	DbDifferences DatabaseDifferences `json:"dbDifferences,omitempty"`
 	Actions       Actions             `json:"actions,omitempty"`
+	Repository    *ProjectRepository  `json:"repository,omitempty"`
 }
 
 // Validate returns error if not valid
@@ -71,6 +72,7 @@ func (v DataTugProject) Validate() error {
 // ProjectBrief hold project brief info (e.g. for list)
 type ProjectBrief struct {
 	ProjectItem
+	Repository *ProjectRepository `json:"repository,omitempty"`
 }
 
 // ProjectSummary hold project summary
@@ -79,8 +81,9 @@ type ProjectSummary struct {
 }
 
 type ProjectRepository struct {
-	Type   string `json:"type"` // e.g. "git"
-	WebURL string `json:"webURL"`
+	Type      string `json:"type"` // e.g. "git"
+	WebURL    string `json:"webURL"`
+	ProjectID string `json:"projectId,omitempty"`
 }
 
 // ProjectFile defines what to store to project file

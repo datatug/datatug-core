@@ -27,6 +27,7 @@ func (store FileSystemStore) GetProjects() (projectBriefs []models.ProjectBrief,
 			return projectBriefs, fmt.Errorf("failed to load project file: %w", err)
 		}
 		projectBriefs[i].Title = projFile.Title
+		projectBriefs[i].Repository = projFile.Repository
 		i++
 	}
 	return

@@ -14,5 +14,6 @@ type EnvironmentSummary struct {
 // EnvDb hold info about DB in specific environment
 type EnvDb struct {
 	models.ProjectItem
-	Server models.DbServer `json:"server"`
+	DbModel string          `json:"dbModel"`
+	Server  models.DbServer `json:"server"`
 }

@@ -122,9 +122,10 @@ func loadDbServer(driverDirPath, driver, serverName string) (dbServer *models.Pr
 		func() error {
 			jsonFileName := jsonFileName(fmt.Sprintf("%v.%v", driver, serverName), dbServerFileSuffix)
 			jsonFilePath := path.Join(dbServerDirPath, jsonFileName)
-			if err := readJSONFile(jsonFilePath, true, dbServer); err != nil {
+			if err := readJSONFile(jsonFilePath, false, dbServer); err != nil {
 				return fmt.Errorf("failed to load db server summary file: %w", err)
 			}
+			dbServer.DbServer.Driver = driver
 			if dbServer.ID == "" {
 				dbServer.ID = serverName
 			} else if dbServer.ID != serverName {

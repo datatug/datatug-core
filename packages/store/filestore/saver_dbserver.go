@@ -9,6 +9,14 @@ import (
 	"path"
 )
 
+func (s fileSystemSaver) saveDbServers(dbServers models.ProjDbServers, project models.DataTugProject) (err error) {
+	return s.saveItems("dbservers", len(dbServers), func(i int) func() error {
+		return func() error {
+			return s.SaveDbServer(dbServers[i], project)
+		}
+	})
+}
+
 // SaveDbServer saves DbServer
 func (s fileSystemSaver) SaveDbServer(dbServer *models.ProjDbServer, project models.DataTugProject) (err error) {
 	return parallel.Run(
@@ -17,13 +25,18 @@ func (s fileSystemSaver) SaveDbServer(dbServer *models.ProjDbServer, project mod
 			log.Println("s.projDirPath:", s.projDirPath)
 			log.Println("dbServerDirPath:", dbServerDirPath)
 			if err := os.MkdirAll(dbServerDirPath, os.ModeDir); err != nil {
-				return err
+				return fmt.Errorf("failed to create a directory for DB server files: %w", err)
 			}
+
 			fileId := fmt.Sprintf("%v.%v", dbServer.DbServer.Driver, dbServer.DbServer.FileName())
-			return s.saveJSONFile(dbServerDirPath, jsonFileName(fileId, dbServerFileSuffix), models.ProjDbServerFile{})
+			err = s.saveJSONFile(dbServerDirPath, jsonFileName(fileId, dbServerFileSuffix), models.ProjDbServerFile{})
+			if err != nil {
+				return fmt.Errorf("failed to save DB server JSON file: %w", err)
+			}
+			return nil
 		},
 		func() error {
-			if err = s.saveDbCatalogs(*dbServer); err != nil {
+			if err = s.saveDbCatalogs(*dbServer, project.Repository); err != nil {
 				return fmt.Errorf("failed to save DB catalogs: %w", err)
 			}
 			return nil
