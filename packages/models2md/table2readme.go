@@ -5,8 +5,13 @@ import (
 	"github.com/datatug/datatug/packages/models"
 	"io"
 	"net/url"
+	"regexp"
 	"strings"
 )
+
+var reUnquoted = regexp.MustCompile("\\w+")
+
+var reUpperCase = regexp.MustCompile("[A-Z]");
 
 // EncodeTable encodes table summary to markdown file format
 func (encoder) EncodeTable(w io.Writer, repository *models.ProjectRepository, catalog string, table *models.Table, dbServer models.ProjDbServer) error {
@@ -193,14 +198,24 @@ FROM %v.%v
 
 	var openInDatatugApp string
 	if repoID != "" && projectID != "" {
-		tablePath := fmt.Sprintf("servers/sqlserver/%v/db/%v/%v.%v",
-			dbServer.ID,
-			catalog,
-			table.Schema,
-			table.Name,
-		)
-		url := fmt.Sprintf("https://datatug.app/pwa/repo/%v/project/%v/%v", repoID, projectID, tablePath)
-		openInDatatugApp = fmt.Sprintf("[Open in **DataTug.app**](%v) - all the data at your finger tips.", url)
+		schema := table.Schema
+		if !reUnquoted.MatchString(schema) {
+			schema = fmt.Sprintf("[%v]", schema)
+		}
+		name := table.Name
+		if !reUnquoted.MatchString(name) {
+			name = fmt.Sprintf("[%v]", name)
+		}
+		sql := fmt.Sprintf("SELECT\n\t*\nFROM %v.%v", schema, name)
+		if len(name) > 5 {
+			alias := reUpperCase.FindAllString(name, -1)
+			if len(alias) <= 4 && len(name) - len(alias) > 3 {
+				sql += " AS " + strings.ToLower(strings.Join(alias, ""))
+			}
+		}
+		link := fmt.Sprintf("https://datatug.app/pwa/repo/%v/project/%v/query#text=%v",
+			url.PathEscape(repoID), url.PathEscape(projectID), url.QueryEscape(sql))
+		openInDatatugApp = fmt.Sprintf("[Edit & run in **DataTug.app**](%v)\n- all the data at your finger tips.", link)
 	}
 
 	//now := time.Now()
