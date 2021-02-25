@@ -80,18 +80,16 @@ FROM %v.%v
 		referencedBy = "*None*"
 	} else {
 		refBys := make([]string, 0, len(table.ReferencedBy))
-		prevLevel := 0
 		walker := refByWalker{
 			catalog:   catalog,
 			dbServer:  dbServer,
 			processed: make(map[string]*models.Table),
-			process: func(parent *models.Table, refBy *models.TableReferencedBy, level int) error {
-				line, err := writeRefByToMarkDownListTree(catalog, parent, refBy, level, prevLevel)
+			process: func(parent *models.Table, refBy *models.TableReferencedBy, level, index int) error {
+				line, err := writeRefByToMarkDownListTree(catalog, parent, refBy, level, index)
 				if err != nil {
 					return err
 				}
 				refBys = append(refBys, line)
-				prevLevel = level
 				return nil
 			}}
 		err := walker.walkReferencedBy(table, 0)
@@ -231,7 +229,7 @@ type refByWalker struct {
 	catalog   string
 	dbServer  models.ProjDbServer
 	processed map[string]*models.Table
-	process   func(parent *models.Table, refBy *models.TableReferencedBy, level int) error
+	process   func(parent *models.Table, refBy *models.TableReferencedBy, level, index int) error
 }
 
 func (refByWalker) getTableId(schema, name string) string {
@@ -241,12 +239,12 @@ func (refByWalker) getTableId(schema, name string) string {
 func (walker *refByWalker) walkReferencedBy(table *models.Table, level int) error {
 	level++
 	walker.processed[walker.getTableId(table.Schema, table.Name)] = table
-	for _, refBy := range table.ReferencedBy {
+	for i, refBy := range table.ReferencedBy {
 		refByID := walker.getTableId(refBy.Schema, refBy.Name)
 		if _, ok := walker.processed[refByID]; ok {
 			continue
 		}
-		if err := walker.process(table, refBy, level); err != nil {
+		if err := walker.process(table, refBy, level, i); err != nil {
 			return err
 		}
 		referringTable := walker.dbServer.DbCatalogs.GetTable(walker.catalog, refBy.Schema, refBy.Name)
@@ -254,14 +252,16 @@ func (walker *refByWalker) walkReferencedBy(table *models.Table, level int) erro
 			return fmt.Errorf("catalog %v has table [%v.%v] that is referenced by unknown table [%v.%v]",
 				walker.catalog, table.Schema, table.Name, refBy.Schema, refBy.Name)
 		}
-		if err := walker.walkReferencedBy(referringTable, level); err != nil {
-			return err
+		if len(referringTable.ReferencedBy) > 0 {
+			if err := walker.walkReferencedBy(referringTable, level); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
-func writeRefByToMarkDownListTree(catalog string, parent *models.Table, refBy *models.TableReferencedBy, level, prevLevel int) (string, error) {
+func writeRefByToMarkDownListTree(catalog string, parent *models.Table, refBy *models.TableReferencedBy, level, index int) (string, error) {
 	joinSQL := strings.TrimSpace(fmt.Sprintf(`
 USE %v
 SELECT
@@ -270,16 +270,20 @@ FROM %v.%v
 %v JOIN %v.%v ON`, catalog, parent.Schema, parent.Name, "%v", refBy.Schema, refBy.Name))
 
 	const singleIndent = "  "
-	indent := strings.Repeat(singleIndent, level)
+	indent := strings.Repeat(singleIndent, (level-1)*len(singleIndent))
 
-	s := make([]string, 2, 2+len(parent.PrimaryKey.Columns)*len(refBy.ForeignKeys))
+	s := make([]string, 1, 1+len(parent.PrimaryKey.Columns)*len(refBy.ForeignKeys))
 
-	if level > 1 && prevLevel > level {
-		s = append(s, "\n"+indent+"<br>Referenced by:\n")
+	if level > 1 {
+		if index == 0 {
+			s = append(s, indent[:len(indent)-len(singleIndent)]+"- Referenced by:\n")
+		}
+		//indent += singleIndent
 	}
 
 	s = append(s, fmt.Sprintf(indent+"- [%v](../../../%v).[%v](../../../%v/tables/%v)", refBy.Schema, refBy.Schema, refBy.Name, refBy.Schema, refBy.Name))
-	s = append(s, fmt.Sprintf(indent+singleIndent+"- Foreign keys:"))
+	fkIndent := indent + singleIndent
+	const itemTextPadding = "  "
 	for _, fk := range refBy.ForeignKeys {
 
 		for i, fkCol := range fk.Columns {
@@ -302,8 +306,12 @@ FROM %v.%v
 			joinMD("INNER"),
 			joinMD("RIGHT"),
 		}
-		s = append(s, fmt.Sprintf(indent+singleIndent+"`- %v`\n    <br>&nbsp;&nbsp;by columns: `%v` &mdash;", fk.Name, strings.Join(fk.Columns, "`, `"))+
-			"\n    <small>JOIN:\n"+strings.Join(joins, " |\n    ")+"\n    </small>")
+		s = append(s, fmt.Sprintf(fkIndent+"- `%v`\n"+
+			fkIndent+itemTextPadding+"<br>by columns: `%v` &mdash;", fk.Name, strings.Join(fk.Columns, "`, `"))+"\n"+
+			fkIndent+itemTextPadding+"<small>JOIN:\n"+
+			fkIndent+itemTextPadding+strings.Join(joins, " |\n"+fkIndent+itemTextPadding)+"\n"+
+			fkIndent+itemTextPadding+"</small>",
+		)
 	}
 	return strings.Join(s, "\n"), nil
 }
