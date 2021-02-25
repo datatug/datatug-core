@@ -193,7 +193,14 @@ FROM %v.%v
 
 	var openInDatatugApp string
 	if repoID != "" && projectID != "" {
-		openInDatatugApp = fmt.Sprintf("[Open in **DataTug.app**](https://datatug.app/pwa/repo/%v/project/%v) - all the data at your finger tips.", repoID, projectID)
+		tablePath := fmt.Sprintf("servers/sqlserver/%v/db/%v/%v.%v",
+			dbServer.ID,
+			catalog,
+			table.Schema,
+			table.Name,
+		)
+		url := fmt.Sprintf("https://datatug.app/pwa/repo/%v/project/%v/%v", repoID, projectID, tablePath)
+		openInDatatugApp = fmt.Sprintf("[Open in **DataTug.app**](%v) - all the data at your finger tips.", url)
 	}
 
 	//now := time.Now()
