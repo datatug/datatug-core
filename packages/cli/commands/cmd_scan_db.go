@@ -16,7 +16,7 @@ func init() {
 	_, err := Parser.AddCommand("scan",
 		"Adds or updates DB metadata",
 		"Adds or updates DB metadata from a specific server in a specific environment",
-		&scanDb)
+		&scanDbCommand{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -34,8 +34,6 @@ type scanDbCommand struct {
 	DbModel     string `long:"dbmodel" required:"false" description:"Name of DB model, is required for newly scanned databases."`
 	Environment string `long:"env" required:"true" description:"Specify environment the DB belongs to. E.g.: LOCAL, DEV, SIT, UAT, PERF, PROD."`
 }
-
-var scanDb scanDbCommand
 
 // Execute executes scan command
 func (v *scanDbCommand) Execute(_ []string) (err error) {

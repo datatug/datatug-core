@@ -2,12 +2,14 @@ package filestore
 
 import (
 	"github.com/datatug/datatug/packages/models"
+	"log"
 	"os"
 	"path"
 )
 
 func (s fileSystemSaver) writeTableReadme(dirPath string, catalog string, table *models.Table, dbServer models.ProjDbServer) func() error {
 	return func() error {
+		log.Printf("Saving readme.md for table %v.%v.%v...\n", catalog, table.Schema, table.Name)
 		file, _ := os.Create(path.Join(dirPath, "README.md"))
 		defer func() {
 			_ = file.Close()

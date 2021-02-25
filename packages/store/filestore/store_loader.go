@@ -119,20 +119,25 @@ func loadDbServer(driverDirPath, driver, serverName string) (dbServer *models.Pr
 	}
 	dbServerDirPath := path.Join(driverDirPath, serverName)
 	err = parallel.Run(
-		func() (err error) {
-			err = readJSONFile(path.Join(dbServerDirPath, jsonFileName(fmt.Sprintf("%v.%v", driver, serverName), dbServerFileSuffix)), true, dbServer)
-			if err != nil {
-				err = fmt.Errorf("failed to load db server summary file: %w", err)
+		func() error {
+			jsonFileName := jsonFileName(fmt.Sprintf("%v.%v", driver, serverName), dbServerFileSuffix)
+			jsonFilePath := path.Join(dbServerDirPath, jsonFileName)
+			if err := readJSONFile(jsonFilePath, true, dbServer); err != nil {
+				return fmt.Errorf("failed to load db server summary file: %w", err)
 			}
 			if dbServer.ID == "" {
 				dbServer.ID = serverName
 			} else if dbServer.ID != serverName {
 				return fmt.Errorf("dbServer.ID != serverName: %v != %v", dbServer.ID, serverName)
 			}
-			return err
+			return nil
 		},
-		func() (err error) {
-			return loadDatabases(path.Join(dbServerDirPath, DbCatalogsFolder), dbServer)
+		func() error {
+			dbCatalogsDir := path.Join(dbServerDirPath, DbCatalogsFolder)
+			if err := loadDbCatalogs(dbCatalogsDir, dbServer); err != nil {
+				return fmt.Errorf("failed to load DB catalogs: %w", err)
+			}
+			return nil
 		},
 	)
 	return

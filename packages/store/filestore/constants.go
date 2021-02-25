@@ -7,21 +7,21 @@ import (
 
 // DatatugFolder defines a folder name in a repo where to store DataTug project
 const (
-	ProjectSummaryFileName = "datatug-project.json"
-	DatatugFolder          = "datatug"
 	BoardsFolder           = "boards"
+	ProjectSummaryFileName = "datatug-project.json"
 	DataFolder             = "data"
-	QueriesFolder          = "queries"
-	RecordsetsFolder       = "recordsets"
-	DbCatalogsFolder       = "dbcatalogs"
+	DatatugFolder          = "datatug"
 	DbFolder               = "db"
+	DbCatalogsFolder       = "dbcatalogs"
 	DbModelsFolder         = "dbmodels"
 	EntitiesFolder         = "entities"
 	EnvironmentsFolder     = "environments"
+	QueriesFolder          = "queries"
+	RecordsetsFolder       = "recordsets"
 	ServersFolder          = "servers"
-	SchemasFolder          = "tables"
+	SchemasFolder          = "schemas"
 	TablesFolder           = "tables"
-	ViewsFolder            = "tables"
+	ViewsFolder            = "views"
 )
 
 func jsonFileName(id, suffix string) string {

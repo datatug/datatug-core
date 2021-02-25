@@ -241,29 +241,29 @@ func loadEnvServers(dirPath string, env *models.Environment) error {
 	})
 }
 
-func loadDatabases(dirPath string, dbServer *models.ProjDbServer) (err error) {
+func loadDbCatalogs(dirPath string, dbServer *models.ProjDbServer) (err error) {
 	return loadDir(nil, dirPath, processDirs, func(files []os.FileInfo) {
-		dbServer.DbCatalogs = make(models.DbCatalogs, len(files))
+		dbServer.DbCatalogs = make(models.DbCatalogs, 0, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
-		id := f.Name()
-		dbServer.DbCatalogs[i] = &models.DbCatalog{
-			ProjectItem: models.ProjectItem{ID: id},
-		}
-		if err = loadDatabase(path.Join(dirPath, id), dbServer.DbCatalogs[i]); err != nil {
+		dbCatalog := new(models.DbCatalog)
+		dbCatalog.ID = f.Name()
+		catalogPath := path.Join(dirPath, dbCatalog.ID)
+		if err = loadDbCatalog(catalogPath, dbCatalog); err != nil {
 			return err
 		}
+		dbServer.DbCatalogs = append(dbServer.DbCatalogs, dbCatalog)
 		return nil
 	})
 }
 
-func loadDatabase(dirPath string, db *models.DbCatalog) (err error) {
-	log.Println("Loading database", db.ID)
+func loadDbCatalog(dirPath string, db *models.DbCatalog) (err error) {
+	log.Printf("Loading DB catalog: %v...\n", db.ID)
 	filePath := path.Join(dirPath, jsonFileName(db.ID, dbCatalogFileSuffix))
 	if err = readJSONFile(filePath, false, db); err != nil {
 		return err
 	}
 
-	schemasDirPath := path.Join(dirPath, "schemas")
+	schemasDirPath := path.Join(dirPath, SchemasFolder)
 	return loadDir(nil, schemasDirPath, processDirs, func(files []os.FileInfo) {
 		db.Schemas = make(models.DbSchemas, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
@@ -322,15 +322,18 @@ func loadTables(schemasDirPath, schema, folder string) (tables models.Tables, er
 	//}
 	err = loadDir(nil, dirPath, processDirs,
 		func(files []os.FileInfo) {
-			tables = make(models.Tables, len(files))
-		}, func(f os.FileInfo, i int, _ *sync.Mutex) (err error) {
+			tables = make(models.Tables, 0, len(files))
+		}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
 			if !f.IsDir() {
 				return nil
 			}
-			if tables[i], err = loadTable(dirPath, schema, f.Name()); err != nil {
-				return
+			name := f.Name()
+			table, err := loadTable(dirPath, schema, name)
+			if err != nil {
+				return fmt.Errorf("failed to load table [%v].[%v]: %w", schema, name, err)
 			}
-			return err
+			tables = append(tables, table)
+			return nil
 		})
 	if err != nil {
 		err = fmt.Errorf("failed to load tables: %w", err)
@@ -345,6 +348,8 @@ func loadTable(dirPath, schema, tableName string) (table *models.Table, err erro
 	prefix := fmt.Sprintf("%v.%v.", schema, tableName)
 
 	table = new(models.Table)
+	table.Name = tableName
+	table.Schema = schema
 	loadTableFile := func(suffix string, required bool) (err error) {
 		filePath := path.Join(tableDirPath, prefix+suffix)
 		return readJSONFile(filePath, required, table)
@@ -359,11 +364,10 @@ func loadTable(dirPath, schema, tableName string) (table *models.Table, err erro
 	}
 	for _, suffix := range suffixes {
 		if err = loadTableFile(suffix, true /*suffix == "properties.json" || suffix == "columns.json"*/); err != nil {
+			err = fmt.Errorf("failed to load table file [%v]: %w", prefix+suffix, err)
 			return
 		}
 	}
-	table.Name = tableName
-	table.Schema = schema
 	// TODO: For some reason parallel loading is not working here (too tired to think about it now, not critical)
 	//workers := make([]func() error, len(suffixes))
 	//for i, suffix := range suffixes {
