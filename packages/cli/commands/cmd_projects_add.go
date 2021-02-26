@@ -28,9 +28,15 @@ func (v *addProjectCommand) Execute(_ []string) error {
 		return fmt.Errorf("project with name [%v] already added to config with path: %v", projectID, project.Path)
 	}
 	config.Projects[projectID] = ProjectConfig{Path: v.ProjectDir}
+	if err = saveConfig(config); err != nil {
+		return fmt.Errorf("failed to save config: %w", err)
+	}
+	return nil
+}
 
-	var f *os.File
-	if f, err = os.Create(config.Path); err != nil {
+func saveConfig(config ConfigFile) error {
+	f, err := os.Create(config.Path)
+	if err != nil {
 		return err
 	}
 	defer func() {
@@ -43,4 +49,4 @@ func (v *addProjectCommand) Execute(_ []string) error {
 		return err
 	}
 	return nil
-}
+} 
