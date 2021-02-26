@@ -378,34 +378,10 @@ func (s fileSystemSaver) saveDbCatalog(dbServer models.ProjDbServer, dbCatalog *
 			return nil
 		},
 		func() (err error) {
-			dbObjects := make([]models.CatalogObject, 0)
-			for _, schema := range dbCatalog.Schemas {
-				for _, t := range schema.Tables {
-					dbObjects = append(dbObjects, models.CatalogObject{
-						Type:         "table",
-						Schema:       t.Schema,
-						Name:         t.Name,
-						DefaultAlias: "",
-					})
-				}
-				for _, t := range schema.Views {
-					dbObjects = append(dbObjects, models.CatalogObject{
-						Type:         "view",
-						Schema:       t.Schema,
-						Name:         t.Name,
-						DefaultAlias: "",
-					})
-				}
-			}
-			fileName := jsonFileName(dbCatalog.ID, dbCatalogObjectFileSuffix)
-			if len(dbObjects) > 0 {
-				if err = s.saveJSONFile(saverCtx.dirPath, fileName, dbObjects); err != nil {
-					return fmt.Errorf("failed to write dbCatalog objects json to file: %w", err)
-				}
-			} else {
-				// TODO: delete file if exists
-			}
-			return nil
+			return s.saveDbCatalogObjects(*dbCatalog, saverCtx)
+		},
+		func() (err error) {
+			return s.saveDbCatalogRefs(*dbCatalog, saverCtx)
 		},
 		func() error {
 			if err = s.saveDbSchemas(dbCatalog.Schemas, saverCtx); err != nil {
@@ -418,6 +394,84 @@ func (s fileSystemSaver) saveDbCatalog(dbServer models.ProjDbServer, dbCatalog *
 		return fmt.Errorf("failed to save DB catalog [%v]: %w", dbCatalog.ID, err)
 	}
 	log.Printf("Saved DB catalog [%v].", dbCatalog.ID)
+	return nil
+}
+
+func (s fileSystemSaver) saveDbCatalogObjects(dbCatalog models.DbCatalog, saverCtx saveDbServerObjContext) error {
+	dbObjects := make([]models.CatalogObject, 0)
+	for _, schema := range dbCatalog.Schemas {
+		for _, t := range schema.Tables {
+			dbObjects = append(dbObjects, models.CatalogObject{
+				Type:         "table",
+				Schema:       t.Schema,
+				Name:         t.Name,
+				DefaultAlias: "",
+			})
+		}
+		for _, t := range schema.Views {
+			dbObjects = append(dbObjects, models.CatalogObject{
+				Type:         "view",
+				Schema:       t.Schema,
+				Name:         t.Name,
+				DefaultAlias: "",
+			})
+		}
+	}
+	fileName := jsonFileName(dbCatalog.ID, dbCatalogObjectFileSuffix)
+	if len(dbObjects) > 0 {
+		if err := s.saveJSONFile(saverCtx.dirPath, fileName, dbObjects); err != nil {
+			return fmt.Errorf("failed to write dbCatalog objects json to file: %w", err)
+		}
+	} else {
+		// TODO: delete file if exists
+	}
+	return nil
+}
+
+func (s fileSystemSaver) saveDbCatalogRefs(dbCatalog models.DbCatalog, saverCtx saveDbServerObjContext) error {
+	dbObjects := make([]models.CatalogObjectWithRefs, 0)
+	for _, schema := range dbCatalog.Schemas {
+		for _, t := range schema.Tables {
+			if len(t.ForeignKeys) == 0 && len(t.ReferencedBy) == 0 {
+				continue
+			}
+			dbObjects = append(dbObjects, models.CatalogObjectWithRefs{
+				CatalogObject: models.CatalogObject{
+					Type:         "table",
+					Schema:       t.Schema,
+					Name:         t.Name,
+					DefaultAlias: "",
+				},
+				PrimaryKey:   t.PrimaryKey,
+				ForeignKeys:  t.ForeignKeys,
+				ReferencedBy: t.ReferencedBy,
+			})
+		}
+		for _, t := range schema.Views {
+			if len(t.ForeignKeys) == 0 && len(t.ReferencedBy) == 0 {
+				continue
+			}
+			dbObjects = append(dbObjects, models.CatalogObjectWithRefs{
+				CatalogObject: models.CatalogObject{
+					Type:         "view",
+					Schema:       t.Schema,
+					Name:         t.Name,
+					DefaultAlias: "",
+				},
+				PrimaryKey:   t.PrimaryKey,
+				ForeignKeys:  t.ForeignKeys,
+				ReferencedBy: t.ReferencedBy,
+			})
+		}
+	}
+	fileName := jsonFileName(dbCatalog.ID, dbCatalogRefsFileSuffix)
+	if len(dbObjects) > 0 {
+		if err := s.saveJSONFile(saverCtx.dirPath, fileName, dbObjects); err != nil {
+			return fmt.Errorf("failed to write dbCatalog refs json to file: %w", err)
+		}
+	} else {
+		// TODO: delete file if exists
+	}
 	return nil
 }
 

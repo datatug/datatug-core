@@ -14,6 +14,13 @@ type CatalogObject struct {
 	DefaultAlias string `json:"defaultAlias,omitempty"`
 }
 
+type CatalogObjectWithRefs struct {
+	CatalogObject
+	PrimaryKey   *UniqueKey           `json:"primaryKey,omitempty"`
+	ForeignKeys  []*ForeignKey        `json:"foreignKeys,omitempty"`
+	ReferencedBy []*TableReferencedBy `json:"referencedBy,omitempty"`
+}
+
 // Database hold information about a database
 type DbCatalog struct {
 	ProjectItem

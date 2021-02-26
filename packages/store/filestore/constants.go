@@ -30,6 +30,7 @@ func jsonFileName(id, suffix string) string {
 		boardFileSuffix,
 		dbCatalogFileSuffix,
 		dbCatalogObjectFileSuffix,
+		dbCatalogRefsFileSuffix,
 		dbModelFileSuffix,
 		dbServerFileSuffix,
 		recordsetFileSuffix,
@@ -61,6 +62,7 @@ const (
 	boardFileSuffix           = "board"
 	dbCatalogFileSuffix       = "db"
 	dbCatalogObjectFileSuffix = "objects"
+	dbCatalogRefsFileSuffix   = "refs"
 	dbModelFileSuffix         = "dbmodel"
 	dbServerFileSuffix        = "dbserver"
 	recordsetFileSuffix       = "recordset"
