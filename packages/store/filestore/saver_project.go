@@ -354,25 +354,56 @@ func (s fileSystemSaver) saveDbCatalog(dbServer models.ProjDbServer, dbCatalog *
 	if dbCatalog == nil {
 		return errors.New("dbCatalog is nil")
 	}
+	log.Printf("Saving DB catalog [%v]...", dbCatalog.ID)
 	serverName := dbServer.DbServer.FileName()
 	saverCtx := saveDbServerObjContext{
-		catalog:  dbCatalog.ID,
-		dbServer: dbServer,
+		catalog:    dbCatalog.ID,
+		dbServer:   dbServer,
 		repository: repository,
-		dirPath:  path.Join(s.projDirPath, DatatugFolder, ServersFolder, DbFolder, dbServer.DbServer.Driver, serverName, DbCatalogsFolder, dbCatalog.ID),
+		dirPath:    path.Join(s.projDirPath, DatatugFolder, ServersFolder, DbFolder, dbServer.DbServer.Driver, serverName, DbCatalogsFolder, dbCatalog.ID),
 	}
 	if err := os.MkdirAll(saverCtx.dirPath, os.ModeDir); err != nil {
 		return err
 	}
 
-	fileName := jsonFileName(dbCatalog.ID, dbCatalogFileSuffix)
-	dbFile := DatabaseFile{
-		DbModel: dbCatalog.DbModel,
-	}
-	return parallel.Run(
+	err = parallel.Run(
 		func() error {
+			fileName := jsonFileName(dbCatalog.ID, dbCatalogFileSuffix)
+			dbFile := DatabaseFile{
+				DbModel: dbCatalog.DbModel,
+			}
 			if err = s.saveJSONFile(saverCtx.dirPath, fileName, dbFile); err != nil {
 				return fmt.Errorf("failed to write dbCatalog json to file: %w", err)
+			}
+			return nil
+		},
+		func() (err error) {
+			dbObjects := make([]models.CatalogObject, 0)
+			for _, schema := range dbCatalog.Schemas {
+				for _, t := range schema.Tables {
+					dbObjects = append(dbObjects, models.CatalogObject{
+						Type:         "table",
+						Schema:       t.Schema,
+						Name:         t.Name,
+						DefaultAlias: "",
+					})
+				}
+				for _, t := range schema.Views {
+					dbObjects = append(dbObjects, models.CatalogObject{
+						Type:         "view",
+						Schema:       t.Schema,
+						Name:         t.Name,
+						DefaultAlias: "",
+					})
+				}
+			}
+			fileName := jsonFileName(dbCatalog.ID, dbCatalogObjectFileSuffix)
+			if len(dbObjects) > 0 {
+				if err = s.saveJSONFile(saverCtx.dirPath, fileName, dbObjects); err != nil {
+					return fmt.Errorf("failed to write dbCatalog objects json to file: %w", err)
+				}
+			} else {
+				// TODO: delete file if exists
 			}
 			return nil
 		},
@@ -383,6 +414,11 @@ func (s fileSystemSaver) saveDbCatalog(dbServer models.ProjDbServer, dbCatalog *
 			return nil
 		},
 	)
+	if err != nil {
+		return fmt.Errorf("failed to save DB catalog [%v]: %w", dbCatalog.ID, err)
+	}
+	log.Printf("Saved DB catalog [%v].", dbCatalog.ID)
+	return nil
 }
 
 //func (s fileSystemSaver) createStrFile() io.StringWriter {
@@ -449,7 +485,8 @@ func (s fileSystemSaver) saveDbSchemas(schemas []*models.DbSchema, dbServerSaver
 }
 
 func (s fileSystemSaver) saveDbSchema(dbSchema *models.DbSchema, dbServerSaverCtx saveDbServerObjContext) error {
-	return parallel.Run(
+	log.Printf("Save DB schema [%v] for %v @ %v...", dbSchema.ID, dbServerSaverCtx.catalog, dbServerSaverCtx.dbServer.ID)
+	err := parallel.Run(
 		func() error {
 			tablesCtx := dbServerSaverCtx
 			tablesCtx.plural = TablesFolder
@@ -461,6 +498,11 @@ func (s fileSystemSaver) saveDbSchema(dbSchema *models.DbSchema, dbServerSaverCt
 			return s.saveTables(dbSchema.Views, viewsCtx)
 		},
 	)
+	if err != nil {
+		return fmt.Errorf("failed to save DB schema [%v]: %w", err)
+	}
+	log.Printf("Saved DB schema [%v] for %v @ %v.", dbSchema.ID, dbServerSaverCtx.catalog, dbServerSaverCtx.dbServer.ID)
+	return nil
 }
 
 func (s fileSystemSaver) saveTables(tables []*models.Table, save saveDbServerObjContext) error {

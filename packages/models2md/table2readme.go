@@ -99,7 +99,7 @@ FROM %v.%v
 			dbServer:  dbServer,
 			processed: make(map[string]*models.Table),
 			process: func(parent *models.Table, refBy *models.TableReferencedBy, level, index int) error {
-				line, err := writeRefByToMarkDownListTree(repoID, projectID, catalog, parent, refBy, level, index)
+				line, err := writeRefByToMarkDownListTree(repoID, projectID, dbServer.ID, catalog, parent, refBy, level, index)
 				if err != nil {
 					return err
 				}
@@ -213,8 +213,12 @@ FROM %v.%v
 				sql += " AS " + strings.ToLower(strings.Join(alias, ""))
 			}
 		}
-		link := fmt.Sprintf("https://datatug.app/pwa/repo/%v/project/%v/query#text=%v",
-			url.PathEscape(repoID), url.PathEscape(projectID), url.QueryEscape(sql))
+		link := fmt.Sprintf("https://datatug.app/pwa/repo/%v/project/%v/query?server=%v&catalog=%v#text=%v",
+			url.PathEscape(repoID),
+			url.PathEscape(projectID),
+			url.QueryEscape(dbServer.ID),
+			url.QueryEscape(catalog),
+			url.QueryEscape(sql))
 		openInDatatugApp = fmt.Sprintf("[Edit & run in **DataTug.app**](%v)\n- all the data at your finger tips.", link)
 	}
 
@@ -300,7 +304,7 @@ func (walker *refByWalker) walkReferencedBy(table *models.Table, level int) erro
 	return nil
 }
 
-func writeRefByToMarkDownListTree(repoID, projectID, catalog string, parent *models.Table, refBy *models.TableReferencedBy, level, index int) (string, error) {
+func writeRefByToMarkDownListTree(repoID, projectID, server, catalog string, parent *models.Table, refBy *models.TableReferencedBy, level, index int) (string, error) {
 	joinSQL := strings.TrimSpace(fmt.Sprintf(`
 USE %v
 SELECT
@@ -338,10 +342,12 @@ FROM %v.%v
 
 		joinMD := func(kind string) string {
 			text := url.QueryEscape(fmt.Sprintf(joinSQL, kind))
+			queryPart := fmt.Sprintf("query?server=%v&catalog=%v#text=%v", server, catalog, text)
 			if repoID != "" && projectID != "" {
-				fmt.Sprintf("<a href='https://datatug.app/pwa/repo/%v/project/%v/query#text=%v' target='_blank'>%v</a>", repoID, projectID, text, kind)
+
+				fmt.Sprintf("<a href='https://datatug.app/pwa/repo/%v/project/%v/%v' target='_blank'>%v</a>", repoID, projectID, queryPart, kind)
 			}
-			return fmt.Sprintf("<a href='https://datatug.app/pwa/query#text=%v' target='_blank'>%v</a>", text, kind)
+			return fmt.Sprintf("<a href='https://datatug.app/pwa/%v' target='_blank'>%v</a>", queryPart, kind)
 		}
 		joins := []string{
 			joinMD("LEFT"),

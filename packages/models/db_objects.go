@@ -6,6 +6,14 @@ import (
 	"strings"
 )
 
+// CatalogObject used in list of objects
+type CatalogObject struct {
+	Type         string `json:"type"`
+	Schema       string `json:"schema"`
+	Name         string `json:"name"`
+	DefaultAlias string `json:"defaultAlias,omitempty"`
+}
+
 // Database hold information about a database
 type DbCatalog struct {
 	ProjectItem

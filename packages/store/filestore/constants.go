@@ -29,6 +29,7 @@ func jsonFileName(id, suffix string) string {
 	case
 		boardFileSuffix,
 		dbCatalogFileSuffix,
+		dbCatalogObjectFileSuffix,
 		dbModelFileSuffix,
 		dbServerFileSuffix,
 		recordsetFileSuffix,
@@ -39,7 +40,7 @@ func jsonFileName(id, suffix string) string {
 		queryFileSuffix:
 		// OK
 	default:
-		panic("unknown JSON file suffix")
+		panic(fmt.Sprintf("unknown JSON file suffix=[%v], id=[%v]", suffix, id))
 
 	}
 	return fmt.Sprintf("%v.%v.json", id, suffix)
@@ -57,14 +58,15 @@ func getProjItemIdFromFileName(fileName string) (id string, suffix string) {
 }
 
 const (
-	boardFileSuffix       = "board"
-	dbCatalogFileSuffix   = "db"
-	dbModelFileSuffix     = "dbmodel"
-	dbServerFileSuffix    = "dbserver"
-	recordsetFileSuffix   = "recordset"
-	environmentFileSuffix = "env"
-	entityFileSuffix      = "entity"
-	serverFileSuffix      = "server"
-	columnsFileSuffix     = "columns"
-	queryFileSuffix       = "q"
+	boardFileSuffix           = "board"
+	dbCatalogFileSuffix       = "db"
+	dbCatalogObjectFileSuffix = "objects"
+	dbModelFileSuffix         = "dbmodel"
+	dbServerFileSuffix        = "dbserver"
+	recordsetFileSuffix       = "recordset"
+	environmentFileSuffix     = "env"
+	entityFileSuffix          = "entity"
+	serverFileSuffix          = "server"
+	columnsFileSuffix         = "columns"
+	queryFileSuffix           = "q"
 )
