@@ -85,7 +85,7 @@ func (e Executor) executeMulti(request Request) (response Response, err error) {
 
 func executeCommand(command RequestCommand, getDbByID func(envID, dbID string) (*dto.EnvDb, error)) (recordset models.Recordset, err error) {
 
-	var dbServer models.DbServer
+	var dbServer models.ServerReference
 
 	if getDbByID != nil {
 		var envDb *dto.EnvDb
@@ -95,7 +95,7 @@ func executeCommand(command RequestCommand, getDbByID func(envID, dbID string) (
 		dbServer = envDb.Server
 	} else {
 		strings.Split(command.DB, ":")
-		dbServer = models.DbServer{Host: command.Host, Port: command.Port, Driver: command.Driver}
+		dbServer = models.ServerReference{Host: command.Host, Port: command.Port, Driver: command.Driver}
 		if err = dbServer.Validate(); err != nil {
 			return recordset, fmt.Errorf("execute command does not have valid server parameters: %w", err)
 		}
@@ -106,7 +106,7 @@ func executeCommand(command RequestCommand, getDbByID func(envID, dbID string) (
 	)
 
 	fmt.Println(connStr)
-	//fmt.Println(envDb.DbServer.Driver, connStr.String())
+	//fmt.Println(envDb.ServerReference.Driver, connStr.String())
 	//fmt.Println(command.Text)
 	var db *sql.DB
 	if db, err = sql.Open(dbServer.Driver, connStr.String()); err != nil {

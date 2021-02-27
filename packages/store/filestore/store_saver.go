@@ -17,7 +17,7 @@ var _ store.Saver = (*storeSaver)(nil)
 func (saver storeSaver) newProjectSaver(projID string) (projSaver fileSystemSaver, err error) {
 	projPath, knownProjID := saver.pathByID[projID]
 	if !knownProjID {
-		err = validation.NewErrBadRequestFieldValue("projectID", "unknown project ID")
+		err = validation.NewErrBadRequestFieldValue("projectID", "unknown project ID: "+projID)
 		return
 	}
 	projSaver = newSaver(projPath, models2md.NewEncoder())
@@ -31,7 +31,7 @@ func (saver storeSaver) Save(project models.DataTugProject) (err error) {
 	return projSaver.Save(project)
 }
 
-func (saver storeSaver) SaveDbServer(projID string, dbServer *models.ProjDbServer, project models.DataTugProject) (err error) {
+func (saver storeSaver) SaveDbServer(projID string, dbServer models.ProjDbServer, project models.DataTugProject) (err error) {
 	projSaver, err := saver.newProjectSaver(projID)
 	if err != nil {
 		return err
@@ -39,7 +39,7 @@ func (saver storeSaver) SaveDbServer(projID string, dbServer *models.ProjDbServe
 	return projSaver.SaveDbServer(dbServer, project)
 }
 
-func (saver storeSaver) DeleteDbServer(projID string, dbServer models.DbServer) (err error) {
+func (saver storeSaver) DeleteDbServer(projID string, dbServer models.ServerReference) (err error) {
 	projSaver, err := saver.newProjectSaver(projID)
 	if err != nil {
 		return err

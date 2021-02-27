@@ -27,7 +27,7 @@ type scanDbCommand struct {
 	projectBaseCommand
 	Driver      string `short:"D" long:"driver" description:"Supported values: sqlserver."`
 	Host        string `short:"s" long:"server" description:"Network server name."`
-	Port        int    `long:"port" description:"DbServer network port, if not specified default is used."`
+	Port        int    `long:"port" description:"ServerReference network port, if not specified default is used."`
 	User        string `short:"U" long:"user" description:"User name to login to DB."`
 	Password    string `short:"P" long:"password" description:"Password to login to DB."`
 	Database    string `long:"db" required:"true" description:"Name of database to be scanned."`

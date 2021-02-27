@@ -9,8 +9,8 @@ type querySaver interface {
 }
 
 type dbServerSaver interface {
-	SaveDbServer(projID string, dbServer *models.ProjDbServer, project models.DataTugProject) (err error)
-	DeleteDbServer(projID string, dbServer models.DbServer) (err error)
+	SaveDbServer(projID string, dbServer models.ProjDbServer, project models.DataTugProject) (err error)
+	DeleteDbServer(projID string, dbServer models.ServerReference) (err error)
 }
 
 type boardsSaver interface {

@@ -12,7 +12,7 @@ import (
 )
 
 // GetDbServerSummary returns ProjDbServerSummary
-func (loader fileSystemLoader) LoadDbServerSummary(projID string, dbServer models.DbServer) (summary *dto.ProjDbServerSummary, err error) {
+func (loader fileSystemLoader) LoadDbServerSummary(projID string, dbServer models.ServerReference) (summary *dto.ProjDbServerSummary, err error) {
 	if projID == "" && len(projectPaths) == 1 {
 		projID = store.SingleProjectID
 	}
@@ -21,7 +21,7 @@ func (loader fileSystemLoader) LoadDbServerSummary(projID string, dbServer model
 	return
 }
 
-func loadDbServerForDbServerSummary(projPath string, dbServer models.DbServer) (summary *dto.ProjDbServerSummary, err error) {
+func loadDbServerForDbServerSummary(projPath string, dbServer models.ServerReference) (summary *dto.ProjDbServerSummary, err error) {
 	dbServerPath := path.Join(projPath, "servers", "db", dbServer.Driver, dbServer.FileName())
 	summary = new(dto.ProjDbServerSummary)
 	summary.DbServer = dbServer
@@ -65,7 +65,7 @@ func loadDatabasesForDbServerSummary(dbServerPath string, dbsByEnv map[string][]
 //	return
 //}
 
-func loadServerDatabaseNamesByEnvironments(projPath string, dbServer models.DbServer) (dbsByEnv map[string][]string, err error) {
+func loadServerDatabaseNamesByEnvironments(projPath string, dbServer models.ServerReference) (dbsByEnv map[string][]string, err error) {
 	envsPath := path.Join(projPath, "environments")
 	err = loadDir(nil, envsPath, processDirs, func(files []os.FileInfo) {
 		dbsByEnv = make(map[string][]string, len(files))

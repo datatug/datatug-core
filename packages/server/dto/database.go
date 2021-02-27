@@ -24,6 +24,6 @@ type DbCatalog struct {
 // ProjDbServerSummary holds summary info about DB server
 type ProjDbServerSummary struct {
 	models.ProjectItem
-	DbServer  models.DbServer   `json:"dbServer"`
-	Databases []DatabaseSummary `json:"databases,omitempty"`
+	DbServer  models.ServerReference `json:"dbServer"`
+	Databases []DatabaseSummary      `json:"databases,omitempty"`
 }

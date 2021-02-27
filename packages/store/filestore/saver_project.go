@@ -343,9 +343,9 @@ func (s fileSystemSaver) saveEnvironment(env models.Environment) (err error) {
 }
 
 func (s fileSystemSaver) saveDbCatalogs(dbServer models.ProjDbServer, repository *models.ProjectRepository) (err error) {
-	return s.saveItems("catalogs", len(dbServer.DbCatalogs), func(i int) func() error {
+	return s.saveItems("catalogs", len(dbServer.Catalogs), func(i int) func() error {
 		return func() error {
-			return s.saveDbCatalog(dbServer, dbServer.DbCatalogs[i], repository)
+			return s.saveDbCatalog(dbServer, dbServer.Catalogs[i], repository)
 		}
 	})
 }
@@ -355,12 +355,12 @@ func (s fileSystemSaver) saveDbCatalog(dbServer models.ProjDbServer, dbCatalog *
 		return errors.New("dbCatalog is nil")
 	}
 	log.Printf("Saving DB catalog [%v]...", dbCatalog.ID)
-	serverName := dbServer.DbServer.FileName()
+	serverName := dbServer.Server.FileName()
 	saverCtx := saveDbServerObjContext{
 		catalog:    dbCatalog.ID,
 		dbServer:   dbServer,
 		repository: repository,
-		dirPath:    path.Join(s.projDirPath, DatatugFolder, ServersFolder, DbFolder, dbServer.DbServer.Driver, serverName, DbCatalogsFolder, dbCatalog.ID),
+		dirPath:    path.Join(s.projDirPath, DatatugFolder, ServersFolder, DbFolder, dbServer.Server.Driver, serverName, DbCatalogsFolder, dbCatalog.ID),
 	}
 	if err := os.MkdirAll(saverCtx.dirPath, os.ModeDir); err != nil {
 		return err

@@ -7,32 +7,32 @@ import (
 	"strings"
 )
 
-// DbServer hold info about DB server
-type DbServer struct {
+// ServerReference hold info about DB server
+type ServerReference struct {
 	Driver string `json:"driver"`
 	Host   string `json:"host"`
 	Port   int    `json:"port,omitempty"`
 }
 
 // FileName returns a name for a file (probably should be moved to a func in filestore package)
-func (v DbServer) FileName() string {
+func (v ServerReference) FileName() string {
 	return v.name("@")
 }
 
 // Address returns a "host:port" string
-func (v DbServer) Address() string {
+func (v ServerReference) Address() string {
 	return v.name(":")
 }
 
-func (v DbServer) name(sep string) string {
+func (v ServerReference) name(sep string) string {
 	if v.Port > 0 {
 		return v.Host + sep + strconv.Itoa(v.Port)
 	}
 	return v.Host
 }
 
-// NewDbServer creates DbServer
-func NewDbServer(driver, hostWithOptionalPort, sep string) (dbServer DbServer, err error) {
+// NewDbServer creates ServerReference
+func NewDbServer(driver, hostWithOptionalPort, sep string) (dbServer ServerReference, err error) {
 	dbServer.Driver = driver
 	i := strings.Index(hostWithOptionalPort, sep)
 	if i < 0 {
@@ -45,7 +45,7 @@ func NewDbServer(driver, hostWithOptionalPort, sep string) (dbServer DbServer, e
 }
 
 // ID returns string key for the server
-func (v DbServer) ID() string {
+func (v ServerReference) ID() string {
 	if v.Port == 0 {
 		return fmt.Sprintf("%v:%v", v.Driver, v.Host)
 	}
@@ -53,7 +53,7 @@ func (v DbServer) ID() string {
 }
 
 // Validate returns error if not valid
-func (v DbServer) Validate() error {
+func (v ServerReference) Validate() error {
 	switch v.Driver {
 	case "":
 		return validation.NewErrRecordIsMissingRequiredField("driver")
@@ -71,11 +71,11 @@ func (v DbServer) Validate() error {
 	return nil
 }
 
-// ProjDbServer hold info about a project DB server - NOT sure if right way
+// ProjDbServer holds info about a project DB server - NOT sure if right way
 type ProjDbServer struct {
 	ProjectItem
-	DbServer   DbServer   `json:"dbServer"`
-	DbCatalogs DbCatalogs `json:"dbCatalogs"`
+	Server   ServerReference `json:"server"`
+	Catalogs DbCatalogs      `json:"catalogs"`
 }
 
 // Validate returns error if not valid
@@ -83,16 +83,16 @@ func (v ProjDbServer) Validate() error {
 	if err := v.ProjectItem.Validate(false); err != nil {
 		return err
 	}
-	if err := v.DbServer.Validate(); err != nil {
+	if err := v.Server.Validate(); err != nil {
 		return err
 	}
-	if err := v.DbCatalogs.Validate(); err != nil {
+	if err := v.Catalogs.Validate(); err != nil {
 		return err
 	}
 	return nil
 }
 
-// ProjDbServers slice of ProjDbServer which holds DbServer and DbCatalogs
+// ProjDbServers slice of ProjDbServer which holds ServerReference and DbCatalogs
 type ProjDbServers []*ProjDbServer
 
 // Validate returns error if not valid
@@ -108,17 +108,19 @@ func (v ProjDbServers) Validate() error {
 	return nil
 }
 
-//func (v ProjDbServers) GetProjDbServer(driver, host string, port int) *ProjDbServer {
-//	for _, item := range v {
-//		if item.Host == host {
-//			if port > 0 && item.Port == port || item.Driver == driver {
-//				return item
-//			}
-//		}
-//	}
-//	return nil
-//}
+func (v ProjDbServers) GetProjDbServer(driver, host string, port int) *ProjDbServer {
+	for _, item := range v {
+		if item.Server.Host == host {
+			if port > 0 && item.Server.Port == port || item.Server.Driver == driver {
+				return item
+			}
+		}
+	}
+	return nil
+}
 
-// ProjDbServerFile stores summary info about DbServer
+// ProjDbServerFile stores summary info about ServerReference
 type ProjDbServerFile struct {
+	ServerReference
+	Catalogs []string `catalogs,omitempty`
 }

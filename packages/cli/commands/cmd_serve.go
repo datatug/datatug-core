@@ -29,10 +29,10 @@ func init() {
 // serveCommand defines parameters for serve command
 type serveCommand struct {
 	projectBaseCommand
-	Host      string `short:"h" long:"host"`
+	Host      string `short:"h" long:"host" default:"localhost"`
 	Port      int    `short:"o" long:"port" default:"8989"`
-	Dev       bool   `long:"dev"`
-	ClientURL string `long:"client-url"`
+	Local     bool   `long:"local" description:"opens UI on default localhost:4200"`
+	ClientURL string `long:"client-url" description:"Default is https://datatug.app/pwa/agent/localhost:8989"`
 }
 
 // Execute executes serve command
@@ -61,7 +61,11 @@ func (v *serveCommand) Execute(_ []string) (err error) {
 	}
 
 	if v.ClientURL == "" {
-		v.ClientURL = "http://localhost:8100"
+		if v.Local {
+			v.ClientURL = "http://localhost:4200" // consider choosing some unique default port
+		} else {
+			v.ClientURL = fmt.Sprintf("https://datatug.app/pwa/agent/localhost:%v", v.Port)
+		}
 	}
 
 	var agent string

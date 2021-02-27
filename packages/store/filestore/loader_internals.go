@@ -229,7 +229,7 @@ func loadEnvironment(dirPath string, env *models.Environment) (err error) {
 
 func loadDbCatalogs(dirPath string, dbServer *models.ProjDbServer) (err error) {
 	return loadDir(nil, dirPath, processDirs, func(files []os.FileInfo) {
-		dbServer.DbCatalogs = make(models.DbCatalogs, 0, len(files))
+		dbServer.Catalogs = make(models.DbCatalogs, 0, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
 		dbCatalog := new(models.DbCatalog)
 		dbCatalog.ID = f.Name()
@@ -237,7 +237,7 @@ func loadDbCatalogs(dirPath string, dbServer *models.ProjDbServer) (err error) {
 		if err = loadDbCatalog(catalogPath, dbCatalog); err != nil {
 			return err
 		}
-		dbServer.DbCatalogs = append(dbServer.DbCatalogs, dbCatalog)
+		dbServer.Catalogs = append(dbServer.Catalogs, dbCatalog)
 		return nil
 	})
 }

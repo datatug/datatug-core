@@ -46,7 +46,7 @@ func (v Request) Validate() error {
 // RequestCommand holds parameters for command to be executed
 type RequestCommand struct {
 	models.Credentials // holds username & password, if not provided trusted connection
-	models.DbServer
+	models.ServerReference
 	Env  string `json:"env"`
 	DB   string `json:"db"`
 	Text string `json:"text"`
@@ -60,17 +60,17 @@ func (v RequestCommand) Validate() error {
 	if v.Text == "" {
 		return validation.NewErrRequestIsMissingRequiredField("text")
 	}
-	if err := v.DbServer.Validate(); err != nil {
+	if err := v.ServerReference.Validate(); err != nil {
 		return err
 	}
 	if v.DB != "" {
-		if v.DbServer.Host != "" {
+		if v.ServerReference.Host != "" {
 			return validation.NewBadRequestError(errors.New("both 'db' & 'host' were provided"))
 		}
-		if v.DbServer.Driver != "" {
+		if v.ServerReference.Driver != "" {
 			return validation.NewBadRequestError(errors.New("both 'db' & 'driver' were provided"))
 		}
-		if v.DbServer.Port != 0 {
+		if v.ServerReference.Port != 0 {
 			return validation.NewBadRequestError(errors.New("both 'db' & 'port' were provided"))
 		}
 	}

@@ -114,7 +114,7 @@ func loadDbDriver(dbServersPath, driverName string) (dbServers models.ProjDbServ
 
 func loadDbServer(driverDirPath, driver, serverName string) (dbServer *models.ProjDbServer, err error) {
 	dbServer = new(models.ProjDbServer)
-	if dbServer.DbServer, err = models.NewDbServer(driver, serverName, "@"); err != nil {
+	if dbServer.Server, err = models.NewDbServer(driver, serverName, "@"); err != nil {
 		return
 	}
 	dbServerDirPath := path.Join(driverDirPath, serverName)
@@ -125,7 +125,7 @@ func loadDbServer(driverDirPath, driver, serverName string) (dbServer *models.Pr
 			if err := readJSONFile(jsonFilePath, false, dbServer); err != nil {
 				return fmt.Errorf("failed to load db server summary file: %w", err)
 			}
-			dbServer.DbServer.Driver = driver
+			dbServer.Server.Driver = driver
 			if dbServer.ID == "" {
 				dbServer.ID = serverName
 			} else if dbServer.ID != serverName {

@@ -57,7 +57,7 @@ type recordsetsLoader interface {
 
 type dbServerLoader interface {
 	// LoadDbServerSummary loads summary on DB server
-	LoadDbServerSummary(projectID string, dbServer models.DbServer) (summary *dto.ProjDbServerSummary, err error)
+	LoadDbServerSummary(projectID string, dbServer models.ServerReference) (summary *dto.ProjDbServerSummary, err error)
 }
 
 type queriesLoader interface {

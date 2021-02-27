@@ -74,7 +74,7 @@ func (v *initProjectCommand) Execute(_ []string) (err error) {
 	//// Close the database connection pool after command executes
 	//defer func() { _ = db.Close() }()
 	//
-	//server := models.DbServer{Driver: v.Driver, Host: v.Host, Port: port}
+	//server := models.ServerReference{Driver: v.Driver, Host: v.Host, Port: port}
 	//informationSchema := schemer.NewInformationSchema(server, db)
 	//
 	//var database *models.Database

@@ -99,13 +99,13 @@ func (v EnvDbServers) GetByID(id string) *EnvDbServer {
 
 // EnvDbServer holds information about server in an environment
 type EnvDbServer struct {
-	DbServer
+	ServerReference
 	Databases []string `json:"databases,omitempty"`
 }
 
 // Validate returns error if no valid
 func (v EnvDbServer) Validate() error {
-	if err := v.DbServer.Validate(); err != nil {
+	if err := v.ServerReference.Validate(); err != nil {
 		return err
 	}
 	for i, db := range v.Databases {

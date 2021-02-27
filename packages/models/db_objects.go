@@ -24,6 +24,7 @@ type CatalogObjectWithRefs struct {
 // Database hold information about a database
 type DbCatalog struct {
 	ProjectItem
+	Path    string `json:"path,omitempty"` // for SQLite
 	DbModel string `json:"dbModel"`
 	Schemas DbSchemas
 }

@@ -54,7 +54,7 @@ func UpdateDbSchema(ctx context.Context, loader ProjectLoader, projectID, enviro
 		}
 		return nil
 	}
-	dbServer := models.DbServer{
+	dbServer := models.ServerReference{
 		Driver: driver,
 		Host:   connectionString.Server(),
 		Port:   connectionString.Port(),
@@ -102,7 +102,7 @@ func UpdateDbSchema(ctx context.Context, loader ProjectLoader, projectID, enviro
 	return project, err
 }
 
-func updateProjectWithDbCatalog(project *models.DataTugProject, envID string, dbServer models.DbServer, latestDbCatalog *models.DbCatalog) (err error) {
+func updateProjectWithDbCatalog(project *models.DataTugProject, envID string, dbServer models.ServerReference, latestDbCatalog *models.DbCatalog) (err error) {
 	// Update environment
 	{
 		if environment := project.Environments.GetEnvByID(envID); environment == nil {
@@ -112,16 +112,16 @@ func updateProjectWithDbCatalog(project *models.DataTugProject, envID string, db
 				},
 				DbServers: models.EnvDbServers{
 					{
-						DbServer:  dbServer,
-						Databases: []string{latestDbCatalog.ID},
+						ServerReference: dbServer,
+						Databases:       []string{latestDbCatalog.ID},
 					},
 				},
 			}
 			project.Environments = append(project.Environments, environment)
 		} else if envDbServer := environment.DbServers.GetByID(dbServer.ID()); envDbServer == nil {
 			environment.DbServers = append(environment.DbServers, &models.EnvDbServer{
-				DbServer:  dbServer,
-				Databases: []string{latestDbCatalog.ID},
+				ServerReference: dbServer,
+				Databases:       []string{latestDbCatalog.ID},
 			})
 		} else if i := slice.IndexOfString(envDbServer.Databases, latestDbCatalog.ID); i < 0 {
 			envDbServer.Databases = append(envDbServer.Databases, latestDbCatalog.ID)
@@ -131,28 +131,28 @@ func updateProjectWithDbCatalog(project *models.DataTugProject, envID string, db
 	{
 		for i, projDbServer := range project.DbServers {
 			if projDbServer.ProjectItem.ID == dbServer.ID() {
-				for j, db := range project.DbServers[i].DbCatalogs {
+				for j, db := range project.DbServers[i].Catalogs {
 					if db.ID == latestDbCatalog.ID {
-						project.DbServers[i].DbCatalogs[j] = latestDbCatalog
+						project.DbServers[i].Catalogs[j] = latestDbCatalog
 						goto ProjectDbServerDatabaseUpdated
 					}
 				}
-				project.DbServers[i].DbCatalogs = append(project.DbServers[i].DbCatalogs, latestDbCatalog)
+				project.DbServers[i].Catalogs = append(project.DbServers[i].Catalogs, latestDbCatalog)
 			ProjectDbServerDatabaseUpdated:
 				goto ProjDbServerUpdate
 			}
 		}
 		project.DbServers = append(project.DbServers, &models.ProjDbServer{
 			ProjectItem: models.ProjectItem{ID: dbServer.ID()},
-			DbServer:    dbServer,
-			DbCatalogs:  models.DbCatalogs{latestDbCatalog},
+			Server:      dbServer,
+			Catalogs:    models.DbCatalogs{latestDbCatalog},
 		})
 	ProjDbServerUpdate:
 	}
 	return nil
 }
 
-func newProjectWithDatabase(environment string, dbServer models.DbServer, database *models.DbCatalog) (project *models.DataTugProject, err error) {
+func newProjectWithDatabase(environment string, dbServer models.ServerReference, database *models.DbCatalog) (project *models.DataTugProject, err error) {
 	//var currentUser *user.User
 	//if currentUser, err = user.Current(); err != nil {
 	//	err = fmt.Errorf("failed to get current OS user")
@@ -175,8 +175,8 @@ func newProjectWithDatabase(environment string, dbServer models.DbServer, databa
 				ProjectItem: models.ProjectItem{ID: environment},
 				DbServers: []*models.EnvDbServer{
 					{
-						DbServer:  dbServer,
-						Databases: []string{database.ID},
+						ServerReference: dbServer,
+						Databases:       []string{database.ID},
 					},
 				},
 			},
@@ -184,8 +184,8 @@ func newProjectWithDatabase(environment string, dbServer models.DbServer, databa
 		DbServers: models.ProjDbServers{
 			{
 				ProjectItem: models.ProjectItem{ID: dbServer.ID()},
-				DbServer:    dbServer,
-				DbCatalogs: models.DbCatalogs{
+				Server:      dbServer,
+				Catalogs: models.DbCatalogs{
 					database,
 				},
 			},
@@ -196,7 +196,7 @@ func newProjectWithDatabase(environment string, dbServer models.DbServer, databa
 	return project, err
 }
 
-func scanDbSchema(server models.DbServer, connectionString execute.ConnectionString) (database *models.DbCatalog, err error) {
+func scanDbSchema(server models.ServerReference, connectionString execute.ConnectionString) (database *models.DbCatalog, err error) {
 	var db *sql.DB
 
 	if db, err = sql.Open(server.Driver, connectionString.String()); err != nil {

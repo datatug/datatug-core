@@ -16,8 +16,8 @@ func GetServerDatabases(request GetServerDatabasesRequest) (databases []dto.DbCa
 	executor := execute.NewExecutor(nil)
 
 	command := execute.RequestCommand{
-		DbServer: request.DbServer,
-		Text:     "select name from sys.databases where owner_sid > 0x01",
+		ServerReference: request.ServerReference,
+		Text:            "select name from sys.databases where owner_sid > 0x01",
 	}
 	var response execute.Response
 	if response, err = executor.ExecuteSingle(command); err != nil {

@@ -12,11 +12,11 @@ import (
 // InformationSchema provides API to retrieve information about a database
 type InformationSchema struct {
 	db     *sql.DB
-	server models.DbServer
+	server models.ServerReference
 }
 
 // NewInformationSchema creates new InformationSchema
-func NewInformationSchema(server models.DbServer, db *sql.DB) InformationSchema {
+func NewInformationSchema(server models.ServerReference, db *sql.DB) InformationSchema {
 	return InformationSchema{server: server, db: db}
 }
 

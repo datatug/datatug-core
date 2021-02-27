@@ -9,20 +9,11 @@ import (
 
 // AddDbServer adds a new DB server to project
 func AddDbServer(w http.ResponseWriter, r *http.Request) {
-	log.Println(r.Method, r.RequestURI)
-	q := r.URL.Query()
-	projID := q.Get("proj")
-	dbServer, err := newDbServerFromQueryParams(q)
-	if err != nil {
-		handleError(err, w, r)
-		return
+	var projDbServer models.ProjDbServer
+	saveFunc := func(projectID string) error {
+		return api.AddDbServer(projectID, projDbServer)
 	}
-	if err = api.AddDbServer(projID, dbServer); err != nil {
-		handleError(err, w, r)
-		return
-	}
-	summary, err := api.GetDbServerSummary(projID, dbServer)
-	returnJSON(w, r, http.StatusOK, err, summary)
+	saveItem(w, r, &projDbServer, saveFunc)
 }
 
 // GetDbServerSummary returns summary about environment
@@ -30,7 +21,7 @@ func GetDbServerSummary(w http.ResponseWriter, request *http.Request) {
 	log.Println(request.Method, request.RequestURI)
 	q := request.URL.Query()
 	projID := q.Get("proj")
-	dbServer := models.DbServer{
+	dbServer := models.ServerReference{
 		Driver: q.Get("driver"),
 		Host:   q.Get("host"),
 	}

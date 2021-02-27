@@ -10,7 +10,7 @@ import (
 type GetServerDatabasesRequest struct {
 	Project     string `json:"proj"`
 	Environment string `json:"env"`
-	models.DbServer
+	models.ServerReference
 	Credentials *models.Credentials `json:"credentials"`
 }
 

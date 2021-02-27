@@ -8,20 +8,17 @@ import (
 )
 
 // AddDbServer adds db server to project
-func AddDbServer(projectID string, dbServer models.DbServer) (err error) {
-	projDbServer := models.ProjDbServer{
-		DbServer: dbServer,
-	}
-	return store.Current.SaveDbServer(projectID, &projDbServer, models.DataTugProject{})
+func AddDbServer(projectID string, projDbServer models.ProjDbServer) (err error) {
+	return store.Current.SaveDbServer(projectID, projDbServer, models.DataTugProject{})
 }
 
 // DeleteDbServer adds db server to project
-func DeleteDbServer(projectID string, dbServer models.DbServer) (err error) {
+func DeleteDbServer(projectID string, dbServer models.ServerReference) (err error) {
 	return store.Current.DeleteDbServer(projectID, dbServer)
 }
 
 // GetDbServerSummary returns summary on DB server
-func GetDbServerSummary(projID string, dbServer models.DbServer) (summary *dto.ProjDbServerSummary, err error) {
+func GetDbServerSummary(projID string, dbServer models.ServerReference) (summary *dto.ProjDbServerSummary, err error) {
 	if err = dbServer.Validate(); err != nil {
 		err = validation.NewBadRequestError(err)
 		return

@@ -44,7 +44,7 @@ SELECT
 FROM %v.%v
 %v JOIN %v.%v ON`, catalog, table.Schema, table.Name, "%v", fk.RefTable.Schema, fk.RefTable.Name))
 
-			fkRefTable := dbServer.DbCatalogs.GetTable(catalog, fk.RefTable.Schema, fk.RefTable.Name)
+			fkRefTable := dbServer.Catalogs.GetTable(catalog, fk.RefTable.Schema, fk.RefTable.Name)
 			if fkRefTable == nil {
 				return fmt.Errorf("table %v.%v is referencing via %v to unkown table %v.%v", table.Schema, table.Name, fk.Name, fk.RefTable.Schema, fk.RefTable.Name)
 			}
@@ -290,7 +290,7 @@ func (walker *refByWalker) walkReferencedBy(table *models.Table, level int) erro
 		if err := walker.process(table, refBy, level, i); err != nil {
 			return err
 		}
-		referringTable := walker.dbServer.DbCatalogs.GetTable(walker.catalog, refBy.Schema, refBy.Name)
+		referringTable := walker.dbServer.Catalogs.GetTable(walker.catalog, refBy.Schema, refBy.Name)
 		if referringTable == nil {
 			return fmt.Errorf("catalog %v has table [%v.%v] that is referenced by unknown table [%v.%v]",
 				walker.catalog, table.Schema, table.Name, refBy.Schema, refBy.Name)
