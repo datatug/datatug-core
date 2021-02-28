@@ -2,13 +2,14 @@ package schemer
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"time"
 )
 
-func (s scanner) scanConstraints(c context.Context, catalog string, tablesFinder sortedTables) error {
-	reader, err := s.schemaProvider.Constraints(c, catalog)
+func (s scanner) scanConstraints(c context.Context, db *sql.DB, catalog string, tablesFinder sortedTables) error {
+	reader, err := s.schemaProvider.Constraints(c, db, catalog, "", "")
 	if err != nil {
 		return err
 	}

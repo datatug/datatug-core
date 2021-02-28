@@ -240,7 +240,7 @@ SELECT * FROM %v.%v;
 ## Foreign keys
 %v
 
-## Columns
+## GetColumns
 %v
 
 ## Indexes

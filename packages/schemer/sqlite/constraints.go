@@ -1,4 +1,4 @@
-package mssql
+package sqlite
 
 import (
 	"context"

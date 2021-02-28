@@ -14,12 +14,12 @@ type ConnectionString struct {
 	password string
 }
 
-// Database return DB
+// Database returns DB
 func (v ConnectionString) Database() string {
 	return v.database
 }
 
-// Server return server
+// Server returns server
 func (v ConnectionString) Server() string {
 	return v.server
 }

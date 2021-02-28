@@ -297,6 +297,7 @@ type Table struct {
 	RecordsetBaseDef
 	TableKey
 	TableProps
+	SQL          string               `json:"sql,omitempty"`
 	Columns      []*TableColumn       `json:"columns,omitempty"`
 	Indexes      []*Index             `json:"indexes,omitempty"`
 	ReferencedBy []*TableReferencedBy `json:"referencedBy,omitempty"`

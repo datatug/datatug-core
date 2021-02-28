@@ -1,4 +1,4 @@
-package mssql
+package sqlite
 
 import (
 	"context"
@@ -21,15 +21,16 @@ func (v objectsProvider) Objects(_ context.Context, db *sql.DB, catalog, schema 
 	return objectsReader{catalog: catalog, rows: rows}, nil
 }
 
-
 //goland:noinspection SqlNoDataSourceInspection
 const objectsSQL = `
 SELECT
-       TABLE_SCHEMA,
-       TABLE_NAME,
-       TABLE_TYPE
-FROM INFORMATION_SCHEMA.TABLES
-ORDER BY TABLE_SCHEMA, TABLE_NAME`
+    m.type,
+    --m.name
+    m.tbl_name,
+	m.sql
+FROM sqlite_master m
+WHERE m.type in ('table', 'view')
+ORDER BY m.name`
 
 var _ schemer.ObjectsReader = (*objectsReader)(nil)
 
@@ -47,7 +48,7 @@ func (s objectsReader) NextObject() (*models.Table, error) {
 		return nil, err
 	}
 	var table models.Table
-	if err := s.rows.Scan(&table.Schema, &table.Name, &table.DbType); err != nil {
+	if err := s.rows.Scan(&table.DbType, &table.Name, &table.SQL); err != nil {
 		return nil, fmt.Errorf("failed to scan table row into Table struct: %w", err)
 	}
 	table.Catalog = s.catalog

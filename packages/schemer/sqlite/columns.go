@@ -1,4 +1,4 @@
-package mssql
+package sqlite
 
 import (
 	"context"
@@ -7,26 +7,6 @@ import (
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/schemer"
 )
-
-//goland:noinspection SqlNoDataSourceInspection
-const columnsSQL = `
-SELECT
-    TABLE_SCHEMA,
-    TABLE_NAME,
-    COLUMN_NAME,
-    ORDINAL_POSITION,
-    COLUMN_DEFAULT,
-    IS_NULLABLE,
-    DATA_TYPE,
-    CHARACTER_MAXIMUM_LENGTH,
-    CHARACTER_OCTET_LENGTH,
-	CHARACTER_SET_CATALOG,
-	CHARACTER_SET_SCHEMA,
-    CHARACTER_SET_NAME,
-	COLLATION_CATALOG,
-	COLLATION_SCHEMA,
-    COLLATION_NAME
-FROM INFORMATION_SCHEMA.COLUMNS ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION`
 
 var _ schemer.ColumnsProvider = (*columnsProvider)(nil)
 
@@ -41,7 +21,30 @@ func (v columnsProvider) GetColumns(_ context.Context, db *sql.DB, catalog, sche
 	return columnsReader{rows: rows}, nil
 }
 
+//goland:noinspection SqlNoDataSourceInspection
+const columnsSQL = `
+SELECT
+	cid,
+	name,
+	type,
+  	[notnull],
+  	dflt_value,
+  	pk
+FROM pragma_table_info('%v')
+`
+
 var _ schemer.ColumnsReader = (*columnsReader)(nil)
+
+func newColumnsReader(db *sql.DB, schemaName, tableName string) (v columnsReader, err error) {
+	if schemaName != "" {
+		return v, fmt.Errorf("schema names are not supported by SQLite, got: %v", schemaName)
+	}
+	v.rows, err = db.Query(fmt.Sprintf(columnsSQL, tableName))
+	if err != nil {
+		return v, fmt.Errorf("failed to retrieve columns for table [%v]: %w", tableName, err)
+	}
+	return
+}
 
 type columnsReader struct {
 	rows *sql.Rows

@@ -7,10 +7,11 @@ import (
 )
 
 type Scanner interface {
-	ScanCatalog(c context.Context, name string) (database *models.DbCatalog, err error)
+	ScanCatalog(c context.Context, db *sql.DB, name string) (database *models.DbCatalog, err error)
 }
 
 type SchemaProvider interface {
+	IsBulkProvider() bool
 	ObjectsProvider
 	ColumnsProvider
 	IndexesProvider
@@ -26,7 +27,7 @@ type TableRef struct {
 }
 
 type ObjectsProvider interface {
-	Objects(c context.Context, catalog string) (ObjectsReader, error)
+	Objects(c context.Context, db *sql.DB, catalog, schema string) (ObjectsReader, error)
 }
 
 type ObjectsReader interface {
@@ -34,7 +35,7 @@ type ObjectsReader interface {
 }
 
 type ColumnsProvider interface {
-	Columns(c context.Context, catalog string) (ColumnsReader, error)
+	GetColumns(c context.Context, db *sql.DB, catalog, schemaName, tableName string) (ColumnsReader, error)
 }
 
 type ColumnsReader interface {
@@ -47,7 +48,7 @@ type Column struct {
 }
 
 type IndexesProvider interface {
-	Indexes(c context.Context, catalog string) (IndexesReader, error)
+	Indexes(c context.Context, db *sql.DB, catalog, schema, table string) (IndexesReader, error)
 }
 
 type IndexesReader interface {
@@ -60,7 +61,7 @@ type Index struct {
 }
 
 type IndexColumnsProvider interface {
-	IndexColumns(c context.Context, catalog string) (IndexColumnsReader, error)
+	IndexColumns(c context.Context, db *sql.DB, catalog, schema, table string) (IndexColumnsReader, error)
 }
 
 type IndexColumnsReader interface {
@@ -74,7 +75,7 @@ type IndexColumn struct {
 }
 
 type ConstraintsProvider interface {
-	Constraints(c context.Context, catalog string) (ConstraintsReader, error)
+	Constraints(c context.Context, db *sql.DB, catalog, schema, table string) (ConstraintsReader, error)
 }
 
 type ConstraintsReader interface {
@@ -83,7 +84,7 @@ type ConstraintsReader interface {
 
 type Constraint struct {
 	TableRef
-	ColumnName string
+	ColumnName                                                            string
 	UniqueConstraintCatalog, UniqueConstraintSchema, UniqueConstraintName sql.NullString
 	MatchOption, UpdateRule, DeleteRule                                   sql.NullString
 	RefTableCatalog, RefTableSchema, RefTableName, RefColName             sql.NullString
@@ -91,5 +92,5 @@ type Constraint struct {
 }
 
 type RecordsCountProvider interface {
-	RecordsCount(c context.Context, catalog, schema, object string) (*int, error)
+	RecordsCount(c context.Context, db *sql.DB, catalog, schema, table string) (*int, error)
 }

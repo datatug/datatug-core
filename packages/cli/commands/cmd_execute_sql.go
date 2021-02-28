@@ -111,7 +111,7 @@ func (v *executeSQLCommand) Execute(args []string) error {
 ----------
 %v
 ----------
---	Columns:
+--	GetColumns:
 --		%v
 `, v.CommandText, strings.Join(colSpec, "\n--\t\t"))
 
@@ -143,7 +143,7 @@ type writerHandler struct {
 
 func (handler writerHandler) Process(columnTypes []*sql.ColumnType, rows *sql.Rows) (err error) {
 
-	//if colNames, err = rows.Columns(); err != nil {
+	//if colNames, err = rows.GetColumns(); err != nil {
 	//	return err
 	//}
 

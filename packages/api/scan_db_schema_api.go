@@ -10,6 +10,7 @@ import (
 	"github.com/datatug/datatug/packages/parallel"
 	"github.com/datatug/datatug/packages/schemer"
 	"github.com/datatug/datatug/packages/schemer/mssql"
+	"github.com/datatug/datatug/packages/schemer/sqlite"
 	"github.com/datatug/datatug/packages/slice"
 	"github.com/strongo/random"
 	"log"
@@ -208,8 +209,17 @@ func scanDbSchema(server models.ServerReference, connectionString execute.Connec
 
 	//informationSchema := schemer.NewInformationSchema(server, db)
 
-	scanner := schemer.NewScanner(mssql.NewSchemaProvider(db))
-	database, err = scanner.ScanCatalog(context.Background(), connectionString.Database())
+	var scanner schemer.Scanner
+	switch server.Driver {
+	case "sqlserver":
+		scanner = schemer.NewScanner(mssql.NewSchemaProvider())
+	case "sqlite3":
+		scanner = schemer.NewScanner(sqlite.NewSchemaProvider())
+	default:
+		return nil, fmt.Errorf("unsupported DB driver: %v", err)
+	}
+
+	database, err = scanner.ScanCatalog(context.Background(), db, connectionString.Database())
 	if err != nil {
 		return database, fmt.Errorf("failed to get database metadata: %w", err)
 	}

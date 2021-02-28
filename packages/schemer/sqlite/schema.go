@@ -1,4 +1,4 @@
-package mssql
+package sqlite
 
 import (
 	"context"
@@ -9,8 +9,7 @@ import (
 
 // NewSchemaProvider creates a new SchemaProvider for MS SQL Server
 func NewSchemaProvider() schemer.SchemaProvider {
-	return schemaProvider{
-	}
+	return schemaProvider{}
 }
 
 var _ schemer.SchemaProvider = (*schemaProvider)(nil)
@@ -24,7 +23,7 @@ type schemaProvider struct {
 }
 
 func (schemaProvider) IsBulkProvider() bool {
-	return true
+	return false
 }
 
 func (s schemaProvider) RecordsCount(c context.Context, db *sql.DB, catalog, schema, object string) (*int, error) {
