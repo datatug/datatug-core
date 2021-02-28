@@ -12,7 +12,7 @@ type Scanner interface {
 
 type SchemaProvider interface {
 	IsBulkProvider() bool
-	ObjectsProvider
+	TablesProvider
 	ColumnsProvider
 	IndexesProvider
 	IndexColumnsProvider
@@ -26,12 +26,12 @@ type TableRef struct {
 	TableType  string
 }
 
-type ObjectsProvider interface {
-	Objects(c context.Context, db *sql.DB, catalog, schema string) (ObjectsReader, error)
+type TablesProvider interface {
+	GetTables(c context.Context, db *sql.DB, catalog, schema string) (TablesReader, error)
 }
 
-type ObjectsReader interface {
-	NextObject() (*models.Table, error)
+type TablesReader interface {
+	NextTable() (*models.Table, error)
 }
 
 type ColumnsProvider interface {
@@ -48,7 +48,7 @@ type Column struct {
 }
 
 type IndexesProvider interface {
-	Indexes(c context.Context, db *sql.DB, catalog, schema, table string) (IndexesReader, error)
+	GetIndexes(c context.Context, db *sql.DB, catalog, schema, table string) (IndexesReader, error)
 }
 
 type IndexesReader interface {
@@ -61,7 +61,7 @@ type Index struct {
 }
 
 type IndexColumnsProvider interface {
-	IndexColumns(c context.Context, db *sql.DB, catalog, schema, table string) (IndexColumnsReader, error)
+	GetIndexColumns(c context.Context, db *sql.DB, catalog, schema, table string) (IndexColumnsReader, error)
 }
 
 type IndexColumnsReader interface {
@@ -75,7 +75,7 @@ type IndexColumn struct {
 }
 
 type ConstraintsProvider interface {
-	Constraints(c context.Context, db *sql.DB, catalog, schema, table string) (ConstraintsReader, error)
+	GetConstraints(c context.Context, db *sql.DB, catalog, schema, table string) (ConstraintsReader, error)
 }
 
 type ConstraintsReader interface {

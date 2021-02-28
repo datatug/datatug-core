@@ -8,19 +8,18 @@ import (
 	"github.com/datatug/datatug/packages/schemer"
 )
 
-var _ schemer.ObjectsProvider = (*objectsProvider)(nil)
+var _ schemer.TablesProvider = (*tablesProvider)(nil)
 
-type objectsProvider struct {
+type tablesProvider struct {
 }
 
-func (v objectsProvider) Objects(_ context.Context, db *sql.DB, catalog, schema string) (schemer.ObjectsReader, error) {
+func (v tablesProvider) GetTables(_ context.Context, db *sql.DB, catalog, schema string) (schemer.TablesReader, error) {
 	rows, err := db.Query(objectsSQL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query DB objects: %w", err)
 	}
-	return objectsReader{catalog: catalog, rows: rows}, nil
+	return tablesReader{catalog: catalog, rows: rows}, nil
 }
-
 
 //goland:noinspection SqlNoDataSourceInspection
 const objectsSQL = `
@@ -31,14 +30,14 @@ SELECT
 FROM INFORMATION_SCHEMA.TABLES
 ORDER BY TABLE_SCHEMA, TABLE_NAME`
 
-var _ schemer.ObjectsReader = (*objectsReader)(nil)
+var _ schemer.TablesReader = (*tablesReader)(nil)
 
-type objectsReader struct {
+type tablesReader struct {
 	catalog string
 	rows    *sql.Rows
 }
 
-func (s objectsReader) NextObject() (*models.Table, error) {
+func (s tablesReader) NextTable() (*models.Table, error) {
 	if !s.rows.Next() {
 		err := s.rows.Err()
 		if err != nil {

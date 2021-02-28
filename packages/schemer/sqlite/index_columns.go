@@ -13,7 +13,7 @@ var _ schemer.IndexColumnsProvider = (*indexColumnsProvider)(nil)
 type indexColumnsProvider struct {
 }
 
-func (v indexColumnsProvider) IndexColumns(_ context.Context, db *sql.DB, catalog, schema, table string) (schemer.IndexColumnsReader, error) {
+func (v indexColumnsProvider) GetIndexColumns(_ context.Context, db *sql.DB, catalog, schema, table string) (schemer.IndexColumnsReader, error) {
 	rows, err := db.Query(indexColumnsSQL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve index columns: %w", err)

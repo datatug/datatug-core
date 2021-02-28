@@ -13,7 +13,7 @@ var _ schemer.ConstraintsProvider = (*constraintsProvider)(nil)
 type constraintsProvider struct {
 }
 
-func (v constraintsProvider) Constraints(c context.Context, db *sql.DB, catalog, schema, table string) (schemer.ConstraintsReader, error) {
+func (v constraintsProvider) GetConstraints(c context.Context, db *sql.DB, catalog, schema, table string) (schemer.ConstraintsReader, error) {
 	rows, err := db.Query(constraintsSQL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve constraints: %w", err)

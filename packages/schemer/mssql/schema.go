@@ -20,7 +20,7 @@ type schemaProvider struct {
 	constraintsProvider
 	indexColumnsProvider
 	indexesProvider
-	objectsProvider
+	tablesProvider
 }
 
 func (schemaProvider) IsBulkProvider() bool {

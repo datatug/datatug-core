@@ -32,7 +32,7 @@ func (s scanner) ScanCatalog(c context.Context, db *sql.DB, name string) (databa
 
 func (s scanner) scanTables(c context.Context, db *sql.DB, database *models.DbCatalog) error {
 	var tables []*models.Table
-	tablesReader, err := s.schemaProvider.Objects(c, db, database.ID, "")
+	tablesReader, err := s.schemaProvider.GetTables(c, db, database.ID, "")
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func (s scanner) scanTables(c context.Context, db *sql.DB, database *models.DbCa
 		if isDeadlineSet && time.Now().After(deadline) {
 			return fmt.Errorf("exceeded deadline")
 		}
-		t, err := tablesReader.NextObject()
+		t, err := tablesReader.NextTable()
 		if err != nil {
 			return err
 		}
@@ -160,7 +160,7 @@ func (s scanner) scanColumnsInBulk(c context.Context, db *sql.DB, catalog string
 }
 
 func (s scanner) scanIndexes(c context.Context, db *sql.DB, catalog string, tablesFinder sortedTables) error {
-	reader, err := s.schemaProvider.Indexes(c, db, catalog, "", "")
+	reader, err := s.schemaProvider.GetIndexes(c, db, catalog, "", "")
 	if err != nil {
 		return err
 	}
@@ -195,7 +195,7 @@ func (s scanner) scanIndexes(c context.Context, db *sql.DB, catalog string, tabl
 }
 
 func (s scanner) scanIndexColumns(c context.Context, db *sql.DB, catalog string, indexFinder sortedIndexes) error {
-	reader, err := s.schemaProvider.IndexColumns(c, db, catalog, "", "")
+	reader, err := s.schemaProvider.GetIndexColumns(c, db, catalog, "", "")
 	if err != nil {
 		return err
 	}
