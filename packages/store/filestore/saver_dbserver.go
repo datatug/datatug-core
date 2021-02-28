@@ -10,11 +10,26 @@ import (
 )
 
 func (s fileSystemSaver) saveDbServers(dbServers models.ProjDbServers, project models.DataTugProject) (err error) {
-	return s.saveItems("dbservers", len(dbServers), func(i int) func() error {
-		return func() error {
-			return s.SaveDbServer(*dbServers[i], project)
-		}
-	})
+	return parallel.Run(
+		func() (err error) {
+			servers := make([]models.ServerReference, len(dbServers))
+			for i, server := range dbServers {
+				servers[i] = server.Server
+			}
+			dirPath := path.Join(s.projDirPath, "servers", "db")
+			if err := s.saveJSONFile(dirPath, "servers.json", servers); err != nil {
+				return fmt.Errorf("failed to save list of servers as JSON file: %w", err)
+			}
+			return nil
+		},
+		func() (err error) {
+			return s.saveItems("dbservers", len(dbServers), func(i int) func() error {
+				return func() error {
+					return s.SaveDbServer(*dbServers[i], project)
+				}
+			})
+		},
+	)
 }
 
 // SaveDbServer saves ServerReference
