@@ -20,3 +20,4 @@ example/datatug
 example/test
 datatug.yaml
 datatug
+**/*.sqlite
