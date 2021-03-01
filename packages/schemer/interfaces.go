@@ -52,7 +52,7 @@ type IndexesProvider interface {
 }
 
 type IndexesReader interface {
-	NextIndex() (Index, error)
+	NextIndex() (*Index, error)
 }
 
 type Index struct {
@@ -61,11 +61,11 @@ type Index struct {
 }
 
 type IndexColumnsProvider interface {
-	GetIndexColumns(c context.Context, db *sql.DB, catalog, schema, table string) (IndexColumnsReader, error)
+	GetIndexColumns(c context.Context, db *sql.DB, catalog, schema, table, index string) (IndexColumnsReader, error)
 }
 
 type IndexColumnsReader interface {
-	NextIndexColumn() (IndexColumn, error)
+	NextIndexColumn() (*IndexColumn, error)
 }
 
 type IndexColumn struct {

@@ -1,4 +1,4 @@
-package sqlite
+package mssql
 
 import (
 	"context"
@@ -13,7 +13,7 @@ var _ schemer.IndexColumnsProvider = (*indexColumnsProvider)(nil)
 type indexColumnsProvider struct {
 }
 
-func (v indexColumnsProvider) GetIndexColumns(_ context.Context, db *sql.DB, catalog, schema, table string) (schemer.IndexColumnsReader, error) {
+func (v indexColumnsProvider) GetIndexColumns(_ context.Context, db *sql.DB, catalog, schema, table, index string) (schemer.IndexColumnsReader, error) {
 	rows, err := db.Query(indexColumnsSQL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve index columns: %w", err)
@@ -49,7 +49,7 @@ WHERE o.is_ms_shipped <> 1 --and i.index_id > 0
 ORDER BY SCHEMA_NAME(o.schema_id), o.name, i.name, ic.key_ordinal
 `
 
-func (s indexColumnsReader) NextIndexColumn() (indexColumn schemer.IndexColumn, err error) {
+func (s indexColumnsReader) NextIndexColumn() (indexColumn *schemer.IndexColumn, err error) {
 	if !s.rows.Next() {
 		err = s.rows.Err()
 		if err != nil {

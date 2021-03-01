@@ -14,11 +14,14 @@ type tablesProvider struct {
 }
 
 func (v tablesProvider) GetTables(_ context.Context, db *sql.DB, catalog, schema string) (schemer.TablesReader, error) {
+	if err := verifyTableParams(catalog, schema, "tables"); err != nil {
+		return nil, err
+	}
 	rows, err := db.Query(objectsSQL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query DB objects: %w", err)
 	}
-	return tablesReader{catalog: catalog, rows: rows}, nil
+	return tablesReader{rows: rows}, nil
 }
 
 //goland:noinspection SqlNoDataSourceInspection
@@ -35,8 +38,7 @@ ORDER BY m.name`
 var _ schemer.TablesReader = (*tablesReader)(nil)
 
 type tablesReader struct {
-	catalog string
-	rows    *sql.Rows
+	rows *sql.Rows
 }
 
 func (s tablesReader) NextTable() (*models.Table, error) {
@@ -51,6 +53,6 @@ func (s tablesReader) NextTable() (*models.Table, error) {
 	if err := s.rows.Scan(&table.DbType, &table.Name, &table.SQL); err != nil {
 		return nil, fmt.Errorf("failed to scan table row into Table struct: %w", err)
 	}
-	table.Catalog = s.catalog
+	table.DbType = "BASE TABLE"
 	return &table, nil
 }

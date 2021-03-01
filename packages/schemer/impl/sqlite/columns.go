@@ -13,10 +13,13 @@ var _ schemer.ColumnsProvider = (*columnsProvider)(nil)
 type columnsProvider struct {
 }
 
-func (v columnsProvider) GetColumns(_ context.Context, db *sql.DB, catalog, schemaName, tableName string) (schemer.ColumnsReader, error) {
-	rows, err := db.Query(columnsSQL)
+func (v columnsProvider) GetColumns(_ context.Context, db *sql.DB, catalog, schema, table string) (schemer.ColumnsReader, error) {
+	if err := verifyTableParams(catalog, schema, table); err != nil {
+		return nil, err
+	}
+	rows, err := db.Query(columnsSQL, table)
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve columns: %w", err)
+		return nil, fmt.Errorf("failed to retrieve columns for table [%v]: %w", table, err)
 	}
 	return columnsReader{rows: rows}, nil
 }
@@ -30,21 +33,10 @@ SELECT
   	[notnull],
   	dflt_value,
   	pk
-FROM pragma_table_info('%v')
+FROM pragma_table_info(?)
 `
 
 var _ schemer.ColumnsReader = (*columnsReader)(nil)
-
-func newColumnsReader(db *sql.DB, schemaName, tableName string) (v columnsReader, err error) {
-	if schemaName != "" {
-		return v, fmt.Errorf("schema names are not supported by SQLite, got: %v", schemaName)
-	}
-	v.rows, err = db.Query(fmt.Sprintf(columnsSQL, tableName))
-	if err != nil {
-		return v, fmt.Errorf("failed to retrieve columns for table [%v]: %w", tableName, err)
-	}
-	return
-}
 
 type columnsReader struct {
 	rows *sql.Rows

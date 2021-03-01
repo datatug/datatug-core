@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/datatug/datatug/packages/schemer"
 )
@@ -37,4 +38,15 @@ func (s schemaProvider) RecordsCount(c context.Context, db *sql.DB, catalog, sch
 		return &count, rows.Scan(&count)
 	}
 	return nil, nil
+}
+
+func verifyTableParams(catalog, schema, table string) error {
+	//_ = catalog
+	if schema != "" {
+		return fmt.Errorf("schema names are not supported by SQLite, got: %v", schema)
+	}
+	if table == "" {
+		return errors.New("tableName is a required parameter as bulk mode is not supported by SQLite")
+	}
+	return nil
 }

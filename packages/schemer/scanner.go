@@ -37,25 +37,28 @@ func (s scanner) scanTables(c context.Context, db *sql.DB, database *models.DbCa
 		return err
 	}
 	deadline, isDeadlineSet := c.Deadline()
-	var workers = []func() error{
-		func() error {
-			if err = s.scanColumns(c, db, database.ID, sortedTables{tables: tables}); err != nil {
-				return fmt.Errorf("failed to retrive columns metadata: %w", err)
-			}
-			return nil
-		},
-		func() error {
-			if err = s.scanConstraints(c, db, database.ID, sortedTables{tables: tables}); err != nil {
-				return fmt.Errorf("failed to retrive constraints metadata: %w", err)
-			}
-			return nil
-		},
-		func() error {
-			if err = s.scanIndexes(c, db, database.ID, sortedTables{tables: tables}); err != nil {
-				return fmt.Errorf("failed to retrive indexes metadata: %w", err)
-			}
-			return nil
-		},
+	var workers []func() error
+	if s.schemaProvider.IsBulkProvider() {
+		workers = append(workers,
+			func() error {
+				if err = s.scanColumnsInBulk(c, db, database.ID, sortedTables{tables: tables}); err != nil {
+					return fmt.Errorf("failed to retrive columns metadata: %w", err)
+				}
+				return nil
+			},
+			func() error {
+				if err = s.scanConstraintsInBulk(c, db, database.ID, sortedTables{tables: tables}); err != nil {
+					return fmt.Errorf("failed to retrive constraints metadata: %w", err)
+				}
+				return nil
+			},
+			func() error {
+				if err = s.scanIndexesInBulk(c, db, database.ID, sortedTables{tables: tables}); err != nil {
+					return fmt.Errorf("failed to retrive indexes metadata: %w", err)
+				}
+				return nil
+			},
+		)
 	}
 	for {
 		if isDeadlineSet && time.Now().After(deadline) {
@@ -95,44 +98,6 @@ func (s scanner) scanTables(c context.Context, db *sql.DB, database *models.DbCa
 	return err
 }
 
-func (s scanner) scanColumns(c context.Context, db *sql.DB, catalog string, tablesFinder sortedTables) error {
-	if s.schemaProvider.IsBulkProvider() {
-		return s.scanColumnsInBulk(c, db, catalog, tablesFinder)
-	}
-	return s.scanColumnsByTable(c, db, catalog, tablesFinder.tables)
-}
-
-func (s scanner) scanColumnsByTable(c context.Context, db *sql.DB, catalog string, tables []*models.Table) error {
-	workers := make([]func() error, len(tables))
-	for i, t := range tables {
-		workers[i] = func() error {
-			return s.scanTableCols(c, db, catalog, t)
-		}
-	}
-	return parallel.Run(workers...)
-}
-
-func (s scanner) scanTableCols(c context.Context, db *sql.DB, catalog string, table *models.Table) error {
-	columnsReader, err := s.schemaProvider.GetColumns(c, db, catalog, table.Schema, table.Name)
-	if err != nil {
-		return err
-	}
-	deadline, isDeadlineSet := c.Deadline()
-	for {
-		if isDeadlineSet && time.Now().After(deadline) {
-			return fmt.Errorf("exceeded deadline")
-		}
-		column, err := columnsReader.NextColumn()
-		if err != nil {
-			return err
-		}
-		if column.Name == "" {
-			return nil
-		}
-		table.Columns = append(table.Columns, &column.TableColumn)
-	}
-}
-
 func (s scanner) scanColumnsInBulk(c context.Context, db *sql.DB, catalog string, tablesFinder sortedTables) error {
 	columnsReader, err := s.schemaProvider.GetColumns(c, db, catalog, "", "")
 	if err != nil {
@@ -159,13 +124,13 @@ func (s scanner) scanColumnsInBulk(c context.Context, db *sql.DB, catalog string
 	}
 }
 
-func (s scanner) scanIndexes(c context.Context, db *sql.DB, catalog string, tablesFinder sortedTables) error {
+func (s scanner) scanIndexesInBulk(c context.Context, db *sql.DB, catalog string, tablesFinder sortedTables) error {
 	reader, err := s.schemaProvider.GetIndexes(c, db, catalog, "", "")
 	if err != nil {
 		return err
 	}
 	deadline, isDeadlineSet := c.Deadline()
-	var indexes []Index
+	var indexes []*Index
 	for i := 0; ; i++ {
 		if isDeadlineSet && time.Now().After(deadline) {
 			return fmt.Errorf("exceeded deadline")
@@ -188,14 +153,14 @@ func (s scanner) scanIndexes(c context.Context, db *sql.DB, catalog string, tabl
 		}
 		table.Indexes = append(table.Indexes, index.Index)
 	}
-	if err = s.scanIndexColumns(c, db, catalog, sortedIndexes{indexes: indexes}); err != nil {
+	if err = s.scanIndexColumnsInBulk(c, db, catalog, sortedIndexes{indexes: indexes}); err != nil {
 		return fmt.Errorf("failed to retrieve index columns: %v", err)
 	}
 	return nil
 }
 
-func (s scanner) scanIndexColumns(c context.Context, db *sql.DB, catalog string, indexFinder sortedIndexes) error {
-	reader, err := s.schemaProvider.GetIndexColumns(c, db, catalog, "", "")
+func (s scanner) scanIndexColumnsInBulk(c context.Context, db *sql.DB, catalog string, indexFinder sortedIndexes) error {
+	reader, err := s.schemaProvider.GetIndexColumns(c, db, catalog, "", "", "")
 	if err != nil {
 		return err
 	}

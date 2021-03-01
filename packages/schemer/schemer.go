@@ -234,7 +234,7 @@ func (sorted *sortedTables) SequentialFind(catalog, schema, name string) *models
 }
 
 type sortedIndexes struct {
-	indexes []Index
+	indexes []*Index
 	i       int
 }
 
@@ -243,14 +243,14 @@ func (sorted *sortedIndexes) Reset() {
 }
 
 // SequentialFind will work if calls to it are issued in lexical order
-func (sorted *sortedIndexes) SequentialFind(schema, table, name string) Index {
+func (sorted *sortedIndexes) SequentialFind(schema, table, name string) *Index {
 	for ; sorted.i < len(sorted.indexes); sorted.i++ {
 		index := sorted.indexes[sorted.i]
 		if index.Name == name && index.TableName == table && index.SchemaName == schema {
 			return index
 		}
 	}
-	return Index{}
+	return nil
 }
 
 // FullFind can be called in any order and always do a full table scan

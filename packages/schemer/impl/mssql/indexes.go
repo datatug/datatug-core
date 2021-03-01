@@ -1,4 +1,4 @@
-package sqlite
+package mssql
 
 import (
 	"context"
@@ -56,7 +56,7 @@ WHERE o.is_ms_shipped <> 1 AND i.type > 0
 ORDER BY SCHEMA_NAME(o.schema_id) + '.' + o.name, i.name
 `
 
-func (s indexesReader) NextIndex() (index schemer.Index, err error) {
+func (s indexesReader) NextIndex() (index *schemer.Index, err error) {
 	if !s.rows.Next() {
 		err = s.rows.Err()
 		if err != nil {

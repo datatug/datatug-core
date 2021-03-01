@@ -200,6 +200,7 @@ type UniqueKey struct {
 type Index struct {
 	Name               string         `json:"name"`
 	Type               string         `json:"type"`
+	Origin             string         `json:"origin,omitempty"` // Used by SQLite
 	Columns            []*IndexColumn `json:"columns"`
 	IsClustered        bool           `json:"clustered,omitempty"`
 	IsXml              bool           `json:"xml,omitempty"`
@@ -208,6 +209,7 @@ type Index struct {
 	IsUnique           bool           `json:"unique,omitempty"`
 	IsUniqueConstraint bool           `json:"uniqueConstraint,omitempty"`
 	IsPrimaryKey       bool           `json:"primaryKey,omitempty"`
+	IsPartial          bool           `json:"partial,omitempty"`
 }
 
 // IndexColumn holds info about a col in a DB table index
@@ -274,7 +276,7 @@ type Constraint struct {
 	Type string
 }
 
-// GetByKey return a *Table by key or nil if not found
+// GetByKey return 9a *Table by key or nil if not found
 func (v Tables) GetByKey(k TableKey) *Table {
 	for _, t := range v {
 		if t.TableKey == k {
