@@ -281,22 +281,37 @@ func (c demoCommand) updateDemoProject(demoProjectPath, demoDbPath string) error
 	projDbServer := project.DbServers.GetProjDbServer(demoDriver, localhost, 0)
 	if projDbServer == nil {
 		projDbServer = &models.ProjDbServer{
+			ProjectItem: models.ProjectItem{
+				ID: localhost,
+			},
 			Server: models.ServerReference{
 				Driver: demoDriver,
 				Host:   localhost,
 			},
-			Catalogs: models.DbCatalogs{
-				{
-					ProjectItem: models.ProjectItem{
-						ID: chinookCatalog,
-					},
-					Path: demoDbPath,
-				},
+		}
+		project.DbServers = append(project.DbServers, projDbServer)
+		log.Printf("Added new DB server: %v", projDbServer.ID)
+	}
+
+	if catalog := projDbServer.Catalogs.GetDbByID(chinookCatalog); catalog == nil {
+		catalog = &models.DbCatalog{
+			ProjectItem: models.ProjectItem{
+				ID: chinookCatalog,
 			},
+			Path: demoDbPath,
 		}
-		if err = api.AddDbServer(project.ID, *projDbServer); err != nil {
-			return fmt.Errorf("failed to add demo server %v:%v: %w", demoDriver, localhost, err)
+		projDbServer.Catalogs = append(projDbServer.Catalogs, catalog)
+		log.Printf("Added new catalog [%v] to DB server [%v]", catalog.ID, projDbServer.ID)
+	}
+
+	if dbModel := project.DbModels.GetDbModelByID(chinookCatalog); dbModel == nil {
+		dbModel = &models.DbModel{
+			ProjectItem: models.ProjectItem{ID: chinookCatalog},
 		}
+		project.DbModels = append(project.DbModels, dbModel)
+	}
+	if err := store.Current.Save(*project); err != nil {
+		return fmt.Errorf("faield to save project: %w", err)
 	}
 	return nil
 }

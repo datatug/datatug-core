@@ -12,7 +12,7 @@ const (
 	DataFolder             = "data"
 	DatatugFolder          = "datatug"
 	DbFolder               = "db"
-	DbCatalogsFolder       = "dbcatalogs"
+	DbCatalogsFolder       = "catalogs"
 	DbModelsFolder         = "dbmodels"
 	EntitiesFolder         = "entities"
 	EnvironmentsFolder     = "environments"

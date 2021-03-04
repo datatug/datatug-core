@@ -4,32 +4,54 @@ import (
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
+	"io"
 	"log"
 	"os"
 	"path"
 )
 
 func (s fileSystemSaver) saveDbServers(dbServers models.ProjDbServers, project models.DataTugProject) (err error) {
-	return parallel.Run(
+	if len(dbServers) == 0 {
+		log.Println("Project have no DB servers to save.")
+		return nil
+	}
+	log.Printf("Saving %v DB servers...\n", len(project.DbServers))
+	err = parallel.Run(
 		func() (err error) {
-			servers := make([]models.ServerReference, len(dbServers))
-			for i, server := range dbServers {
-				servers[i] = server.Server
-			}
-			dirPath := path.Join(s.projDirPath, "servers", "db")
-			if err := s.saveJSONFile(dirPath, "servers.json", servers); err != nil {
-				return fmt.Errorf("failed to save list of servers as JSON file: %w", err)
-			}
-			return nil
+			return s.saveDbServersJSON(dbServers)
 		},
 		func() (err error) {
-			return s.saveItems("dbservers", len(dbServers), func(i int) func() error {
+			return s.saveDbServersReadme(dbServers)
+		},
+		func() (err error) {
+			return s.saveItems("servers", len(dbServers), func(i int) func() error {
 				return func() error {
 					return s.SaveDbServer(*dbServers[i], project)
 				}
 			})
 		},
 	)
+	if err != nil {
+		return fmt.Errorf("failed to save DB servers: %w", err)
+	}
+	log.Printf("Saved %v DB servers.", len(project.DbServers))
+	return nil
+}
+
+func (s fileSystemSaver) saveDbServersJSON(dbServers models.ProjDbServers) error {
+	servers := make([]models.ServerReference, len(dbServers))
+	for i, server := range dbServers {
+		servers[i] = server.Server
+	}
+	dirPath := path.Join(s.projDirPath, "servers", "db")
+	if err := s.saveJSONFile(dirPath, "servers.json", servers); err != nil {
+		return fmt.Errorf("failed to save list of servers as JSON file: %w", err)
+	}
+	return nil
+}
+
+func (s fileSystemSaver) saveDbServersReadme(dbServers models.ProjDbServers) error {
+	return nil
 }
 
 // SaveDbServer saves ServerReference
@@ -52,18 +74,12 @@ func (s fileSystemSaver) SaveDbServer(dbServer models.ProjDbServer, project mode
 }
 
 func (s fileSystemSaver) saveDbServerReadme(dbServer models.ProjDbServer, dbServerDirPath string, project models.DataTugProject) error {
-	filePath := path.Join(dbServerDirPath, "README.md")
-	f, err := os.Create(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to created README.md for DB server: %v", err)
-	}
-	defer func() {
-		_ = f.Close()
-	}()
-	if err := s.readmeEncoder.DbServerToReadme(f, project.Repository, dbServer); err != nil {
-		return fmt.Errorf("failed to write README.md for DB server: %w", err)
-	}
-	return nil
+	return saveReadme(dbServerDirPath, "DB server", func(w io.Writer) error {
+		if err := s.readmeEncoder.DbServerToReadme(w, project.Repository, dbServer); err != nil {
+			return fmt.Errorf("failed to write README.md for DB server: %w", err)
+		}
+		return nil
+	})
 }
 
 func (s fileSystemSaver) saveDbServerJSON(dbServer models.ProjDbServer, dbServerDirPath string, _ models.DataTugProject) error {
@@ -72,7 +88,6 @@ func (s fileSystemSaver) saveDbServerJSON(dbServer models.ProjDbServer, dbServer
 	if err := os.MkdirAll(dbServerDirPath, 0777); err != nil {
 		return fmt.Errorf("failed to create a directory for DB server files: %w", err)
 	}
-	fileId := fmt.Sprintf("%v.%v", dbServer.Server.Driver, dbServer.Server.FileName())
 	serverFile := models.ProjDbServerFile{
 		ServerReference: dbServer.Server,
 	}
@@ -83,7 +98,7 @@ func (s fileSystemSaver) saveDbServerJSON(dbServer models.ProjDbServer, dbServer
 		}
 	}
 
-	if err := s.saveJSONFile(dbServerDirPath, jsonFileName(fileId, dbServerFileSuffix), serverFile); err != nil {
+	if err := s.saveJSONFile(dbServerDirPath, jsonFileName(dbServer.Server.FileName(), dbServerFileSuffix), serverFile); err != nil {
 		return fmt.Errorf("failed to save DB server JSON file: %w", err)
 	}
 	return nil

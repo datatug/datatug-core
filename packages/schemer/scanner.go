@@ -19,12 +19,12 @@ type scanner struct {
 	schemaProvider SchemaProvider
 }
 
-func (s scanner) ScanCatalog(c context.Context, db *sql.DB, name string) (database *models.DbCatalog, err error) {
-	database = &models.DbCatalog{
+func (s scanner) ScanCatalog(c context.Context, db *sql.DB, name string) (dbCatalog *models.DbCatalog, err error) {
+	dbCatalog = &models.DbCatalog{
 		ProjectItem: models.ProjectItem{ID: name},
 	}
-	if err = s.scanTables(c, db, database); err != nil {
-		return database, fmt.Errorf("failed to get tables & views: %w", err)
+	if err = s.scanTables(c, db, dbCatalog); err != nil {
+		return dbCatalog, fmt.Errorf("failed to get tables & views: %w", err)
 	}
 	log.Println("Scanner completed tables scan.")
 	return

@@ -49,7 +49,7 @@ func (v Environment) Validate() error {
 // ProjEnvBrief hold env brief in project summary
 type ProjEnvBrief struct {
 	ProjectItem
-	NumberOf ProjEnvNumbers `json:"numberOf"`
+	//NumberOf ProjEnvNumbers `json:"numberOf"` Lets not to have this for now as makes git conflicts resolution harder.
 }
 
 // ProjDbModelBrief hold env brief in project summary

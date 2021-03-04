@@ -1,7 +1,6 @@
 package filestore
 
 import (
-	"errors"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
@@ -77,14 +76,8 @@ func (s fileSystemSaver) Save(project models.DataTugProject) (err error) {
 			return nil
 		},
 		func() (err error) {
-			if len(project.DbServers) > 0 {
-				log.Printf("Saving %v DB servers...\n", len(project.DbServers))
-				if err = s.saveDbServers(project.DbServers, project); err != nil {
-					return fmt.Errorf("failed to save boards: %w", err)
-				}
-				log.Printf("Saved %v DB servers.", len(project.DbServers))
-			} else {
-				log.Println("No DB servers to save.")
+			if err = s.saveDbServers(project.DbServers, project); err != nil {
+				return fmt.Errorf("failed to save DB servers: %w", err)
 			}
 			return nil
 		},
@@ -235,13 +228,13 @@ func (s fileSystemSaver) saveProjectFile(project models.DataTugProject) error {
 	for _, env := range project.Environments {
 		envBrief := models.ProjEnvBrief{
 			ProjectItem: env.ProjectItem,
-			NumberOf: models.ProjEnvNumbers{
-				DbServers: len(env.DbServers),
-			},
+			//NumberOf: models.ProjEnvNumbers{
+			//	DbServers: len(env.DbServers),
+			//},
 		}
-		for _, dbServer := range env.DbServers {
-			envBrief.NumberOf.Databases += len(dbServer.Databases)
-		}
+		//for _, dbServer := range env.DbServers {
+		//	envBrief.NumberOf.Databases += len(dbServer.Databases)
+		//}
 		projFile.Environments = append(projFile.Environments, &envBrief)
 	}
 	for _, board := range project.Boards {
@@ -342,139 +335,6 @@ func (s fileSystemSaver) saveEnvironment(env models.Environment) (err error) {
 	)
 }
 
-func (s fileSystemSaver) saveDbCatalogs(dbServer models.ProjDbServer, repository *models.ProjectRepository) (err error) {
-	return s.saveItems("catalogs", len(dbServer.Catalogs), func(i int) func() error {
-		return func() error {
-			return s.saveDbCatalog(dbServer, dbServer.Catalogs[i], repository)
-		}
-	})
-}
-
-func (s fileSystemSaver) saveDbCatalog(dbServer models.ProjDbServer, dbCatalog *models.DbCatalog, repository *models.ProjectRepository) (err error) {
-	if dbCatalog == nil {
-		return errors.New("dbCatalog is nil")
-	}
-	log.Printf("Saving DB catalog [%v]...", dbCatalog.ID)
-	serverName := dbServer.Server.FileName()
-	saverCtx := saveDbServerObjContext{
-		catalog:    dbCatalog.ID,
-		dbServer:   dbServer,
-		repository: repository,
-		dirPath:    path.Join(s.projDirPath, DatatugFolder, ServersFolder, DbFolder, dbServer.Server.Driver, serverName, DbCatalogsFolder, dbCatalog.ID),
-	}
-	if err := os.MkdirAll(saverCtx.dirPath, os.ModeDir); err != nil {
-		return err
-	}
-
-	err = parallel.Run(
-		func() error {
-			fileName := jsonFileName(dbCatalog.ID, dbCatalogFileSuffix)
-			dbFile := DatabaseFile{
-				DbModel: dbCatalog.DbModel,
-			}
-			if err = s.saveJSONFile(saverCtx.dirPath, fileName, dbFile); err != nil {
-				return fmt.Errorf("failed to write dbCatalog json to file: %w", err)
-			}
-			return nil
-		},
-		func() (err error) {
-			return s.saveDbCatalogObjects(*dbCatalog, saverCtx)
-		},
-		func() (err error) {
-			return s.saveDbCatalogRefs(*dbCatalog, saverCtx)
-		},
-		func() error {
-			if err = s.saveDbSchemas(dbCatalog.Schemas, saverCtx); err != nil {
-				return err
-			}
-			return nil
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("failed to save DB catalog [%v]: %w", dbCatalog.ID, err)
-	}
-	log.Printf("Saved DB catalog [%v].", dbCatalog.ID)
-	return nil
-}
-
-func (s fileSystemSaver) saveDbCatalogObjects(dbCatalog models.DbCatalog, saverCtx saveDbServerObjContext) error {
-	dbObjects := make([]models.CatalogObject, 0)
-	for _, schema := range dbCatalog.Schemas {
-		for _, t := range schema.Tables {
-			dbObjects = append(dbObjects, models.CatalogObject{
-				Type:         "table",
-				Schema:       t.Schema,
-				Name:         t.Name,
-				DefaultAlias: "",
-			})
-		}
-		for _, t := range schema.Views {
-			dbObjects = append(dbObjects, models.CatalogObject{
-				Type:         "view",
-				Schema:       t.Schema,
-				Name:         t.Name,
-				DefaultAlias: "",
-			})
-		}
-	}
-	fileName := jsonFileName(dbCatalog.ID, dbCatalogObjectFileSuffix)
-	if len(dbObjects) > 0 {
-		if err := s.saveJSONFile(saverCtx.dirPath, fileName, dbObjects); err != nil {
-			return fmt.Errorf("failed to write dbCatalog objects json to file: %w", err)
-		}
-	} else {
-		// TODO: delete file if exists
-	}
-	return nil
-}
-
-func (s fileSystemSaver) saveDbCatalogRefs(dbCatalog models.DbCatalog, saverCtx saveDbServerObjContext) error {
-	dbObjects := make([]models.CatalogObjectWithRefs, 0)
-	for _, schema := range dbCatalog.Schemas {
-		for _, t := range schema.Tables {
-			if len(t.ForeignKeys) == 0 && len(t.ReferencedBy) == 0 {
-				continue
-			}
-			dbObjects = append(dbObjects, models.CatalogObjectWithRefs{
-				CatalogObject: models.CatalogObject{
-					Type:         "table",
-					Schema:       t.Schema,
-					Name:         t.Name,
-					DefaultAlias: "",
-				},
-				PrimaryKey:   t.PrimaryKey,
-				ForeignKeys:  t.ForeignKeys,
-				ReferencedBy: t.ReferencedBy,
-			})
-		}
-		for _, t := range schema.Views {
-			if len(t.ForeignKeys) == 0 && len(t.ReferencedBy) == 0 {
-				continue
-			}
-			dbObjects = append(dbObjects, models.CatalogObjectWithRefs{
-				CatalogObject: models.CatalogObject{
-					Type:         "view",
-					Schema:       t.Schema,
-					Name:         t.Name,
-					DefaultAlias: "",
-				},
-				PrimaryKey:   t.PrimaryKey,
-				ForeignKeys:  t.ForeignKeys,
-				ReferencedBy: t.ReferencedBy,
-			})
-		}
-	}
-	fileName := jsonFileName(dbCatalog.ID, dbCatalogRefsFileSuffix)
-	if len(dbObjects) > 0 {
-		if err := s.saveJSONFile(saverCtx.dirPath, fileName, dbObjects); err != nil {
-			return fmt.Errorf("failed to write dbCatalog refs json to file: %w", err)
-		}
-	} else {
-		// TODO: delete file if exists
-	}
-	return nil
-}
-
 //func (s fileSystemSaver) createStrFile() io.StringWriter {
 //
 //}
@@ -526,44 +386,11 @@ func (s fileSystemSaver) saveSchemaModel(schemaDirPath string, schema models.Sch
 	)
 }
 
-func (s fileSystemSaver) saveDbSchemas(schemas []*models.DbSchema, dbServerSaverCtx saveDbServerObjContext) error {
-	return s.saveItems("schemas", len(schemas), func(i int) func() error {
-		return func() error {
-			schema := schemas[i]
-			schemaCtx := dbServerSaverCtx
-			schemaCtx.plural = "schemas"
-			schemaCtx.dirPath = path.Join(dbServerSaverCtx.dirPath, SchemasFolder, schema.ID)
-			return s.saveDbSchema(schema, schemaCtx)
-		}
-	})
-}
-
-func (s fileSystemSaver) saveDbSchema(dbSchema *models.DbSchema, dbServerSaverCtx saveDbServerObjContext) error {
-	log.Printf("Save DB schema [%v] for %v @ %v...", dbSchema.ID, dbServerSaverCtx.catalog, dbServerSaverCtx.dbServer.ID)
-	err := parallel.Run(
-		func() error {
-			tablesCtx := dbServerSaverCtx
-			tablesCtx.plural = TablesFolder
-			return s.saveTables(dbSchema.Tables, tablesCtx)
-		},
-		func() error {
-			viewsCtx := dbServerSaverCtx
-			viewsCtx.plural = ViewsFolder
-			return s.saveTables(dbSchema.Views, viewsCtx)
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("failed to save DB schema [%v]: %w", err)
-	}
-	log.Printf("Saved DB schema [%v] for %v @ %v.", dbSchema.ID, dbServerSaverCtx.catalog, dbServerSaverCtx.dbServer.ID)
-	return nil
-}
-
 func (s fileSystemSaver) saveTables(tables []*models.Table, save saveDbServerObjContext) error {
 	save.dirPath = path.Join(save.dirPath, save.plural)
 	if len(tables) > 0 {
 		if err := os.MkdirAll(save.dirPath, os.ModeDir); err != nil {
-			return err
+			return fmt.Errorf("failed to create a folder for %v: %w", save.plural, err)
 		}
 	}
 	// TODO: Remove tables that does not exist anymore

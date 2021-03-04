@@ -57,7 +57,7 @@ func (v ServerReference) Validate() error {
 	switch v.Driver {
 	case "":
 		return validation.NewErrRecordIsMissingRequiredField("driver")
-	case "sqlserver", "mysql", "oracle":
+	case "sqlserver", "mysql", "oracle", "sqlite3":
 		//
 	default:
 		return validation.NewErrBadRecordFieldValue("driver", fmt.Sprintf("unexpected value: %v", v.Driver))
