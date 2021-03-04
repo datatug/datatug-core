@@ -12,6 +12,11 @@ func AddDbServer(projectID string, projDbServer models.ProjDbServer) (err error)
 	return store.Current.SaveDbServer(projectID, projDbServer, models.DataTugProject{})
 }
 
+// AddDbServer adds db server to project
+func UpdateDbServer(projectID string, projDbServer models.ProjDbServer) (err error) {
+	return store.Current.SaveDbServer(projectID, projDbServer, models.DataTugProject{})
+}
+
 // DeleteDbServer adds db server to project
 func DeleteDbServer(projectID string, dbServer models.ServerReference) (err error) {
 	return store.Current.DeleteDbServer(projectID, dbServer)
