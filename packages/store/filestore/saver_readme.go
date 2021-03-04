@@ -13,7 +13,7 @@ func (s fileSystemSaver) writeTableReadme(table *models.Table, save saveDbServer
 		defer func() {
 			_ = file.Close()
 		}()
-		if err := s.readmeEncoder.EncodeTable(file, save.repository, save.catalog, table, save.dbServer); err != nil {
+		if err := s.readmeEncoder.TableToReadme(file, save.repository, save.catalog, table, save.dbServer); err != nil {
 			return err
 		}
 		return nil
@@ -26,5 +26,5 @@ func (s fileSystemSaver) writeProjectReadme(project models.DataTugProject) error
 	defer func() {
 		_ = file.Close()
 	}()
-	return s.readmeEncoder.EncodeProjectSummary(file, project)
+	return s.readmeEncoder.ProjectSummaryToReadme(file, project)
 }

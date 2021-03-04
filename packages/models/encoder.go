@@ -4,6 +4,7 @@ import "io"
 
 // ReadmeEncoder defines an interface for encoder implementation that writes to MD files
 type ReadmeEncoder interface {
-	EncodeProjectSummary(w io.Writer, project DataTugProject) error
-	EncodeTable(w io.Writer, repository *ProjectRepository, catalog string, table *Table, dbServer ProjDbServer) error
+	ProjectSummaryToReadme(w io.Writer, project DataTugProject) error
+	DbServerToReadme(w io.Writer, repository *ProjectRepository, dbServer ProjDbServer) error
+	TableToReadme(w io.Writer, repository *ProjectRepository, catalog string, table *Table, dbServer ProjDbServer) error
 }

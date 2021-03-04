@@ -11,10 +11,10 @@ import (
 
 var reUnquoted = regexp.MustCompile("\\w+")
 
-var reUpperCase = regexp.MustCompile("[A-Z]");
+var reUpperCase = regexp.MustCompile("[A-Z]")
 
-// EncodeTable encodes table summary to markdown file format
-func (encoder) EncodeTable(w io.Writer, repository *models.ProjectRepository, catalog string, table *models.Table, dbServer models.ProjDbServer) error {
+// TableToReadme encodes table summary to markdown file format
+func (encoder) TableToReadme(w io.Writer, repository *models.ProjectRepository, catalog string, table *models.Table, dbServer models.ProjDbServer) error {
 
 	recordsCount := ""
 	if table.RecordsCount != nil {
@@ -81,11 +81,11 @@ FROM %v.%v
 
 	var repoID, projectID string
 	if repository != nil {
-		url, err := url.Parse(repository.WebURL)
+		repoUrl, err := url.Parse(repository.WebURL)
 		if err != nil {
 			return fmt.Errorf("project repository has invalid  (%v): %w", repository.WebURL, err)
 		}
-		repoID = url.Host
+		repoID = repoUrl.Host
 		projectID = repository.ProjectID
 	}
 
@@ -209,7 +209,7 @@ FROM %v.%v
 		sql := fmt.Sprintf("SELECT\n\t*\nFROM %v.%v", schema, name)
 		if len(name) > 5 {
 			alias := reUpperCase.FindAllString(name, -1)
-			if len(alias) <= 4 && len(name) - len(alias) > 3 {
+			if len(alias) <= 4 && len(name)-len(alias) > 3 {
 				sql += " AS " + strings.ToLower(strings.Join(alias, ""))
 			}
 		}
@@ -344,8 +344,7 @@ FROM %v.%v
 			text := url.QueryEscape(fmt.Sprintf(joinSQL, kind))
 			queryPart := fmt.Sprintf("query?server=%v&catalog=%v#text=%v", server, catalog, text)
 			if repoID != "" && projectID != "" {
-
-				fmt.Sprintf("<a href='https://datatug.app/pwa/repo/%v/project/%v/%v' target='_blank'>%v</a>", repoID, projectID, queryPart, kind)
+				return fmt.Sprintf("<a href='https://datatug.app/pwa/repo/%v/project/%v/%v' target='_blank'>%v</a>", repoID, projectID, queryPart, kind)
 			}
 			return fmt.Sprintf("<a href='https://datatug.app/pwa/%v' target='_blank'>%v</a>", queryPart, kind)
 		}

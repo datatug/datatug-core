@@ -43,7 +43,7 @@ type demoCommand struct {
 	ResetProject bool `long:"reset-project" required:"false" description:"Recreates demo project"`
 }
 
-func (c demoCommand) Execute(args []string) error {
+func (c demoCommand) Execute(_ []string) error {
 	datatugUserDirPath, err := c.getDatatugUserDirPath()
 	demoProjectPath := path.Join(datatugUserDirPath, demoProjectDir)
 	if err != nil {
@@ -125,7 +125,7 @@ func (c demoCommand) VerifyChinookDb(filePath string) error {
 		return err
 	}
 	for i, t := range tables {
-		log.Println(fmt.Sprintf("  - %v count:", t), results[i])
+		log.Println(fmt.Sprintf("- %v count:", t), results[i])
 	}
 	return nil
 }
@@ -140,7 +140,10 @@ func (c demoCommand) getRecordsCountWorker(objName, filePath string, i int, resu
 		if err != nil {
 			return fmt.Errorf("failed to retrieve how many records in [%v]: %w", objName, err)
 		}
-		if rows.Next(); err != nil {
+		if rows.Next() {
+
+		}
+		if err := rows.Err(); err != nil {
 			return fmt.Errorf("failed to retrieve 1st row: %w", err)
 		}
 		var count int
@@ -174,14 +177,18 @@ func (c demoCommand) downloadChinookSQLiteFile(dbFilePath string) error {
 	if err != nil {
 		return fmt.Errorf("get request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// Create the file
 	out, err := os.Create(dbFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to create db file: %v", err)
 	}
-	defer out.Close()
+	defer func() {
+		_ = out.Close()
+	}()
 
 	// Write the body to file
 	_, err = io.Copy(out, resp.Body)
@@ -220,7 +227,7 @@ func (c demoCommand) createOrUpdateDemoProject(demoProjectPath, filePath string)
 }
 
 func (c demoCommand) addDemoProjectToDatatugConfig(datatugUserDir, demoProjectPath string) error {
-	log.Println("Adding demo project to DataTug config...")
+	log.Printf("Adding demo project to DataTug config into %v...", datatugUserDir)
 	config, err := getConfig()
 	if err != nil {
 		if !os.IsNotExist(err) {
