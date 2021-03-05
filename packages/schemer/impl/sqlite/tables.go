@@ -9,6 +9,9 @@ import (
 	"github.com/datatug/datatug/packages/schemer"
 )
 
+//go:embed objects.sql
+var objectsSQL string
+
 var _ schemer.TablesProvider = (*tablesProvider)(nil)
 
 type tablesProvider struct {
@@ -24,9 +27,6 @@ func (v tablesProvider) GetTables(_ context.Context, db *sql.DB, catalog, schema
 	}
 	return tablesReader{rows: rows}, nil
 }
-
-//go:embed objects.sql
-var objectsSQL string
 
 var _ schemer.TablesReader = (*tablesReader)(nil)
 

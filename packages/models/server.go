@@ -7,6 +7,17 @@ import (
 	"strings"
 )
 
+type ServerReferences []ServerReference
+
+func (v ServerReferences) Validate() error {
+	for i, s := range v {
+		if err := s.Validate(); err != nil {
+			return fmt.Errorf("invalid server at index %v: %w", i, err)
+		}
+	}
+	return nil
+}
+
 // ServerReference hold info about DB server
 type ServerReference struct {
 	Driver string `json:"driver"`
@@ -108,12 +119,10 @@ func (v ProjDbServers) Validate() error {
 	return nil
 }
 
-func (v ProjDbServers) GetProjDbServer(driver, host string, port int) *ProjDbServer {
+func (v ProjDbServers) GetProjDbServer(ref ServerReference) *ProjDbServer {
 	for _, item := range v {
-		if item.Server.Host == host {
-			if port > 0 && item.Server.Port == port || item.Server.Driver == driver {
-				return item
-			}
+		if item.Server.Host == ref.Host && item.Server.Port == ref.Port && item.Server.Driver == ref.Driver {
+			return item
 		}
 	}
 	return nil
@@ -123,4 +132,16 @@ func (v ProjDbServers) GetProjDbServer(driver, host string, port int) *ProjDbSer
 type ProjDbServerFile struct {
 	ServerReference
 	Catalogs []string `catalogs,omitempty`
+}
+
+func (v ProjDbServerFile) Validate() error {
+	if err := v.ServerReference.Validate(); err != nil {
+		return err
+	}
+	for i, catalog := range v.Catalogs {
+		if strings.TrimSpace(catalog) == "" {
+			return validation.NewErrBadRecordFieldValue(fmt.Sprintf("catalogs[%v]", i), "empty catalog name")
+		}
+	}
+	return nil
 }

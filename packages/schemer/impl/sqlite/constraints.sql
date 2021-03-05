@@ -1,4 +1,6 @@
+/*
 -- noinspection SqlResolve
+*/
 select
     --[id],
     --[seq],

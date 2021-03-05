@@ -39,7 +39,7 @@ func (s fileSystemSaver) saveDbServers(dbServers models.ProjDbServers, project m
 }
 
 func (s fileSystemSaver) saveDbServersJSON(dbServers models.ProjDbServers) error {
-	servers := make([]models.ServerReference, len(dbServers))
+	servers := make(models.ServerReferences, len(dbServers))
 	for i, server := range dbServers {
 		servers[i] = server.Server
 	}
@@ -56,8 +56,14 @@ func (s fileSystemSaver) saveDbServersReadme(dbServers models.ProjDbServers) err
 
 // SaveDbServer saves ServerReference
 func (s fileSystemSaver) SaveDbServer(dbServer models.ProjDbServer, project models.DataTugProject) (err error) {
+	if err = dbServer.Validate(); err != nil {
+		return fmt.Errorf("db server is not valid: %w", err)
+	}
 	dbServerDirPath := path.Join(s.projDirPath, DatatugFolder, ServersFolder, DbFolder, dbServer.Server.Driver, dbServer.Server.FileName())
-	return parallel.Run(
+	if err := os.MkdirAll(dbServerDirPath, 0777); err != nil {
+		return fmt.Errorf("failed to created server directory: %w", err)
+	}
+	err = parallel.Run(
 		func() error {
 			return s.saveDbServerJSON(dbServer, dbServerDirPath, project)
 		},
@@ -71,6 +77,10 @@ func (s fileSystemSaver) SaveDbServer(dbServer models.ProjDbServer, project mode
 			return nil
 		},
 	)
+	if err != nil {
+		return fmt.Errorf("failed to save DB server [%v]: %w", dbServer.ID, err)
+	}
+	return nil
 }
 
 func (s fileSystemSaver) saveDbServerReadme(dbServer models.ProjDbServer, dbServerDirPath string, project models.DataTugProject) error {
@@ -97,7 +107,6 @@ func (s fileSystemSaver) saveDbServerJSON(dbServer models.ProjDbServer, dbServer
 			serverFile.Catalogs[i] = catalog.ID
 		}
 	}
-
 	if err := s.saveJSONFile(dbServerDirPath, jsonFileName(dbServer.Server.FileName(), dbServerFileSuffix), serverFile); err != nil {
 		return fmt.Errorf("failed to save DB server JSON file: %w", err)
 	}

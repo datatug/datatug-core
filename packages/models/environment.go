@@ -82,16 +82,16 @@ func (v EnvDbServers) Validate() error {
 	}
 	for i, item := range v {
 		if err := item.Validate(); err != nil {
-			return fmt.Errorf("failed validation of a DB server at index %v: %w", i, err)
+			return fmt.Errorf("invalid env db server at index %v: %w", i, err)
 		}
 	}
 	return nil
 }
 
-// GetByID returns *EnvDbServer by ID
-func (v EnvDbServers) GetByID(id string) *EnvDbServer {
+// GetByServerRef returns *EnvDbServer by ID
+func (v EnvDbServers) GetByServerRef(serverRef ServerReference) *EnvDbServer {
 	for _, item := range v {
-		if item.ID() == id {
+		if item.Driver == serverRef.Driver && item.Host == serverRef.Host && item.Port == serverRef.Port {
 			return item
 		}
 	}

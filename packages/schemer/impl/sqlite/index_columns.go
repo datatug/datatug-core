@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	_ "embed"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/schemer"
@@ -17,7 +18,7 @@ func (v indexColumnsProvider) GetIndexColumns(_ context.Context, db *sql.DB, cat
 	if err := verifyTableParams(catalog, schema, table); err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(indexColumnsSQL)
+	rows, err := db.Query(indexColumnsSQL, index)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve index columns: %w", err)
 	}
@@ -34,14 +35,8 @@ type indexColumnsReader struct {
 	schemer.TablePropsReader
 }
 
-//goland:noinspection SqlNoDataSourceInspection
-const indexColumnsSQL = `
-SELECT
-	cid,
-	name
-FROM PRAGMA_index_info('IFK_AlbumArtistId')
-ORDER BY seqno
-`
+//go:embed index_columns.sql
+var indexColumnsSQL string
 
 func (s indexColumnsReader) NextIndexColumn() (indexColumn *schemer.IndexColumn, err error) {
 	if !s.Rows.Next() {
@@ -51,20 +46,13 @@ func (s indexColumnsReader) NextIndexColumn() (indexColumn *schemer.IndexColumn,
 		}
 		return indexColumn, err
 	}
+	indexColumn = new(schemer.IndexColumn)
 	indexColumn.IndexColumn = new(models.IndexColumn)
 	//var objType string
-	var keyOrdinal, partitionOrdinal, columnStoreOrderOrdinal int
+	var cid int
 	if err = s.Rows.Scan(
-		&indexColumn.TableName,
-		//&objType,
-		//&indexColumn.TableType,
-		&indexColumn.IndexName,
+		&cid,
 		&indexColumn.Name,
-		&keyOrdinal,
-		&partitionOrdinal,
-		&indexColumn.IsDescending,
-		&indexColumn.IsIncludedColumn,
-		&columnStoreOrderOrdinal,
 	); err != nil {
 		return indexColumn, fmt.Errorf("failed to scan index column row: %w", err)
 	}

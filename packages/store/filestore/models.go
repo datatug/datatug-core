@@ -1,6 +1,10 @@
 package filestore
 
-import "github.com/datatug/datatug/packages/models"
+import (
+	"fmt"
+	"github.com/datatug/datatug/packages/models"
+	"github.com/strongo/validation"
+)
 
 // TableFile hold summary on table or view
 type TableFile struct {
@@ -52,10 +56,29 @@ type TableModelColumnsFile struct {
 	Columns models.ColumnModels `json:"columns,omitempty"`
 }
 
+func (v TableModelColumnsFile) Validate() error {
+	for i, c := range v.Columns {
+		if err := c.Validate(); err != nil {
+			return fmt.Errorf("invalid column at index %v: %w", i, err)
+		}
+	}
+	return nil
+}
+
 // DbModelFile defines what to store to dbmodel file
 type DbModelFile struct {
 	models.ProjectItem
 	Environments models.DbModelEnvironments `json:"environments,omitempty"`
+}
+
+func (v DbModelFile) Validate() error {
+	if err := v.ProjectItem.Validate(false); err != nil {
+		return err
+	}
+	if err := v.Environments.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // ProjDbServerFile stores info about project DB server
@@ -65,6 +88,17 @@ type ProjDbServerFile struct {
 
 // DbCatalogFile defines metadata to be stored in a JSON file in the db folder
 type DbCatalogFile struct {
-	DbModel string `json:"dbmodel,omitempty"`
+	Driver  string `json:"driver"` // It's excessive but good to have for validation
 	Path    string `json:"path,omitempty"`
+	DbModel string `json:"dbmodel,omitempty"`
+}
+
+func (v DbCatalogFile) Validate() error {
+	if v.Driver == "" {
+		return validation.NewErrRecordIsMissingRequiredField("driver")
+	}
+	if v.Driver == "sqlite3" && v.Path == "" {
+		return validation.NewErrRecordIsMissingRequiredField("path")
+	}
+	return nil
 }

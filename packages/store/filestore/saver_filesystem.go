@@ -28,7 +28,10 @@ func newSaver(projDirPath string, readmeEncoder models.ReadmeEncoder) fileSystem
 	}
 }
 
-func (s fileSystemSaver) saveJSONFile(dirPath, fileName string, v interface{}) (err error) {
+func (s fileSystemSaver) saveJSONFile(dirPath, fileName string, v interface{ Validate() error }) (err error) {
+	if err = v.Validate(); err != nil {
+		return fmt.Errorf("an attempt to save invalid data %T: %w", v, err)
+	}
 	if err = os.MkdirAll(dirPath, os.ModeDir); err != nil {
 		return fmt.Errorf("failed to create boards folder: %w", err)
 	}

@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
+	"log"
 	"time"
 )
 
 func (s scanner) getTableProps(c context.Context, db *sql.DB, catalog string, table *models.Table) error {
+	log.Printf("getTableProps() table=%v", table.Name)
 	err := parallel.Run(
 		func() (err error) {
 			if err = s.scanTableCols(c, db, catalog, table); err != nil {
@@ -31,6 +33,7 @@ func (s scanner) getTableProps(c context.Context, db *sql.DB, catalog string, ta
 }
 
 func (s scanner) scanTableCols(c context.Context, db *sql.DB, catalog string, table *models.Table) error {
+	log.Printf("scanning columns for table %v...", table.Name)
 	columnsReader, err := s.schemaProvider.GetColumns(c, db, catalog, table.Schema, table.Name)
 	if err != nil {
 		return err

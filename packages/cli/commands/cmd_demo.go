@@ -279,7 +279,7 @@ func (c demoCommand) updateDemoProject(demoProjectPath, demoDbPath string) error
 	if err != nil {
 		return fmt.Errorf("failed to load demo project: %w", err)
 	}
-	projDbServer := project.DbServers.GetProjDbServer(demoDriver, localhost, 0)
+	projDbServer := project.DbServers.GetProjDbServer(models.ServerReference{Driver: demoDriver, Host: localhost, Port: 0})
 	if projDbServer == nil {
 		projDbServer = &models.ProjDbServer{
 			ProjectItem: models.ProjectItem{
@@ -300,6 +300,7 @@ func (c demoCommand) updateDemoProject(demoProjectPath, demoDbPath string) error
 			ProjectItem: models.ProjectItem{
 				ID: chinookCatalog,
 			},
+			Driver: "sqlite3",
 			Path: demoDbPath,
 		}
 		if dir, err := os.UserHomeDir(); err == nil {

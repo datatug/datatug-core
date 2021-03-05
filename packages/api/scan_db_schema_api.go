@@ -80,6 +80,12 @@ func UpdateDbSchema(_ context.Context, loader ProjectLoader, projectID, environm
 		return project, err
 	}
 
+	if dbCatalog.Path == "" {
+		if connWithPath, ok := dbConnParams.(interface{ Path() string }); ok {
+			dbCatalog.Path = connWithPath.Path()
+		}
+	}
+
 	if dbModelID != "" {
 		dbCatalog.DbModel = dbModelID
 	} else if dbCatalog.DbModel == "" {
@@ -106,25 +112,36 @@ func UpdateDbSchema(_ context.Context, loader ProjectLoader, projectID, environm
 		err = fmt.Errorf("db model not found by ID: %v. there is %v db models in the project: %v", dbCatalog.DbModel, len(project.DbModels), strings.Join(project.DbModels.IDs(), ", "))
 		return
 	}
-	if err = updateDbModelWithDatabase(environment, dbModel, dbCatalog); err != nil {
+	if err = updateDbModelWithDbCatalog(environment, dbModel, dbCatalog); err != nil {
 		err = fmt.Errorf("failed to update dbModel with database: %w", err)
 		return
 	}
 	return project, err
 }
 
-func updateProjectWithDbCatalog(project *models.DataTugProject, envID string, dbServer models.ServerReference, dbCatalog *models.DbCatalog) (err error) {
+func updateProjectWithDbCatalog(project *models.DataTugProject, envID string, dbServerRef models.ServerReference, dbCatalog *models.DbCatalog) (err error) {
 	if envID == "" {
 		return validation.NewErrRequestIsMissingRequiredField("envID")
 	}
-	if dbServer.Host == "" {
-		return validation.NewErrRequestIsMissingRequiredField("dbServer.Host")
+	if dbServerRef.Host == "" {
+		return validation.NewErrRequestIsMissingRequiredField("dbServerRef.Host")
 	}
 	if dbCatalog == nil {
 		return validation.NewErrRequestIsMissingRequiredField("dbCatalog")
 	}
 	if dbCatalog.ID == "" {
 		return validation.NewErrRequestIsMissingRequiredField("dbCatalog.ID")
+	}
+	if dbCatalog.Driver == "" {
+		dbCatalog.Driver = dbServerRef.Driver
+	} else if dbCatalog.Driver != dbServerRef.Driver {
+		return validation.NewErrBadRecordFieldValue("driver", "dbCatalog.Driver != dbServerRef.Driver")
+	}
+	if err = dbServerRef.Validate(); err != nil {
+		return fmt.Errorf("db server ref is invalid: %w", err)
+	}
+	if err = dbCatalog.Validate(); err != nil {
+		return fmt.Errorf("new db catalog is invalid: %w", err)
 	}
 	// Update environment
 	{
@@ -135,15 +152,15 @@ func updateProjectWithDbCatalog(project *models.DataTugProject, envID string, db
 				},
 				DbServers: models.EnvDbServers{
 					{
-						ServerReference: dbServer,
+						ServerReference: dbServerRef,
 						Catalogs:        []string{dbCatalog.ID},
 					},
 				},
 			}
 			project.Environments = append(project.Environments, environment)
-		} else if envDbServer := environment.DbServers.GetByID(dbServer.ID()); envDbServer == nil {
+		} else if envDbServer := environment.DbServers.GetByServerRef(dbServerRef); envDbServer == nil {
 			environment.DbServers = append(environment.DbServers, &models.EnvDbServer{
-				ServerReference: dbServer,
+				ServerReference: dbServerRef,
 				Catalogs:        []string{dbCatalog.ID},
 			})
 		} else if i := slice.IndexOfString(envDbServer.Catalogs, dbCatalog.ID); i < 0 {
@@ -152,25 +169,29 @@ func updateProjectWithDbCatalog(project *models.DataTugProject, envID string, db
 	}
 	// Update DB server
 	{
-		for i, projDbServer := range project.DbServers {
-			if projDbServer.ProjectItem.ID == dbServer.ID() {
-				for j, db := range project.DbServers[i].Catalogs {
-					if db.ID == dbCatalog.ID {
-						project.DbServers[i].Catalogs[j] = dbCatalog
-						goto ProjectDbServerDatabaseUpdated
-					}
-				}
-				project.DbServers[i].Catalogs = append(project.DbServers[i].Catalogs, dbCatalog)
-			ProjectDbServerDatabaseUpdated:
-				goto ProjDbServerUpdate
+		projDbServer := project.DbServers.GetProjDbServer(dbServerRef)
+		if projDbServer == nil {
+			projDbServer = &models.ProjDbServer{
+				ProjectItem: models.ProjectItem{ID: dbServerRef.ID()},
+				Server:      dbServerRef,
+				Catalogs:    models.DbCatalogs{dbCatalog},
+			}
+			project.DbServers = append(project.DbServers, projDbServer)
+		}
+		updated := false
+		for j, db := range projDbServer.Catalogs {
+			if db.ID == dbCatalog.ID {
+				// restore path as path might be normalized if pointing to user's directory
+				dbCatalog.Path = projDbServer.Catalogs[j].Path
+				// TODO: currently replaces catalog with new info, should merge to preserver comments
+				projDbServer.Catalogs[j] = dbCatalog
+				updated = true
+				break
 			}
 		}
-		project.DbServers = append(project.DbServers, &models.ProjDbServer{
-			ProjectItem: models.ProjectItem{ID: dbServer.ID()},
-			Server:      dbServer,
-			Catalogs:    models.DbCatalogs{dbCatalog},
-		})
-	ProjDbServerUpdate:
+		if !updated {
+			projDbServer.Catalogs = append(projDbServer.Catalogs, dbCatalog)
+		}
 	}
 	return nil
 }
@@ -252,22 +273,22 @@ func scanDbCatalog(server models.ServerReference, connectionParams dbconnection.
 	return
 }
 
-func updateDbModelWithDatabase(envID string, dbModel *models.DbModel, database *models.DbCatalog) (err error) {
+func updateDbModelWithDbCatalog(envID string, dbModel *models.DbModel, dbCatalog *models.DbCatalog) (err error) {
 	{ // Update dbmodel environments
 		environment := dbModel.Environments.GetByID(envID)
 		if environment == nil {
 			environment = &models.DbModelEnv{ID: envID}
 			dbModel.Environments = append(dbModel.Environments, environment)
 		}
-		dbModelDb := environment.Databases.GetByID(database.ID)
+		dbModelDb := environment.Databases.GetByID(dbCatalog.ID)
 		if dbModelDb == nil {
 			environment.Databases = append(environment.Databases, &models.DbModelDb{
-				ID: database.ID,
+				ID: dbCatalog.ID,
 			})
 		}
 	}
 
-	for _, schema := range database.Schemas {
+	for _, schema := range dbCatalog.Schemas {
 		var schemaModel *models.SchemaModel
 		for _, sm := range dbModel.Schemas {
 			if sm.ID == schema.ID {

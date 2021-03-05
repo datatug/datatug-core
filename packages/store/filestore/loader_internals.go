@@ -226,7 +226,6 @@ func loadEnvironment(dirPath string, env *models.Environment) (err error) {
 	)
 }
 
-
 func loadDbCatalogs(dirPath string, dbServer *models.ProjDbServer) (err error) {
 	return loadDir(nil, dirPath, processDirs, func(files []os.FileInfo) {
 		dbServer.Catalogs = make(models.DbCatalogs, 0, len(files))
@@ -242,18 +241,21 @@ func loadDbCatalogs(dirPath string, dbServer *models.ProjDbServer) (err error) {
 	})
 }
 
-func loadDbCatalog(dirPath string, db *models.DbCatalog) (err error) {
-	log.Printf("Loading DB catalog: %v...\n", db.ID)
-	filePath := path.Join(dirPath, jsonFileName(db.ID, dbCatalogFileSuffix))
-	if err = readJSONFile(filePath, false, db); err != nil {
+func loadDbCatalog(dirPath string, dbCatalog *models.DbCatalog) (err error) {
+	log.Printf("Loading DB catalog: %v...\n", dbCatalog.ID)
+	filePath := path.Join(dirPath, jsonFileName(dbCatalog.ID, dbCatalogFileSuffix))
+	if err = readJSONFile(filePath, false, dbCatalog); err != nil {
 		return err
+	}
+	if err := dbCatalog.Validate(); err != nil {
+		return fmt.Errorf("db catalog loaded from JSON file is invalid: %w", err)
 	}
 
 	schemasDirPath := path.Join(dirPath, SchemasFolder)
 	return loadDir(nil, schemasDirPath, processDirs, func(files []os.FileInfo) {
-		db.Schemas = make(models.DbSchemas, len(files))
+		dbCatalog.Schemas = make(models.DbSchemas, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
-		db.Schemas[i], err = loadSchema(schemasDirPath, f.Name())
+		dbCatalog.Schemas[i], err = loadSchema(schemasDirPath, f.Name())
 		return err
 	})
 }
@@ -275,6 +277,9 @@ func loadSchema(schemasDirPath string, id string) (dbSchema *models.DbSchema, er
 	)
 	if err != nil {
 		return
+	}
+	if err = dbSchema.Validate(); err != nil {
+		return nil, fmt.Errorf("loaded db schema is invalid: %w", err)
 	}
 	log.Println("Successfully loaded schema:", dbSchema.ID, "; tables:", len(dbSchema.Tables), "; views:", len(dbSchema.Views))
 	return

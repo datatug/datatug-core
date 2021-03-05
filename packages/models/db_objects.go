@@ -14,16 +14,62 @@ type CatalogObject struct {
 	DefaultAlias string `json:"defaultAlias,omitempty"`
 }
 
+func (v CatalogObject) Validate() error {
+	if v.Type == "" {
+		return validation.NewErrRecordIsMissingRequiredField("type")
+	}
+	if v.Name == "" {
+		return validation.NewErrRecordIsMissingRequiredField("name")
+	}
+	if v.DefaultAlias == v.Name {
+		return validation.NewErrBadRecordFieldValue("defaultAlias", "should not be equal to name")
+	}
+	return nil
+}
+
+type CatalogObjects []CatalogObject
+
+func (v CatalogObjects) Validate() error {
+	for i, c := range v {
+		if err := c.Validate(); err != nil {
+			return fmt.Errorf("invalid catalog object at index %v: %w", i, err)
+		}
+	}
+	return nil
+}
+
+type CatalogObjectsWithRefs []CatalogObjectWithRefs
+
 type CatalogObjectWithRefs struct {
 	CatalogObject
-	PrimaryKey   *UniqueKey           `json:"primaryKey,omitempty"`
-	ForeignKeys  []*ForeignKey        `json:"foreignKeys,omitempty"`
-	ReferencedBy []*TableReferencedBy `json:"referencedBy,omitempty"`
+	PrimaryKey   *UniqueKey         `json:"primaryKey,omitempty"`
+	ForeignKeys  ForeignKeys        `json:"foreignKeys,omitempty"`
+	ReferencedBy TableReferencedBys `json:"referencedBy,omitempty"`
+}
+
+func (v CatalogObjectWithRefs) Validate() error {
+	if err := v.CatalogObject.Validate(); err != nil {
+		return err
+	}
+	if err := v.PrimaryKey.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (v CatalogObjectsWithRefs) Validate() error {
+	for i, o := range v {
+		if err := o.Validate(); err != nil {
+			return fmt.Errorf("invalid catalog object at index %v: %w", i, err)
+		}
+	}
+	return nil
 }
 
 // Database hold information about a database
 type DbCatalog struct {
 	ProjectItem
+	Driver  string `json:"driver"`
 	Path    string `json:"path,omitempty"` // for SQLite
 	DbModel string `json:"dbModel"`
 	Schemas DbSchemas
@@ -33,6 +79,12 @@ type DbCatalog struct {
 func (v DbCatalog) Validate() error {
 	if err := v.ProjectItem.Validate(false); err != nil {
 		return err
+	}
+	if v.Driver == "" {
+		return validation.NewErrRecordIsMissingRequiredField("driver")
+	}
+	if v.Driver == "sqlite3" && v.Path == "" {
+		return validation.NewErrRecordIsMissingRequiredField("path")
 	}
 	if err := v.Schemas.Validate(); err != nil {
 		return err
@@ -112,7 +164,7 @@ func (v DbCatalogs) GetTable(catalog, schema, name string) *Table {
 func (v DbCatalogs) Validate() error {
 	for i, db := range v {
 		if err := db.Validate(); err != nil {
-			return fmt.Errorf("validaiton failed for db at index %v: %w", i, err)
+			return fmt.Errorf("validaiton failed for db catalog at index %v: %w", i, err)
 		}
 	}
 	return nil
@@ -189,11 +241,33 @@ func (v TableProps) Validate() error {
 	return nil
 }
 
+type UniqueKeys []UniqueKey
+
 // UniqueKey holds metadata about unique key
 type UniqueKey struct {
 	Name        string   `json:"name"`
 	Columns     []string `json:"columns"`
 	IsClustered bool     `json:"isClustered,omitempty"`
+}
+
+func (v UniqueKeys) Validate() error {
+	for i, uk := range v {
+		if err := uk.Validate(); err != nil {
+			return fmt.Errorf("invalid key at index %v: %w", i, err)
+		}
+	}
+	return nil
+}
+
+type Indexes []Index
+
+func (v Indexes) Validate() error {
+	for i, index := range v {
+		if err := index.Validate(); err != nil {
+			return fmt.Errorf("invaldi index at index %v: %w", i, err)
+		}
+	}
+	return nil
 }
 
 // Index holds info about DB table index
@@ -210,6 +284,19 @@ type Index struct {
 	IsUniqueConstraint bool           `json:"uniqueConstraint,omitempty"`
 	IsPrimaryKey       bool           `json:"primaryKey,omitempty"`
 	IsPartial          bool           `json:"partial,omitempty"`
+}
+
+func (v Index) Validate() error {
+	if v.Name == "" {
+		return validation.NewErrRecordIsMissingRequiredField("name")
+	}
+	if v.Type == "" {
+		return validation.NewErrRecordIsMissingRequiredField("type")
+	}
+	if len(v.Columns) == 0 {
+		return validation.NewErrRecordIsMissingRequiredField("columns")
+	}
+	return nil
 }
 
 // IndexColumn holds info about a col in a DB table index
@@ -233,6 +320,20 @@ func (v *UniqueKey) Validate() error {
 	for i, col := range v.Columns {
 		if col == "" {
 			return validation.NewErrBadRecordFieldValue("columns", fmt.Sprintf("empty column name at index %v", i))
+		}
+	}
+	return nil
+}
+
+type ForeignKeys []*ForeignKey
+
+func (v ForeignKeys) Validate() error {
+	for i, fk := range v {
+		if err := fk.Validate(); err != nil {
+			if strings.TrimSpace(fk.Name) == "" {
+				return fmt.Errorf("invalid foreign key at index %v: %w", i, err)
+			}
+			return fmt.Errorf("invalid foreign key %v at index %v: %w", fk.Name, i, err)
 		}
 	}
 	return nil
@@ -288,10 +389,10 @@ func (v Tables) GetByKey(k TableKey) *Table {
 
 // RecordsetBaseDef is used by: Table, RecordsetDefinition
 type RecordsetBaseDef struct {
-	PrimaryKey    *UniqueKey    `json:"primaryKey,omitempty"`
-	ForeignKeys   []*ForeignKey `json:"foreignKeys,omitempty"`
-	AlternateKeys []UniqueKey   `json:"alternateKey,omitempty"`
-	ActiveIssues  *Issues       `json:"issues,omitempty"`
+	PrimaryKey    *UniqueKey  `json:"primaryKey,omitempty"`
+	ForeignKeys   ForeignKeys `json:"foreignKeys,omitempty"`
+	AlternateKeys []UniqueKey `json:"alternateKey,omitempty"`
+	ActiveIssues  *Issues     `json:"issues,omitempty"`
 }
 
 // Table holds metadata about a table or view
@@ -299,11 +400,11 @@ type Table struct {
 	RecordsetBaseDef
 	TableKey
 	TableProps
-	SQL          string               `json:"sql,omitempty"`
-	Columns      []*TableColumn       `json:"columns,omitempty"`
-	Indexes      []*Index             `json:"indexes,omitempty"`
-	ReferencedBy []*TableReferencedBy `json:"referencedBy,omitempty"`
-	RecordsCount *int                 `json:"recordsCount,omitempty"`
+	SQL          string             `json:"sql,omitempty"`
+	Columns      []*TableColumn     `json:"columns,omitempty"`
+	Indexes      []*Index           `json:"indexes,omitempty"`
+	ReferencedBy TableReferencedBys `json:"referencedBy,omitempty"`
+	RecordsCount *int               `json:"recordsCount,omitempty"`
 }
 
 // Validate returns error if not valid
@@ -330,6 +431,13 @@ func (v Table) Validate() error {
 			return fmt.Errorf("invalid foreign key at index %v: %w", i, err)
 		}
 	}
+	return nil
+}
+
+type TableReferencedBys []*TableReferencedBy
+
+func (v TableReferencedBys) Validate() error {
+
 	return nil
 }
 

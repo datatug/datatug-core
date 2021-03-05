@@ -4,7 +4,8 @@ import "github.com/datatug/datatug/packages/models"
 
 type DbCatalogBase struct {
 	models.ProjectItem
-	Path string `json:"path"`
+	Driver string `json:"driver"`
+	Path   string `json:"path"`
 }
 
 // DbCatalogSummary holds database summary
@@ -30,5 +31,5 @@ type DbCatalog struct {
 type ProjDbServerSummary struct {
 	models.ProjectItem
 	DbServer models.ServerReference `json:"dbServer"`
-	Catalogs []*DbCatalogSummary     `json:"databases,omitempty"`
+	Catalogs []*DbCatalogSummary    `json:"databases,omitempty"`
 }

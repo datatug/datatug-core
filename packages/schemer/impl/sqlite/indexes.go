@@ -18,7 +18,7 @@ func (v indexesProvider) GetIndexes(_ context.Context, db *sql.DB, catalog, sche
 	if err := verifyTableParams(catalog, schema, table); err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(indexesSQL)
+	rows, err := db.Query(indexesSQL, table)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve indexes: %w", err)
 	}
@@ -53,6 +53,7 @@ func (s indexesReader) NextIndex() (index *schemer.Index, err error) {
 		}
 		return index, err
 	}
+	index = new(schemer.Index)
 	index.Index = new(models.Index)
 	if err = s.Rows.Scan(
 		&index.Name,

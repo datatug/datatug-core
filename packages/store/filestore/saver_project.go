@@ -280,14 +280,22 @@ func (s fileSystemSaver) saveEnvironments(project models.DataTugProject) (err er
 func (s fileSystemSaver) saveDbModels(dbModels models.DbModels) (err error) {
 	return s.saveItems(DbModelsFolder, len(dbModels), func(i int) func() error {
 		return func() error {
-			return s.saveDbModel(dbModels[i])
+			dbModel := dbModels[i]
+			err := s.saveDbModel(dbModel)
+			if err != nil {
+				if dbModel.ID == "" {
+					return fmt.Errorf("failed to save db model at index %v: %w", i, err)
+				}
+				return fmt.Errorf("failed to save db model [%v] at index %v: %w", dbModel.ID, i, err)
+			}
+			return nil
 		}
 	})
 }
 
 func (s fileSystemSaver) saveDbModel(dbModel *models.DbModel) (err error) {
 	if err = dbModel.Validate(); err != nil {
-		return err
+		return fmt.Errorf("db models is invalid: %w", err)
 	}
 	dirPath := path.Join(s.projDirPath, DatatugFolder, DbModelsFolder, dbModel.ID)
 	if err = os.MkdirAll(dirPath, os.ModeDir); err != nil {
@@ -295,9 +303,11 @@ func (s fileSystemSaver) saveDbModel(dbModel *models.DbModel) (err error) {
 	}
 	return parallel.Run(
 		func() error {
-			return s.saveJSONFile(dirPath, jsonFileName(dbModel.ID, dbModelFileSuffix), DbModelFile{
+			dbModelFile := DbModelFile{
+				ProjectItem:  dbModel.ProjectItem,
 				Environments: dbModel.Environments,
-			})
+			}
+			return s.saveJSONFile(dirPath, jsonFileName(dbModel.ID, dbModelFileSuffix), dbModelFile)
 		},
 		func() error {
 			return s.saveSchemaModels(dirPath, dbModel.Schemas)
@@ -428,7 +438,7 @@ func (s fileSystemSaver) saveTableModel(dirPath string, table models.TableModel)
 
 }
 
-func (s fileSystemSaver) saveToFile(tableDirPath, fileName string, data interface{}) func() error {
+func (s fileSystemSaver) saveToFile(tableDirPath, fileName string, data interface{ Validate() error }) func() error {
 	return func() (err error) {
 		if err = s.saveJSONFile(tableDirPath, fileName, data); err != nil {
 			return fmt.Errorf("failed to write json to file %v: %w", fileName, err)

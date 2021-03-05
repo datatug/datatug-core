@@ -38,7 +38,7 @@ func (s fileSystemSaver) saveEnvServers(env string, servers []*models.EnvDbServe
 	})
 }
 
-func (s fileSystemSaver) saveEnvServerHost(dirPath, host string,  servers []*models.EnvDbServer) (err error) {
+func (s fileSystemSaver) saveEnvServerHost(dirPath, host string, servers models.EnvDbServers) (err error) {
 	if host == "" {
 		return errors.New("func saveEnvServerHost can not accept empty string for `host` parameter")
 	}

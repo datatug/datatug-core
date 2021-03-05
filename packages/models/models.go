@@ -9,6 +9,13 @@ type EnvironmentFile struct {
 	ID string `json:"id"`
 }
 
+func (v EnvironmentFile) Validate() error {
+	if v.ID == "" {
+		return validation.NewErrRecordIsMissingRequiredField("id")
+	}
+	return nil
+}
+
 // Issues TODO: document what it is for
 type Issues struct {
 	Schema []string `json:"schema,omitempty"`
@@ -53,4 +60,3 @@ type EnvDbDifference struct {
 	Property    string
 	ActualValue string
 }
-

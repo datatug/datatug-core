@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"github.com/strongo/validation"
 	"log"
 )
 
@@ -50,6 +51,15 @@ type DbModel struct {
 // DbModelEnvironments slice of *DbModelEnv
 type DbModelEnvironments []*DbModelEnv
 
+func (v DbModelEnvironments) Validate() error {
+	for i, env := range v {
+		if err := env.Validate(); err != nil {
+			return fmt.Errorf("invalid value at index %v: %w", i, err)
+		}
+	}
+	return nil
+}
+
 // GetByID return *DbModelEnv by ID
 func (v DbModelEnvironments) GetByID(id string) *DbModelEnv {
 	for _, v := range v {
@@ -66,8 +76,27 @@ type DbModelEnv struct {
 	Databases DbModelDatabases
 }
 
+func (v DbModelEnv) Validate() error {
+	if v.ID == "" {
+		return validation.NewErrRecordIsMissingRequiredField("id")
+	}
+	if err := v.Databases.Validate(); err != nil {
+		return nil
+	}
+	return nil
+}
+
 // DbModelDatabases slice of *DbModelDb
 type DbModelDatabases []*DbModelDb
+
+func (v DbModelDatabases) Validate() error {
+	for i, item := range v {
+		if err := item.Validate(); err != nil {
+			return fmt.Errorf("invalid value at index %v: %w", i, err)
+		}
+	}
+	return nil
+}
 
 // GetByID returns DbModelDb by ID
 func (v DbModelDatabases) GetByID(id string) (dbModelDb *DbModelDb) {
@@ -82,6 +111,13 @@ func (v DbModelDatabases) GetByID(id string) (dbModelDb *DbModelDb) {
 // DbModelDb holds DB model
 type DbModelDb struct {
 	ID string `json:"id"`
+}
+
+func (v DbModelDb) Validate() error {
+	if v.ID == "" {
+		return validation.NewErrRecordIsMissingRequiredField("id")
+	}
+	return nil
 }
 
 // Validate returns error if not valid

@@ -30,9 +30,9 @@ func (s scanner) ScanCatalog(c context.Context, db *sql.DB, name string) (dbCata
 	return
 }
 
-func (s scanner) scanTables(c context.Context, db *sql.DB, database *models.DbCatalog) error {
+func (s scanner) scanTables(c context.Context, db *sql.DB, catalog *models.DbCatalog) error {
 	var tables []*models.Table
-	tablesReader, err := s.schemaProvider.GetTables(c, db, database.ID, "")
+	tablesReader, err := s.schemaProvider.GetTables(c, db, catalog.ID, "")
 	if err != nil {
 		return err
 	}
@@ -41,19 +41,19 @@ func (s scanner) scanTables(c context.Context, db *sql.DB, database *models.DbCa
 	if s.schemaProvider.IsBulkProvider() {
 		workers = append(workers,
 			func() error {
-				if err = s.scanColumnsInBulk(c, db, database.ID, sortedTables{tables: tables}); err != nil {
+				if err = s.scanColumnsInBulk(c, db, catalog.ID, sortedTables{tables: tables}); err != nil {
 					return fmt.Errorf("failed to retrive columns metadata: %w", err)
 				}
 				return nil
 			},
 			func() error {
-				if err = s.scanConstraintsInBulk(c, db, database.ID, sortedTables{tables: tables}); err != nil {
+				if err = s.scanConstraintsInBulk(c, db, catalog.ID, sortedTables{tables: tables}); err != nil {
 					return fmt.Errorf("failed to retrive constraints metadata: %w", err)
 				}
 				return nil
 			},
 			func() error {
-				if err = s.scanIndexesInBulk(c, db, database.ID, sortedTables{tables: tables}); err != nil {
+				if err = s.scanIndexesInBulk(c, db, catalog.ID, sortedTables{tables: tables}); err != nil {
 					return fmt.Errorf("failed to retrive indexes metadata: %w", err)
 				}
 				return nil
@@ -72,18 +72,18 @@ func (s scanner) scanTables(c context.Context, db *sql.DB, database *models.DbCa
 			break
 		}
 		tables = append(tables, t)
-		schema := database.Schemas.GetByID(t.Schema)
+		schema := catalog.Schemas.GetByID(t.Schema)
 		if schema == nil {
 			schema = &models.DbSchema{ProjectItem: models.ProjectItem{ID: t.Schema}}
-			database.Schemas = append(database.Schemas, schema)
+			catalog.Schemas = append(catalog.Schemas, schema)
 		}
 		switch t.DbType {
 		case "BASE TABLE":
 			schema.Tables = append(schema.Tables, t)
 			workers = append(workers, func() (err error) {
-				t.RecordsCount, err = s.schemaProvider.RecordsCount(c, db, database.ID, t.Schema, t.Name)
+				t.RecordsCount, err = s.schemaProvider.RecordsCount(c, db, catalog.ID, t.Schema, t.Name)
 				if err != nil {
-					log.Printf("failed to retiever records count for %v.%v.%v: %v", database.ID, t.Schema, t.Name, err)
+					log.Printf("failed to retiever records count for %v.%v.%v: %v", catalog.ID, t.Schema, t.Name, err)
 					//return fmt.Errorf()
 				}
 				return nil
@@ -92,6 +92,11 @@ func (s scanner) scanTables(c context.Context, db *sql.DB, database *models.DbCa
 			schema.Views = append(schema.Views, t)
 		default:
 			return fmt.Errorf("object [%v] has unknown DB type: %v", t.Name, t.DbType)
+		}
+		if !s.schemaProvider.IsBulkProvider() {
+			workers = append(workers, func() error {
+				return s.getTableProps(c, db, catalog.ID, t)
+			})
 		}
 	}
 	err = parallel.Run(workers...)

@@ -1,4 +1,6 @@
+/*
 -- noinspection SqlResolve
+*/
 SELECT
     cid,
     name,

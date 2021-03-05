@@ -46,9 +46,6 @@ func (s schemaProvider) RecordsCount(c context.Context, db *sql.DB, catalog, sch
 
 func verifyTableParams(catalog, schema, table string) error {
 	//_ = catalog
-	if schema != "" {
-		return fmt.Errorf("schema names are not supported by SQLite, got: %v", schema)
-	}
 	if table == "" {
 		return errors.New("tableName is a required parameter as bulk mode is not supported by SQLite")
 	}
