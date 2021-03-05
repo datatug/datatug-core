@@ -63,7 +63,8 @@ type ProjDbServerFile struct {
 	models.ProjectItem
 }
 
-// DatabaseFile defines metadata to be stored in a JSON file in the db folder
-type DatabaseFile struct {
-	DbModel string `json:"dbmodel"`
+// DbCatalogFile defines metadata to be stored in a JSON file in the db folder
+type DbCatalogFile struct {
+	DbModel string `json:"dbmodel,omitempty"`
+	Path    string `json:"path,omitempty"`
 }

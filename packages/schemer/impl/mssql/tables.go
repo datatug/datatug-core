@@ -16,7 +16,7 @@ type tablesProvider struct {
 func (v tablesProvider) GetTables(_ context.Context, db *sql.DB, catalog, schema string) (schemer.TablesReader, error) {
 	rows, err := db.Query(objectsSQL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query DB objects: %w", err)
+		return nil, fmt.Errorf("failed to query MSSQL objects: %w", err)
 	}
 	return tablesReader{catalog: catalog, rows: rows}, nil
 }

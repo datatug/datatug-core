@@ -9,6 +9,7 @@ import (
 type Loader interface {
 	boardsLoader
 	dbServerLoader
+	dbCatalogLoader
 	entitiesLoader
 	environmentsLoader
 	queriesLoader
@@ -29,7 +30,7 @@ type environmentsLoader interface {
 	LoadEnvironmentSummary(projectID, environmentID string) (dto.EnvironmentSummary, error)
 
 	// GetEnvironmentDbSummary returns summary of environment
-	LoadEnvironmentDbSummary(projectID, environmentID, databaseID string) (dto.DatabaseSummary, error)
+	LoadEnvironmentDbSummary(projectID, environmentID, databaseID string) (dto.DbCatalogSummary, error)
 	// GetEnvironmentDbSummary returns DB info for a specific environment
 	LoadEnvironmentDb(projID, environmentID, databaseID string) (*dto.EnvDb, error)
 }
@@ -58,6 +59,10 @@ type recordsetsLoader interface {
 type dbServerLoader interface {
 	// LoadDbServerSummary loads summary on DB server
 	LoadDbServerSummary(projectID string, dbServer models.ServerReference) (summary *dto.ProjDbServerSummary, err error)
+}
+
+type dbCatalogLoader interface {
+	LoadDbCatalogSummary(projectID string, dbServer models.ServerReference, catalogID string) (catalog *dto.DbCatalogSummary, err error)
 }
 
 type queriesLoader interface {

@@ -221,7 +221,7 @@ func loadEnvironment(dirPath string, env *models.Environment) (err error) {
 			return loadEnvFile(dirPath, env)
 		},
 		func() error {
-			return loadEnvServers(path.Join(dirPath, "servers"), env)
+			return loadEnvServers(path.Join(dirPath, ServersFolder), env)
 		},
 	)
 }

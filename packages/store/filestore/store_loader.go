@@ -18,7 +18,7 @@ type fileSystemLoader struct {
 }
 
 // GetEnvironmentDbSummary return DB summary for specific environment
-func (loader fileSystemLoader) LoadEnvironmentDbSummary(projectID, environmentID, databaseID string) (dto.DatabaseSummary, error) {
+func (loader fileSystemLoader) LoadEnvironmentDbSummary(projectID, environmentID, databaseID string) (dto.DbCatalogSummary, error) {
 	panic(fmt.Sprintf("implement me: %v, %v, %v", projectID, environmentID, databaseID))
 }
 

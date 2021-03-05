@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	_ "embed"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/schemer"
@@ -41,16 +42,8 @@ when i.type = 7 then 'Nonclustered hash index'
 end as type_description,
 */
 
-//goland:noinspection SqlNoDataSourceInspection
-const indexesSQL = `
-SELECT
---        seq,
-       name,
-       unique,
-       origin,
-       partial
-FROM PRAGMA_index_list('Album') ORDER BY seq;
-`
+//go:embed indexes.sql
+var indexesSQL string
 
 func (s indexesReader) NextIndex() (index *schemer.Index, err error) {
 	if !s.Rows.Next() {

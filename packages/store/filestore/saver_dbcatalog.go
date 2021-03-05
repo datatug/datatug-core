@@ -61,8 +61,9 @@ func (s fileSystemSaver) saveDbCatalog(dbServer models.ProjDbServer, dbCatalog *
 
 func (s fileSystemSaver) saveDbCatalogJSON(dbCatalog models.DbCatalog, saverCtx saveDbServerObjContext) error {
 	fileName := jsonFileName(dbCatalog.ID, dbCatalogFileSuffix)
-	dbFile := DatabaseFile{
+	dbFile := DbCatalogFile{
 		DbModel: dbCatalog.DbModel,
+		Path:    dbCatalog.Path,
 	}
 	if err := s.saveJSONFile(saverCtx.dirPath, fileName, dbFile); err != nil {
 		return fmt.Errorf("failed to write dbCatalog json to file: %w", err)

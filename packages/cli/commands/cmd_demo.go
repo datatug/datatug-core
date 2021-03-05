@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 )
 
 const (
@@ -293,13 +294,20 @@ func (c demoCommand) updateDemoProject(demoProjectPath, demoDbPath string) error
 		log.Printf("Added new DB server: %v", projDbServer.ID)
 	}
 
-	if catalog := projDbServer.Catalogs.GetDbByID(chinookCatalog); catalog == nil {
+	catalog := projDbServer.Catalogs.GetDbByID(chinookCatalog)
+	if catalog == nil {
 		catalog = &models.DbCatalog{
 			ProjectItem: models.ProjectItem{
 				ID: chinookCatalog,
 			},
 			Path: demoDbPath,
 		}
+		if dir, err := os.UserHomeDir(); err == nil {
+			if strings.HasPrefix(catalog.Path, dir) {
+				catalog.Path = strings.Replace(catalog.Path, dir, "~", 1)
+			}
+		}
+
 		projDbServer.Catalogs = append(projDbServer.Catalogs, catalog)
 		log.Printf("Added new catalog [%v] to DB server [%v]", catalog.ID, projDbServer.ID)
 	}

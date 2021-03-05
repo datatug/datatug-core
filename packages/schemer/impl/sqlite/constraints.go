@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	_ "embed"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/schemer"
@@ -27,19 +28,7 @@ func (v constraintsProvider) GetConstraints(c context.Context, db *sql.DB, catal
 var _ schemer.ConstraintsReader = (*constraintsReader)(nil)
 
 //goland:noinspection SqlNoDataSourceInspection
-const constraintsSQL = `
-select
-	--[id],
-    --[seq],
-    [table],
-    [from],
-    [to],
-	[on_update],
-	[on_delete],
-    [match]
-from PRAGMA_foreign_key_list(?)
-;
-`
+var constraintsSQL string
 
 type constraintsReader struct {
 	table string

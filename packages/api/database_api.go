@@ -8,7 +8,7 @@ import (
 )
 
 // GetServerDatabases returns list of databases hosted at a server
-func GetServerDatabases(request GetServerDatabasesRequest) (databases []dto.DbCatalog, err error) {
+func GetServerDatabases(request GetServerDatabasesRequest) (databases []*dto.DbCatalog, err error) {
 	if err = request.Validate(); err != nil {
 		return nil, validation.NewBadRequestError(err)
 	}
@@ -24,11 +24,10 @@ func GetServerDatabases(request GetServerDatabasesRequest) (databases []dto.DbCa
 		return nil, err
 	}
 	recordset := response.Commands[0].Items[0].Value.(models.Recordset)
-	databases = make([]dto.DbCatalog, len(recordset.Rows))
+	databases = make([]*dto.DbCatalog, len(recordset.Rows))
 	for i, row := range recordset.Rows {
-		databases[i] = dto.DbCatalog{
-			Name: row[0].(string),
-		}
+		databases[i] = new(dto.DbCatalog)
+		databases[i].ID = row[0].(string)
 	}
 	return
 }

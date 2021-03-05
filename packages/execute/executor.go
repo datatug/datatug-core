@@ -100,10 +100,24 @@ func executeCommand(command RequestCommand, getDbByID func(envID, dbID string) (
 			return recordset, fmt.Errorf("execute command does not have valid server parameters: %w", err)
 		}
 	}
-	connStr := NewConnectionString(
-		dbServer.Host, command.Credentials.Username, command.Credentials.Password, command.DB,
-		dbServer.Port,
+	var options []string
+	if dbServer.Port != 0 {
+		options = append(options, fmt.Sprintf("mode=%v", dbServer.Port))
+	}
+	var connStr ConnectionString
+	connStr, err = NewConnectionString(
+		dbServer.Driver,
+		dbServer.Host,
+		command.Credentials.Username,
+		command.Credentials.Password,
+		command.DB,
+		options...,
 	)
+
+	if err != nil {
+		err = fmt.Errorf("invalid connection parameters: %w", err)
+		return
+	}
 
 	fmt.Println(connStr)
 	//fmt.Println(envDb.ServerReference.Driver, connStr.String())

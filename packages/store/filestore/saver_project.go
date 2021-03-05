@@ -233,7 +233,7 @@ func (s fileSystemSaver) saveProjectFile(project models.DataTugProject) error {
 			//},
 		}
 		//for _, dbServer := range env.DbServers {
-		//	envBrief.NumberOf.Databases += len(dbServer.Databases)
+		//	envBrief.NumberOf.Catalogs += len(dbServer.Catalogs)
 		//}
 		projFile.Environments = append(projFile.Environments, &envBrief)
 	}

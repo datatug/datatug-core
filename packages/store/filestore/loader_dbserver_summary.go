@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/server/dto"
 	"github.com/datatug/datatug/packages/slice"
@@ -26,32 +27,44 @@ func loadDbServerForDbServerSummary(projPath string, dbServer models.ServerRefer
 	summary = new(dto.ProjDbServerSummary)
 	summary.DbServer = dbServer
 	var dbsByEnv map[string][]string
-	if dbsByEnv, err = loadServerDatabaseNamesByEnvironments(projPath, dbServer); err != nil {
+	if dbsByEnv, err = loadDbServerCatalogNamesByEnvironments(projPath, dbServer); err != nil {
 		return
 	}
 	log.Printf("dbsByEnv: %+v", dbsByEnv)
-	summary.Databases, err = loadDatabasesForDbServerSummary(dbServerPath, dbsByEnv)
+	summary.Catalogs, err = loadDbCatalogsForDbServerSummary(dbServerPath, dbsByEnv)
 	return
 }
 
-func loadDatabasesForDbServerSummary(dbServerPath string, dbsByEnv map[string][]string) (databases []dto.DatabaseSummary, err error) {
-	databasesPath := path.Join(dbServerPath, "databases")
-	err = loadDir(nil, databasesPath, processDirs, func(files []os.FileInfo) {
-		databases = make([]dto.DatabaseSummary, len(files))
+func loadDbCatalogsForDbServerSummary(dbServerPath string, dbsByEnv map[string][]string) (catalogSummaries []*dto.DbCatalogSummary, err error) {
+	catalogsPath := path.Join(dbServerPath, "catalogs")
+	err = loadDir(nil, catalogsPath, processDirs, func(files []os.FileInfo) {
+		catalogSummaries = make([]*dto.DbCatalogSummary, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
-		databases[i] = dto.DatabaseSummary{
-			ProjectItem: models.ProjectItem{ID: f.Name()},
+		catalogSummary, err := loadDbCatalogSummary(catalogsPath, f.Name())
+		if err != nil {
+			return fmt.Errorf("failed to laoad DB catalog summary: %w", err)
 		}
+		catalogSummaries = append(catalogSummaries, catalogSummary)
 		for env, dbs := range dbsByEnv {
-			if slice.IndexOfString(dbs, databases[i].ID) >= 0 {
-				databases[i].Environments = append(databases[i].Environments, env)
+			if slice.IndexOfString(dbs, catalogSummaries[i].ID) >= 0 {
+				catalogSummaries[i].Environments = append(catalogSummaries[i].Environments, env)
 			} else {
-				databases[i].Environments = []string{}
+				catalogSummaries[i].Environments = []string{}
 			}
 		}
 		return err
 	})
 	return
+}
+
+func loadDbCatalogSummary(catalogsDirPath, dirName string) (*dto.DbCatalogSummary, error) {
+	dirPath := path.Join(catalogsDirPath, dirName)
+	jsonFilePath := path.Join(dirPath, jsonFileName(dirName, "db"))
+	var catalogSummary dto.DbCatalogSummary
+	if err := readJSONFile(jsonFilePath, true, &catalogSummary); err != nil {
+		return nil, fmt.Errorf("failed to read DB catalog summary from JSON file: %w", err)
+	}
+	return &catalogSummary, nil
 }
 
 //func loadEnvironmentIds(projPath string) (environments []string, err error) {
@@ -65,7 +78,7 @@ func loadDatabasesForDbServerSummary(dbServerPath string, dbsByEnv map[string][]
 //	return
 //}
 
-func loadServerDatabaseNamesByEnvironments(projPath string, dbServer models.ServerReference) (dbsByEnv map[string][]string, err error) {
+func loadDbServerCatalogNamesByEnvironments(projPath string, dbServer models.ServerReference) (dbsByEnv map[string][]string, err error) {
 	envsPath := path.Join(projPath, "environments")
 	err = loadDir(nil, envsPath, processDirs, func(files []os.FileInfo) {
 		dbsByEnv = make(map[string][]string, len(files))
@@ -79,8 +92,8 @@ func loadServerDatabaseNamesByEnvironments(projPath string, dbServer models.Serv
 		}
 		log.Println("file:", filePath)
 		log.Printf("envDbServer: %+v", envDbServer)
-		if len(envDbServer.Databases) > 0 {
-			dbsByEnv[env] = envDbServer.Databases
+		if len(envDbServer.Catalogs) > 0 {
+			dbsByEnv[env] = envDbServer.Catalogs
 		}
 		return
 	})

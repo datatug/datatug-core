@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/api"
+	"github.com/datatug/datatug/packages/dbconnection"
 	"github.com/datatug/datatug/packages/execute"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/store"
 	"github.com/datatug/datatug/packages/store/filestore"
+	"github.com/mitchellh/go-homedir"
 	"log"
 	"os"
+	"strconv"
 )
 
 func init() {
@@ -64,14 +67,40 @@ func (v *scanDbCommand) Execute(_ []string) (err error) {
 		}
 	}
 
-	connString := execute.NewConnectionString(v.Host, v.User, v.Password, v.Database, v.Port)
+	options := []string{"mode=" + dbconnection.ModeReadOnly}
+	if v.Port != 0 {
+		options = append(options, "port="+strconv.Itoa(v.Port))
+	}
+
+	var connParams dbconnection.Params
+
+	switch v.Driver {
+	case "sqlite3":
+		serverRef := models.ServerReference{Driver: v.Driver, Host: "localhost"}
+		dbCatalog, err := v.loader.LoadDbCatalogSummary(v.projectID, serverRef, v.Database)
+		if err != nil {
+			return fmt.Errorf("failed to load DB catalog: %w", err)
+		}
+		if dbCatalog == nil {
+			return fmt.Errorf("db catalog not found for server=%+v, catalog=%v", serverRef, v.Database)
+		}
+		fullPath, err := homedir.Expand(dbCatalog.Path)
+		if err != nil {
+			return fmt.Errorf("failed to expand path for SQLite3 connection string: %w", err)
+		}
+		connParams = dbconnection.NewSQLite3ConnectionParams(fullPath, v.Database, dbconnection.ModeReadOnly)
+	default:
+		if connParams, err = execute.NewConnectionString(v.Driver, v.Host, v.User, v.Password, v.Database, options...); err != nil {
+			return fmt.Errorf("invalid connection string: %v", err)
+		}
+	}
 
 	if v.DbModel == "" {
 		v.DbModel = v.Database
 	}
 
 	var dataTugProject *models.DataTugProject
-	if dataTugProject, err = api.UpdateDbSchema(context.Background(), v.loader, v.projectID, v.Environment, v.Driver, v.DbModel, connString); err != nil {
+	if dataTugProject, err = api.UpdateDbSchema(context.Background(), v.loader, v.projectID, v.Environment, v.Driver, v.DbModel, connParams); err != nil {
 		return err
 	}
 

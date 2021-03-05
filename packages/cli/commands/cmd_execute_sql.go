@@ -13,7 +13,6 @@ import (
 	"log"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -31,6 +30,7 @@ func init() {
 type executeSQLCommand struct {
 	Driver       string `short:"D" long:"driver" required:"true"`
 	Host         string `short:"h" long:"host" required:"true" default:"localhost"`
+	Mode         string `long:"mode" description:"rw - ReadWrite, ro - ReadOnly (default for SQLite)"`
 	Port         string `long:"port"`
 	User         string `short:"U" long:"user"`
 	Password     string `short:"P" long:"password"`
@@ -54,14 +54,20 @@ func (v *executeSQLCommand) Execute(args []string) error {
 	fmt.Printf("Validating (%+v): %v\n", v, args)
 	var err error
 
-	var port int
+	var options []string
+
 	if v.Port != "" {
-		if port, err = strconv.Atoi(v.Port); err != nil {
-			return err
-		}
+		options = append(options, "port="+v.Port)
 	}
 
-	connString := execute.NewConnectionString(v.Host, v.User, v.Password, v.Schema, port)
+	if v.Mode != "" {
+		options = append(options, "mode="+v.Mode)
+	}
+
+	connString, err := execute.NewConnectionString(v.Driver, v.Host, v.User, v.Password, v.Schema, options...)
+	if err != nil {
+		return err
+	}
 
 	var db *sql.DB
 

@@ -3,9 +3,8 @@ package api
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
-	"github.com/datatug/datatug/packages/execute"
+	"github.com/datatug/datatug/packages/dbconnection"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
 	"github.com/datatug/datatug/packages/schemer"
@@ -13,6 +12,7 @@ import (
 	"github.com/datatug/datatug/packages/schemer/impl/sqlite"
 	"github.com/datatug/datatug/packages/slice"
 	"github.com/strongo/random"
+	"github.com/strongo/validation"
 	"log"
 	"strings"
 	"time"
@@ -27,22 +27,28 @@ type ProjectLoader interface {
 }
 
 // UpdateDbSchema updates DB schema
-func UpdateDbSchema(ctx context.Context, loader ProjectLoader, projectID, environment, driver, dbModelID string, connectionString execute.ConnectionString) (project *models.DataTugProject, err error) {
-	log.Printf("Updating DB info for project=%v, env=%v, driver=%v, dbModelId=%v, connStr=%v", projectID, environment, driver, dbModelID, connectionString.String())
+func UpdateDbSchema(_ context.Context, loader ProjectLoader, projectID, environment, driver, dbModelID string, dbConnParams dbconnection.Params) (project *models.DataTugProject, err error) {
+	log.Printf("Updating DB info for project=%v, env=%v, driver=%v, dbModelId=%v, dbCatalog=%v, connStr=%v",
+		projectID, environment, driver, dbModelID, dbConnParams.Catalog(), dbConnParams.String())
+
+	if dbConnParams.Catalog() == "" {
+		return nil, validation.NewErrRequestIsMissingRequiredField("dbConnParams.Catalog")
+	}
+
 	if projectID == "" {
-		return nil, errors.New("argument projectID must be provided")
+		return nil, validation.NewErrRequestIsMissingRequiredField("projectID")
 	}
 	if environment == "" {
-		return nil, errors.New("argument environment must be provided")
+		return nil, validation.NewErrRequestIsMissingRequiredField("environment")
 	}
 	if driver == "" {
-		return nil, errors.New("argument driver must be provided")
+		return nil, validation.NewErrRequestIsMissingRequiredField("driver")
 	}
 	if dbModelID == "" {
-		return nil, errors.New("argument dbModelID must be provided")
+		return nil, validation.NewErrRequestIsMissingRequiredField("dbModelId")
 	}
 	var (
-		latestDb *models.DbCatalog
+		dbCatalog *models.DbCatalog
 	)
 	var projSummaryErr error
 	getProjectSummaryWorker := func() error {
@@ -57,27 +63,31 @@ func UpdateDbSchema(ctx context.Context, loader ProjectLoader, projectID, enviro
 	}
 	dbServer := models.ServerReference{
 		Driver: driver,
-		Host:   connectionString.Server(),
-		Port:   connectionString.Port(),
+		Host:   dbConnParams.Server(),
+		Port:   dbConnParams.Port(),
 	}
 	scanDbWorker := func() error {
 		var scanErr error
-		if latestDb, scanErr = scanDbSchema(dbServer, connectionString); err != nil {
+		if dbCatalog, scanErr = scanDbCatalog(dbServer, dbConnParams); err != nil {
 			return scanErr
 		}
 		return scanErr
 	}
-	if err = parallel.Run(getProjectSummaryWorker, scanDbWorker); err != nil {
+	if err = parallel.Run(
+		getProjectSummaryWorker,
+		scanDbWorker,
+	); err != nil {
 		return project, err
 	}
+
 	if dbModelID != "" {
-		latestDb.DbModel = dbModelID
-	} else if latestDb.DbModel == "" {
-		latestDb.DbModel = latestDb.ID
+		dbCatalog.DbModel = dbModelID
+	} else if dbCatalog.DbModel == "" {
+		dbCatalog.DbModel = dbCatalog.ID
 	}
 	if models.ProjectDoesNotExist(projSummaryErr) {
 		log.Println("Creating a new DataTug project...")
-		if project, err = newProjectWithDatabase(environment, dbServer, latestDb); err != nil {
+		if project, err = newProjectWithDatabase(environment, dbServer, dbCatalog); err != nil {
 			return project, err
 		}
 	} else {
@@ -87,23 +97,35 @@ func UpdateDbSchema(ctx context.Context, loader ProjectLoader, projectID, enviro
 			return
 		}
 		log.Println("Updating project with latest database info...", environment)
-		if err = updateProjectWithDbCatalog(project, environment, dbServer, latestDb); err != nil {
-			return project, err
+		if err = updateProjectWithDbCatalog(project, environment, dbServer, dbCatalog); err != nil {
+			return project, fmt.Errorf("failed in updateProjectWithDbCatalog(): %w", err)
 		}
 	}
-	dbModel := project.DbModels.GetDbModelByID(latestDb.DbModel)
+	dbModel := project.DbModels.GetDbModelByID(dbCatalog.DbModel)
 	if dbModel == nil {
-		err = fmt.Errorf("db model not found by ID: %v. there is %v db models in the project: %v", latestDb.DbModel, len(project.DbModels), strings.Join(project.DbModels.IDs(), ", "))
+		err = fmt.Errorf("db model not found by ID: %v. there is %v db models in the project: %v", dbCatalog.DbModel, len(project.DbModels), strings.Join(project.DbModels.IDs(), ", "))
 		return
 	}
-	if err = updateDbModelWithDatabase(environment, dbModel, latestDb); err != nil {
+	if err = updateDbModelWithDatabase(environment, dbModel, dbCatalog); err != nil {
 		err = fmt.Errorf("failed to update dbModel with database: %w", err)
 		return
 	}
 	return project, err
 }
 
-func updateProjectWithDbCatalog(project *models.DataTugProject, envID string, dbServer models.ServerReference, latestDbCatalog *models.DbCatalog) (err error) {
+func updateProjectWithDbCatalog(project *models.DataTugProject, envID string, dbServer models.ServerReference, dbCatalog *models.DbCatalog) (err error) {
+	if envID == "" {
+		return validation.NewErrRequestIsMissingRequiredField("envID")
+	}
+	if dbServer.Host == "" {
+		return validation.NewErrRequestIsMissingRequiredField("dbServer.Host")
+	}
+	if dbCatalog == nil {
+		return validation.NewErrRequestIsMissingRequiredField("dbCatalog")
+	}
+	if dbCatalog.ID == "" {
+		return validation.NewErrRequestIsMissingRequiredField("dbCatalog.ID")
+	}
 	// Update environment
 	{
 		if environment := project.Environments.GetEnvByID(envID); environment == nil {
@@ -114,7 +136,7 @@ func updateProjectWithDbCatalog(project *models.DataTugProject, envID string, db
 				DbServers: models.EnvDbServers{
 					{
 						ServerReference: dbServer,
-						Databases:       []string{latestDbCatalog.ID},
+						Catalogs:        []string{dbCatalog.ID},
 					},
 				},
 			}
@@ -122,10 +144,10 @@ func updateProjectWithDbCatalog(project *models.DataTugProject, envID string, db
 		} else if envDbServer := environment.DbServers.GetByID(dbServer.ID()); envDbServer == nil {
 			environment.DbServers = append(environment.DbServers, &models.EnvDbServer{
 				ServerReference: dbServer,
-				Databases:       []string{latestDbCatalog.ID},
+				Catalogs:        []string{dbCatalog.ID},
 			})
-		} else if i := slice.IndexOfString(envDbServer.Databases, latestDbCatalog.ID); i < 0 {
-			envDbServer.Databases = append(envDbServer.Databases, latestDbCatalog.ID)
+		} else if i := slice.IndexOfString(envDbServer.Catalogs, dbCatalog.ID); i < 0 {
+			envDbServer.Catalogs = append(envDbServer.Catalogs, dbCatalog.ID)
 		}
 	}
 	// Update DB server
@@ -133,12 +155,12 @@ func updateProjectWithDbCatalog(project *models.DataTugProject, envID string, db
 		for i, projDbServer := range project.DbServers {
 			if projDbServer.ProjectItem.ID == dbServer.ID() {
 				for j, db := range project.DbServers[i].Catalogs {
-					if db.ID == latestDbCatalog.ID {
-						project.DbServers[i].Catalogs[j] = latestDbCatalog
+					if db.ID == dbCatalog.ID {
+						project.DbServers[i].Catalogs[j] = dbCatalog
 						goto ProjectDbServerDatabaseUpdated
 					}
 				}
-				project.DbServers[i].Catalogs = append(project.DbServers[i].Catalogs, latestDbCatalog)
+				project.DbServers[i].Catalogs = append(project.DbServers[i].Catalogs, dbCatalog)
 			ProjectDbServerDatabaseUpdated:
 				goto ProjDbServerUpdate
 			}
@@ -146,14 +168,14 @@ func updateProjectWithDbCatalog(project *models.DataTugProject, envID string, db
 		project.DbServers = append(project.DbServers, &models.ProjDbServer{
 			ProjectItem: models.ProjectItem{ID: dbServer.ID()},
 			Server:      dbServer,
-			Catalogs:    models.DbCatalogs{latestDbCatalog},
+			Catalogs:    models.DbCatalogs{dbCatalog},
 		})
 	ProjDbServerUpdate:
 	}
 	return nil
 }
 
-func newProjectWithDatabase(environment string, dbServer models.ServerReference, database *models.DbCatalog) (project *models.DataTugProject, err error) {
+func newProjectWithDatabase(environment string, dbServer models.ServerReference, dbCatalog *models.DbCatalog) (project *models.DataTugProject, err error) {
 	//var currentUser *user.User
 	//if currentUser, err = user.Current(); err != nil {
 	//	err = fmt.Errorf("failed to get current OS user")
@@ -168,7 +190,7 @@ func newProjectWithDatabase(environment string, dbServer models.ServerReference,
 		},
 		DbModels: models.DbModels{
 			&models.DbModel{
-				ProjectItem: models.ProjectItem{ID: database.DbModel},
+				ProjectItem: models.ProjectItem{ID: dbCatalog.DbModel},
 			},
 		},
 		Environments: models.Environments{
@@ -177,7 +199,7 @@ func newProjectWithDatabase(environment string, dbServer models.ServerReference,
 				DbServers: []*models.EnvDbServer{
 					{
 						ServerReference: dbServer,
-						Databases:       []string{database.ID},
+						Catalogs:        []string{dbCatalog.ID},
 					},
 				},
 			},
@@ -187,7 +209,7 @@ func newProjectWithDatabase(environment string, dbServer models.ServerReference,
 				ProjectItem: models.ProjectItem{ID: dbServer.ID()},
 				Server:      dbServer,
 				Catalogs: models.DbCatalogs{
-					database,
+					dbCatalog,
 				},
 			},
 		},
@@ -197,10 +219,10 @@ func newProjectWithDatabase(environment string, dbServer models.ServerReference,
 	return project, err
 }
 
-func scanDbSchema(server models.ServerReference, connectionString execute.ConnectionString) (database *models.DbCatalog, err error) {
+func scanDbCatalog(server models.ServerReference, connectionParams dbconnection.Params) (dbCatalog *models.DbCatalog, err error) {
 	var db *sql.DB
 
-	if db, err = sql.Open(server.Driver, connectionString.String()); err != nil {
+	if db, err = sql.Open(server.Driver, connectionParams.ConnectionString()); err != nil {
 		return nil, fmt.Errorf("failed to open SQL db: %w", err)
 	}
 
@@ -219,11 +241,12 @@ func scanDbSchema(server models.ServerReference, connectionString execute.Connec
 		return nil, fmt.Errorf("unsupported DB driver: %v", err)
 	}
 
-	database, err = scanner.ScanCatalog(context.Background(), db, connectionString.Database())
+	dbCatalog, err = scanner.ScanCatalog(context.Background(), db, connectionParams.Catalog())
+	dbCatalog.ID = connectionParams.Catalog()
 	if err != nil {
-		return database, fmt.Errorf("failed to get database metadata: %w", err)
+		return dbCatalog, fmt.Errorf("failed to get dbCatalog metadata: %w", err)
 	}
-	//if database, err = informationSchema.GetDatabase(connectionString.Database()); err != nil {
+	//if database, err = informationSchema.GetDatabase(connectionParams.Database()); err != nil {
 	//	return nil, fmt.Errorf("failed to get database metadata: %w", err)
 	//}
 	return

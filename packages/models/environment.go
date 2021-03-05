@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"github.com/datatug/datatug/packages/slice"
 	"github.com/strongo/validation"
 	"strings"
 )
@@ -100,7 +101,7 @@ func (v EnvDbServers) GetByID(id string) *EnvDbServer {
 // EnvDbServer holds information about server in an environment
 type EnvDbServer struct {
 	ServerReference
-	Databases []string `json:"databases,omitempty"`
+	Catalogs []string `json:"catalogs,omitempty"`
 }
 
 // Validate returns error if no valid
@@ -108,9 +109,13 @@ func (v EnvDbServer) Validate() error {
 	if err := v.ServerReference.Validate(); err != nil {
 		return err
 	}
-	for i, db := range v.Databases {
-		if strings.TrimSpace(db) == "" {
-			return validation.NewErrRequestIsMissingRequiredField(fmt.Sprintf("databases[%v]", i))
+
+	for i, catalogID := range v.Catalogs {
+		if strings.TrimSpace(catalogID) == "" {
+			return validation.NewErrRecordIsMissingRequiredField(fmt.Sprintf("catalogs[%v]", i))
+		}
+		if prevIndex := slice.IndexOfString(v.Catalogs[:i], catalogID); prevIndex >= 0 {
+			return validation.NewErrBadRecordFieldValue("catalogs", fmt.Sprintf("duplicate value at indexes %v & %v: %v", prevIndex, i, catalogID))
 		}
 	}
 	return nil

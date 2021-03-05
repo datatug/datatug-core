@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	_ "embed"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/schemer"
@@ -24,17 +25,8 @@ func (v columnsProvider) GetColumns(_ context.Context, db *sql.DB, catalog, sche
 	return columnsReader{rows: rows}, nil
 }
 
-//goland:noinspection SqlNoDataSourceInspection
-const columnsSQL = `
-SELECT
-	cid,
-	name,
-	type,
-  	[notnull],
-  	dflt_value,
-  	pk
-FROM pragma_table_info(?)
-`
+//go:embed columns.sql
+var columnsSQL string
 
 var _ schemer.ColumnsReader = (*columnsReader)(nil)
 
