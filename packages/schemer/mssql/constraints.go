@@ -43,7 +43,7 @@ type constraintsReader struct {
 	rows *sql.Rows
 }
 
-func (s constraintsReader) NextConstraint() (constraint schemer.Constraint, err error) {
+func (s constraintsReader) NextConstraint() (constraint *schemer.Constraint, err error) {
 	if !s.rows.Next() {
 		err = s.rows.Err()
 		if err != nil {
@@ -51,6 +51,7 @@ func (s constraintsReader) NextConstraint() (constraint schemer.Constraint, err 
 		}
 		return
 	}
+	constraint = new(schemer.Constraint)
 	constraint.Constraint = new(models.Constraint)
 	if err = s.rows.Scan(
 		&constraint.SchemaName, &constraint.TableName,

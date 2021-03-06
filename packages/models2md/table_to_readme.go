@@ -283,7 +283,7 @@ FROM %v.%v
 	const singleIndent = "  "
 	indent := strings.Repeat(singleIndent, (level-1)*len(singleIndent))
 
-	s := make([]string, 1, 1+len(parent.PrimaryKey.Columns)*len(refBy.ForeignKeys))
+	s := make([]string, 1)
 
 	if level > 1 {
 		if index == 0 {

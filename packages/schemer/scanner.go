@@ -102,7 +102,7 @@ func (s scanner) scanTables(c context.Context, db *sql.DB, catalog *models.DbCat
 	err = parallel.Run(workers...)
 	if !s.schemaProvider.IsBulkProvider() {
 		for _, table := range tables {
-			s.scanTableConstraints(c, db, catalog, table, tables)
+			s.scanTableConstraints(c, db, catalog.ID, table, tables)
 		}
 	}
 	return err

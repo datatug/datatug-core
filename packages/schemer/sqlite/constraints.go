@@ -18,24 +18,25 @@ func (v constraintsProvider) GetConstraints(c context.Context, db *sql.DB, catal
 	if err := verifyTableParams(catalog, schema, table); err != nil {
 		return nil, err
 	}
-	rows, err := db.Query(constraintsSQL)
+	rows, err := db.Query(constraintsSQL, table)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve constraints: %w", err)
 	}
-	return constraintsReader{table: table, rows: rows}, nil
+	return constraintsReader{schema: schema, table: table, rows: rows}, nil
 }
 
 var _ schemer.ConstraintsReader = (*constraintsReader)(nil)
 
-//goland:noinspection SqlNoDataSourceInspection
+//go:embed constraints.sql
 var constraintsSQL string
 
 type constraintsReader struct {
-	table string
-	rows  *sql.Rows
+	schema string
+	table  string
+	rows   *sql.Rows
 }
 
-func (s constraintsReader) NextConstraint() (constraint schemer.Constraint, err error) {
+func (s constraintsReader) NextConstraint() (constraint *schemer.Constraint, err error) {
 	if !s.rows.Next() {
 		err = s.rows.Err()
 		if err != nil {
@@ -43,8 +44,9 @@ func (s constraintsReader) NextConstraint() (constraint schemer.Constraint, err 
 		}
 		return
 	}
+	constraint = new(schemer.Constraint)
 	constraint.Constraint = new(models.Constraint)
-	constraint.Type = "FK"
+	constraint.Type = "FOREIGN KEY"
 
 	if err = s.rows.Scan(
 		&constraint.RefTableName,
@@ -61,6 +63,9 @@ func (s constraintsReader) NextConstraint() (constraint schemer.Constraint, err 
 	if constraint.ColumnName == constraint.RefColName.String {
 		constraint.Name += "_" + constraint.ColumnName
 	}
+	constraint.RefTableSchema.Valid = true
+	constraint.RefTableSchema.String = s.schema
+	constraint.SchemaName = s.schema
 	constraint.TableName = s.table
 	return
 }

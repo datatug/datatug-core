@@ -35,7 +35,7 @@ func (s fileSystemSaver) saveDbSchema(dbSchema *models.DbSchema, dbServerSaverCt
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("failed to save DB schema [%v]: %w", err)
+		return fmt.Errorf("failed to save DB schema [%v]: %w", dbSchema.ID, err)
 	}
 	log.Printf("Saved DB schema [%v] for %v @ %v.", dbSchema.ID, dbServerSaverCtx.catalog, dbServerSaverCtx.dbServer.ID)
 	return nil

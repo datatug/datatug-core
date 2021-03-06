@@ -7,6 +7,7 @@ import (
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
 	"log"
+	"sort"
 	"time"
 )
 
@@ -39,6 +40,18 @@ func (s scanner) scanTableCols(c context.Context, db *sql.DB, catalog string, ta
 		return err
 	}
 	deadline, isDeadlineSet := c.Deadline()
+	pkColumns := make(models.TableColumns, 0, 8)
+	defer func() {
+		if len(pkColumns) > 0 {
+			sort.Sort(pkColumns.ByPrimaryKeyPosition())
+			table.PrimaryKey = &models.UniqueKey{
+				Name: "PK_" + table.Name,
+			}
+			for _, c := range pkColumns {
+				table.PrimaryKey.Columns = append(table.PrimaryKey.Columns, c.Name)
+			}
+		}
+	}()
 	for {
 		if isDeadlineSet && time.Now().After(deadline) {
 			return fmt.Errorf("exceeded deadline")
@@ -51,6 +64,9 @@ func (s scanner) scanTableCols(c context.Context, db *sql.DB, catalog string, ta
 			return nil
 		}
 		table.Columns = append(table.Columns, &column.TableColumn)
+		if column.PrimaryKeyPosition > 0 {
+			pkColumns = append(pkColumns, &column.TableColumn)
+		}
 	}
 }
 

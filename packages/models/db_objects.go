@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"github.com/strongo/validation"
+	"sort"
 	"strings"
 )
 
@@ -373,8 +374,18 @@ type RefByForeignKey struct {
 type Tables []*Table
 
 type Constraint struct {
-	Name string
-	Type string
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+func (v Constraint) Validate() error {
+	if v.Name == "" {
+		return validation.NewErrRecordIsMissingRequiredField("name")
+	}
+	if v.Type == "" {
+		return validation.NewErrRecordIsMissingRequiredField("type")
+	}
+	return nil
 }
 
 // GetByKey return 9a *Table by key or nil if not found
@@ -401,7 +412,7 @@ type Table struct {
 	TableKey
 	TableProps
 	SQL          string             `json:"sql,omitempty"`
-	Columns      []*TableColumn     `json:"columns,omitempty"`
+	Columns      TableColumns       `json:"columns,omitempty"`
 	Indexes      []*Index           `json:"indexes,omitempty"`
 	ReferencedBy TableReferencedBys `json:"referencedBy,omitempty"`
 	RecordsCount *int               `json:"recordsCount,omitempty"`
@@ -418,18 +429,11 @@ func (v Table) Validate() error {
 	if err := v.PrimaryKey.Validate(); err != nil {
 		return fmt.Errorf("invalid primary key: %w", err)
 	}
-	for i, col := range v.Columns {
-		if err := col.Validate(); err != nil {
-			return fmt.Errorf("invalid column at index %v: %w", i, err)
-		}
+	if err := v.Columns.Validate(); err != nil {
+		return err
 	}
-	for i, fk := range v.ForeignKeys {
-		if fk == nil {
-			return validation.NewErrBadRecordFieldValue("foreignKeys", fmt.Sprintf("nil value at index %v", i))
-		}
-		if err := fk.Validate(); err != nil {
-			return fmt.Errorf("invalid foreign key at index %v: %w", i, err)
-		}
+	if err := v.ForeignKeys.Validate(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -449,16 +453,17 @@ type TableReferencedBy struct {
 
 // DbColumnProps holds column metadata
 type DbColumnProps struct {
-	Name              string        `json:"name"`
-	OrdinalPosition   int           `json:"ordinalPosition"`
-	IsNullable        bool          `json:"isNullable"`
-	DbType            string        `json:"dbType"`
-	Default           *string       `json:"default,omitempty"`
-	CharMaxLength     *int          `json:"charMaxLength,omitempty"`
-	CharOctetLength   *int          `json:"charOctetLength,omitempty"`
-	DateTimePrecision *int          `json:"dateTimePrecision,omitempty"`
-	CharacterSet      *CharacterSet `json:"characterSet,omitempty"`
-	Collation         *Collation    `json:"collation,omitempty"`
+	Name               string        `json:"name"`
+	OrdinalPosition    int           `json:"ordinalPosition"`
+	PrimaryKeyPosition int           `json:"pkPosition,omitempty"`
+	IsNullable         bool          `json:"isNullable"`
+	DbType             string        `json:"dbType"`
+	Default            *string       `json:"default,omitempty"`
+	CharMaxLength      *int          `json:"charMaxLength,omitempty"`
+	CharOctetLength    *int          `json:"charOctetLength,omitempty"`
+	DateTimePrecision  *int          `json:"dateTimePrecision,omitempty"`
+	CharacterSet       *CharacterSet `json:"characterSet,omitempty"`
+	Collation          *Collation    `json:"collation,omitempty"`
 }
 
 // Validate return error if not valid
@@ -486,6 +491,41 @@ func (v DbColumnProps) Validate() error {
 	if v.Collation != nil {
 		if err := v.Collation.Validate(); err != nil {
 			return fmt.Errorf("invalid collation: %w", err)
+		}
+	}
+	return nil
+}
+
+var _ sort.Interface = (*tableColsSorter)(nil)
+
+type tableColsSorter struct {
+	Columns TableColumns
+}
+
+func (v TableColumns) ByPrimaryKeyPosition() sort.Interface {
+	return tableColsSorter{Columns: v}
+}
+
+func (v tableColsSorter) Len() int {
+	return len(v.Columns)
+}
+
+func (v tableColsSorter) Less(i, j int) bool {
+	return v.Columns[i].PrimaryKeyPosition < v.Columns[j].PrimaryKeyPosition
+}
+
+func (v tableColsSorter) Swap(i, j int) {
+	c := v.Columns[i]
+	v.Columns[i] = v.Columns[j]
+	v.Columns[j] = c
+}
+
+type TableColumns []*TableColumn
+
+func (v TableColumns) Validate() error {
+	for i, c := range v {
+		if err := c.Validate(); err != nil {
+			return fmt.Errorf("invalid column at index %v: %w", i, err)
 		}
 	}
 	return nil

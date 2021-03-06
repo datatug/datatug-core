@@ -43,14 +43,13 @@ func (s columnsReader) NextColumn() (col schemer.Column, err error) {
 	}
 	var cid int
 	var isNotNull bool
-	var pk int
 	if err = s.rows.Scan(
 		&cid,
 		&col.Name,
 		&col.DbType,
 		&isNotNull,
 		&col.Default,
-		&pk,
+		&col.PrimaryKeyPosition,
 	); err != nil {
 		return col, fmt.Errorf("failed to scan INFORMATION_SCHEMA.COLUMNS row into TableColumn struct: %w", err)
 	}
