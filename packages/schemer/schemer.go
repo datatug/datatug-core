@@ -254,7 +254,7 @@ func (sorted *sortedIndexes) SequentialFind(schema, table, name string) *Index {
 }
 
 // FullFind can be called in any order and always do a full table scan
-func findTable(tables []*models.Table, catalog, schema, name string) *models.Table {
+func findTable(tables models.Tables, catalog, schema, name string) *models.Table {
 	normalize := strings.ToLower
 	catalog = normalize(catalog)
 	schema = normalize(schema)

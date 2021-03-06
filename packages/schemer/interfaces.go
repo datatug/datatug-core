@@ -79,7 +79,7 @@ type ConstraintsProvider interface {
 }
 
 type ConstraintsReader interface {
-	NextConstraint() (Constraint, error)
+	NextConstraint() (*Constraint, error)
 }
 
 type Constraint struct {

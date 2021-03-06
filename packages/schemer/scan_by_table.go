@@ -107,3 +107,23 @@ func (s scanner) scanIndexColumns(c context.Context, db *sql.DB, catalog string,
 	}
 	return nil
 }
+
+func (s scanner) scanTableConstraints(c context.Context, db *sql.DB, catalog string, table *models.Table, tables models.Tables) error {
+	constraints, err := s.schemaProvider.GetConstraints(c, db, catalog, table.Schema, table.Name)
+	if err != nil {
+		return err
+	}
+	for {
+		constraint, err := constraints.NextConstraint()
+		if err != nil {
+			return err
+		}
+		if constraint == nil {
+			return nil
+		}
+		if err = processConstraint(catalog, table, constraint, tables); err != nil {
+			return fmt.Errorf("failed to process contraint record: %w", err)
+		}
+	}
+	return nil
+}

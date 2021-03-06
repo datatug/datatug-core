@@ -37,7 +37,7 @@ func (s scanner) scanConstraintsInBulk(c context.Context, db *sql.DB, catalog st
 	return nil
 }
 
-func processConstraint(catalog string, table *models.Table, constraint Constraint, tablesFinder sortedTables) error {
+func processConstraint(catalog string, table *models.Table, constraint *Constraint, allTables models.Tables) error {
 	switch constraint.Type {
 	case "PRIMARY KEY":
 		if table.PrimaryKey == nil {
@@ -76,7 +76,7 @@ func processConstraint(catalog string, table *models.Table, constraint Constrain
 			table.ForeignKeys = append(table.ForeignKeys, &fk)
 
 			{ // Update reference table
-				refTable := findTable(tablesFinder.tables, constraint.RefTableCatalog.String, constraint.RefTableSchema.String, constraint.RefTableName.String)
+				refTable := findTable(allTables, constraint.RefTableCatalog.String, constraint.RefTableSchema.String, constraint.RefTableName.String)
 				var refByFk *models.RefByForeignKey
 				if refTable == nil {
 					return fmt.Errorf("reference table not found: %v.%v.%v", constraint.RefTableCatalog.String, constraint.RefTableSchema.String, constraint.RefTableName.String)
