@@ -17,7 +17,10 @@ func getQueryPaths(queryID, queriesDirPath string) (qID, queryFileName, queryDir
 	}
 	queryDir = filepath.Dir(queryID)
 	qID = filepath.Base(queryID)
-	queryFileName = jsonFileName(qID, queryFileSuffix)
+	lastDotIndex := strings.LastIndex(queryID, ".")
+	queryType := queryID[lastDotIndex+1:]
+	qID = queryID[:lastDotIndex]
+	queryFileName = jsonFileName(qID, queryType)
 	queryPath = path.Join(queriesDirPath, queryDir, queryFileName)
 	return
 }

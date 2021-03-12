@@ -49,7 +49,7 @@ func (v *scanDbCommand) Execute(_ []string) (err error) {
 	}
 
 	if v.Host == "" {
-		envDb, err := v.loader.LoadEnvironmentDb(v.projectID, v.Environment, v.Database)
+		envDb, err := v.loader.LoadEnvironmentCatalog(v.projectID, v.Environment, v.Database)
 		if err != nil {
 			return err
 		}

@@ -32,7 +32,7 @@ type environmentsLoader interface {
 	// GetEnvironmentDbSummary returns summary of environment
 	LoadEnvironmentDbSummary(projectID, environmentID, databaseID string) (dto.DbCatalogSummary, error)
 	// GetEnvironmentDbSummary returns DB info for a specific environment
-	LoadEnvironmentDb(projID, environmentID, databaseID string) (*dto.EnvDb, error)
+	LoadEnvironmentCatalog(projID, environmentID, databaseID string) (*dto.EnvDb, error)
 }
 
 type boardsLoader interface {

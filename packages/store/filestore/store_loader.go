@@ -223,7 +223,7 @@ func (loader fileSystemLoader) LoadEnvironmentSummary(projID, envID string) (env
 }
 
 // GetEnvironmentDb return information about environment DB
-func (loader fileSystemLoader) LoadEnvironmentDb(projID, environmentID, databaseID string) (envDb *dto.EnvDb, err error) {
+func (loader fileSystemLoader) LoadEnvironmentCatalog(projID, environmentID, databaseID string) (envDb *dto.EnvDb, err error) {
 	var projPath string
 	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
 		return
@@ -231,9 +231,12 @@ func (loader fileSystemLoader) LoadEnvironmentDb(projID, environmentID, database
 	filePath := path.Join(projPath, DatatugFolder, EnvironmentsFolder, environmentID, DbCatalogsFolder, databaseID, jsonFileName(databaseID, dbCatalogFileSuffix))
 	envDb = new(dto.EnvDb)
 	if err = readJSONFile(filePath, true, envDb); err != nil {
-		err = fmt.Errorf("failed to load DB [%v] from env [%v] from project [%v]: %w", databaseID, environmentID, projID, err)
+		err = fmt.Errorf("failed to load environment DB catalog [%v] from env [%v] from project [%v]: %w", databaseID, environmentID, projID, err)
 		return nil, err
 	}
 	envDb.ID = databaseID
+	if err = envDb.Validate(); err != nil {
+		return nil, fmt.Errorf("loaded environmend DB catalog file is invalid: %w", err)
+	}
 	return
 }

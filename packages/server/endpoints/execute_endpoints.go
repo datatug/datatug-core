@@ -2,6 +2,7 @@ package endpoints
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/datatug/datatug/packages/api"
 	"github.com/datatug/datatug/packages/execute"
@@ -41,8 +42,8 @@ func ExecuteCommandsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	default:
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte("Only POST requests are supported"))
+		handleError(validation.NewBadRequestError(errors.New("only POST requests are supported for this endpoint")), w, r)
+		return
 	}
 
 	response, err := api.ExecuteCommands(executeRequest)

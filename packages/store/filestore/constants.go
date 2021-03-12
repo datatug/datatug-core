@@ -38,7 +38,8 @@ func jsonFileName(id, suffix string) string {
 		entityFileSuffix,
 		serverFileSuffix,
 		columnsFileSuffix,
-		queryFileSuffix:
+		querySqlFileSuffix,
+		queryHttpFileSuffix:
 		// OK
 	default:
 		panic(fmt.Sprintf("unknown JSON file suffix=[%v], id=[%v]", suffix, id))
@@ -70,5 +71,6 @@ const (
 	entityFileSuffix          = "entity"
 	serverFileSuffix          = "server"
 	columnsFileSuffix         = "columns"
-	queryFileSuffix           = "q"
+	querySqlFileSuffix        = "sql"
+	queryHttpFileSuffix       = "http"
 )

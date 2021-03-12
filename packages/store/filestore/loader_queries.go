@@ -15,6 +15,9 @@ func (loader fileSystemLoader) LoadQueries(projectID, folder string) (queries []
 		return
 	}
 	queriesDirPath := path.Join(projPath, DatatugFolder, QueriesFolder)
+	if folder != "" {
+		queriesDirPath = path.Join(queriesDirPath, folder)
+	}
 	return loader.loadQueriesDir(queriesDirPath)
 }
 
@@ -24,8 +27,8 @@ func (loader fileSystemLoader) LoadQuery(projectID, queryID string) (query model
 		return
 	}
 	queriesDirPath := path.Join(projPath, DatatugFolder, QueriesFolder)
-	_, queryFileName, queryDir, gueryPath, err := getQueryPaths(queryID, queriesDirPath)
-	if err = readJSONFile(gueryPath, true, &query); err != nil {
+	_, queryFileName, queryDir, queryPath, err := getQueryPaths(queryID, queriesDirPath)
+	if err = readJSONFile(queryPath, true, &query); err != nil {
 		return query, fmt.Errorf("failed to load query definition from file: %v: %w", path.Join(queryDir, queryFileName), err)
 	}
 	query.ID = queryID
@@ -43,7 +46,7 @@ func (loader fileSystemLoader) loadQueriesDir(dirPath string) (queries []models.
 				return err
 			}
 			folder := models.QueryDef{
-				Type:    "folder",
+				Type: "folder",
 				ProjectItem: models.ProjectItem{
 					ID: fileName,
 				},
