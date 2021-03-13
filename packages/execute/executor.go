@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"fmt"
+	"github.com/datatug/datatug/packages/dbconnection"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/server/dto"
 	"github.com/google/uuid"
@@ -104,8 +105,8 @@ func executeCommand(command RequestCommand, getDbByID func(envID, dbID string) (
 	if dbServer.Port != 0 {
 		options = append(options, fmt.Sprintf("mode=%v", dbServer.Port))
 	}
-	var connStr ConnectionString
-	connStr, err = NewConnectionString(
+	var connParams dbconnection.Params
+	connParams, err = dbconnection.NewConnectionString(
 		dbServer.Driver,
 		dbServer.Host,
 		command.Credentials.Username,
@@ -119,11 +120,11 @@ func executeCommand(command RequestCommand, getDbByID func(envID, dbID string) (
 		return
 	}
 
-	fmt.Println(connStr)
-	//fmt.Println(envDb.ServerReference.Driver, connStr.String())
+	fmt.Println(connParams)
+	//fmt.Println(envDb.ServerReference.Driver, connParams.String())
 	//fmt.Println(command.Text)
 	var db *sql.DB
-	if db, err = sql.Open(dbServer.Driver, connStr.String()); err != nil {
+	if db, err = sql.Open(dbServer.Driver, connParams.String()); err != nil {
 		return
 	}
 	//defer func() {

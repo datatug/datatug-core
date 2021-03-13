@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/datatug/datatug/packages/api"
 	"github.com/datatug/datatug/packages/dbconnection"
-	"github.com/datatug/datatug/packages/execute"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/store"
 	"github.com/datatug/datatug/packages/store/filestore"
@@ -90,7 +89,7 @@ func (v *scanDbCommand) Execute(_ []string) (err error) {
 		}
 		connParams = dbconnection.NewSQLite3ConnectionParams(fullPath, v.Database, dbconnection.ModeReadOnly)
 	default:
-		if connParams, err = execute.NewConnectionString(v.Driver, v.Host, v.User, v.Password, v.Database, options...); err != nil {
+		if connParams, err = dbconnection.NewConnectionString(v.Driver, v.Host, v.User, v.Password, v.Database, options...); err != nil {
 			return fmt.Errorf("invalid connection string: %v", err)
 		}
 	}

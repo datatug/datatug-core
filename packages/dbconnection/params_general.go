@@ -1,18 +1,17 @@
-package execute
+package dbconnection
 
 import (
 	"fmt"
-	"github.com/datatug/datatug/packages/dbconnection"
 	"github.com/strongo/validation"
 	"strconv"
 	"strings"
 )
 
-var _ dbconnection.Params = (*ConnectionString)(nil)
+var _ Params = (*generalParams)(nil)
 
-// ConnectionString hold connection parameters
-type ConnectionString struct {
-	mode     dbconnection.Mode
+// generalParams hold connection parameters
+type generalParams struct {
+	mode     Mode
 	driver   string
 	server   string
 	port     int
@@ -22,51 +21,51 @@ type ConnectionString struct {
 	path     string
 }
 
-func (v ConnectionString) Mode() dbconnection.Mode {
+func (v generalParams) Mode() Mode {
 	return v.mode
 }
 
-func (v ConnectionString) Catalog() string {
+func (v generalParams) Catalog() string {
 	panic("implement me")
 }
 
-func (v ConnectionString) ConnectionString() string {
+func (v generalParams) ConnectionString() string {
 	panic("implement me")
 }
 
 // Driver returns DB
-func (v ConnectionString) Driver() string {
+func (v generalParams) Driver() string {
 	return v.driver
 }
 
 // Database returns DB
-func (v ConnectionString) Database() string {
+func (v generalParams) Database() string {
 	return v.catalog
 }
 
 // Server returns server
-func (v ConnectionString) Server() string {
+func (v generalParams) Server() string {
 	return v.server
 }
 
 // Path returns path to file (for SQLite3)
-func (v ConnectionString) Path() string {
+func (v generalParams) Path() string {
 	return v.path
 }
 
 // Port returns port
-func (v ConnectionString) Port() int {
+func (v generalParams) Port() int {
 	return v.port
 }
 
 // User returns user
-func (v ConnectionString) User() string {
+func (v generalParams) User() string {
 	return v.user
 }
 
 // NewConnectionString creates new connection parameters
-func NewConnectionString(driver, server, user, password, database string, options ...string) (connectionString ConnectionString, err error) {
-	connectionString = ConnectionString{
+func NewConnectionString(driver, server, user, password, database string, options ...string) (connectionString generalParams, err error) {
+	connectionString = generalParams{
 		driver:   driver,
 		server:   server,
 		catalog:  database,
@@ -87,10 +86,10 @@ func NewConnectionString(driver, server, user, password, database string, option
 			}
 		case "mode":
 			switch v {
-			case dbconnection.ModeReadOnly, dbconnection.ModeReadWrite:
+			case ModeReadOnly, ModeReadWrite:
 				connectionString.mode = v // OK
 			default:
-				err = validation.NewErrBadRequestFieldValue("mode", fmt.Sprintf("unsupported value, expected [%v, %v] but got: %v", dbconnection.ModeReadOnly, dbconnection.ModeReadWrite, v))
+				err = validation.NewErrBadRequestFieldValue("mode", fmt.Sprintf("unsupported value, expected [%v, %v] but got: %v", ModeReadOnly, ModeReadWrite, v))
 				return
 			}
 		}
@@ -100,20 +99,7 @@ func NewConnectionString(driver, server, user, password, database string, option
 }
 
 // String serializes connection parameters to a string
-func (v ConnectionString) String() string {
-	switch v.driver {
-	case "sqlite3":
-		return v.forSQLite3()
-	default:
-		return v.def()
-	}
-}
-
-func (v ConnectionString) forSQLite3() string {
-	return fmt.Sprintf("file:%v", v.path)
-}
-
-func (v ConnectionString) def() string {
+func (v generalParams) String() string {
 	connectionParams := make([]string, 0, 8)
 	connectionParams = append(connectionParams, "server="+v.server)
 	//connectionParams = append(connectionParams, fmt.Sprintf("ServerSPN=MSSQLSvc/%v:1433", v.server))
@@ -140,3 +126,4 @@ func (v ConnectionString) def() string {
 
 	return strings.Join(connectionParams, ";")
 }
+

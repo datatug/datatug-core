@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/datatug/datatug/packages/execute"
+	"github.com/datatug/datatug/packages/dbconnection"
 	"github.com/datatug/sql2csv"
 	"github.com/google/uuid"
 	"github.com/gosuri/uitable"
@@ -64,7 +64,7 @@ func (v *executeSQLCommand) Execute(args []string) error {
 		options = append(options, "mode="+v.Mode)
 	}
 
-	connString, err := execute.NewConnectionString(v.Driver, v.Host, v.User, v.Password, v.Schema, options...)
+	connString, err := dbconnection.NewConnectionString(v.Driver, v.Host, v.User, v.Password, v.Schema, options...)
 	if err != nil {
 		return err
 	}

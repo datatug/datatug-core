@@ -1,8 +1,8 @@
 package dbconnection
 
 const (
-	ModeReadOnly  = "ro"
-	ModeReadWrite = "rw"
+	ModeReadOnly  Mode = "ro"
+	ModeReadWrite Mode = "rw"
 )
 
 type Mode = string
