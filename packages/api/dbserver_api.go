@@ -9,12 +9,12 @@ import (
 
 // AddDbServer adds db server to project
 func AddDbServer(projectID string, projDbServer models.ProjDbServer) (err error) {
-	return store.Current.SaveDbServer(projectID, projDbServer, models.DataTugProject{})
+	return store.Current.SaveDbServer(projectID, projDbServer, models.DatatugProject{})
 }
 
 // AddDbServer adds db server to project
 func UpdateDbServer(projectID string, projDbServer models.ProjDbServer) (err error) {
-	return store.Current.SaveDbServer(projectID, projDbServer, models.DataTugProject{})
+	return store.Current.SaveDbServer(projectID, projDbServer, models.DatatugProject{})
 }
 
 // DeleteDbServer adds db server to project

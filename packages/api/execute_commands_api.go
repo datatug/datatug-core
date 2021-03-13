@@ -16,7 +16,7 @@ func ExecuteCommands(request execute.Request) (response execute.Response, err er
 		if db, cached := dbs[key]; cached {
 			return db, err
 		}
-		if envDb, err = store.Current.LoadEnvironmentDb(request.Project, envID, dbID); err != nil {
+		if envDb, err = store.Current.LoadEnvironmentCatalog(request.Project, envID, dbID); err != nil {
 			return
 		}
 		dbs[key] = envDb

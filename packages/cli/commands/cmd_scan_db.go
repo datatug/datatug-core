@@ -48,7 +48,7 @@ func (v *scanDbCommand) Execute(_ []string) (err error) {
 	}
 
 	if v.Host == "" {
-		envDb, err := v.loader.LoadEnvironmentDb(v.projectID, v.Environment, v.Database)
+		envDb, err := v.loader.LoadEnvironmentCatalog(v.projectID, v.Environment, v.Database)
 		if err != nil {
 			return err
 		}
@@ -98,7 +98,7 @@ func (v *scanDbCommand) Execute(_ []string) (err error) {
 		v.DbModel = v.Database
 	}
 
-	var dataTugProject *models.DataTugProject
+	var dataTugProject *models.DatatugProject
 	if dataTugProject, err = api.UpdateDbSchema(context.Background(), v.loader, v.projectID, v.Environment, v.Driver, v.DbModel, connParams); err != nil {
 		return err
 	}

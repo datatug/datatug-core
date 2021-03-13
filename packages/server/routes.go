@@ -15,16 +15,19 @@ func initRouter() {
 	router = httprouter.New()
 	handlerFunc := func(method, path string, handler http.HandlerFunc) {
 		wrappedHandler := func(w http.ResponseWriter, r *http.Request) {
-			log.Println(method, r.RequestURI)
+			if r.URL.Path != "/agent-info" {
+				log.Println(method, r.RequestURI)
+			}
 			handler(w, r)
 		}
 		router.HandlerFunc(method, path, wrappedHandler)
 	}
 
 	router.GlobalOPTIONS = http.HandlerFunc(globalOptionsHandler)
-	handlerFunc(http.MethodGet, "/ping", endpoints.Ping)
-
 	handlerFunc(http.MethodGet, "/", root)
+
+	handlerFunc(http.MethodGet, "/ping", endpoints.Ping)
+	handlerFunc(http.MethodGet, "/agent-info", endpoints.AgentInfo)
 
 	handlerFunc(http.MethodGet, "/projects", endpoints.GetProjects)
 	handlerFunc(http.MethodGet, "/project-summary", endpoints.GetProjectSummary)
@@ -93,8 +96,11 @@ func globalOptionsHandler(w http.ResponseWriter, r *http.Request) {
 
 // IsSupportedOrigin check provided origin is allowed
 func IsSupportedOrigin(origin string) bool {
+	if strings.HasPrefix(origin, "http://localhost:") || strings.HasPrefix(origin, "https://localhost:") {
+		return true
+	}
 	switch origin {
-	case "http://localhost:8100", "https://datatug.app":
+	case "https://datatug.app":
 		return true
 	default:
 		return strings.HasPrefix(origin, "https://") && strings.HasSuffix(origin, ".datatug.app")

@@ -19,7 +19,7 @@ type Loader interface {
 
 type projectLoader interface {
 	// LoadProject returns full DataTug project
-	LoadProject(projectID string) (*models.DataTugProject, error)
+	LoadProject(projectID string) (*models.DatatugProject, error)
 
 	// LoadProjectSummary return summary metadata about DataTug project
 	LoadProjectSummary(projectID string) (models.ProjectSummary, error)
@@ -32,7 +32,7 @@ type environmentsLoader interface {
 	// GetEnvironmentDbSummary returns summary of environment
 	LoadEnvironmentDbSummary(projectID, environmentID, databaseID string) (dto.DbCatalogSummary, error)
 	// GetEnvironmentDbSummary returns DB info for a specific environment
-	LoadEnvironmentDb(projID, environmentID, databaseID string) (*dto.EnvDb, error)
+	LoadEnvironmentCatalog(projID, environmentID, databaseID string) (*dto.EnvDb, error)
 }
 
 type boardsLoader interface {

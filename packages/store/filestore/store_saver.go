@@ -23,7 +23,7 @@ func (saver storeSaver) newProjectSaver(projID string) (projSaver fileSystemSave
 	projSaver = newSaver(projPath, models2md.NewEncoder())
 	return
 }
-func (saver storeSaver) Save(project models.DataTugProject) (err error) {
+func (saver storeSaver) Save(project models.DatatugProject) (err error) {
 	projSaver, err := saver.newProjectSaver(project.ID)
 	if err != nil {
 		return err
@@ -31,7 +31,7 @@ func (saver storeSaver) Save(project models.DataTugProject) (err error) {
 	return projSaver.Save(project)
 }
 
-func (saver storeSaver) SaveDbServer(projID string, dbServer models.ProjDbServer, project models.DataTugProject) (err error) {
+func (saver storeSaver) SaveDbServer(projID string, dbServer models.ProjDbServer, project models.DatatugProject) (err error) {
 	projSaver, err := saver.newProjectSaver(projID)
 	if err != nil {
 		return err

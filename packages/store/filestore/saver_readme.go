@@ -20,7 +20,7 @@ func (s fileSystemSaver) writeTableReadme(table *models.Table, save saveDbServer
 	}
 }
 
-func (s fileSystemSaver) writeProjectReadme(project models.DataTugProject) error {
+func (s fileSystemSaver) writeProjectReadme(project models.DatatugProject) error {
 	filePath := path.Join(s.projDirPath, DatatugFolder, "README.md")
 	file, _ := os.Create(filePath)
 	defer func() {

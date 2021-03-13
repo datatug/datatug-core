@@ -22,7 +22,7 @@ func (loader fileSystemLoader) LoadEntity(projID, entityID string) (entity model
 	return
 }
 
-func loadEntities(projPath string, project *models.DataTugProject) error {
+func loadEntities(projPath string, project *models.DatatugProject) error {
 	entitiesDirPath := path.Join(projPath, DatatugFolder, "entities")
 	if err := loadDir(nil, entitiesDirPath, processDirs,
 		func(files []os.FileInfo) {
@@ -65,7 +65,7 @@ func (loader fileSystemLoader) LoadEntities(projID string) (entities models.Enti
 	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
 		return
 	}
-	project := new(models.DataTugProject)
+	project := new(models.DatatugProject)
 	if err = loadEntities(projPath, project); err != nil {
 		return nil, err
 	}

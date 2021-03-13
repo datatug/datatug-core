@@ -13,7 +13,7 @@ import (
 )
 
 // Save saves project
-func (s fileSystemSaver) Save(project models.DataTugProject) (err error) {
+func (s fileSystemSaver) Save(project models.DatatugProject) (err error) {
 	log.Println("Validating project for saving to: ", s.projDirPath)
 	if err = project.Validate(); err != nil {
 		return fmt.Errorf("project validation failed: %w", err)
@@ -196,7 +196,7 @@ func (s fileSystemSaver) DeleteEntity(entityID string) error {
 	return nil
 }
 
-func (s fileSystemSaver) saveProjectFile(project models.DataTugProject) error {
+func (s fileSystemSaver) saveProjectFile(project models.DatatugProject) error {
 	//var existingProject models.ProjectFile
 	//if err := readJSONFile(projDirPath.Join(s.projDirPath, DatatugFolder, ProjectSummaryFileName), false, &existingProject); err != nil {
 	//	return err
@@ -269,7 +269,7 @@ func (s fileSystemSaver) saveProjectFile(project models.DataTugProject) error {
 	return nil
 }
 
-func (s fileSystemSaver) saveEnvironments(project models.DataTugProject) (err error) {
+func (s fileSystemSaver) saveEnvironments(project models.DatatugProject) (err error) {
 	return s.saveItems("environments", len(project.Environments), func(i int) func() error {
 		return func() error {
 			return s.saveEnvironment(*project.Environments[i])
@@ -349,7 +349,7 @@ func (s fileSystemSaver) saveEnvironment(env models.Environment) (err error) {
 //
 //}
 //
-//func (s fileSystemSaver) getDatabasesReadme(project DataTugProject) (content bytes.Buffer, err error) {
+//func (s fileSystemSaver) getDatabasesReadme(project DatatugProject) (content bytes.Buffer, err error) {
 //
 //	_, err = w.WriteString("# DatabaseDiffs\n\n")
 //	l, err := f.WriteString("Hello World")

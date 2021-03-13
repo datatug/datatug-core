@@ -23,11 +23,11 @@ type ProjectLoader interface {
 	// Loads project summary
 	LoadProjectSummary(id string) (projectSummary models.ProjectSummary, err error)
 	// Loads the whole project
-	LoadProject(id string) (project *models.DataTugProject, err error)
+	LoadProject(id string) (project *models.DatatugProject, err error)
 }
 
 // UpdateDbSchema updates DB schema
-func UpdateDbSchema(_ context.Context, loader ProjectLoader, projectID, environment, driver, dbModelID string, dbConnParams dbconnection.Params) (project *models.DataTugProject, err error) {
+func UpdateDbSchema(_ context.Context, loader ProjectLoader, projectID, environment, driver, dbModelID string, dbConnParams dbconnection.Params) (project *models.DatatugProject, err error) {
 	log.Printf("Updating DB info for project=%v, env=%v, driver=%v, dbModelId=%v, dbCatalog=%v, connStr=%v",
 		projectID, environment, driver, dbModelID, dbConnParams.Catalog(), dbConnParams.String())
 
@@ -119,7 +119,7 @@ func UpdateDbSchema(_ context.Context, loader ProjectLoader, projectID, environm
 	return project, err
 }
 
-func updateProjectWithDbCatalog(project *models.DataTugProject, envID string, dbServerRef models.ServerReference, dbCatalog *models.DbCatalog) (err error) {
+func updateProjectWithDbCatalog(project *models.DatatugProject, envID string, dbServerRef models.ServerReference, dbCatalog *models.DbCatalog) (err error) {
 	if envID == "" {
 		return validation.NewErrRequestIsMissingRequiredField("envID")
 	}
@@ -196,13 +196,13 @@ func updateProjectWithDbCatalog(project *models.DataTugProject, envID string, db
 	return nil
 }
 
-func newProjectWithDatabase(environment string, dbServer models.ServerReference, dbCatalog *models.DbCatalog) (project *models.DataTugProject, err error) {
+func newProjectWithDatabase(environment string, dbServer models.ServerReference, dbCatalog *models.DbCatalog) (project *models.DatatugProject, err error) {
 	//var currentUser *user.User
 	//if currentUser, err = user.Current(); err != nil {
 	//	err = fmt.Errorf("failed to get current OS user")
 	//	return
 	//}
-	project = &models.DataTugProject{
+	project = &models.DatatugProject{
 		Access: "private",
 		Created: &models.ProjectCreated{
 			//ByUsername: currentUser.Username,
@@ -280,9 +280,9 @@ func updateDbModelWithDbCatalog(envID string, dbModel *models.DbModel, dbCatalog
 			environment = &models.DbModelEnv{ID: envID}
 			dbModel.Environments = append(dbModel.Environments, environment)
 		}
-		dbModelDb := environment.Databases.GetByID(dbCatalog.ID)
+		dbModelDb := environment.DbCatalogs.GetByID(dbCatalog.ID)
 		if dbModelDb == nil {
-			environment.Databases = append(environment.Databases, &models.DbModelDb{
+			environment.DbCatalogs = append(environment.DbCatalogs, &models.DbModelDbCatalog{
 				ID: dbCatalog.ID,
 			})
 		}

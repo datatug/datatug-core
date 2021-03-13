@@ -23,6 +23,6 @@ func GetProjectSummary(id string) (*models.ProjectSummary, error) {
 }
 
 // GetProjectFull returns full project metadata
-func GetProjectFull(id string) (project *models.DataTugProject, err error) {
+func GetProjectFull(id string) (project *models.DatatugProject, err error) {
 	return store.Current.LoadProject(id)
 }
