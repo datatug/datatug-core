@@ -85,7 +85,7 @@ func (v *initProjectCommand) Execute(_ []string) (err error) {
 	projectID := random.ID(9)
 
 	store.Current, projectID = filestore.NewSingleProjectStore(v.ProjectDir, projectID)
-	dataTugProject := models.DataTugProject{
+	dataTugProject := models.DatatugProject{
 		ID:     projectID,
 		Access: "private",
 		//Environments: []*models.Environment{

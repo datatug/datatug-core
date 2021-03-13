@@ -72,24 +72,24 @@ func (v DbModelEnvironments) GetByID(id string) *DbModelEnv {
 
 // DbModelEnv holds links from db model to environments
 type DbModelEnv struct {
-	ID        string `json:"id"` // environment ID
-	Databases DbModelDatabases
+	ID         string `json:"id"` // environment ID
+	DbCatalogs DbModelDbCatalogs
 }
 
 func (v DbModelEnv) Validate() error {
 	if v.ID == "" {
 		return validation.NewErrRecordIsMissingRequiredField("id")
 	}
-	if err := v.Databases.Validate(); err != nil {
+	if err := v.DbCatalogs.Validate(); err != nil {
 		return nil
 	}
 	return nil
 }
 
-// DbModelDatabases slice of *DbModelDb
-type DbModelDatabases []*DbModelDb
+// DbModelDbCatalogs slice of *DbModelDbCatalog
+type DbModelDbCatalogs []*DbModelDbCatalog
 
-func (v DbModelDatabases) Validate() error {
+func (v DbModelDbCatalogs) Validate() error {
 	for i, item := range v {
 		if err := item.Validate(); err != nil {
 			return fmt.Errorf("invalid value at index %v: %w", i, err)
@@ -98,8 +98,8 @@ func (v DbModelDatabases) Validate() error {
 	return nil
 }
 
-// GetByID returns DbModelDb by ID
-func (v DbModelDatabases) GetByID(id string) (dbModelDb *DbModelDb) {
+// GetByID returns DbModelDbCatalog by ID
+func (v DbModelDbCatalogs) GetByID(id string) (dbModelDb *DbModelDbCatalog) {
 	for _, dbModelDb = range v {
 		if dbModelDb.ID == id {
 			return dbModelDb
@@ -108,12 +108,12 @@ func (v DbModelDatabases) GetByID(id string) (dbModelDb *DbModelDb) {
 	return nil
 }
 
-// DbModelDb holds DB model
-type DbModelDb struct {
+// DbModelDbCatalog holds DB model
+type DbModelDbCatalog struct {
 	ID string `json:"id"`
 }
 
-func (v DbModelDb) Validate() error {
+func (v DbModelDbCatalog) Validate() error {
 	if v.ID == "" {
 		return validation.NewErrRecordIsMissingRequiredField("id")
 	}

@@ -8,7 +8,7 @@ import (
 )
 
 // ProjectSummaryToReadme encodes project summary to markdown file format
-func (encoder) ProjectSummaryToReadme(w io.Writer, project models.DataTugProject) error {
+func (encoder) ProjectSummaryToReadme(w io.Writer, project models.DatatugProject) error {
 	dbModels := make([]string, len(project.DbModels))
 	for i, dbModel := range project.DbModels {
 		dbModels[i] = fmt.Sprintf("- [%v](dbmodels/%v)", dbModel.ID, dbModel.ID)

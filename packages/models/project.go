@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// DataTugProject holds info about project
-type DataTugProject struct {
+// DatatugProject holds info about project
+type DatatugProject struct {
 	ID string `json:"id"`
 	//UUID          uuid.UUID           `json:"uuid"`
 	Title         string              `json:"title,omitempty"`
@@ -26,7 +26,7 @@ type DataTugProject struct {
 }
 
 // Validate returns error if not valid
-func (v DataTugProject) Validate() error {
+func (v DatatugProject) Validate() error {
 	switch v.Access {
 	case "private", "protected", "public":
 	case "":

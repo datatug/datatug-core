@@ -10,7 +10,7 @@ import (
 	"path"
 )
 
-func (s fileSystemSaver) saveDbServers(dbServers models.ProjDbServers, project models.DataTugProject) (err error) {
+func (s fileSystemSaver) saveDbServers(dbServers models.ProjDbServers, project models.DatatugProject) (err error) {
 	if len(dbServers) == 0 {
 		log.Println("Project have no DB servers to save.")
 		return nil
@@ -55,7 +55,7 @@ func (s fileSystemSaver) saveDbServersReadme(dbServers models.ProjDbServers) err
 }
 
 // SaveDbServer saves ServerReference
-func (s fileSystemSaver) SaveDbServer(dbServer models.ProjDbServer, project models.DataTugProject) (err error) {
+func (s fileSystemSaver) SaveDbServer(dbServer models.ProjDbServer, project models.DatatugProject) (err error) {
 	if err = dbServer.Validate(); err != nil {
 		return fmt.Errorf("db server is not valid: %w", err)
 	}
@@ -83,7 +83,7 @@ func (s fileSystemSaver) SaveDbServer(dbServer models.ProjDbServer, project mode
 	return nil
 }
 
-func (s fileSystemSaver) saveDbServerReadme(dbServer models.ProjDbServer, dbServerDirPath string, project models.DataTugProject) error {
+func (s fileSystemSaver) saveDbServerReadme(dbServer models.ProjDbServer, dbServerDirPath string, project models.DatatugProject) error {
 	return saveReadme(dbServerDirPath, "DB server", func(w io.Writer) error {
 		if err := s.readmeEncoder.DbServerToReadme(w, project.Repository, dbServer); err != nil {
 			return fmt.Errorf("failed to write README.md for DB server: %w", err)
@@ -92,7 +92,7 @@ func (s fileSystemSaver) saveDbServerReadme(dbServer models.ProjDbServer, dbServ
 	})
 }
 
-func (s fileSystemSaver) saveDbServerJSON(dbServer models.ProjDbServer, dbServerDirPath string, _ models.DataTugProject) error {
+func (s fileSystemSaver) saveDbServerJSON(dbServer models.ProjDbServer, dbServerDirPath string, _ models.DatatugProject) error {
 	log.Println("s.projDirPath:", s.projDirPath)
 	log.Println("dbServerDirPath:", dbServerDirPath)
 	if err := os.MkdirAll(dbServerDirPath, 0777); err != nil {

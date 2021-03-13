@@ -19,7 +19,7 @@ type Loader interface {
 
 type projectLoader interface {
 	// LoadProject returns full DataTug project
-	LoadProject(projectID string) (*models.DataTugProject, error)
+	LoadProject(projectID string) (*models.DatatugProject, error)
 
 	// LoadProjectSummary return summary metadata about DataTug project
 	LoadProjectSummary(projectID string) (models.ProjectSummary, error)

@@ -18,15 +18,16 @@ import (
 )
 
 const (
-	demoDriver            = "sqlite3"
-	localhost             = "localhost"
-	chinookSQLiteFileName = "chinook.sqlite"
-	demoDbsDirName        = "dbs"
-	datatugUserDir        = "datatug"
-	demoProjectAlias      = "datatug-demo-project"
-	chinookCatalog        = "chinook"
-	demoProjectID         = demoProjectAlias // + "@datatug"
-	demoProjectDir        = "demo-project"
+	demoDriver                 = "sqlite3"
+	localhost                  = "localhost"
+	chinookSQLiteLocalFileName = "chinook-local.sqlite"
+	chinookSQLiteProdFileName  = "chinook-prod.sqlite"
+	demoDbsDirName             = "dbs"
+	datatugUserDir             = "datatug"
+	demoProjectAlias           = "datatug-demo-project"
+	chinookDbModel             = "chinook"
+	demoProjectID              = demoProjectAlias // + "@datatug"
+	demoProjectDir             = "demo-project"
 )
 
 func init() {
@@ -51,25 +52,28 @@ func (c demoCommand) Execute(_ []string) error {
 		return fmt.Errorf("failed to get datatug user dir: %w", err)
 	}
 
-	dbFilePath := path.Join(datatugUserDirPath, demoDbsDirName, chinookSQLiteFileName)
+	dbFilePaths := []string{
+		path.Join(datatugUserDirPath, demoDbsDirName, chinookSQLiteLocalFileName),
+		path.Join(datatugUserDirPath, demoDbsDirName, chinookSQLiteProdFileName),
+	}
 	if c.ResetDB {
-		if err = c.reDownloadChinookDb(dbFilePath); err != nil {
+		if err = c.reDownloadChinookDb(dbFilePaths...); err != nil {
 			return err
 		}
 	} else if _, err := os.Stat(demoProjectPath); os.IsNotExist(err) {
-		if err = c.downloadChinookSQLiteFile(dbFilePath); err != nil {
+		if err = c.downloadChinookSQLiteFile(dbFilePaths...); err != nil {
 			return fmt.Errorf("failed to download Chinook db file: %w", err)
 		}
-		if err = c.VerifyChinookDb(dbFilePath); err != nil {
+		if err = c.VerifyChinookDb(dbFilePaths...); err != nil {
 			return fmt.Errorf("failed to verify downloaded demo db: %w", err)
 		}
 	} else if err != nil {
 		return fmt.Errorf("failed to check if demo db file exists: %w", err)
 	} else {
-		log.Println("Demo DB file already exists.")
-		if err = c.VerifyChinookDb(dbFilePath); err != nil {
+		log.Println("Demo project folder already exists.")
+		if err = c.VerifyChinookDb(dbFilePaths...); err != nil {
 			log.Println("Failed to verify demo db:", err)
-			if err = c.reDownloadChinookDb(dbFilePath); err != nil {
+			if err = c.reDownloadChinookDb(dbFilePaths...); err != nil {
 				return err
 			}
 		}
@@ -80,7 +84,11 @@ func (c demoCommand) Execute(_ []string) error {
 			return fmt.Errorf("failed to remove existig demo project: %w", err)
 		}
 	}
-	if err = c.createOrUpdateDemoProject(demoProjectPath, dbFilePath); err != nil {
+	demoDbFiles := []demoDbFile{
+		{path: dbFilePaths[0], env: "local", model: chinookDbModel},
+		{path: dbFilePaths[1], env: "prod", model: chinookDbModel},
+	}
+	if err = c.createOrUpdateDemoProject(demoProjectPath, demoDbFiles); err != nil {
 		return fmt.Errorf("failed to create or update demo project: %w", err)
 	}
 	if err = c.addDemoProjectToDatatugConfig(datatugUserDirPath, demoProjectPath); err != nil {
@@ -91,18 +99,17 @@ func (c demoCommand) Execute(_ []string) error {
 	return nil
 }
 
-func (c demoCommand) reDownloadChinookDb(dbFilePath string) error {
+func (c demoCommand) reDownloadChinookDb(dbFilePath ...string) error {
 	log.Println("Will re-download the demo DB file.")
-	if err := c.downloadChinookSQLiteFile(dbFilePath); err != nil {
+	if err := c.downloadChinookSQLiteFile(dbFilePath...); err != nil {
 		return fmt.Errorf("failed to re-download Chinook db file: %w", err)
 	}
-	if err := c.VerifyChinookDb(dbFilePath); err != nil {
+	if err := c.VerifyChinookDb(dbFilePath[0]); err != nil {
 		return fmt.Errorf("failed to verify re-downloaded demo db: %w", err)
 	}
 	return nil
 }
-func (c demoCommand) VerifyChinookDb(filePath string) error {
-	log.Println("Verifying demo db...")
+func (c demoCommand) VerifyChinookDb(filePaths ...string) error {
 	tables := []string{
 		"Employee",
 		"Customer",
@@ -116,17 +123,21 @@ func (c demoCommand) VerifyChinookDb(filePath string) error {
 		"Playlist",
 		"PlaylistTrack",
 	}
-	workers := make([]func() error, len(tables))
+	for _, filePath := range filePaths {
+		fileName := path.Base(filePath)
+		log.Printf("Verifying demo db %v...", fileName)
+		workers := make([]func() error, len(tables))
 
-	results := make([]int, len(tables))
-	for i, t := range tables {
-		workers[i] = c.getRecordsCountWorker(t, filePath, i, results)
-	}
-	if err := parallel.Run(workers...); err != nil {
-		return err
-	}
-	for i, t := range tables {
-		log.Println(fmt.Sprintf("- %v count:", t), results[i])
+		results := make([]int, len(tables))
+		for i, t := range tables {
+			workers[i] = c.getRecordsCountWorker(t, filePath, i, results)
+		}
+		if err := parallel.Run(workers...); err != nil {
+			return err
+		}
+		for i, t := range tables {
+			log.Println(fmt.Sprintf("- %v count:", t), results[i])
+		}
 	}
 	return nil
 }
@@ -167,10 +178,23 @@ func (c demoCommand) getDatatugUserDirPath() (string, error) {
 	return path.Join(dir, datatugUserDir), nil
 }
 
-func (c demoCommand) downloadChinookSQLiteFile(dbFilePath string) error {
-	dirPath := path.Dir(dbFilePath)
-	if err := os.MkdirAll(dirPath, 0777); err != nil {
-		return fmt.Errorf("failed  to create directory for db file(s): %w", err)
+func (c demoCommand) downloadChinookSQLiteFile(dbFilePaths ...string) error {
+
+	writers := make([]io.Writer, len(dbFilePaths))
+	files := make([]*os.File, len(dbFilePaths))
+
+	for i, dbFilePath := range dbFilePaths {
+		dirPath := path.Dir(dbFilePath)
+		if err := os.MkdirAll(dirPath, 0777); err != nil {
+			return fmt.Errorf("failed  to create directory for db file(s): %w", err)
+		}
+		// Create the file
+		dbFile, err := os.Create(dbFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to create db file: %v", err)
+		}
+		files[i] = dbFile
+		writers[i] = dbFile
 	}
 	log.Println("Downloading SQLite version of Chinook database...")
 	const url = "https://github.com/datatug/chinook-database/blob/master/ChinookDatabase/DataSources/Chinook_Sqlite.sqlite?raw=true"
@@ -182,15 +206,13 @@ func (c demoCommand) downloadChinookSQLiteFile(dbFilePath string) error {
 		_ = resp.Body.Close()
 	}()
 
-	// Create the file
-	out, err := os.Create(dbFilePath)
-	if err != nil {
-		return fmt.Errorf("failed to create db file: %v", err)
-	}
 	defer func() {
-		_ = out.Close()
+		for _, f := range files {
+			_ = f.Close()
+		}
 	}()
 
+	out := io.MultiWriter(writers...)
 	// Write the body to file
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
@@ -208,7 +230,13 @@ func (c demoCommand) isDemoProjectExists(demoProjectPath string) (bool, error) {
 	return true, nil
 }
 
-func (c demoCommand) createOrUpdateDemoProject(demoProjectPath, filePath string) error {
+type demoDbFile struct {
+	env   string
+	path  string
+	model string
+}
+
+func (c demoCommand) createOrUpdateDemoProject(demoProjectPath string, demoDbFiles []demoDbFile) error {
 	fileInfo, err := os.Stat(demoProjectPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -221,7 +249,7 @@ func (c demoCommand) createOrUpdateDemoProject(demoProjectPath, filePath string)
 	if fileInfo != nil && !fileInfo.IsDir() {
 		return fmt.Errorf("expected to have a directory at path %v", demoProjectPath)
 	}
-	if err = c.updateDemoProject(demoProjectPath, filePath); err != nil {
+	if err = c.updateDemoProject(demoProjectPath, demoDbFiles); err != nil {
 		return fmt.Errorf("failed to update demo project: %w", err)
 	}
 	return nil
@@ -272,14 +300,39 @@ func (c demoCommand) creatDemoProject(demoProjectPath string) error {
 	return nil
 }
 
-func (c demoCommand) updateDemoProject(demoProjectPath, demoDbPath string) error {
+func (c demoCommand) updateDemoProject(demoProjectPath string, demoDbFiles []demoDbFile) error {
 	log.Println("Updating demo project...")
 	store.Current, _ = filestore.NewSingleProjectStore(demoProjectPath, demoProjectID)
 	project, err := api.GetProjectFull(demoProjectID)
 	if err != nil {
 		return fmt.Errorf("failed to load demo project: %w", err)
 	}
-	projDbServer := project.DbServers.GetProjDbServer(models.ServerReference{Driver: demoDriver, Host: localhost, Port: 0})
+
+	projDbServer, err := c.updateDemoProjectDbServer(project)
+	if err != nil {
+		return fmt.Errorf("failed to updated DB server: %w", err)
+	}
+	for _, demoDb := range demoDbFiles {
+		catalogID := path.Base(demoDb.path)
+		if err := c.updateDemoProjectCatalog(projDbServer, catalogID, demoDb); err != nil {
+			return fmt.Errorf("failed to update project's DB model: %w", err)
+		}
+		if err := c.updateDemoProjectDbModel(project, catalogID, demoDb); err != nil {
+			return fmt.Errorf("failed to update project's DB model: %w", err)
+		}
+		if err := c.updateDemoProjectEnvironments(project, catalogID, demoDb); err != nil {
+			return fmt.Errorf("failed to update project's DB model: %w", err)
+		}
+	}
+
+	if err := store.Current.Save(*project); err != nil {
+		return fmt.Errorf("faield to save project: %w", err)
+	}
+	return nil
+}
+
+func (c demoCommand) updateDemoProjectDbServer(project *models.DatatugProject) (projDbServer *models.ProjDbServer, err error) {
+	projDbServer = project.DbServers.GetProjDbServer(models.ServerReference{Driver: demoDriver, Host: localhost, Port: 0})
 	if projDbServer == nil {
 		projDbServer = &models.ProjDbServer{
 			ProjectItem: models.ProjectItem{
@@ -293,15 +346,18 @@ func (c demoCommand) updateDemoProject(demoProjectPath, demoDbPath string) error
 		project.DbServers = append(project.DbServers, projDbServer)
 		log.Printf("Added new DB server: %v", projDbServer.ID)
 	}
+	return
+}
 
-	catalog := projDbServer.Catalogs.GetDbByID(chinookCatalog)
+func (c demoCommand) updateDemoProjectCatalog(projDbServer *models.ProjDbServer, catalogID string, demoDb demoDbFile) error {
+	catalog := projDbServer.Catalogs.GetDbByID(catalogID)
 	if catalog == nil {
 		catalog = &models.DbCatalog{
 			ProjectItem: models.ProjectItem{
-				ID: chinookCatalog,
+				ID: catalogID,
 			},
 			Driver: "sqlite3",
-			Path: demoDbPath,
+			Path:   demoDb.path,
 		}
 		if dir, err := os.UserHomeDir(); err == nil {
 			if strings.HasPrefix(catalog.Path, dir) {
@@ -312,15 +368,34 @@ func (c demoCommand) updateDemoProject(demoProjectPath, demoDbPath string) error
 		projDbServer.Catalogs = append(projDbServer.Catalogs, catalog)
 		log.Printf("Added new catalog [%v] to DB server [%v]", catalog.ID, projDbServer.ID)
 	}
+	return nil
+}
 
-	if dbModel := project.DbModels.GetDbModelByID(chinookCatalog); dbModel == nil {
-		dbModel = &models.DbModel{
-			ProjectItem: models.ProjectItem{ID: chinookCatalog},
-		}
+func (c demoCommand) updateDemoProjectDbModel(project *models.DatatugProject, catalogID string, demoDb demoDbFile) error {
+	dbModel := project.DbModels.GetDbModelByID(demoDb.model)
+	if dbModel == nil {
+		dbModel := new(models.DbModel)
+		dbModel.ID = chinookDbModel
 		project.DbModels = append(project.DbModels, dbModel)
 	}
-	if err := store.Current.Save(*project); err != nil {
-		return fmt.Errorf("faield to save project: %w", err)
+	dbModelEnv := dbModel.Environments.GetByID(demoDb.env)
+	if dbModelEnv == nil {
+		dbModelEnv = &models.DbModelEnv{
+			ID: demoDb.env,
+		}
+		dbModel.Environments = append(dbModel.Environments, dbModelEnv)
 	}
+	dbModelEnvCatalog := dbModelEnv.DbCatalogs.GetByID(catalogID)
+	if dbModelEnvCatalog == nil {
+		dbModelEnvCatalog = &models.DbModelDbCatalog{
+			ID: catalogID,
+		}
+		dbModelEnv.DbCatalogs = append(dbModelEnv.DbCatalogs, dbModelEnvCatalog)
+	}
+	return nil
+}
+
+func (c demoCommand) updateDemoProjectEnvironments(project models.DatatugProject, catalogID  string, demoDb demoDbFile) error {
+
 	return nil
 }

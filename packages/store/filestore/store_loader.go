@@ -36,12 +36,12 @@ func NewSingleProjectLoader(path string) (loader store.Loader, projectID string)
 }
 
 // LoadProject loads project
-func (loader fileSystemLoader) LoadProject(projID string) (project *models.DataTugProject, err error) {
+func (loader fileSystemLoader) LoadProject(projID string) (project *models.DatatugProject, err error) {
 	var projPath string
 	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
 		return
 	}
-	project = new(models.DataTugProject)
+	project = new(models.DatatugProject)
 	if err = loadProjectFile(projPath, project); err != nil {
 		return nil, err
 	}
