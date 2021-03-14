@@ -32,7 +32,7 @@ func (s fileSystemSaver) saveJSONFile(dirPath, fileName string, v interface{ Val
 	if err = v.Validate(); err != nil {
 		return fmt.Errorf("an attempt to save invalid data %T: %w", v, err)
 	}
-	if err = os.MkdirAll(dirPath, os.ModeDir); err != nil {
+	if err = os.MkdirAll(dirPath, 0777); err != nil {
 		return fmt.Errorf("failed to create boards folder: %w", err)
 	}
 

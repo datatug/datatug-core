@@ -395,7 +395,7 @@ func (c demoCommand) updateDemoProjectDbModel(project *models.DatatugProject, ca
 	return nil
 }
 
-func (c demoCommand) updateDemoProjectEnvironments(project models.DatatugProject, catalogID  string, demoDb demoDbFile) error {
+func (c demoCommand) updateDemoProjectEnvironments(project *models.DatatugProject, catalogID  string, demoDb demoDbFile) error {
 
 	return nil
 }

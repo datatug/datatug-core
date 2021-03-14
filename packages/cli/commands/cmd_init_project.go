@@ -39,7 +39,7 @@ type initProjectCommand struct {
 func (v *initProjectCommand) Execute(_ []string) (err error) {
 	log.Println("Initiating project...")
 
-	if err = os.MkdirAll(v.ProjectDir, os.ModeDir); err != nil {
+	if err = os.MkdirAll(v.ProjectDir, 0777); err != nil {
 		return err
 	}
 	dataTugDirPath := path.Join(v.ProjectDir, "datatug")

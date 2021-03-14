@@ -42,7 +42,7 @@ func (s fileSystemSaver) saveDbCatalog(dbServer models.ProjDbServer, dbCatalog *
 		repository: repository,
 		dirPath:    path.Join(s.projDirPath, DatatugFolder, ServersFolder, DbFolder, dbServer.Server.Driver, serverName, DbCatalogsFolder, dbCatalog.ID),
 	}
-	if err := os.MkdirAll(saverCtx.dirPath, os.ModeDir); err != nil {
+	if err := os.MkdirAll(saverCtx.dirPath, 0777); err != nil {
 		return err
 	}
 

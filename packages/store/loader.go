@@ -27,12 +27,12 @@ type projectLoader interface {
 
 type environmentsLoader interface {
 	// LoadEnvironmentSummary return summary metadata about environment
-	LoadEnvironmentSummary(projectID, environmentID string) (dto.EnvironmentSummary, error)
+	LoadEnvironmentSummary(projectID, environmentID string) (models.EnvironmentSummary, error)
 
 	// GetEnvironmentDbSummary returns summary of environment
 	LoadEnvironmentDbSummary(projectID, environmentID, databaseID string) (dto.DbCatalogSummary, error)
 	// GetEnvironmentDbSummary returns DB info for a specific environment
-	LoadEnvironmentCatalog(projID, environmentID, databaseID string) (*dto.EnvDb, error)
+	LoadEnvironmentCatalog(projID, environmentID, databaseID string) (*models.EnvDb, error)
 }
 
 type boardsLoader interface {

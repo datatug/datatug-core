@@ -13,7 +13,7 @@ import (
 func (s fileSystemSaver) saveEnvServers(env string, servers []*models.EnvDbServer) (err error) {
 	dirPath := path.Join(s.projDirPath, DatatugFolder, EnvironmentsFolder, env, ServersFolder, DbFolder)
 	log.Printf("saving %v servers for env %v to %v...", len(servers), env, dirPath)
-	if err = os.MkdirAll(dirPath, os.ModeDir); err != nil {
+	if err = os.MkdirAll(dirPath, 0777); err != nil {
 		return fmt.Errorf("failed to create environment servers folder: %w", err)
 	}
 	serversByHost := make(map[string][]*models.EnvDbServer, len(servers))

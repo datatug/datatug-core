@@ -16,9 +16,10 @@ func (s fileSystemSaver) saveDbServers(dbServers models.ProjDbServers, project m
 		return nil
 	}
 	log.Printf("Saving %v DB servers...\n", len(project.DbServers))
+	dbServersDirPath := path.Join(s.projDirPath, DatatugFolder, ServersFolder, DbFolder)
 	err = parallel.Run(
 		func() (err error) {
-			return s.saveDbServersJSON(dbServers)
+			return s.saveDbServersJSON(dbServersDirPath, dbServers)
 		},
 		func() (err error) {
 			return s.saveDbServersReadme(dbServers)
@@ -38,13 +39,12 @@ func (s fileSystemSaver) saveDbServers(dbServers models.ProjDbServers, project m
 	return nil
 }
 
-func (s fileSystemSaver) saveDbServersJSON(dbServers models.ProjDbServers) error {
+func (s fileSystemSaver) saveDbServersJSON(dbServersDirPath string, dbServers models.ProjDbServers) error {
 	servers := make(models.ServerReferences, len(dbServers))
 	for i, server := range dbServers {
 		servers[i] = server.Server
 	}
-	dirPath := path.Join(s.projDirPath, ServersFolder, DbFolder)
-	if err := s.saveJSONFile(dirPath, "servers.json", servers); err != nil {
+	if err := s.saveJSONFile(dbServersDirPath, "servers.json", servers); err != nil {
 		return fmt.Errorf("failed to save list of servers as JSON file: %w", err)
 	}
 	return nil

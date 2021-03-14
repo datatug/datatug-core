@@ -19,7 +19,7 @@ func (s fileSystemSaver) Save(project models.DatatugProject) (err error) {
 		return fmt.Errorf("project validation failed: %w", err)
 	}
 	log.Println("Project is valid")
-	if err = os.MkdirAll(path.Join(s.projDirPath, DatatugFolder), os.ModeDir); err != nil {
+	if err = os.MkdirAll(path.Join(s.projDirPath, DatatugFolder), 0777); err != nil {
 		return fmt.Errorf("failed to create datatug folder: %w", err)
 	}
 	if err = parallel.Run(
@@ -298,7 +298,7 @@ func (s fileSystemSaver) saveDbModel(dbModel *models.DbModel) (err error) {
 		return fmt.Errorf("db models is invalid: %w", err)
 	}
 	dirPath := path.Join(s.projDirPath, DatatugFolder, DbModelsFolder, dbModel.ID)
-	if err = os.MkdirAll(dirPath, os.ModeDir); err != nil {
+	if err = os.MkdirAll(dirPath, 0777); err != nil {
 		return fmt.Errorf("failed to create db model folder: %w", err)
 	}
 	return parallel.Run(
@@ -326,7 +326,7 @@ func (s fileSystemSaver) saveBoards(boards models.Boards) (err error) {
 func (s fileSystemSaver) saveEnvironment(env models.Environment) (err error) {
 	dirPath := path.Join(s.projDirPath, DatatugFolder, EnvironmentsFolder, env.ID)
 	log.Printf("Saving environment [%v]: %v", env.ID, dirPath)
-	if err = os.MkdirAll(dirPath, os.ModeDir); err != nil {
+	if err = os.MkdirAll(dirPath, 0777); err != nil {
 		return fmt.Errorf("failed to create environemtn folder: %w", err)
 	}
 	return parallel.Run(
@@ -371,7 +371,7 @@ func (s fileSystemSaver) saveSchemaModels(dirPath string, schemas []*models.Sche
 		return func() error {
 			schema := schemas[i]
 			schemaDirPath := path.Join(dirPath, schema.ID)
-			if err := os.MkdirAll(schemaDirPath, os.ModeDir); err != nil {
+			if err := os.MkdirAll(schemaDirPath, 0777); err != nil {
 				return err
 			}
 			return s.saveSchemaModel(schemaDirPath, *schemas[i])
@@ -399,7 +399,7 @@ func (s fileSystemSaver) saveSchemaModel(schemaDirPath string, schema models.Sch
 func (s fileSystemSaver) saveTables(tables []*models.Table, save saveDbServerObjContext) error {
 	save.dirPath = path.Join(save.dirPath, save.plural)
 	if len(tables) > 0 {
-		if err := os.MkdirAll(save.dirPath, os.ModeDir); err != nil {
+		if err := os.MkdirAll(save.dirPath, 0777); err != nil {
 			return fmt.Errorf("failed to create a folder for %v: %w", save.plural, err)
 		}
 	}
@@ -413,7 +413,7 @@ func (s fileSystemSaver) saveTables(tables []*models.Table, save saveDbServerObj
 
 func (s fileSystemSaver) saveTableModel(dirPath string, table models.TableModel) error {
 	tableDirPath := path.Join(dirPath, table.Name)
-	if err := os.MkdirAll(tableDirPath, os.ModeDir); err != nil {
+	if err := os.MkdirAll(tableDirPath, 0777); err != nil {
 		return err
 	}
 
@@ -457,7 +457,7 @@ type saveDbServerObjContext struct {
 
 func (s fileSystemSaver) saveTable(table *models.Table, save saveDbServerObjContext) (err error) {
 	save.dirPath = path.Join(save.dirPath, table.Name)
-	if err = os.MkdirAll(save.dirPath, os.ModeDir); err != nil {
+	if err = os.MkdirAll(save.dirPath, 0777); err != nil {
 		return err
 	}
 

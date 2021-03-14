@@ -64,7 +64,7 @@ func (v *serveCommand) Execute(_ []string) (err error) {
 		if v.Local {
 			v.ClientURL = "http://localhost:4200" // consider choosing some unique default port
 		} else {
-			v.ClientURL = fmt.Sprintf("https://datatug.app/pwa/agent/localhost:%v", v.Port)
+			v.ClientURL = fmt.Sprintf("https://datatug.app/pwa/repo/localhost:%v", v.Port)
 		}
 	}
 

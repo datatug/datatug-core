@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/datatug/datatug/packages/dbconnection"
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/server/dto"
 	"github.com/google/uuid"
 	"log"
 	"strings"
@@ -16,11 +15,11 @@ import (
 
 // Executor executes DataTug commands
 type Executor struct {
-	getDbByID func(envID, dbID string) (*dto.EnvDb, error)
+	getDbByID func(envID, dbID string) (*models.EnvDb, error)
 }
 
 // NewExecutor creates new executor
-func NewExecutor(getDbByID func(envID, dbID string) (*dto.EnvDb, error)) Executor {
+func NewExecutor(getDbByID func(envID, dbID string) (*models.EnvDb, error)) Executor {
 	return Executor{getDbByID}
 }
 
@@ -84,12 +83,12 @@ func (e Executor) executeMulti(request Request) (response Response, err error) {
 	return
 }
 
-func executeCommand(command RequestCommand, getDbByID func(envID, dbID string) (*dto.EnvDb, error)) (recordset models.Recordset, err error) {
+func executeCommand(command RequestCommand, getDbByID func(envID, dbID string) (*models.EnvDb, error)) (recordset models.Recordset, err error) {
 
 	var dbServer models.ServerReference
 
 	if getDbByID != nil {
-		var envDb *dto.EnvDb
+		var envDb *models.EnvDb
 		if envDb, err = getDbByID(command.Env, command.DB); err != nil {
 			return
 		}

@@ -210,15 +210,24 @@ func loadSchemaModel(dbModelDirPath, schemaID string) (schemaModel *models.Schem
 	return
 }
 
-func loadEnvFile(envDirPath string, environment *models.Environment) (err error) {
-	filePath := path.Join(envDirPath, jsonFileName(environment.ID, environmentFileSuffix))
-	return readJSONFile(filePath, true, environment)
+func loadEnvFile(envDirPath, envID string) (env models.EnvironmentSummary, err error) {
+	filePath := path.Join(envDirPath, jsonFileName(envID, environmentFileSuffix))
+	if err = readJSONFile(filePath, true, &env); err != nil {
+		return
+	}
+	env.ID = envID
+	return
 }
 
 func loadEnvironment(dirPath string, env *models.Environment) (err error) {
 	return parallel.Run(
 		func() error {
-			return loadEnvFile(dirPath, env)
+			envSummary, err := loadEnvFile(dirPath, env.ID)
+			if err != nil {
+				return err
+			}
+			env.ProjectItem = envSummary.ProjectItem
+			return nil
 		},
 		func() error {
 			return loadEnvServers(path.Join(dirPath, ServersFolder), env)

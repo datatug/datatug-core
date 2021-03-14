@@ -205,31 +205,27 @@ func (loader fileSystemLoader) GetProjectPath(projectID string) (projID string, 
 }
 
 // GetEnvironmentSummary loads environment summary
-func (loader fileSystemLoader) LoadEnvironmentSummary(projID, envID string) (envSummary dto.EnvironmentSummary, err error) {
+func (loader fileSystemLoader) LoadEnvironmentSummary(projID, envID string) (envSummary models.EnvironmentSummary, err error) {
 	var projPath string
 	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
 		return
 	}
-	env := models.Environment{ProjectItem: models.ProjectItem{ID: envID}}
-	if err = loadEnvironment(path.Join(projPath, DatatugFolder, EnvironmentsFolder, envID), &env); err != nil {
+	envDirPath := path.Join(projPath, DatatugFolder, EnvironmentsFolder, envID)
+	if envSummary, err = loadEnvFile(envDirPath, envID); err != nil {
 		err = fmt.Errorf("failed to load environment [%v] from project [%v]: %w", envID, projID, err)
 		return
-	}
-	envSummary.ProjectItem = env.ProjectItem
-	for _, dbServer := range env.DbServers {
-		envSummary.Servers = append(envSummary.Servers, *dbServer)
 	}
 	return
 }
 
 // GetEnvironmentDb return information about environment DB
-func (loader fileSystemLoader) LoadEnvironmentCatalog(projID, environmentID, databaseID string) (envDb *dto.EnvDb, err error) {
+func (loader fileSystemLoader) LoadEnvironmentCatalog(projID, environmentID, databaseID string) (envDb *models.EnvDb, err error) {
 	var projPath string
 	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
 		return
 	}
 	filePath := path.Join(projPath, DatatugFolder, EnvironmentsFolder, environmentID, DbCatalogsFolder, databaseID, jsonFileName(databaseID, dbCatalogFileSuffix))
-	envDb = new(dto.EnvDb)
+	envDb = new(models.EnvDb)
 	if err = readJSONFile(filePath, true, envDb); err != nil {
 		err = fmt.Errorf("failed to load environment DB catalog [%v] from env [%v] from project [%v]: %w", databaseID, environmentID, projID, err)
 		return nil, err
