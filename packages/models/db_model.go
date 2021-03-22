@@ -52,6 +52,9 @@ type DbModel struct {
 type DbModelEnvironments []*DbModelEnv
 
 func (v DbModelEnvironments) Validate() error {
+	if v == nil {
+		return nil
+	}
 	for i, env := range v {
 		if err := env.Validate(); err != nil {
 			return fmt.Errorf("invalid value at index %v: %w", i, err)

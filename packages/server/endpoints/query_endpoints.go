@@ -7,12 +7,15 @@ import (
 	"net/http"
 )
 
+var getQueries = api.GetQueries
+var getQuery = api.GetQuery
+
 // GetQueries returns list of project queries
 func GetQueries(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	projectID := q.Get(urlQueryParamProjectID)
 	folder := q.Get(urlQueryParamFolder)
-	v, err := api.GetQueries(projectID, folder)
+	v, err := getQueries(projectID, folder)
 	returnJSON(w, r, http.StatusOK, err, v)
 }
 
@@ -23,7 +26,7 @@ func GetQuery(w http.ResponseWriter, r *http.Request) {
 		handleError(err, w, r)
 		return
 	}
-	query, err := api.GetQuery(params)
+	query, err := getQuery(params)
 	if err != nil {
 		handleError(err, w, r)
 		return
