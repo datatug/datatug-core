@@ -352,13 +352,11 @@ func (c demoCommand) updateDemoProjectDbServer(project *models.DatatugProject) (
 func (c demoCommand) updateDemoProjectCatalog(projDbServer *models.ProjDbServer, catalogID string, demoDb demoDbFile) error {
 	catalog := projDbServer.Catalogs.GetDbByID(catalogID)
 	if catalog == nil {
-		catalog = &models.DbCatalog{
-			ProjectItem: models.ProjectItem{
-				ID: catalogID,
-			},
-			Driver: "sqlite3",
-			Path:   demoDb.path,
-		}
+		catalog = new(models.DbCatalog)
+		catalog.ID = catalogID
+		catalog.Driver = "sqlite3"
+		catalog.Path = demoDb.path
+
 		if dir, err := os.UserHomeDir(); err == nil {
 			if strings.HasPrefix(catalog.Path, dir) {
 				catalog.Path = strings.Replace(catalog.Path, dir, "~", 1)
@@ -378,11 +376,13 @@ func (c demoCommand) updateDemoProjectDbModel(project *models.DatatugProject, ca
 		dbModel.ID = chinookDbModel
 		project.DbModels = append(project.DbModels, dbModel)
 	}
+	//goland:noinspection GoNilness
 	dbModelEnv := dbModel.Environments.GetByID(demoDb.env)
 	if dbModelEnv == nil {
 		dbModelEnv = &models.DbModelEnv{
 			ID: demoDb.env,
 		}
+		//goland:noinspection GoNilness
 		dbModel.Environments = append(dbModel.Environments, dbModelEnv)
 	}
 	dbModelEnvCatalog := dbModelEnv.DbCatalogs.GetByID(catalogID)
@@ -395,7 +395,8 @@ func (c demoCommand) updateDemoProjectDbModel(project *models.DatatugProject, ca
 	return nil
 }
 
-func (c demoCommand) updateDemoProjectEnvironments(project *models.DatatugProject, catalogID  string, demoDb demoDbFile) error {
+//goland:noinspection GoUnusedParameter
+func (c demoCommand) updateDemoProjectEnvironments(project *models.DatatugProject, catalogID string, demoDb demoDbFile) error {
 
 	return nil
 }

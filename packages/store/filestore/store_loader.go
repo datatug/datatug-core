@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
-	"github.com/datatug/datatug/packages/server/dto"
 	"github.com/datatug/datatug/packages/store"
 	"github.com/strongo/validation"
 	"os"
@@ -18,7 +17,7 @@ type fileSystemLoader struct {
 }
 
 // GetEnvironmentDbSummary return DB summary for specific environment
-func (loader fileSystemLoader) LoadEnvironmentDbSummary(projectID, environmentID, databaseID string) (dto.DbCatalogSummary, error) {
+func (loader fileSystemLoader) LoadEnvironmentDbSummary(projectID, environmentID, databaseID string) (models.DbCatalogSummary, error) {
 	panic(fmt.Sprintf("implement me: %v, %v, %v", projectID, environmentID, databaseID))
 }
 

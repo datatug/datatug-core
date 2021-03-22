@@ -3,7 +3,6 @@ package filestore
 import (
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/server/dto"
 	"github.com/datatug/datatug/packages/slice"
 	"github.com/datatug/datatug/packages/store"
 	"log"
@@ -13,7 +12,7 @@ import (
 )
 
 // GetDbServerSummary returns ProjDbServerSummary
-func (loader fileSystemLoader) LoadDbServerSummary(projID string, dbServer models.ServerReference) (summary *dto.ProjDbServerSummary, err error) {
+func (loader fileSystemLoader) LoadDbServerSummary(projID string, dbServer models.ServerReference) (summary *models.ProjDbServerSummary, err error) {
 	if projID == "" && len(projectPaths) == 1 {
 		projID = store.SingleProjectID
 	}
@@ -22,9 +21,9 @@ func (loader fileSystemLoader) LoadDbServerSummary(projID string, dbServer model
 	return
 }
 
-func loadDbServerForDbServerSummary(projPath string, dbServer models.ServerReference) (summary *dto.ProjDbServerSummary, err error) {
+func loadDbServerForDbServerSummary(projPath string, dbServer models.ServerReference) (summary *models.ProjDbServerSummary, err error) {
 	dbServerPath := path.Join(projPath, "servers", "db", dbServer.Driver, dbServer.FileName())
-	summary = new(dto.ProjDbServerSummary)
+	summary = new(models.ProjDbServerSummary)
 	summary.DbServer = dbServer
 	var dbsByEnv map[string][]string
 	if dbsByEnv, err = loadDbServerCatalogNamesByEnvironments(projPath, dbServer); err != nil {
@@ -35,10 +34,10 @@ func loadDbServerForDbServerSummary(projPath string, dbServer models.ServerRefer
 	return
 }
 
-func loadDbCatalogsForDbServerSummary(dbServerPath string, dbsByEnv map[string][]string) (catalogSummaries []*dto.DbCatalogSummary, err error) {
+func loadDbCatalogsForDbServerSummary(dbServerPath string, dbsByEnv map[string][]string) (catalogSummaries []*models.DbCatalogSummary, err error) {
 	catalogsPath := path.Join(dbServerPath, "catalogs")
 	err = loadDir(nil, catalogsPath, processDirs, func(files []os.FileInfo) {
-		catalogSummaries = make([]*dto.DbCatalogSummary, 0, len(files))
+		catalogSummaries = make([]*models.DbCatalogSummary, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
 		catalogSummary, err := loadDbCatalogSummary(catalogsPath, f.Name())
 		if err != nil {
@@ -57,10 +56,10 @@ func loadDbCatalogsForDbServerSummary(dbServerPath string, dbsByEnv map[string][
 	return
 }
 
-func loadDbCatalogSummary(catalogsDirPath, dirName string) (*dto.DbCatalogSummary, error) {
+func loadDbCatalogSummary(catalogsDirPath, dirName string) (*models.DbCatalogSummary, error) {
 	dirPath := path.Join(catalogsDirPath, dirName)
 	jsonFilePath := path.Join(dirPath, jsonFileName(dirName, "db"))
-	var catalogSummary dto.DbCatalogSummary
+	var catalogSummary models.DbCatalogSummary
 	if err := readJSONFile(jsonFilePath, true, &catalogSummary); err != nil {
 		return nil, fmt.Errorf("failed to read DB catalog summary from JSON file: %w", err)
 	}

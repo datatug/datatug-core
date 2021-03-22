@@ -22,9 +22,8 @@ func NewInformationSchema(server models.ServerReference, db *sql.DB) Information
 
 // GetDatabase returns complete information about a database
 func (s InformationSchema) GetDatabase(name string) (database *models.DbCatalog, err error) {
-	database = &models.DbCatalog{
-		ProjectItem: models.ProjectItem{ID: name},
-	}
+	database = new(models.DbCatalog)
+	database.ID = name
 	var tables []*models.Table
 	if tables, err = s.getTables(name); err != nil {
 		return database, fmt.Errorf("failed to retrive tables metadata: %w", err)

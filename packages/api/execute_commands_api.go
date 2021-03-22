@@ -23,6 +23,10 @@ func ExecuteCommands(request execute.Request) (response execute.Response, err er
 		return
 	}
 
-	executor := execute.NewExecutor(getEnvDbByID)
+	var getCatalog = func(server models.ServerReference, catalogID string) (*models.DbCatalogSummary, error) {
+		return store.Current.LoadDbCatalogSummary(request.Project, server, catalogID)
+	}
+
+	executor := execute.NewExecutor(getEnvDbByID, getCatalog)
 	return executor.Execute(request)
 }

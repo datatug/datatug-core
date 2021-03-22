@@ -2,7 +2,6 @@ package store
 
 import (
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/server/dto"
 )
 
 // Loader defines methods for projects loader
@@ -30,7 +29,7 @@ type environmentsLoader interface {
 	LoadEnvironmentSummary(projectID, environmentID string) (models.EnvironmentSummary, error)
 
 	// GetEnvironmentDbSummary returns summary of environment
-	LoadEnvironmentDbSummary(projectID, environmentID, databaseID string) (dto.DbCatalogSummary, error)
+	LoadEnvironmentDbSummary(projectID, environmentID, databaseID string) (models.DbCatalogSummary, error)
 	// GetEnvironmentDbSummary returns DB info for a specific environment
 	LoadEnvironmentCatalog(projID, environmentID, databaseID string) (*models.EnvDb, error)
 }
@@ -58,11 +57,11 @@ type recordsetsLoader interface {
 
 type dbServerLoader interface {
 	// LoadDbServerSummary loads summary on DB server
-	LoadDbServerSummary(projectID string, dbServer models.ServerReference) (summary *dto.ProjDbServerSummary, err error)
+	LoadDbServerSummary(projectID string, dbServer models.ServerReference) (summary *models.ProjDbServerSummary, err error)
 }
 
 type dbCatalogLoader interface {
-	LoadDbCatalogSummary(projectID string, dbServer models.ServerReference, catalogID string) (catalog *dto.DbCatalogSummary, err error)
+	LoadDbCatalogSummary(projectID string, dbServer models.ServerReference, catalogID string) (catalog *models.DbCatalogSummary, err error)
 }
 
 type queriesLoader interface {

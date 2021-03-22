@@ -20,9 +20,8 @@ type scanner struct {
 }
 
 func (s scanner) ScanCatalog(c context.Context, db *sql.DB, name string) (dbCatalog *models.DbCatalog, err error) {
-	dbCatalog = &models.DbCatalog{
-		ProjectItem: models.ProjectItem{ID: name},
-	}
+	dbCatalog = new(models.DbCatalog)
+	dbCatalog.ID = name
 	if err = s.scanTables(c, db, dbCatalog); err != nil {
 		return dbCatalog, fmt.Errorf("failed to get tables & views: %w", err)
 	}
@@ -102,7 +101,9 @@ func (s scanner) scanTables(c context.Context, db *sql.DB, catalog *models.DbCat
 	err = parallel.Run(workers...)
 	if !s.schemaProvider.IsBulkProvider() {
 		for _, table := range tables {
-			s.scanTableConstraints(c, db, catalog.ID, table, tables)
+			if err = s.scanTableConstraints(c, db, catalog.ID, table, tables); err != nil {
+				return err
+			}
 		}
 	}
 	return err

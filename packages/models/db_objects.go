@@ -67,32 +67,6 @@ func (v CatalogObjectsWithRefs) Validate() error {
 	return nil
 }
 
-// Database hold information about a database
-type DbCatalog struct {
-	ProjectItem
-	Driver  string `json:"driver"`
-	Path    string `json:"path,omitempty"` // for SQLite
-	DbModel string `json:"dbModel"`
-	Schemas DbSchemas
-}
-
-// Validate returns error if not valid
-func (v DbCatalog) Validate() error {
-	if err := v.ProjectItem.Validate(false); err != nil {
-		return err
-	}
-	if v.Driver == "" {
-		return validation.NewErrRecordIsMissingRequiredField("driver")
-	}
-	if v.Driver == "sqlite3" && v.Path == "" {
-		return validation.NewErrRecordIsMissingRequiredField("path")
-	}
-	if err := v.Schemas.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 // DbSchemas is a slice of *DbSchema
 type DbSchemas []*DbSchema
 

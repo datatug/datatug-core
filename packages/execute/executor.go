@@ -7,6 +7,7 @@ import (
 	"github.com/datatug/datatug/packages/dbconnection"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/google/uuid"
+	"github.com/mitchellh/go-homedir"
 	"log"
 	"strings"
 	"sync"
@@ -15,12 +16,19 @@ import (
 
 // Executor executes DataTug commands
 type Executor struct {
-	getDbByID func(envID, dbID string) (*models.EnvDb, error)
+	getDbByID         func(envID, dbID string) (*models.EnvDb, error)
+	getCatalogSummary func(server models.ServerReference, catalogID string) (*models.DbCatalogSummary, error)
 }
 
 // NewExecutor creates new executor
-func NewExecutor(getDbByID func(envID, dbID string) (*models.EnvDb, error)) Executor {
-	return Executor{getDbByID}
+func NewExecutor(
+	getDbByID func(envID, dbID string) (*models.EnvDb, error),
+	getCatalogSummary func(server models.ServerReference, catalogID string) (*models.DbCatalogSummary, error),
+) Executor {
+	return Executor{
+		getDbByID:         getDbByID,
+		getCatalogSummary: getCatalogSummary,
+	}
 }
 
 // Execute executes DataTug commands
@@ -34,7 +42,7 @@ func (e Executor) Execute(request Request) (response Response, err error) {
 // ExecuteSingle executes single DB command
 func (e Executor) ExecuteSingle(command RequestCommand) (response Response, err error) {
 	var recordset models.Recordset
-	if recordset, err = executeCommand(command, e.getDbByID); err != nil {
+	if recordset, err = e.executeCommand(command); err != nil {
 		return
 	}
 	response.Commands = []*CommandResponse{
@@ -64,7 +72,7 @@ func (e Executor) executeMulti(request Request) (response Response, err error) {
 				recordset  models.Recordset
 				commandErr error
 			)
-			if recordset, commandErr = executeCommand(cmd, e.getDbByID); commandErr != nil {
+			if recordset, commandErr = e.executeCommand(cmd); commandErr != nil {
 				err = commandErr
 				wg.Done()
 				return
@@ -83,13 +91,13 @@ func (e Executor) executeMulti(request Request) (response Response, err error) {
 	return
 }
 
-func executeCommand(command RequestCommand, getDbByID func(envID, dbID string) (*models.EnvDb, error)) (recordset models.Recordset, err error) {
+func (e Executor) executeCommand(command RequestCommand) (recordset models.Recordset, err error) {
 
 	var dbServer models.ServerReference
 
-	if getDbByID != nil {
+	if e.getDbByID != nil {
 		var envDb *models.EnvDb
-		if envDb, err = getDbByID(command.Env, command.DB); err != nil {
+		if envDb, err = e.getDbByID(command.Env, command.DB); err != nil {
 			return
 		}
 		dbServer = envDb.Server
@@ -105,14 +113,29 @@ func executeCommand(command RequestCommand, getDbByID func(envID, dbID string) (
 		options = append(options, fmt.Sprintf("mode=%v", dbServer.Port))
 	}
 	var connParams dbconnection.Params
-	connParams, err = dbconnection.NewConnectionString(
-		dbServer.Driver,
-		dbServer.Host,
-		command.Credentials.Username,
-		command.Credentials.Password,
-		command.DB,
-		options...,
-	)
+
+	switch dbServer.Driver {
+	case "sqlite3":
+		var catalogSummary *models.DbCatalogSummary
+		if catalogSummary, err = e.getCatalogSummary(dbServer, command.DB); err != nil {
+			return models.Recordset{}, err
+		}
+		fullPath, err := homedir.Expand(catalogSummary.Path)
+		if err != nil {
+			err = fmt.Errorf("failed to expand path for SQLite3 connection string: %w", err)
+			return models.Recordset{}, err
+		}
+		connParams = dbconnection.NewSQLite3ConnectionParams(fullPath, command.DB, dbconnection.ModeReadOnly)
+	default:
+		connParams, err = dbconnection.NewConnectionString(
+			dbServer.Driver,
+			dbServer.Host,
+			command.Credentials.Username,
+			command.Credentials.Password,
+			command.DB,
+			options...,
+		)
+	}
 
 	if err != nil {
 		err = fmt.Errorf("invalid connection parameters: %w", err)
@@ -123,7 +146,7 @@ func executeCommand(command RequestCommand, getDbByID func(envID, dbID string) (
 	//fmt.Println(envDb.ServerReference.Driver, connParams.String())
 	//fmt.Println(command.Text)
 	var db *sql.DB
-	if db, err = sql.Open(dbServer.Driver, connParams.String()); err != nil {
+	if db, err = sql.Open(dbServer.Driver, connParams.ConnectionString()); err != nil {
 		return
 	}
 	//defer func() {
