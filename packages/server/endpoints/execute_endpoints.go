@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/datatug/datatug/packages/api"
 	"github.com/datatug/datatug/packages/execute"
+	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/store"
 	"github.com/strongo/validation"
 	"net/http"
@@ -74,6 +75,43 @@ func ExecuteSelectHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if request.Project == "" {
 		request.Project = store.SingleProjectID
+	}
+	for qpName, qpValue := range query {
+		if !strings.HasPrefix(qpName, "p:") || len(qpName) == 2 {
+			continue
+		}
+		pKey := qpName[2:]
+		i := strings.Index(pKey, ":")
+		pType := pKey[i+1:]
+		var pVal interface{}
+		switch pType {
+		case "integer":
+			pVal, err = strconv.Atoi(qpValue[0])
+			if err != nil {
+				handleError(validation.NewErrBadRequestFieldValue(qpName, fmt.Sprintf("not an integer: %v", err)), w, r)
+				return
+			}
+		case "number":
+		case "string":
+		case "boolean":
+			switch strings.ToLower(qpValue[0]) {
+			case "true", "1", "yes":
+				pVal = true
+			case "", "false", "no":
+				pVal = false
+			}
+		// OK
+		default:
+			handleError(validation.NewErrBadRecordFieldValue(qpName, "unknown or unsupported parameter type: "+pType), w, r)
+			return
+		}
+		request.Parameters = append(request.Parameters, models.Parameter{
+			ID:    pKey,
+			Type:  pType,
+			Value: pVal,
+		})
+		qpName = qpName[:i]
+
 	}
 	if cols != "" {
 		request.Columns = strings.Split(cols, ",")

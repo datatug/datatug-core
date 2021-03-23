@@ -47,9 +47,10 @@ func (v Request) Validate() error {
 type RequestCommand struct {
 	models.Credentials // holds username & password, if not provided trusted connection
 	models.ServerReference
-	Env  string `json:"env"`
-	DB   string `json:"db"`
-	Text string `json:"text"`
+	Env        string             `json:"env"`
+	DB         string             `json:"db"`
+	Text       string             `json:"text"`
+	Parameters []models.Parameter `json:"parameters"`
 }
 
 // Validate checks of command request is valid

@@ -6,12 +6,12 @@ import (
 	"reflect"
 )
 
-// Parameter defines input parameter for a board, widget, etc.
-type Parameter struct {
-	Name         string           `json:"name"`
+// ParameterDef defines input parameter for a board, widget, etc.
+type ParameterDef struct {
+	ID           string           `json:"id"`
 	Type         string           `json:"type"`
-	DefaultValue interface{}      `json:"defaultValue"`
 	Title        string           `json:"title,omitempty"`
+	DefaultValue interface{}      `json:"defaultValue,omitempty"`
 	IsRequired   bool             `json:"isRequired,omitempty"`
 	IsMultiValue bool             `json:"isMultiValue,omitempty"`
 	MaxLength    int              `json:"maxLength,omitempty"`
@@ -21,8 +21,8 @@ type Parameter struct {
 }
 
 // Validate returns error if failed
-func (v Parameter) Validate() error {
-	if v.Name == "" {
+func (v ParameterDef) Validate() error {
+	if v.ID == "" {
 		return validation.NewErrRecordIsMissingRequiredField("name")
 	}
 	if v.Type == "" {
@@ -51,8 +51,8 @@ func (v Parameter) Validate() error {
 	return nil
 }
 
-// Parameters slice of `Parameter`
-type Parameters []Parameter
+// Parameters slice of `ParameterDef`
+type Parameters []ParameterDef
 
 // Validate returns error if failed
 func (v Parameters) Validate() error {
@@ -62,4 +62,10 @@ func (v Parameters) Validate() error {
 		}
 	}
 	return nil
+}
+
+type Parameter struct {
+	ID    string      `json:"id"`
+	Type  string      `json:"type"`
+	Value interface{} `json:"value"`
 }

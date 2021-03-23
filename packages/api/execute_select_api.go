@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"github.com/datatug/datatug/packages/execute"
+	"github.com/datatug/datatug/packages/models"
 	"github.com/strongo/validation"
 	"strings"
 )
@@ -17,6 +18,7 @@ type SelectRequest struct {
 	Where       string
 	Limit       int
 	Columns     []string
+	Parameters  []models.Parameter
 }
 
 // Validate return error if not valid
@@ -89,6 +91,7 @@ func ExecuteSelect(selectRequest SelectRequest) (response execute.Response, err 
 	} else {
 		command.Text = selectRequest.SQL
 	}
+	command.Parameters = selectRequest.Parameters[:]
 	request := execute.Request{
 		Project: selectRequest.Project,
 		Commands: []execute.RequestCommand{

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/mitchellh/go-homedir"
 	"log"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -162,8 +163,19 @@ func (e Executor) executeCommand(command RequestCommand) (recordset models.Recor
 
 	started := time.Now()
 
+	queryText := command.Text
+	var args []interface{}
+	for i, p := range command.Parameters {
+		k := "@" + p.ID
+		j := strings.Index(queryText, k)
+		if j >= 0 {
+			queryText = queryText[:j] + ":" + strconv.Itoa(i+1) + queryText[j+1+len(k):]
+		}
+		args = append(args, p.Value)
+	}
+
 	var rows *sql.Rows
-	if rows, err = db.Query(command.Text); err != nil {
+	if rows, err = db.Query(queryText, args...); err != nil {
 		log.Printf("Failed to execute %v: %v", command.Text, err)
 		return
 	}
