@@ -71,7 +71,7 @@ func (v Entity) Validate() error {
 
 // StringPattern hold patterns for names
 type StringPattern struct {
-	Type          string `json:"type,omitempty"`
+	Type          string `json:"type,omitempty"` // Options: regexp, exact
 	Value         string `json:"value,omitempty"`
 	CaseSensitive bool   `json:"caseSensitive,omitempty"`
 }
@@ -94,12 +94,17 @@ func (v StringPattern) Validate() error {
 	switch v.Type {
 	case "":
 		return validation.NewErrRequestIsMissingRequiredField("type")
+	case "exact":
+		// OK
 	case "regexp":
 		if _, err := regexp.Compile(v.Value); err != nil {
 			return validation.NewErrBadRecordFieldValue("regexp", err.Error())
 		}
 	default:
 		return validation.NewErrBadRecordFieldValue("type", fmt.Sprintf("unknown value: %v", v.Type))
+	}
+	if v.Value == "" {
+		return validation.NewErrRequestIsMissingRequiredField("value")
 	}
 	return nil
 }

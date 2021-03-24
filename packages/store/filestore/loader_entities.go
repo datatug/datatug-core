@@ -13,7 +13,7 @@ func (loader fileSystemLoader) LoadEntity(projID, entityID string) (entity model
 	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
 		return
 	}
-	fileName := path.Join(projPath, DatatugFolder, EntitiesFolder, jsonFileName(entityID, entityFileSuffix))
+	fileName := path.Join(projPath, DatatugFolder, EntitiesFolder, entityID, jsonFileName(entityID, entityFileSuffix))
 	if err = readJSONFile(fileName, true, &entity); err != nil {
 		err = fmt.Errorf("faile to load entity [%v] from project [%v]: %w", entityID, projID, err)
 		return
