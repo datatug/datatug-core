@@ -5,7 +5,6 @@ import (
 	"github.com/datatug/datatug/packages/models"
 	"os"
 	"path"
-	"strings"
 	"sync"
 )
 
@@ -22,14 +21,14 @@ func (loader fileSystemLoader) LoadEntity(projID, entityID string) (entity model
 	return
 }
 
-func loadEntities(projPath string, project *models.DatatugProject) error {
+func loadEntities(projPath string) (entities models.Entities, err error) {
 	entitiesDirPath := path.Join(projPath, DatatugFolder, "entities")
-	if err := loadDir(nil, entitiesDirPath, processDirs,
+	if err = loadDir(nil, entitiesDirPath, processDirs,
 		func(files []os.FileInfo) {
-			project.Entities = make(models.Entities, 0, len(files))
+			entities = make(models.Entities, 0, len(files))
 		},
 		func(f os.FileInfo, i int, mutex *sync.Mutex) error {
-			if f.IsDir() {
+			if !f.IsDir() {
 				return nil
 			}
 			entityID := f.Name()
@@ -47,17 +46,14 @@ func loadEntities(projPath string, project *models.DatatugProject) error {
 				entity.ID = entityID
 			}
 			mutex.Lock()
-			project.Entities = append(project.Entities, entity)
-			mutex.Unlock()
+			defer mutex.Unlock()
+			entities = append(entities, entity)
 			return nil
 		}); err != nil {
-		return fmt.Errorf("failed to load entities: %w", err)
+		err = fmt.Errorf("failed to load entities: %w", err)
+		return
 	}
-	return nil
-}
-
-func isEntityFile(fileName string) bool {
-	return strings.HasSuffix(fileName, entityFileSuffix+".json")
+	return
 }
 
 func (loader fileSystemLoader) LoadEntities(projID string) (entities models.Entities, err error) {
@@ -65,9 +61,5 @@ func (loader fileSystemLoader) LoadEntities(projID string) (entities models.Enti
 	if projID, projPath, err = loader.GetProjectPath(projID); err != nil {
 		return
 	}
-	project := new(models.DatatugProject)
-	if err = loadEntities(projPath, project); err != nil {
-		return nil, err
-	}
-	return project.Entities, nil
+	return loadEntities(projPath)
 }

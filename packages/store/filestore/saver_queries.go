@@ -1,17 +1,24 @@
 package filestore
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/strongo/validation"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 )
 
-func getQueryPaths(queryID, queriesDirPath string) (qID, queryType, queryFileName, queryDir, queryPath string, err error) {
+func getQueryPaths(queryID, queriesDirPath string) (
+	qID, // without directory and .json extension
+	queryType, // Usually sql or HTTP
+	queryFileName,
+	queryDir,
+	queryPath string, // Full file name
+	err error,
+) {
 	if strings.TrimSpace(queryID) == "" {
 		return "", "", "", "", "", validation.NewErrRequestIsMissingRequiredField("queryID")
 	}
@@ -20,7 +27,7 @@ func getQueryPaths(queryID, queriesDirPath string) (qID, queryType, queryFileNam
 	lastDotIndex := strings.LastIndex(qID, ".")
 	queryType = qID[lastDotIndex+1:]
 	qID = qID[:lastDotIndex]
-	queryFileName = jsonFileName(qID, queryType)
+	queryFileName = jsonFileName(qID, strings.ToLower(queryType))
 	queryPath = path.Join(queriesDirPath, queryDir, queryFileName)
 	return
 }
@@ -48,23 +55,25 @@ func (s fileSystemSaver) saveQuery(query models.QueryDef, isNew bool) (err error
 	if err := query.Validate(); err != nil {
 		return fmt.Errorf("invalid query: %w", err)
 	}
-	_, _, queryFileName, queryDir, queryPath, err := getQueryPaths(query.ID, queriesDirPath(s.projDirPath))
+	_, queryType, queryFileName, _, queryPath, err := getQueryPaths(query.ID, queriesDirPath(s.projDirPath))
 
-	if isNew {
-		if _, err := os.Stat(queryPath); err == nil {
-			return fmt.Errorf("query already exists: %v", query.ID)
+	queryText := query.Text
+	queryType = strings.ToLower(queryType)
+	if queryType == "sql" {
+		query.Text = ""
+	}
+
+	if err = s.saveJSONFile(path.Base(queryPath), queryFileName, query); err != nil {
+		return fmt.Errorf("failed to save query to json file: %w", err)
+	}
+
+	if queryType == "sql" {
+		sqlFilePath := queryPath[:len(queryPath)-len(".json")]
+
+		if err = ioutil.WriteFile(sqlFilePath, []byte(queryText), 0666); err != nil {
+			return fmt.Errorf("faile to write query text to .sql file: %w", err)
 		}
 	}
-	file, err := os.Create(queryPath)
-	if err != nil {
-		return fmt.Errorf("failed to open query file for writing: %v: %w", path.Join(queryDir, queryFileName), err)
-	}
-	defer func() {
-		_ = file.Close()
-	}()
-	encoder := json.NewEncoder(file)
-	if err := encoder.Encode(query); err != nil {
-		return err
-	}
+
 	return nil
 }

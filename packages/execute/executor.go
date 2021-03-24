@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"github.com/datatug/datatug/packages/dbconnection"
 	"github.com/datatug/datatug/packages/models"
+	"github.com/datatug/datatug/packages/slice"
 	"github.com/google/uuid"
 	"github.com/mitchellh/go-homedir"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -92,6 +94,8 @@ func (e Executor) executeMulti(request Request) (response Response, err error) {
 	return
 }
 
+var reParameter = regexp.MustCompile("@\\w+")
+
 func (e Executor) executeCommand(command RequestCommand) (recordset models.Recordset, err error) {
 
 	var dbServer models.ServerReference
@@ -161,22 +165,42 @@ func (e Executor) executeCommand(command RequestCommand) (recordset models.Recor
 	//	return
 	//}
 
-	started := time.Now()
-
 	queryText := command.Text
 	var args []interface{}
 	for i, p := range command.Parameters {
 		k := "@" + p.ID
 		j := strings.Index(queryText, k)
 		if j >= 0 {
-			queryText = queryText[:j] + ":" + strconv.Itoa(i+1) + queryText[j+1+len(k):]
+			queryText = strings.Replace(queryText, k, ":"+strconv.Itoa(i+1), -1)
 		}
 		args = append(args, p.Value)
 	}
 
+	if recordset, err = e.executeQuery(db, dbServer.Driver, queryText, args); err != nil {
+		parameters := reParameter.FindAllString(queryText, -1)
+		if strings.HasPrefix(err.Error(), "not enough args to execute query:") {
+			if len(parameters) > 0 {
+				for i, p := range parameters {
+					if slice.IndexOfString(parameters[:i], p) >= 0 {
+						continue
+					}
+					args = append(args, nil)
+					queryText = strings.Replace(queryText, p, fmt.Sprintf(":%v", len(args)), -1)
+				}
+				return e.executeQuery(db, dbServer.Driver, queryText, args)
+			}
+		}
+		return
+	}
+	return
+}
+
+// TODO: Return slice of recordsets
+func (e Executor) executeQuery(db *sql.DB, driver, text string, args []interface{}) (recordset models.Recordset, err error) {
+	started := time.Now()
 	var rows *sql.Rows
-	if rows, err = db.Query(queryText, args...); err != nil {
-		log.Printf("Failed to execute %v: %v", command.Text, err)
+	if rows, err = db.Query(text, args...); err != nil {
+		log.Printf("Failed to execute %v: %v", text, err)
 		return
 	}
 	//defer func() {
@@ -212,7 +236,7 @@ func (e Executor) executeCommand(command RequestCommand) (recordset models.Recor
 			case "UNIQUEIDENTIFIER":
 				if row[i] != nil {
 					v := row[i].([]byte)
-					if dbServer.Driver == "sqlserver" {
+					if driver == "sqlserver" {
 						// Workaround for GUID - see inspiration here https://github.com/satori/go.uuid/issues/19
 						binary.BigEndian.PutUint32(v[0:4], binary.LittleEndian.Uint32(v[0:4]))
 						binary.BigEndian.PutUint16(v[4:6], binary.LittleEndian.Uint16(v[4:6]))

@@ -3,7 +3,6 @@ package models
 import (
 	"fmt"
 	"github.com/strongo/validation"
-	"strings"
 	"time"
 )
 
@@ -42,9 +41,9 @@ func (v QueryDef) Validate() error {
 			return validation.NewErrBadRecordFieldValue("text", "should be empty for folders")
 		}
 	case "sql", "graphql":
-		if strings.TrimSpace(v.Text) == "" {
-			return validation.NewErrRequestIsMissingRequiredField("text")
-		}
+		//if strings.TrimSpace(v.Text) == "" {
+		//	return validation.NewErrRequestIsMissingRequiredField("text")
+		//}
 		if v.Queries != nil {
 			return validation.NewErrBadRecordFieldValue("queries", "should be used only by 'folders'")
 		}

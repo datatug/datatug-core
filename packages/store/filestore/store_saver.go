@@ -91,7 +91,7 @@ func (saver storeSaver) DeleteQuery(projID, queryID string) (err error) {
 
 // CreateQuery creates a new query
 func (saver storeSaver) CreateQuery(projID string, query models.QueryDef) (err error) {
-	log.Printf("storeSaver.SaveQuery: %+v", query)
+	log.Printf("storeSaver.CreateQuery: %+v", query)
 	projSaver, err := saver.newProjectSaver(projID)
 	if err != nil {
 		return err
@@ -101,7 +101,7 @@ func (saver storeSaver) CreateQuery(projID string, query models.QueryDef) (err e
 
 // UpdateQuery updates an existing query
 func (saver storeSaver) UpdateQuery(projID string, query models.QueryDef) (err error) {
-	log.Printf("storeSaver.SaveQuery: %+v", query)
+	log.Printf("storeSaver.UpdateQuery: %+v", query)
 	projSaver, err := saver.newProjectSaver(projID)
 	if err != nil {
 		return err

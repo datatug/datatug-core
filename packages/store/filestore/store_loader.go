@@ -49,7 +49,12 @@ func (loader fileSystemLoader) LoadProject(projID string) (project *models.Datat
 			return loadEnvironments(projPath, project)
 		},
 		func() error {
-			return loadEntities(projPath, project)
+			entities, err := loadEntities(projPath)
+			if err != nil {
+				return err
+			}
+			project.Entities = entities
+			return err
 		},
 		func() error {
 			return loadBoards(projPath, project)

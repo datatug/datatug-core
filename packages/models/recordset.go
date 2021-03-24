@@ -89,10 +89,24 @@ func (v RecordsetColumnDefs) Validate() error {
 
 // RecordsetColumnDef defines a column of a recordset
 type RecordsetColumnDef struct {
-	Name     string          `json:"name"`
-	Type     string          `json:"type"`
-	Required bool            `json:"required,omitempty"`
-	Meta     *EntityFieldRef `json:"meta,omitempty"`
+	Name     string             `json:"name"`
+	Type     string             `json:"type"`
+	Required bool               `json:"required,omitempty"`
+	Meta     *EntityFieldRef    `json:"meta,omitempty"`
+	HideIf   HideRecordsetColIf `json:"hideIf,omitempty"`
+}
+
+type HideRecordsetColIf struct {
+	Parameters []string `json:"parameters,omitempty"`
+}
+
+func (v HideRecordsetColIf) Validate() error {
+	for i, p := range v.Parameters {
+		if p == "" {
+			return validation.NewErrRecordIsMissingRequiredField(fmt.Sprintf("parameters[%v]", i))
+		}
+	}
+	return nil
 }
 
 // Validate returns error if not valid
@@ -107,6 +121,9 @@ func (v RecordsetColumnDef) Validate() error {
 		if err := v.Meta.Validate(); err != nil {
 			return validation.NewErrBadRecordFieldValue("meta", err.Error())
 		}
+	}
+	if err := v.HideIf.Validate(); err != nil {
+		return err
 	}
 	return nil
 }

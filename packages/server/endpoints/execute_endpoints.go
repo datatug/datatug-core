@@ -86,7 +86,12 @@ func ExecuteSelectHandler(w http.ResponseWriter, r *http.Request) {
 		var pVal interface{}
 		switch pType {
 		case "integer":
-			pVal, err = strconv.Atoi(qpValue[0])
+			a := qpValue[0]
+			if a == "undefined" || a == "nil" || a == "null" {
+				pVal = nil
+				break
+			}
+			pVal, err = strconv.Atoi(a)
 			if err != nil {
 				handleError(validation.NewErrBadRequestFieldValue(qpName, fmt.Sprintf("not an integer: %v", err)), w, r)
 				return
