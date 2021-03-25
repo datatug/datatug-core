@@ -66,7 +66,7 @@ func (s fileSystemSaver) CreateQueryFolder(parentPath, id string) (folder models
 		if !errors.Is(err, os.ErrNotExist) {
 			return
 		}
-		if err = ioutil.WriteFile(readmePath, []byte(fmt.Sprintf("# %v", id)), 066); err != nil {
+		if err = ioutil.WriteFile(readmePath, []byte(fmt.Sprintf("# %v", id)), 0666); err != nil {
 			return
 		}
 	}
