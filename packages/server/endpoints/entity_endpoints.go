@@ -24,8 +24,8 @@ func GetEntities(w http.ResponseWriter, request *http.Request) {
 // SaveEntity handles save entity endpoint
 func SaveEntity(w http.ResponseWriter, request *http.Request) {
 	var entity models.Entity
-	saveFunc := func(projectID string) error {
-		return api.SaveEntity(projectID, &entity)
+	saveFunc := func(projectID string) (interface{}, error) {
+		return entity, api.SaveEntity(projectID, &entity)
 	}
 	saveItem(w, request, &entity, saveFunc)
 }

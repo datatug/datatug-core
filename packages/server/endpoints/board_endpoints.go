@@ -19,9 +19,9 @@ func GetBoard(w http.ResponseWriter, r *http.Request) {
 // CreateBoard handles board creation endpoint
 func CreateBoard(w http.ResponseWriter, r *http.Request) {
 	var board models.Board
-	saveBoard := func(projectID string) error {
+	saveBoard := func(projectID string) (interface{}, error) {
 		board.ID = random.ID(9)
-		return api.SaveBoard(projectID, board)
+		return board, api.SaveBoard(projectID, board)
 	}
 	saveItem(w, r, &board, saveBoard)
 }
@@ -29,8 +29,8 @@ func CreateBoard(w http.ResponseWriter, r *http.Request) {
 // SaveBoard handles save board endpoint
 func SaveBoard(w http.ResponseWriter, r *http.Request) {
 	var board models.Board
-	saveBoard := func(projectID string) error {
-		return api.SaveBoard(projectID, board)
+	saveBoard := func(projectID string) (interface{}, error) {
+		return board, api.SaveBoard(projectID, board)
 	}
 	saveItem(w, r, &board, saveBoard)
 }

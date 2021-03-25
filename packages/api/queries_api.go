@@ -24,8 +24,13 @@ func (v QueryRequestParams) Validate() error {
 }
 
 // GetQueries returns queries
-func GetQueries(projectID, folder string) ([]models.QueryDef, error) {
+func GetQueries(projectID, folder string) (models.QueryFolder, error) {
 	return store.Current.LoadQueries(projectID, folder)
+}
+
+// CreateQuery creates a new query
+func CreateQueryFolder(projectID, path, id string) (folder models.QueryFolder, err error) {
+	return store.Current.CreateQueryFolder(projectID, path, id)
 }
 
 // CreateQuery creates a new query
@@ -48,6 +53,17 @@ func UpdateQuery(params QueryRequestParams, query models.QueryDef) error {
 		return err
 	}
 	return store.Current.UpdateQuery(params.Project, query)
+}
+
+// DeleteFolder deletes queries folder
+func DeleteQueryFolder(projectID string, path string) error {
+	if projectID == "" {
+		return validation.NewErrRequestIsMissingRequiredField("projectID")
+	}
+	if path == "" {
+		return validation.NewErrRequestIsMissingRequiredField("path")
+	}
+	return store.Current.DeleteQueryFolder(projectID, path)
 }
 
 // DeleteQuery deletes query

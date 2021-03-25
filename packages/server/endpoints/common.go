@@ -13,7 +13,11 @@ func deleteItem(w http.ResponseWriter, request *http.Request, idParam string, de
 	returnJSON(w, request, http.StatusOK, err, true)
 }
 
-func saveItem(w http.ResponseWriter, r *http.Request, target interface{}, saveFunc func(projectID string) error) {
+func saveItem(
+	w http.ResponseWriter, r *http.Request,
+	target interface{},
+	saveFunc func(projectID string) (result interface{}, err error),
+) {
 	projectID := r.URL.Query().Get(urlQueryParamProjectID)
 
 	decoder := json.NewDecoder(r.Body)
@@ -22,6 +26,7 @@ func saveItem(w http.ResponseWriter, r *http.Request, target interface{}, saveFu
 	if err = decoder.Decode(target); err != nil {
 		handleError(err, w, r)
 	}
-	err = saveFunc(projectID)
-	returnJSON(w, r, http.StatusOK, err, target)
+	var result interface{}
+	result, err = saveFunc(projectID)
+	returnJSON(w, r, http.StatusOK, err, result)
 }

@@ -4,6 +4,8 @@ import "github.com/datatug/datatug/packages/models"
 
 type querySaver interface {
 	DeleteQuery(projID, queryID string) (err error)
+	DeleteQueryFolder(projID, path string) (err error)
+	CreateQueryFolder(projID, path, id string) (folder models.QueryFolder, err error)
 	CreateQuery(projID string, query models.QueryDef) (err error)
 	UpdateQuery(projID string, query models.QueryDef) (err error)
 }

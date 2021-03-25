@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"errors"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/strongo/validation"
@@ -32,6 +33,14 @@ func getQueryPaths(queryID, queriesDirPath string) (
 	return
 }
 
+func (s fileSystemSaver) DeleteQueryFolder(folderPath string) error {
+	fullPath := path.Join(queriesDirPath(s.projDirPath), folderPath)
+	if err := os.RemoveAll(fullPath); err != nil {
+		return fmt.Errorf("failed to remove query folder %v: %w", folderPath, err)
+	}
+	return nil
+}
+
 func (s fileSystemSaver) DeleteQuery(queryID string) error {
 	_, _, queryFileName, queryDir, queryPath, err := getQueryPaths(queryID, queriesDirPath(s.projDirPath))
 	if err != nil {
@@ -45,6 +54,24 @@ func (s fileSystemSaver) DeleteQuery(queryID string) error {
 
 func (s fileSystemSaver) UpdateQuery(query models.QueryDef) (err error) {
 	return s.saveQuery(query, false)
+}
+
+func (s fileSystemSaver) CreateQueryFolder(parentPath, id string) (folder models.QueryFolder, err error) {
+	folderPath := path.Join(queriesDirPath(s.projDirPath), parentPath, id)
+	if err = os.MkdirAll(folderPath, 0666); err != nil {
+		return
+	}
+	readmePath := path.Join(folderPath, "README.md")
+	if _, err = os.Stat(readmePath); err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return
+		}
+		if err = ioutil.WriteFile(readmePath, []byte(fmt.Sprintf("# %v", id)), 066); err != nil {
+			return
+		}
+	}
+	folder.ID = id
+	return
 }
 
 func (s fileSystemSaver) CreateQuery(query models.QueryDef) (err error) {

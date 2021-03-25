@@ -81,6 +81,15 @@ func (saver storeSaver) SaveEntity(projID string, entity *models.Entity) (err er
 }
 
 // DeleteQuery deletes query
+func (saver storeSaver) DeleteQueryFolder(projID, path string) (err error) {
+	projSaver, err := saver.newProjectSaver(projID)
+	if err != nil {
+		return err
+	}
+	return projSaver.DeleteQueryFolder(path)
+}
+
+// DeleteQuery deletes query
 func (saver storeSaver) DeleteQuery(projID, queryID string) (err error) {
 	projSaver, err := saver.newProjectSaver(projID)
 	if err != nil {
@@ -97,6 +106,16 @@ func (saver storeSaver) CreateQuery(projID string, query models.QueryDef) (err e
 		return err
 	}
 	return projSaver.CreateQuery(query)
+}
+
+// CreateQuery creates a new folder
+func (saver storeSaver) CreateQueryFolder(projID, path, id string) (folder models.QueryFolder, err error) {
+	log.Printf("storeSaver.CreateQueryFolder(%v, %v, %v)", projID, path, id)
+	projSaver, err := saver.newProjectSaver(projID)
+	if err != nil {
+		return folder, err
+	}
+	return projSaver.CreateQueryFolder(path, id)
 }
 
 // UpdateQuery updates an existing query

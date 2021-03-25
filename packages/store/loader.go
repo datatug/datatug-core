@@ -66,7 +66,7 @@ type dbCatalogLoader interface {
 
 type queriesLoader interface {
 	// LoadQueries loads tree of queries
-	LoadQueries(projectID, folder string) (datasets []models.QueryDef, err error)
+	LoadQueries(projectID, folderPath string) (folder models.QueryFolder, err error)
 
 	//
 	LoadQuery(projectID, queryID string) (query models.QueryDef, err error)

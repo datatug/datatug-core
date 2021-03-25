@@ -10,14 +10,14 @@ import (
 	"sync"
 )
 
-func (loader fileSystemLoader) LoadQueries(projectID, folder string) (queries []models.QueryDef, err error) {
+func (loader fileSystemLoader) LoadQueries(projectID, folderPath string) (folder models.QueryFolder, err error) {
 	var projPath string
 	if _, projPath, err = loader.GetProjectPath(projectID); err != nil {
 		return
 	}
 	queriesDirPath := path.Join(projPath, DatatugFolder, QueriesFolder)
-	if folder != "" {
-		queriesDirPath = path.Join(queriesDirPath, folder)
+	if folderPath != "" {
+		queriesDirPath = path.Join(queriesDirPath, folderPath)
 	}
 	return loader.loadQueriesDir(queriesDirPath)
 }
@@ -52,42 +52,36 @@ func (loader fileSystemLoader) loadQuery(queryID, dirPath string, query *models.
 	return nil
 }
 
-func (loader fileSystemLoader) loadQueriesDir(dirPath string) (queries []models.QueryDef, err error) {
+func (loader fileSystemLoader) loadQueriesDir(dirPath string) (folder models.QueryFolder, err error) {
 	err = loadDir(nil, dirPath, processDirs|processFiles, func(files []os.FileInfo) {
-		queries = make([]models.QueryDef, 0, len(files))
+		folder.Items = make(models.QueryDefs, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 		fileName := f.Name()
 		if f.IsDir() {
-			subQueries, err := loader.loadQueriesDir(path.Join(dirPath, fileName))
+			subFolder, err := loader.loadQueriesDir(path.Join(dirPath, fileName))
 			if err != nil {
 				return err
-			}
-			folder := models.QueryDef{
-				Type: "folder",
-				ProjectItem: models.ProjectItem{
-					ID: fileName,
-				},
-				Queries: subQueries,
 			}
 			if mutex != nil {
 				mutex.Lock()
 				defer mutex.Unlock()
 			}
-			queries = append(queries, folder)
+			subFolder.ID = fileName
+			folder.Folders = append(folder.Folders, subFolder)
 			return nil
 		}
 		if !strings.HasSuffix(strings.ToLower(fileName), ".json") {
 			return nil
 		}
-		if mutex != nil {
-			mutex.Lock()
-			defer mutex.Unlock()
-		}
 		var query models.QueryDef
 		if err = loader.loadQuery(fileName[:len(fileName)-len(".json")], dirPath, &query); err != nil {
 			return err
 		}
-		queries = append(queries, query)
+		if mutex != nil {
+			mutex.Lock()
+			defer mutex.Unlock()
+		}
+		folder.Items = append(folder.Items, query)
 		return nil
 	})
 	return

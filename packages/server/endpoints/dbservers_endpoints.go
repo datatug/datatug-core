@@ -10,8 +10,8 @@ import (
 // AddDbServer adds a new DB server to project
 func AddDbServer(w http.ResponseWriter, r *http.Request) {
 	var projDbServer models.ProjDbServer
-	saveFunc := func(projectID string) error {
-		return api.AddDbServer(projectID, projDbServer)
+	saveFunc := func(projectID string) (interface{}, error) {
+		return projDbServer, api.AddDbServer(projectID, projDbServer)
 	}
 	saveItem(w, r, &projDbServer, saveFunc)
 }

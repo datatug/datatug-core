@@ -6,6 +6,47 @@ import (
 	"time"
 )
 
+type QueryFolders []QueryFolder
+
+func (v QueryFolders) Validate() error {
+	for _, folder := range v {
+		if err := folder.Validate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type QueryFolder struct {
+	ProjectItem
+	Folders QueryFolders `json:"folders,omitempty" yaml:"folders,omitempty"`
+	Items   QueryDefs    `json:"items,omitempty" yaml:"items,omitempty"`
+}
+
+func (v QueryFolder) Validate() error {
+	if err := v.ProjectItem.Validate(false); err != nil {
+		return err
+	}
+	if err := v.Folders.Validate(); err != nil {
+		return err
+	}
+	if err := v.Items.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+type QueryDefs []QueryDef
+
+func (v QueryDefs) Validate() error {
+	for _, q := range v {
+		if err := q.Validate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // QueryDef holds query data
 type QueryDef struct {
 	ProjectItem
@@ -14,8 +55,6 @@ type QueryDef struct {
 	Draft      bool             `json:"draft,omitempty" yaml:"draft,omitempty"`
 	Parameters Parameters       `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 	Targets    []QueryDefTarget `json:"targets,omitempty" yaml:"targets,omitempty"`
-	// This is to be used by "folders" only
-	Queries []QueryDef `json:"queries,omitempty" yaml:"queries,omitempty"`
 	// User might want to now what set of cols is returned even before hitting the RUN button.
 	Recordsets []RecordsetDefinition `json:"recordsets,omitempty" yaml:"recordsets,omitempty"`
 }
@@ -44,9 +83,6 @@ func (v QueryDef) Validate() error {
 		//if strings.TrimSpace(v.Text) == "" {
 		//	return validation.NewErrRequestIsMissingRequiredField("text")
 		//}
-		if v.Queries != nil {
-			return validation.NewErrBadRecordFieldValue("queries", "should be used only by 'folders'")
-		}
 	default:
 		return validation.NewErrBadRecordFieldValue("type", "unsupported value: "+v.Type)
 	}
