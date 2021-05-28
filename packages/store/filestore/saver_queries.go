@@ -59,14 +59,17 @@ func (s fileSystemSaver) UpdateQuery(query models.QueryDef) (err error) {
 func (s fileSystemSaver) CreateQueryFolder(parentPath, id string) (folder models.QueryFolder, err error) {
 	folderPath := path.Join(queriesDirPath(s.projDirPath), parentPath, id)
 	if err = os.MkdirAll(folderPath, 0666); err != nil {
+		err = fmt.Errorf("failed to create folder: %w", err)
 		return
 	}
 	readmePath := path.Join(folderPath, "README.md")
 	if _, err = os.Stat(readmePath); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
+			err = fmt.Errorf("failed to check README.md: %w", err)
 			return
 		}
 		if err = ioutil.WriteFile(readmePath, []byte(fmt.Sprintf("# %v", id)), 0666); err != nil {
+			err = fmt.Errorf("failed to write to README.md file: %w", err)
 			return
 		}
 	}
@@ -80,7 +83,7 @@ func (s fileSystemSaver) CreateQuery(query models.QueryDef) (err error) {
 
 func (s fileSystemSaver) saveQuery(query models.QueryDef, isNew bool) (err error) {
 	if err := query.Validate(); err != nil {
-		return fmt.Errorf("invalid query: %w", err)
+		return fmt.Errorf("invalid query (isNew=%v): %w", isNew, err)
 	}
 	_, queryType, queryFileName, _, queryPath, err := getQueryPaths(query.ID, queriesDirPath(s.projDirPath))
 
