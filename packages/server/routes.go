@@ -29,9 +29,13 @@ func initRouter() {
 	handlerFunc(http.MethodGet, "/ping", endpoints.Ping)
 	handlerFunc(http.MethodGet, "/agent-info", endpoints.AgentInfo)
 
-	handlerFunc(http.MethodGet, "/projects", endpoints.GetProjects)
-	handlerFunc(http.MethodGet, "/project-summary", endpoints.GetProjectSummary)
-	handlerFunc(http.MethodGet, "/project-full", endpoints.GetProjectFull)
+	projectEndpoints := endpoints.ProjectAgentEndpoints{}
+
+	handlerFunc(http.MethodGet, "/projects/projects-summary", endpoints.GetProjects)
+	handlerFunc(http.MethodPost, "/projects/create-project", projectEndpoints.CreateProject)
+	handlerFunc(http.MethodDelete, "/projects/create-project", projectEndpoints.DeleteProject)
+	handlerFunc(http.MethodGet, "/projects/project-summary", endpoints.GetProjectSummary)
+	handlerFunc(http.MethodGet, "/projects/project-full", endpoints.GetProjectFull)
 
 	handlerFunc(http.MethodGet, "/environment-summary", endpoints.GetEnvironmentSummary)
 
