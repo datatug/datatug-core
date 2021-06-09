@@ -34,7 +34,9 @@ func GetRecordsetsSummary(projectID string) (*dto.ProjRecordsetSummary, error) {
 			ProjectItem: models.ProjectItem{
 				ID:    dsDef.ID,
 				Title: dsDef.Title,
-				Tags:  dsDef.Tags,
+				ListOfTags: models.ListOfTags{
+					Tags: dsDef.Tags,
+				},
 			},
 		}
 		for _, col := range dsDef.Columns {
