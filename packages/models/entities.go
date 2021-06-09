@@ -51,6 +51,7 @@ type ProjEntityBrief struct {
 // Entity hold full info about entity
 type Entity struct {
 	ProjEntityBrief
+	ListOfTags
 	Fields EntityFields `json:"fields,omitempty" firestore:"fields,omitempty"`
 	Tables TableKeys    `json:"tables,omitempty" firestore:"tables,omitempty"`
 }
@@ -65,6 +66,9 @@ func (v Entity) Validate() error {
 	}
 	if err := v.Tables.Validate(); err != nil {
 		return validation.NewErrBadRecordFieldValue("tables", err.Error())
+	}
+	if err := v.ListOfTags.Validate(); err != nil {
+		return err
 	}
 	return nil
 }

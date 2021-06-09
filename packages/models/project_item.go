@@ -10,8 +10,8 @@ import (
 type ProjectItem struct {
 	ID      string   `json:"id,omitempty" firestore:"id,omitempty" yaml:"id"`
 	Title   string   `json:"title,omitempty" firestore:"title,omitempty" yaml:"title,omitempty"`
-	Tags    []string `json:"tags,omitempty" yaml:",omitempty"` // consider moving to ProjectItem
 	UserIDs []string `json:"userIds,omitempty" firestore:"userIds,omitempty"`
+	ListOfTags
 }
 
 // MaxTitleLength defines maximum length of a title = 100
@@ -41,23 +41,8 @@ func (v ProjectItem) Validate(isTitleRequired bool) error {
 	if err := validateStringField("title", v.Title, isTitleRequired, MaxTitleLength); err != nil {
 		return err
 	}
-	tags := make([]string, 0, len(v.Tags))
-	for i, tag := range v.Tags {
-		tagFieldName := fmt.Sprintf("tags[%v]", i)
-		if err := validateStringField(tagFieldName, tag, true, MaxTagLength); err != nil {
-			return err
-		}
-		if strings.TrimSpace(tag) == "" {
-			return validation.NewErrBadRecordFieldValue(tagFieldName, "empty value")
-		}
-		if strings.TrimSpace(tag) != tag {
-			return validation.NewErrBadRecordFieldValue(tagFieldName, "tag should not have spaces at beginning or at the end")
-		}
-		for _, t := range tags {
-			if t == tag {
-				return validation.NewErrBadRecordFieldValue(tagFieldName, "duplicate tag value: "+tag)
-			}
-		}
+	if err := v.ListOfTags.Validate(); err != nil {
+		return err
 	}
 	return nil
 }
