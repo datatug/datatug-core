@@ -8,9 +8,10 @@ import (
 
 // ProjectItem base class with ID and Title
 type ProjectItem struct {
-	ID    string   `json:"id,omitempty" firestore:"id,omitempty" yaml:"id"`
-	Title string   `json:"title,omitempty" firestore:"title,omitempty" yaml:"title,omitempty"`
-	Tags  []string `json:"tags,omitempty" yaml:",omitempty"` // consider moving to ProjectItem
+	ID      string   `json:"id,omitempty" firestore:"id,omitempty" yaml:"id"`
+	Title   string   `json:"title,omitempty" firestore:"title,omitempty" yaml:"title,omitempty"`
+	Tags    []string `json:"tags,omitempty" yaml:",omitempty"` // consider moving to ProjectItem
+	UserIDs []string `json:"userIds,omitempty" firestore:"userIds,omitempty"`
 }
 
 // MaxTitleLength defines maximum length of a title = 100

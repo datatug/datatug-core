@@ -90,6 +90,7 @@ type ProjectRepository struct {
 type ProjectFile struct {
 	ProjectItem
 	//UUID         uuid.UUID           `json:"uuid"`
+	UserIDs      []string            `json:"userIds,omitempty" firestore:"userIds,omitempty"`
 	Repository   *ProjectRepository  `json:"repository,omitempty"`
 	Created      *ProjectCreated     `json:"created,omitempty"`
 	Access       string              `json:"access"` // e.g. "private", "protected", "public"
