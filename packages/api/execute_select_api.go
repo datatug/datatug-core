@@ -21,7 +21,7 @@ type SelectRequest struct {
 	Parameters  []models.Parameter
 }
 
-// Validate return error if not valid
+// Validate returns error if not valid
 func (v SelectRequest) Validate() error {
 	if v.From == "" && v.SQL == "" {
 		return validation.NewErrRequestIsMissingRequiredField("from OR sql")

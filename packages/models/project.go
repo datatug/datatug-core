@@ -99,7 +99,7 @@ type ProjectFile struct {
 	Environments []*ProjEnvBrief     `json:"environments,omitempty"`
 }
 
-// Validate return error if not valid
+// Validate returns error if not valid
 func (v ProjectFile) Validate() error {
 	// Do not check ID or title as they can be nil for project
 	//if err := v.ProjectItem.Validate(); err != nil {

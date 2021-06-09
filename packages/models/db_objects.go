@@ -185,7 +185,7 @@ func (v TableKey) String() string {
 	return fmt.Sprintf("%v.%v.%v", v.Catalog, v.Schema, v.Name)
 }
 
-// Validate return error if not valid
+// Validate returns error if not valid
 func (v TableKey) Validate() error {
 	if v.Name == "" {
 		return validation.NewErrRecordIsMissingRequiredField("name")
@@ -199,7 +199,7 @@ type TableProps struct {
 	UniqueKeys []*UniqueKey `json:"uniqueKeys,omitempty"`
 }
 
-// Validate return error if not valid
+// Validate returns error if not valid
 func (v TableProps) Validate() error {
 	switch v.DbType {
 	case "":
@@ -440,7 +440,7 @@ type DbColumnProps struct {
 	Collation          *Collation    `json:"collation,omitempty"`
 }
 
-// Validate return error if not valid
+// Validate returns error if not valid
 func (v DbColumnProps) Validate() error {
 	if v.Name == "" {
 		return validation.NewErrRecordIsMissingRequiredField("name")
@@ -554,7 +554,7 @@ type Collation struct {
 	Name    string `json:"name"`
 }
 
-// Validate return error if not valid
+// Validate returns error if not valid
 func (v Collation) Validate() error {
 	if v.Name == "" {
 		return validation.NewErrRecordIsMissingRequiredField("name")
@@ -577,7 +577,7 @@ func (v CharacterSet) Validate() error {
 	return nil
 }
 
-// Validate return error if not valid
+// Validate returns error if not valid
 func (v TableColumn) Validate() error {
 	if err := v.DbColumnProps.Validate(); err != nil {
 		if v.Name == "" {

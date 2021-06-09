@@ -24,7 +24,7 @@ type Issues struct {
 // StateByEnv states by env ID
 type StateByEnv map[string]*EnvState
 
-// Validate return error if not valid
+// Validate returns error if not valid
 func (v StateByEnv) Validate() error {
 	if v == nil {
 		return nil
@@ -43,7 +43,7 @@ type EnvState struct {
 	Differences []EnvDbDifference `json:"differences,omitempty"`
 }
 
-// Validate return error if not valid
+// Validate returns error if not valid
 func (v EnvState) Validate() error {
 	switch v.Status {
 	case "":

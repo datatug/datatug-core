@@ -32,7 +32,7 @@ func validateStringField(name, value string, isRequired bool, maxLen int) error 
 	return nil
 }
 
-// Validate return error if not valid
+// Validate returns error if not valid
 func (v ProjectItem) Validate(isTitleRequired bool) error {
 	if v.ID == "" {
 		return validation.NewErrRecordIsMissingRequiredField("id")
