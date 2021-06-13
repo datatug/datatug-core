@@ -113,13 +113,13 @@ type ProjectFile struct {
 	ProjectItem
 	//UUID         uuid.UUID           `json:"uuid"`
 	UserIDs      []string            `json:"userIds,omitempty" firestore:"userIds,omitempty"`
-	Repository   *ProjectRepository  `json:"repository,omitempty"`
-	Created      *ProjectCreated     `json:"created,omitempty"`
-	Access       string              `json:"access"` // e.g. "private", "protected", "public"
-	DbModels     []*ProjDbModelBrief `json:"dbModels,omitempty"`
-	Boards       []*ProjBoardBrief   `json:"boards,omitempty"`
-	Entities     []*ProjEntityBrief  `json:"entities,omitempty"`
-	Environments []*ProjEnvBrief     `json:"environments,omitempty"`
+	Repository   *ProjectRepository  `json:"repository,omitempty" firestore:"repository,omitempty"`
+	Created      *ProjectCreated     `json:"created,omitempty" firestore:"created,omitempty"`
+	Access       string              `json:"access" firestore:"access"` // e.g. "private", "protected", "public"
+	DbModels     []*ProjDbModelBrief `json:"dbModels,omitempty" firestore:"dbModels,omitempty"`
+	Boards       []*ProjBoardBrief   `json:"boards,omitempty"firestore:"boards,omitempty"`
+	Entities     []*ProjEntityBrief  `json:"entities,omitempty"firestore:"entities,omitempty"`
+	Environments []*ProjEnvBrief     `json:"environments,omitempty"firestore:"environments,omitempty"`
 }
 
 // Validate returns error if not valid
