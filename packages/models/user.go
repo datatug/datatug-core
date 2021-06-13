@@ -4,15 +4,18 @@ import "fmt"
 
 // UserDatatugInfo holds user info for DataTug project
 type UserDatatugInfo struct {
-	Projects map[string]ProjectBrief `json:"projects,omitempty" firestore:"projects,omitempty"`
+	// Projects is map of maps E.g. {firestore: {test_proj_1: {title: "First test project"}}}'
+	Projects map[string]map[string]ProjectBrief `json:"projects,omitempty" firestore:"projects,omitempty"`
 }
 
 // Validate returns error if not valid
 func (v UserDatatugInfo) Validate() error {
 	if len(v.Projects) > 0 {
-		for i, p := range v.Projects {
-			if err := p.Validate(true); err != nil {
-				return fmt.Errorf("invalid project at index %v: %w", i, err)
+		for storeId, projects := range v.Projects {
+			for i, p := range projects {
+				if err := p.Validate(true); err != nil {
+					return fmt.Errorf("invalid project at store [%v] at index %v: %w", storeId, i, err)
+				}
 			}
 		}
 	}
