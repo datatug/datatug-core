@@ -13,7 +13,7 @@ func (v UserDatatugInfo) Validate() error {
 	if len(v.Projects) > 0 {
 		for storeId, projects := range v.Projects {
 			for i, p := range projects {
-				if err := p.Validate(true); err != nil {
+				if err := p.Validate(); err != nil {
 					return fmt.Errorf("invalid project at store [%v] at index %v: %w", storeId, i, err)
 				}
 			}

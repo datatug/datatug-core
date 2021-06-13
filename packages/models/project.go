@@ -75,6 +75,18 @@ type ProjectBrief struct {
 	Repository *ProjectRepository `json:"repository,omitempty" firestore:"repository,omitempty"`
 }
 
+func (v *ProjectBrief) Validate() error {
+	if err := v.ProjectItem.Validate(true); err != nil {
+		return err
+	}
+	if v.Repository != nil {
+		if err := v.Repository.Validate(); err != nil {
+			return validation.NewErrBadRecordFieldValue("repository", err.Error())
+		}
+	}
+	return nil
+}
+
 // ProjectSummary hold project summary
 type ProjectSummary struct {
 	ProjectFile
@@ -84,6 +96,16 @@ type ProjectRepository struct {
 	Type      string `json:"type"` // e.g. "git"
 	WebURL    string `json:"webURL"`
 	ProjectID string `json:"projectId,omitempty"`
+}
+
+func (v *ProjectRepository) Validate() error {
+	if v == nil {
+		return nil
+	}
+	if v.Type == "" {
+		return validation.NewErrRecordIsMissingRequiredField("type")
+	}
+	return nil
 }
 
 // ProjectFile defines what to store to project file
