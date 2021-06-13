@@ -57,7 +57,7 @@ func (v *projectsCommand) Execute(_ []string) error {
 	for _, p := range projects {
 		fmt.Printf("ID=%v, Title: %v\n", p.ID, p.Title)
 	}
-	//for _, p := range config.Projects {
+	//for _, p := range config.Stores {
 	//	if p.Title == "" {
 	//		fmt.Println(p.Path)
 	//	} else {
