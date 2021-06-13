@@ -10,19 +10,19 @@ import (
 
 // DatatugProject holds info about project
 type DatatugProject struct {
-	ID string `json:"id"`
+	ID string `json:"id,omitempty" firestore:"id,omitempty"`
 	//UUID          uuid.UUID           `json:"uuid"`
-	Title         string              `json:"title,omitempty"`
-	Created       *ProjectCreated     `json:"created,omitempty"`
-	Access        string              `json:"access"` // e.g. "private", "protected", "public"
-	Boards        Boards              `json:"boards,omitempty"`
-	Entities      Entities            `json:"entities,omitempty"`
-	Environments  Environments        `json:"environments,omitempty"`
-	DbModels      DbModels            `json:"dbModels,omitempty"`
-	DbServers     ProjDbServers       `json:"dbServers,omitempty"`
-	DbDifferences DatabaseDifferences `json:"dbDifferences,omitempty"`
-	Actions       Actions             `json:"actions,omitempty"`
-	Repository    *ProjectRepository  `json:"repository,omitempty"`
+	Title         string              `json:"title,omitempty" firestore:"title,omitempty"`
+	Created       *ProjectCreated     `json:"created,omitempty" firestore:"created,omitempty"`
+	Access        string              `json:"access" firestore:"access,omitempty"` // e.g. "private", "protected", "public"
+	Boards        Boards              `json:"boards,omitempty" firestore:"boards,omitempty"`
+	Entities      Entities            `json:"entities,omitempty" firestore:"entities,omitempty"`
+	Environments  Environments        `json:"environments,omitempty" firestore:"environments,omitempty"`
+	DbModels      DbModels            `json:"dbModels,omitempty" firestore:"dbModels,omitempty"`
+	DbServers     ProjDbServers       `json:"dbServers,omitempty" firestore:"dbServers,omitempty"`
+	DbDifferences DatabaseDifferences `json:"dbDifferences,omitempty" firestore:"dbDifferences,omitempty"`
+	Actions       Actions             `json:"actions,omitempty" firestore:"actions,omitempty"`
+	Repository    *ProjectRepository  `json:"repository,omitempty" firestore:"repository,omitempty"`
 }
 
 // Validate returns error if not valid
@@ -72,7 +72,7 @@ func (v DatatugProject) Validate() error {
 // ProjectBrief hold project brief info (e.g. for list)
 type ProjectBrief struct {
 	ProjectItem
-	Repository *ProjectRepository `json:"repository,omitempty"`
+	Repository *ProjectRepository `json:"repository,omitempty" firestore:"repository,omitempty"`
 }
 
 // ProjectSummary hold project summary
@@ -147,5 +147,5 @@ func (v ProjectFile) Validate() error {
 type ProjectCreated struct {
 	//ByName     string    `json:"byName,omitempty"`
 	//ByUsername string    `json:"byUsername,omitempty"`
-	At time.Time `json:"at"`
+	At time.Time `json:"at" firestore:"at"`
 }

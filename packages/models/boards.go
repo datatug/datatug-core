@@ -22,7 +22,7 @@ func (v Boards) Validate() error {
 // Board is holding all details about board
 type Board struct {
 	ProjBoardBrief
-	Rows BoardRows `json:"rows,omitempty"`
+	Rows BoardRows `json:"rows,omitempty" firestore:"rows,omitempty"`
 }
 
 // Validate returns error if failed
@@ -39,15 +39,15 @@ func (v Board) Validate() error {
 // ProjBoardBrief defines brief information of Board
 type ProjBoardBrief struct {
 	ProjectItem
-	Parameters     Parameters `json:"parameters,omitempty"`
-	RequiredParams [][]string `json:"requiredParams,omitempty"`
+	Parameters     Parameters `json:"parameters,omitempty" firestore:"parameters,omitempty"`
+	RequiredParams [][]string `json:"requiredParams,omitempty"firestore:"requiredParams,omitempty"`
 }
 
 // ParameterLookup holds definition for parameter lookup
 type ParameterLookup struct {
-	DB        string   `json:"db"`
-	SQL       string   `json:"sql"`
-	KeyFields []string `json:"keyFields"`
+	DB        string   `json:"db" firestore:"db"`
+	SQL       string   `json:"sql" firestore:"sql"`
+	KeyFields []string `json:"keyFields" firestore:"keyFields"`
 }
 
 // BoardRows is slice of `BoardRow`

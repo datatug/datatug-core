@@ -4,7 +4,7 @@ import "fmt"
 
 // UserDatatugInfo holds user info for DataTug project
 type UserDatatugInfo struct {
-	Projects []ProjectBrief `json:"projects,omitempty"`
+	Projects []ProjectBrief `json:"projects,omitempty" firestore:"projects,omitempty"`
 }
 
 // Validate returns error if not valid
@@ -28,7 +28,7 @@ func (v UserDatatugInfo) Validate() error {
 
 // DatatugUser defines a user record with props related to Datatug
 type DatatugUser struct {
-	Datatug *UserDatatugInfo `json:"datatug,omitempty"`
+	Datatug *UserDatatugInfo `json:"datatug,omitempty" firestore:"datatug,omitempty"`
 }
 
 // Validate returns error if not valid
