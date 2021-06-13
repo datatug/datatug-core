@@ -71,6 +71,7 @@ func (v DatatugProject) Validate() error {
 
 // ProjectBrief hold project brief info (e.g. for list)
 type ProjectBrief struct {
+	Access string `json:"access" firestore:"access"` // e.g. private, protected, public
 	ProjectItem
 	Repository *ProjectRepository `json:"repository,omitempty" firestore:"repository,omitempty"`
 }
@@ -78,6 +79,14 @@ type ProjectBrief struct {
 func (v *ProjectBrief) Validate() error {
 	if err := v.ProjectItem.Validate(true); err != nil {
 		return err
+	}
+	switch v.Access {
+	case "":
+		return validation.NewErrRecordIsMissingRequiredField("access")
+	case "private", "protected", "public": // OK
+		break
+	default:
+		return validation.NewErrBadRecordFieldValue("access", "unknown value: "+v.Access)
 	}
 	if v.Repository != nil {
 		if err := v.Repository.Validate(); err != nil {
@@ -117,9 +126,9 @@ type ProjectFile struct {
 	Created      *ProjectCreated     `json:"created,omitempty" firestore:"created,omitempty"`
 	Access       string              `json:"access" firestore:"access"` // e.g. "private", "protected", "public"
 	DbModels     []*ProjDbModelBrief `json:"dbModels,omitempty" firestore:"dbModels,omitempty"`
-	Boards       []*ProjBoardBrief   `json:"boards,omitempty"firestore:"boards,omitempty"`
-	Entities     []*ProjEntityBrief  `json:"entities,omitempty"firestore:"entities,omitempty"`
-	Environments []*ProjEnvBrief     `json:"environments,omitempty"firestore:"environments,omitempty"`
+	Boards       []*ProjBoardBrief   `json:"boards,omitempty" firestore:"boards,omitempty"`
+	Entities     []*ProjEntityBrief  `json:"entities,omitempty" firestore:"entities,omitempty"`
+	Environments []*ProjEnvBrief     `json:"environments,omitempty" firestore:"environments,omitempty"`
 }
 
 // Validate returns error if not valid
