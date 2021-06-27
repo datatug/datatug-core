@@ -2,8 +2,10 @@ package server
 
 import (
 	"fmt"
+	"github.com/datatug/datatug/packages/server/routes"
 	"github.com/datatug/datatug/packages/store"
 	"github.com/datatug/datatug/packages/store/filestore"
+	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
 	"time"
@@ -11,10 +13,6 @@ import (
 
 var agentHost string
 var agentPort int
-
-func init() {
-	initRouter()
-}
 
 // ServeHTTP starts HTTP server
 func ServeHTTP(pathsByID map[string]string, host string, port int) error {
@@ -37,6 +35,11 @@ func ServeHTTP(pathsByID map[string]string, host string, port int) error {
 	} else {
 		agentPort = port
 	}
+
+	router := httprouter.New()
+	router.GlobalOPTIONS = http.HandlerFunc(globalOptionsHandler)
+	router.HandlerFunc(http.MethodGet, "/", root)
+	routes.RegisterAllDatatugHandlers("", router)
 
 	s := http.Server{
 		Addr:           fmt.Sprintf("%v:%v", agentHost, agentPort),
