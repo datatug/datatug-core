@@ -6,17 +6,17 @@ import (
 
 // Loader defines methods for projects loader
 type Loader interface {
-	boardsLoader
-	dbServerLoader
-	dbCatalogLoader
-	entitiesLoader
-	environmentsLoader
-	queriesLoader
-	projectLoader
-	recordsetsLoader
+	BoardsLoader
+	DbServerLoader
+	DbCatalogLoader
+	EntitiesLoader
+	EnvironmentsLoader
+	QueriesLoader
+	ProjectLoader
+	RecordsetsLoader
 }
 
-type projectLoader interface {
+type ProjectLoader interface {
 	// LoadProject returns full DataTug project
 	LoadProject(projectID string) (*models.DatatugProject, error)
 
@@ -24,7 +24,7 @@ type projectLoader interface {
 	LoadProjectSummary(projectID string) (models.ProjectSummary, error)
 }
 
-type environmentsLoader interface {
+type EnvironmentsLoader interface {
 	// LoadEnvironmentSummary return summary metadata about environment
 	LoadEnvironmentSummary(projectID, environmentID string) (models.EnvironmentSummary, error)
 
@@ -34,19 +34,19 @@ type environmentsLoader interface {
 	LoadEnvironmentCatalog(projID, environmentID, databaseID string) (*models.EnvDb, error)
 }
 
-type boardsLoader interface {
+type BoardsLoader interface {
 	// LoadBoard loads board
 	LoadBoard(projectID, boardID string) (board models.Board, err error)
 }
 
-type entitiesLoader interface {
+type EntitiesLoader interface {
 	// LoadEntity loads entity
 	LoadEntity(projectID, entityID string) (entity models.Entity, err error)
 	// LoadEntities loads entities
 	LoadEntities(projectID string) (entities models.Entities, err error)
 }
 
-type recordsetsLoader interface {
+type RecordsetsLoader interface {
 	// LoadRecordsetDefinitions loads list of recordsets summary
 	LoadRecordsetDefinitions(projectID string) (datasets []*models.RecordsetDefinition, err error)
 	// LoadRecordsetDefinition loads recordset definition
@@ -55,19 +55,21 @@ type recordsetsLoader interface {
 	LoadRecordsetData(projectID, datasetName, fileName string) (recordset *models.Recordset, err error)
 }
 
-type dbServerLoader interface {
+type DbServerLoader interface {
 	// LoadDbServerSummary loads summary on DB server
 	LoadDbServerSummary(projectID string, dbServer models.ServerReference) (summary *models.ProjDbServerSummary, err error)
 }
 
-type dbCatalogLoader interface {
+type DbCatalogLoader interface {
 	LoadDbCatalogSummary(projectID string, dbServer models.ServerReference, catalogID string) (catalog *models.DbCatalogSummary, err error)
 }
 
-type queriesLoader interface {
+type QueriesLoader interface {
 	// LoadQueries loads tree of queries
-	LoadQueries(projectID, folderPath string) (folder models.QueryFolder, err error)
+	LoadQueries(projectID, folderPath string) (folder *models.QueryFolder, err error)
 
 	//
-	LoadQuery(projectID, queryID string) (query models.QueryDef, err error)
+	LoadQuery(projectID, queryID string) (query *models.QueryDef, err error)
 }
+
+var _ QueriesLoader = (*NotSupportedQueriesLoader)(nil)

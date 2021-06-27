@@ -117,7 +117,11 @@ func (v *initProjectCommand) Execute(_ []string) (err error) {
 		}
 	}
 
-	if err = store.Current.Save(dataTugProject); err != nil {
+	var dal store.Interface
+	if dal, err = store.NewDatatugStore(""); err != nil {
+		return err
+	}
+	if err = dal.Save(dataTugProject); err != nil {
 		return err
 	}
 	return err

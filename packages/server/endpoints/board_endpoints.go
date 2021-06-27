@@ -10,18 +10,18 @@ import (
 // GetBoard handles get board endpoint
 func GetBoard(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
-	projectID := query.Get(urlQueryParamProjectID)
-	boardID := query.Get(urlQueryParamID)
-	board, err := api.GetBoard(projectID, boardID)
+	ref := newProjectItemRef(query)
+	board, err := api.GetBoard(ref)
 	returnJSON(w, r, http.StatusOK, err, board)
 }
 
 // CreateBoard handles board creation endpoint
 func CreateBoard(w http.ResponseWriter, r *http.Request) {
 	var board models.Board
-	saveBoard := func(projectID string) (interface{}, error) {
+	saveBoard := func(projectIemRef api.ProjectItemRef) (interface{}, error) {
 		board.ID = random.ID(9)
-		return board, api.SaveBoard(projectID, board)
+		projectIemRef.ID = board.ID
+		return board, api.SaveBoard(projectIemRef, board)
 	}
 	saveItem(w, r, &board, saveBoard)
 }
@@ -29,8 +29,8 @@ func CreateBoard(w http.ResponseWriter, r *http.Request) {
 // SaveBoard handles save board endpoint
 func SaveBoard(w http.ResponseWriter, r *http.Request) {
 	var board models.Board
-	saveBoard := func(projectID string) (interface{}, error) {
-		return board, api.SaveBoard(projectID, board)
+	saveBoard := func(ref api.ProjectItemRef) (interface{}, error) {
+		return board, api.SaveBoard(ref, board)
 	}
 	saveItem(w, r, &board, saveBoard)
 }

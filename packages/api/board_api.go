@@ -6,16 +6,31 @@ import (
 )
 
 // GetBoard returns board by ID
-func GetBoard(projectID, boardID string) (board models.Board, err error) {
-	return store.Current.LoadBoard(projectID, boardID)
+func GetBoard(projectItemRef ProjectItemRef) (board models.Board, err error) {
+	var dal store.Interface
+	dal, err = store.NewDatatugStore(projectItemRef.StoreID)
+	if err != nil {
+		return
+	}
+	return dal.LoadBoard(projectItemRef.ProjectID, projectItemRef.ID)
 }
 
 // DeleteBoard deletes board
-func DeleteBoard(projectID, boardID string) (err error) {
-	return store.Current.DeleteBoard(projectID, boardID)
+func DeleteBoard(projectItemRef ProjectItemRef) (err error) {
+	var dal store.Interface
+	dal, err = store.NewDatatugStore(projectItemRef.StoreID)
+	if err != nil {
+		return
+	}
+	return dal.DeleteBoard(projectItemRef.ProjectID, projectItemRef.ID)
 }
 
 // SaveBoard saves board
-func SaveBoard(projectID string, board models.Board) (err error) {
-	return store.Current.SaveBoard(projectID, board)
+func SaveBoard(projectItemRef ProjectItemRef, board models.Board) (err error) {
+	var dal store.Interface
+	dal, err = store.NewDatatugStore(projectItemRef.StoreID)
+	if err != nil {
+		return
+	}
+	return dal.SaveBoard(projectItemRef.ProjectID, board)
 }

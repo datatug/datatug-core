@@ -6,6 +6,41 @@ import (
 	"strings"
 )
 
+// ProjectRef holds store & project parameters
+type ProjectRef struct {
+	StoreID   string `json:"store"`
+	ProjectID string `json:"project"`
+}
+
+// Validate returns error if not valid
+func (v ProjectRef) Validate() error {
+	if v.ProjectID == "" {
+		return validation.NewErrRequestIsMissingRequiredField("project")
+	}
+	if v.StoreID == "" {
+		return validation.NewErrRequestIsMissingRequiredField("store")
+	}
+	return nil
+
+}
+
+// ProjectItemRef holds ProjectRef & ID parameters
+type ProjectItemRef struct {
+	ProjectRef
+	ID string
+}
+
+// Validate returns error if not valid
+func (v ProjectItemRef) Validate() error {
+	if err := v.ProjectRef.Validate(); err != nil {
+		return err
+	}
+	if v.ID == "" {
+		return validation.NewErrRequestIsMissingRequiredField("id")
+	}
+	return nil
+}
+
 // GetServerDatabasesRequest input for /dbserver/databases API
 type GetServerDatabasesRequest struct {
 	Project     string `json:"proj"`

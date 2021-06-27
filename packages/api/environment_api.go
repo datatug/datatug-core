@@ -7,13 +7,18 @@ import (
 )
 
 // GetEnvironmentSummary returns environment summary
-func GetEnvironmentSummary(projID, envID string) (envSummary *models.EnvironmentSummary, err error) {
-	if projID == "" {
+func GetEnvironmentSummary(ref ProjectItemRef) (envSummary *models.EnvironmentSummary, err error) {
+	if ref.ProjectID == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("projID")
 	}
-	if envID == "" {
+	if ref.ID == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("envID")
 	}
-	summary, err := store.Current.LoadEnvironmentSummary(projID, envID)
+	var dal store.Interface
+	dal, err = store.NewDatatugStore(ref.StoreID)
+	if err != nil {
+		return
+	}
+	summary, err := dal.LoadEnvironmentSummary(ref.ProjectID, ref.ID)
 	return &summary, err
 }

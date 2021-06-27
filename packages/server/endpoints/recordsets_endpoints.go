@@ -37,32 +37,22 @@ func getRecordsetDataParams(r *http.Request) (params api.RecordsetDataRequestPar
 // GetRecordsetsSummary returns list of dataset definitions
 func GetRecordsetsSummary(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
-	projectID := query.Get(urlQueryParamProjectID)
-	if projectID == "" {
-		handleError(validation.NewErrRequestIsMissingRequiredField(urlQueryParamProjectID), w, r)
-		return
-	}
-	datasets, err := api.GetRecordsetsSummary(projectID)
+	ref := newProjectRef(query)
+	datasets, err := api.GetRecordsetsSummary(ref)
 	returnJSON(w, r, http.StatusOK, err, datasets)
 }
 
 // GetRecordsetDefinition returns list of dataset definitions
 func GetRecordsetDefinition(w http.ResponseWriter, r *http.Request) {
-	params, err := getRecordsetRequestParams(r)
-	if handleError(err, w, r) {
-		return
-	}
-	datasets, err := api.GetDatasetDefinition(params)
+	ref := newProjectItemRef(r.URL.Query())
+	datasets, err := api.GetDatasetDefinition(ref)
 	returnJSON(w, r, http.StatusOK, err, datasets)
 }
 
 // GetRecordsetData returns data
 func GetRecordsetData(w http.ResponseWriter, r *http.Request) {
-	params, err := getRecordsetDataParams(r)
-	if handleError(err, w, r) {
-		return
-	}
-	recordset, err := api.GetRecordset(params)
+	ref := newProjectItemRef(r.URL.Query())
+	recordset, err := api.GetRecordset(ref)
 	returnJSON(w, r, http.StatusOK, err, recordset)
 }
 

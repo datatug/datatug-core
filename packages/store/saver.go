@@ -1,8 +1,10 @@
 package store
 
-import "github.com/datatug/datatug/packages/models"
+import (
+	"github.com/datatug/datatug/packages/models"
+)
 
-type querySaver interface {
+type QuerySaver interface {
 	DeleteQuery(projID, queryID string) (err error)
 	DeleteQueryFolder(projID, path string) (err error)
 	CreateQueryFolder(projID, path, id string) (folder models.QueryFolder, err error)
@@ -10,26 +12,28 @@ type querySaver interface {
 	UpdateQuery(projID string, query models.QueryDef) (err error)
 }
 
-type dbServerSaver interface {
+var _ QuerySaver = (*NotSupportedQuerySaver)(nil)
+
+type DbServerSaver interface {
 	SaveDbServer(projID string, dbServer models.ProjDbServer, project models.DatatugProject) (err error)
 	DeleteDbServer(projID string, dbServer models.ServerReference) (err error)
 }
 
-type boardsSaver interface {
+type BoardsSaver interface {
 	DeleteBoard(projID, boardID string) (err error)
 	SaveBoard(projID string, board models.Board) (err error)
 }
 
-type entitySaver interface {
+type EntitySaver interface {
 	DeleteEntity(projID, entityID string) (err error)
 	SaveEntity(projID string, entity *models.Entity) (err error)
 }
 
 // Saver defines interface for saving DataTug project
 type Saver interface {
-	querySaver
-	dbServerSaver
-	boardsSaver
-	entitySaver
+	QuerySaver
+	DbServerSaver
+	BoardsSaver
+	EntitySaver
 	Save(project models.DatatugProject) (err error)
 }

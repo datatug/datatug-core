@@ -50,7 +50,11 @@ func (v *projectsCommand) Execute(_ []string) error {
 	if store.Current, err = filestore.NewStore(pathsByID); err != nil {
 		return err
 	}
-	projects, err := store.Current.GetProjects()
+	var dal store.Interface
+	if dal, err = store.NewDatatugStore(""); err != nil {
+		return err
+	}
+	projects, err := dal.GetProjects()
 	if err != nil {
 		fmt.Println("Failed to load projects: ", err)
 	}

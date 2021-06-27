@@ -13,16 +13,31 @@ func validateProjectInput(projectID string) (err error) {
 	return nil
 }
 
+func GetProjects(storeID string) ([]models.ProjectBrief, error) {
+	dal, err := store.NewDatatugStore(storeID)
+	if err != nil {
+		return nil, err
+	}
+	return dal.GetProjects()
+}
 // GetProjectSummary returns project summary
-func GetProjectSummary(id string) (*models.ProjectSummary, error) {
-	if id == "" {
+func GetProjectSummary(ref ProjectRef) (*models.ProjectSummary, error) {
+	if ref.ProjectID == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("id")
 	}
-	projectSummary, err := store.Current.LoadProjectSummary(id)
+	dal, err := store.NewDatatugStore(ref.StoreID)
+	if err != nil {
+		return nil, err
+	}
+	projectSummary, err := dal.LoadProjectSummary(ref.ProjectID)
 	return &projectSummary, err
 }
 
 // GetProjectFull returns full project metadata
-func GetProjectFull(id string) (project *models.DatatugProject, err error) {
-	return store.Current.LoadProject(id)
+func GetProjectFull(ref ProjectRef) (project *models.DatatugProject, err error) {
+	dal, err := store.NewDatatugStore(ref.StoreID)
+	if err != nil {
+		return
+	}
+	return dal.LoadProject(ref.ProjectID)
 }

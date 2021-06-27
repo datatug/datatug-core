@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-func (loader fileSystemLoader) LoadQueries(projectID, folderPath string) (folder models.QueryFolder, err error) {
+func (loader fileSystemLoader) LoadQueries(projectID, folderPath string) (folder *models.QueryFolder, err error) {
 	var projPath string
 	if _, projPath, err = loader.GetProjectPath(projectID); err != nil {
 		return
@@ -22,13 +22,14 @@ func (loader fileSystemLoader) LoadQueries(projectID, folderPath string) (folder
 	return loader.loadQueriesDir(queriesDirPath)
 }
 
-func (loader fileSystemLoader) LoadQuery(projectID, queryID string) (query models.QueryDef, err error) {
+func (loader fileSystemLoader) LoadQuery(projectID, queryID string) (query *models.QueryDef, err error) {
 	var projPath string
 	if _, projPath, err = loader.GetProjectPath(projectID); err != nil {
 		return
 	}
 	queriesDirPath := path.Join(projPath, DatatugFolder, QueriesFolder)
-	err = loader.loadQuery(queryID, queriesDirPath, &query)
+	query = new(models.QueryDef)
+	err = loader.loadQuery(queryID, queriesDirPath, query)
 	return
 }
 
@@ -52,8 +53,9 @@ func (loader fileSystemLoader) loadQuery(queryID, dirPath string, query *models.
 	return nil
 }
 
-func (loader fileSystemLoader) loadQueriesDir(dirPath string) (folder models.QueryFolder, err error) {
+func (loader fileSystemLoader) loadQueriesDir(dirPath string) (folder *models.QueryFolder, err error) {
 	err = loadDir(nil, dirPath, processDirs|processFiles, func(files []os.FileInfo) {
+		folder = new(models.QueryFolder)
 		folder.Items = make(models.QueryDefs, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 		fileName := f.Name()

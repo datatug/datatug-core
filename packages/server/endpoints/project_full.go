@@ -6,8 +6,8 @@ import (
 )
 
 // GetProjectFull returns full info about a project
-func GetProjectFull(writer http.ResponseWriter, request *http.Request) {
-	projectID := request.URL.Query().Get(urlQueryParamID)
-	project, err := api.GetProjectFull(projectID)
-	returnJSON(writer, request, http.StatusOK, err, project)
+func GetProjectFull(w http.ResponseWriter, r *http.Request) {
+	ref := newProjectRef(r.URL.Query())
+	project, err := api.GetProjectFull(ref)
+	returnJSON(w, r, http.StatusOK, err, project)
 }

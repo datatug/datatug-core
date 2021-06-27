@@ -8,7 +8,14 @@ import (
 )
 
 // ExecuteCommands executes command
-func ExecuteCommands(request execute.Request) (response execute.Response, err error) {
+func ExecuteCommands(storeID string, request execute.Request) (response execute.Response, err error) {
+
+	var dal store.Interface
+	dal, err = store.NewDatatugStore(storeID)
+	if err != nil {
+		return
+	}
+
 	dbs := make(map[string]*models.EnvDb)
 
 	var getEnvDbByID = func(envID, dbID string) (envDb *models.EnvDb, err error) {
@@ -16,7 +23,7 @@ func ExecuteCommands(request execute.Request) (response execute.Response, err er
 		if db, cached := dbs[key]; cached {
 			return db, err
 		}
-		if envDb, err = store.Current.LoadEnvironmentCatalog(request.Project, envID, dbID); err != nil {
+		if envDb, err = dal.LoadEnvironmentCatalog(request.Project, envID, dbID); err != nil {
 			return
 		}
 		dbs[key] = envDb
@@ -24,7 +31,7 @@ func ExecuteCommands(request execute.Request) (response execute.Response, err er
 	}
 
 	var getCatalog = func(server models.ServerReference, catalogID string) (*models.DbCatalogSummary, error) {
-		return store.Current.LoadDbCatalogSummary(request.Project, server, catalogID)
+		return dal.LoadDbCatalogSummary(request.Project, server, catalogID)
 	}
 
 	executor := execute.NewExecutor(getEnvDbByID, getCatalog)

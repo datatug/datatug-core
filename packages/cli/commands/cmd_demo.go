@@ -303,7 +303,9 @@ func (c demoCommand) creatDemoProject(demoProjectPath string) error {
 func (c demoCommand) updateDemoProject(demoProjectPath string, demoDbFiles []demoDbFile) error {
 	log.Println("Updating demo project...")
 	store.Current, _ = filestore.NewSingleProjectStore(demoProjectPath, demoProjectID)
-	project, err := api.GetProjectFull(demoProjectID)
+	project, err := api.GetProjectFull(api.ProjectRef{
+		ProjectID: demoProjectID,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to load demo project: %w", err)
 	}
@@ -325,7 +327,11 @@ func (c demoCommand) updateDemoProject(demoProjectPath string, demoDbFiles []dem
 		}
 	}
 
-	if err := store.Current.Save(*project); err != nil {
+	var dal store.Interface
+	if dal, err = store.NewDatatugStore(""); err != nil {
+		return err
+	}
+	if err = dal.Save(*project); err != nil {
 		return fmt.Errorf("faield to save project: %w", err)
 	}
 	return nil

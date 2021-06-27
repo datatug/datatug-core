@@ -10,8 +10,8 @@ import (
 // AddDbServer adds a new DB server to project
 func AddDbServer(w http.ResponseWriter, r *http.Request) {
 	var projDbServer models.ProjDbServer
-	saveFunc := func(projectID string) (interface{}, error) {
-		return projDbServer, api.AddDbServer(projectID, projDbServer)
+	saveFunc := func(ref api.ProjectItemRef) (interface{}, error) {
+		return projDbServer, api.AddDbServer(ref.StoreID, ref.ProjectID, projDbServer)
 	}
 	saveItem(w, r, &projDbServer, saveFunc)
 }
@@ -20,12 +20,12 @@ func AddDbServer(w http.ResponseWriter, r *http.Request) {
 func GetDbServerSummary(w http.ResponseWriter, request *http.Request) {
 	log.Println(request.Method, request.RequestURI)
 	q := request.URL.Query()
-	projID := q.Get("proj")
 	dbServer := models.ServerReference{
 		Driver: q.Get("driver"),
 		Host:   q.Get("host"),
 	}
-	summary, err := api.GetDbServerSummary(projID, dbServer)
+	ref := newProjectRef(q)
+	summary, err := api.GetDbServerSummary(ref, dbServer)
 	returnJSON(w, request, http.StatusOK, err, summary)
 }
 
@@ -39,8 +39,8 @@ func DeleteDbServer(w http.ResponseWriter, r *http.Request) {
 		handleError(err, w, r)
 		return
 	}
-	projID := q.Get("proj")
-	if err = api.DeleteDbServer(projID, dbServer); err != nil {
+	ref := newProjectRef(q)
+	if err = api.DeleteDbServer(ref, dbServer); err != nil {
 		handleError(err, w, r)
 		return
 	}

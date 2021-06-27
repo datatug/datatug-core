@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type QueryFolders []QueryFolder
+type QueryFolders []*QueryFolder
 
 func (v QueryFolders) Validate() error {
 	for _, folder := range v {

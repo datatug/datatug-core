@@ -18,10 +18,12 @@ func init() {
 
 // ServeHTTP starts HTTP server
 func ServeHTTP(pathsByID map[string]string, host string, port int) error {
-	var err error
-
-	if store.Current, err = filestore.NewStore(pathsByID); err != nil {
-		return err
+	store.NewDatatugStore = func(id string) (v store.Interface, err error) {
+		if v, err = filestore.NewStore(pathsByID); err != nil {
+			err = fmt.Errorf("failed to create filestore for store id=%v: %w", id, err)
+			return
+		}
+		return
 	}
 
 	if host == "" {

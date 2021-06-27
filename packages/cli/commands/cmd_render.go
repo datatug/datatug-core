@@ -46,7 +46,11 @@ func (v *renderCommand) Execute(_ []string) error {
 
 	log.Println("Saving project", dataTugProject.ID, "...")
 	store.Current, _ = filestore.NewSingleProjectStore(v.ProjectDir, v.projectID)
-	if err = store.Current.Save(*dataTugProject); err != nil {
+	var dal store.Interface
+	if dal, err = store.NewDatatugStore(""); err != nil {
+		return err
+	}
+	if err = dal.Save(*dataTugProject); err != nil {
 		err = fmt.Errorf("failed to save datatug project [%v]: %w", v.projectID, err)
 		return err
 	}

@@ -56,7 +56,7 @@ func (v SelectRequest) Validate() error {
 }
 
 // ExecuteSelect executes select command
-func ExecuteSelect(selectRequest SelectRequest) (response execute.Response, err error) {
+func ExecuteSelect(storeID string, selectRequest SelectRequest) (response execute.Response, err error) {
 	if err = selectRequest.Validate(); err != nil {
 		return
 	}
@@ -98,7 +98,7 @@ func ExecuteSelect(selectRequest SelectRequest) (response execute.Response, err 
 			command,
 		},
 	}
-	response, err = ExecuteCommands(request)
+	response, err = ExecuteCommands(storeID, request)
 	if err != nil {
 		err = fmt.Errorf("failed to execute select command: %w\n%v", err, command.Text)
 	}

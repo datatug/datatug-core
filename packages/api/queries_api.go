@@ -6,79 +6,86 @@ import (
 	"github.com/strongo/validation"
 )
 
-// RecordsetRequestParams is a set of common request parameters
-type QueryRequestParams struct {
-	Project string `json:"project"`
-	Query   string `json:"query"`
-}
-
-// Validate returns error if not valid
-func (v QueryRequestParams) Validate() error {
-	if v.Project == "" {
-		return validation.NewErrRequestIsMissingRequiredField("project")
-	}
-	if v.Query == "" {
-		return validation.NewErrRequestIsMissingRequiredField("query")
-	}
-	return nil
-}
-
 // GetQueries returns queries
-func GetQueries(projectID, folder string) (models.QueryFolder, error) {
-	return store.Current.LoadQueries(projectID, folder)
+func GetQueries(ref ProjectRef, folder string) (*models.QueryFolder, error) {
+	dal, err := store.NewDatatugStore(ref.StoreID)
+	if err != nil {
+		return nil, err
+	}
+	return dal.LoadQueries(ref.ProjectID, folder)
 }
 
 // CreateQuery creates a new query
-func CreateQueryFolder(projectID, path, id string) (folder models.QueryFolder, err error) {
-	return store.Current.CreateQueryFolder(projectID, path, id)
+func CreateQueryFolder(ref ProjectRef, path, id string) (folder models.QueryFolder, err error) {
+	dal, err := store.NewDatatugStore(ref.StoreID)
+	if err != nil {
+		return
+	}
+	return dal.CreateQueryFolder(ref.ProjectID, path, id)
 }
 
 // CreateQuery creates a new query
-func CreateQuery(params QueryRequestParams, query models.QueryDef) error {
-	if err := params.Validate(); err != nil {
+func CreateQuery(ref ProjectItemRef, query models.QueryDef) error {
+	if err := ref.Validate(); err != nil {
 		return err
 	}
 	if err := query.Validate(); err != nil {
 		return err
 	}
-	return store.Current.CreateQuery(params.Project, query)
+	dal, err := store.NewDatatugStore(ref.StoreID)
+	if err != nil {
+		return err
+	}
+	return dal.CreateQuery(ref.ProjectID, query)
 }
 
 // UpdateQuery updates existing query
-func UpdateQuery(params QueryRequestParams, query models.QueryDef) error {
-	if err := params.Validate(); err != nil {
+func UpdateQuery(ref ProjectItemRef, query models.QueryDef) error {
+	if err := ref.Validate(); err != nil {
 		return err
 	}
 	if err := query.Validate(); err != nil {
 		return err
 	}
-	return store.Current.UpdateQuery(params.Project, query)
+	dal, err := store.NewDatatugStore(ref.StoreID)
+	if err != nil {
+		return err
+	}
+	return dal.UpdateQuery(ref.ProjectID, query)
 }
 
 // DeleteFolder deletes queries folder
-func DeleteQueryFolder(projectID string, path string) error {
-	if projectID == "" {
+func DeleteQueryFolder(ref ProjectItemRef) error {
+	if ref.ProjectID == "" {
 		return validation.NewErrRequestIsMissingRequiredField("projectID")
 	}
-	if path == "" {
-		return validation.NewErrRequestIsMissingRequiredField("path")
-	}
-	return store.Current.DeleteQueryFolder(projectID, path)
-}
-
-// DeleteQuery deletes query
-func DeleteQuery(projectID string, queryID string) error {
-	params := QueryRequestParams{Project: projectID, Query: queryID}
-	if err := params.Validate(); err != nil {
+	dal, err := store.NewDatatugStore(ref.StoreID)
+	if err != nil {
 		return err
 	}
-	return store.Current.DeleteQuery(params.Project, params.Query)
+	return dal.DeleteQueryFolder(ref.ProjectID, ref.ID)
 }
 
 // DeleteQuery deletes query
-func GetQuery(params QueryRequestParams) (query models.QueryDef, err error) {
-	if err = params.Validate(); err != nil {
+func DeleteQuery(ref ProjectItemRef) error {
+	if err := ref.Validate(); err != nil {
+		return err
+	}
+	dal, err := store.NewDatatugStore(ref.StoreID)
+	if err != nil {
+		return err
+	}
+	return dal.DeleteQuery(ref.ProjectID, ref.ID)
+}
+
+// GetQuery returns query definition
+func GetQuery(ref ProjectItemRef) (query *models.QueryDef, err error) {
+	if err = ref.Validate(); err != nil {
 		return query, err
 	}
-	return store.Current.LoadQuery(params.Project, params.Query)
+	dal, err := store.NewDatatugStore(ref.StoreID)
+	if err != nil {
+		return nil, err
+	}
+	return dal.LoadQuery(ref.ProjectID, ref.ID)
 }
