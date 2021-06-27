@@ -39,7 +39,15 @@ func ServeHTTP(pathsByID map[string]string, host string, port int) error {
 	router := httprouter.New()
 	router.GlobalOPTIONS = http.HandlerFunc(globalOptionsHandler)
 	router.HandlerFunc(http.MethodGet, "/", root)
-	routes.RegisterAllDatatugHandlers("", router)
+	logWrapper := func(handler http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != "/agent-info" {
+				log.Println(r.Method, r.ContentLength, r.RequestURI)
+			}
+			handler(w, r)
+		}
+	}
+	routes.RegisterAllDatatugHandlers("", router, logWrapper)
 
 	s := http.Server{
 		Addr:           fmt.Sprintf("%v:%v", agentHost, agentPort),

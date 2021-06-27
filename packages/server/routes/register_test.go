@@ -12,10 +12,10 @@ func TestRegisterDatatugWriteOnlyHandlers(t *testing.T) {
 				t.Fatal("a panic expected for nil router")
 			}
 		}()
-		RegisterDatatugWriteOnlyHandlers("", nil)
+		RegisterDatatugWriteOnlyHandlers("", nil, nil)
 	})
 
 	t.Run("should_pass", func(t *testing.T) {
-		RegisterDatatugWriteOnlyHandlers("", httprouter.New())
+		RegisterDatatugWriteOnlyHandlers("", httprouter.New(), nil)
 	})
 }
