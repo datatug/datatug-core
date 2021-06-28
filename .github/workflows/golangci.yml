@@ -15,6 +15,7 @@ on:
 jobs:
 
   test_and_build:
+    name: Lint, vet, test, build
     runs-on: ubuntu-latest
 
     steps:
@@ -46,8 +47,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-#      - name: Pull new module version
-#        uses: andrewslotin/go-proxy-pull-action@master
+      #      - name: Pull new module version
+      #        uses: andrewslotin/go-proxy-pull-action@master
 
       - name: go get
         run: go get ./...
