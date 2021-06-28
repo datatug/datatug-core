@@ -2,6 +2,7 @@ package models
 
 import "github.com/strongo/validation"
 
+// DbCatalogBase defines base data for DB catalog
 type DbCatalogBase struct {
 	ProjectItem
 	Driver  string `json:"driver"`
@@ -9,6 +10,7 @@ type DbCatalogBase struct {
 	DbModel string `json:"dbModel"`
 }
 
+// Validate returns error if not valid
 func (v DbCatalogBase) Validate() error {
 	if err := v.ProjectItem.Validate(false); err != nil {
 		return err

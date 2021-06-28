@@ -38,8 +38,8 @@ func jsonFileName(id, suffix string) string {
 		entityFileSuffix,
 		serverFileSuffix,
 		columnsFileSuffix,
-		querySqlFileSuffix,
-		queryHttpFileSuffix:
+		querySQLFileSuffix,
+		queryHTTPFileSuffix:
 		// OK
 	default:
 		panic(fmt.Sprintf("unknown JSON file suffix=[%v], id=[%v]", suffix, id))
@@ -48,7 +48,7 @@ func jsonFileName(id, suffix string) string {
 	return fmt.Sprintf("%v.%v.json", id, suffix)
 }
 
-func getProjItemIdFromFileName(fileName string) (id string, suffix string) {
+func getProjItemIDFromFileName(fileName string) (id string, suffix string) {
 	parts := strings.Split(fileName, ".")
 	if len(parts) < 3 {
 		return "", ""
@@ -71,6 +71,6 @@ const (
 	entityFileSuffix          = "entity"
 	serverFileSuffix          = "server"
 	columnsFileSuffix         = "columns"
-	querySqlFileSuffix        = "sql"
-	queryHttpFileSuffix       = "http"
+	querySQLFileSuffix        = "sql"
+	queryHTTPFileSuffix       = "http"
 )

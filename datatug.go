@@ -1,10 +1,10 @@
 package main
 
 import (
+	_ "embed"
 	"github.com/datatug/datatug/packages/cli/commands"
 	_ "github.com/datatug/datatug/packages/cli/console"
 	_ "github.com/denisenkom/go-mssqldb"
-	"github.com/jessevdk/go-flags"
 	_ "github.com/mattn/go-sqlite3"
 	"os"
 )

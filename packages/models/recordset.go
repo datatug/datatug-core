@@ -96,10 +96,12 @@ type RecordsetColumnDef struct {
 	HideIf   HideRecordsetColIf `json:"hideIf,omitempty"`
 }
 
+// HideRecordsetColIf defines recordset col if
 type HideRecordsetColIf struct {
 	Parameters []string `json:"parameters,omitempty"`
 }
 
+// Validate returns error if not valid
 func (v HideRecordsetColIf) Validate() error {
 	for i, p := range v.Parameters {
 		if p == "" {

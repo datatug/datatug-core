@@ -7,15 +7,18 @@ import (
 
 var _ ProjectEndpoints = (*ProjectAgentEndpoints)(nil)
 
+// ProjectAgentEndpoints defines project endpoints
 type ProjectAgentEndpoints struct {
 }
 
-func (_ ProjectAgentEndpoints) CreateProject(w http.ResponseWriter, r *http.Request) {
+// CreateProject creates project
+func (ProjectAgentEndpoints) CreateProject(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 	w.Write([]byte("Creation of a new DataTug project is not implemented at agent yet. For now use DataTug CLI to create a new project."))
 }
 
-func (_ ProjectAgentEndpoints) DeleteProject(w http.ResponseWriter, r *http.Request) {
+// DeleteProject deletes project
+func (ProjectAgentEndpoints) DeleteProject(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 	w.Write([]byte("Deletion of a DataTug project is not implemented at agent yet."))
 }

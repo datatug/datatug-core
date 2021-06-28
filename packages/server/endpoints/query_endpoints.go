@@ -74,7 +74,7 @@ func DeleteQuery(w http.ResponseWriter, request *http.Request) {
 	deleteItem(w, request, "id", api.DeleteQuery)
 }
 
-// DeleteQuery handles delete query endpoint
+// DeleteQueryFolder handles delete query endpoint
 func DeleteQueryFolder(w http.ResponseWriter, request *http.Request) {
 	deleteItem(w, request, "id", api.DeleteQueryFolder)
 }

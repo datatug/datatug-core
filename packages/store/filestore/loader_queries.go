@@ -41,8 +41,8 @@ func (loader fileSystemLoader) loadQuery(queryID, dirPath string, query *models.
 	if err = readJSONFile(queryPath, true, &query); err != nil {
 		return fmt.Errorf("failed to load query definition from file: %v: %w", path.Join(queryDir, queryFileName), err)
 	}
-	if query.Text == "" && strings.HasSuffix(queryID, "."+querySqlFileSuffix) {
-		content, err := ioutil.ReadFile(queryPath[:len(queryPath)-len("."+querySqlFileSuffix)])
+	if query.Text == "" && strings.HasSuffix(queryID, "."+querySQLFileSuffix) {
+		content, err := ioutil.ReadFile(queryPath[:len(queryPath)-len("."+querySQLFileSuffix)])
 		if err != nil {
 			return fmt.Errorf("failed to load query text from .sql file: %w", err)
 		}

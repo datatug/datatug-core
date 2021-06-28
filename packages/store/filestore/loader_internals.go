@@ -108,7 +108,7 @@ func loadBoards(projPath string, project *models.DatatugProject) (err error) {
 				},
 			}
 			var suffix string
-			board.ID, suffix = getProjItemIdFromFileName(f.Name())
+			board.ID, suffix = getProjItemIDFromFileName(f.Name())
 			if strings.ToLower(suffix) != boardFileSuffix {
 				return nil
 			}

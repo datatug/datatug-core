@@ -56,6 +56,7 @@ type TableModelColumnsFile struct {
 	Columns models.ColumnModels `json:"columns,omitempty"`
 }
 
+// Validate returns error if not valid
 func (v TableModelColumnsFile) Validate() error {
 	for i, c := range v.Columns {
 		if err := c.Validate(); err != nil {
@@ -71,6 +72,7 @@ type DbModelFile struct {
 	Environments models.DbModelEnvironments `json:"environments,omitempty"`
 }
 
+// Validate returns error if not valid
 func (v DbModelFile) Validate() error {
 	if err := v.ProjectItem.Validate(false); err != nil {
 		return err
@@ -93,6 +95,7 @@ type DbCatalogFile struct {
 	DbModel string `json:"dbmodel,omitempty"`
 }
 
+// Validate returns error if not valid
 func (v DbCatalogFile) Validate() error {
 	if v.Driver == "" {
 		return validation.NewErrRecordIsMissingRequiredField("driver")

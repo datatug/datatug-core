@@ -14,10 +14,12 @@ type Response struct {
 	Commands []*CommandResponse `json:"commands"`
 }
 
+// CommandResponse defiens command response
 type CommandResponse struct {
 	Items []CommandResponseItem `json:"items"`
 }
 
+// CommandResponseItem defines response item
 type CommandResponseItem struct {
 	Type  string      `json:"type"` // e.g. recordset
 	Value interface{} `json:"value"`

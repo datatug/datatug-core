@@ -83,7 +83,7 @@ func (s indexesReader) NextIndex() (index *schemer.Index, err error) {
 	case 1:
 		index.IsClustered = true
 	case 3:
-		index.IsXml = true
+		index.IsXML = true
 	case 5:
 		index.IsClustered = true
 		index.IsColumnStore = true

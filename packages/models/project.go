@@ -76,6 +76,7 @@ type ProjectBrief struct {
 	Repository *ProjectRepository `json:"repository,omitempty" firestore:"repository,omitempty"`
 }
 
+// Validate returns error if not valid
 func (v *ProjectBrief) Validate() error {
 	if err := v.ProjectItem.Validate(true); err != nil {
 		return err
@@ -101,12 +102,14 @@ type ProjectSummary struct {
 	ProjectFile
 }
 
+// ProjectRepository defines project repository
 type ProjectRepository struct {
 	Type      string `json:"type"` // e.g. "git"
 	WebURL    string `json:"webURL"`
 	ProjectID string `json:"projectId,omitempty"`
 }
 
+// Validate returns error if not valid
 func (v *ProjectRepository) Validate() error {
 	if v == nil {
 		return nil

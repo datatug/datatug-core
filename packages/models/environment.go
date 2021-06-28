@@ -128,6 +128,7 @@ type EnvironmentSummary struct {
 	//Databases []EnvDb             `json:"databases,omitempty"`
 }
 
+// Validate returns error if not valid
 func (v EnvironmentSummary) Validate() error {
 	if err := v.ProjectItem.Validate(false); err != nil {
 		return err
@@ -145,6 +146,7 @@ type EnvDb struct {
 	Server  ServerReference `json:"server"`
 }
 
+// Validate returns error if not valid
 func (v EnvDb) Validate() error {
 	if err := v.ProjectItem.Validate(false); err != nil {
 		return err

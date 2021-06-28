@@ -7,10 +7,10 @@ import (
 	"strings"
 )
 
-var _ Params = (*generalParams)(nil)
+var _ Params = (*GeneralParams)(nil)
 
-// generalParams hold connection parameters
-type generalParams struct {
+// GeneralParams hold connection parameters
+type GeneralParams struct {
 	mode     Mode
 	driver   string
 	server   string
@@ -21,51 +21,54 @@ type generalParams struct {
 	path     string
 }
 
-func (v generalParams) Mode() Mode {
+// Mode returns mode
+func (v GeneralParams) Mode() Mode {
 	return v.mode
 }
 
-func (v generalParams) Catalog() string {
+// Catalog returns catalog
+func (v GeneralParams) Catalog() string {
 	panic("implement me")
 }
 
-func (v generalParams) ConnectionString() string {
+// ConnectionString returns ConnectionString
+func (v GeneralParams) ConnectionString() string {
 	panic("implement me")
 }
 
 // Driver returns DB
-func (v generalParams) Driver() string {
+func (v GeneralParams) Driver() string {
 	return v.driver
 }
 
 // Database returns DB
-func (v generalParams) Database() string {
+func (v GeneralParams) Database() string {
 	return v.catalog
 }
 
 // Server returns server
-func (v generalParams) Server() string {
+func (v GeneralParams) Server() string {
 	return v.server
 }
 
 // Path returns path to file (for SQLite3)
-func (v generalParams) Path() string {
+func (v GeneralParams) Path() string {
 	return v.path
 }
 
 // Port returns port
-func (v generalParams) Port() int {
+func (v GeneralParams) Port() int {
 	return v.port
 }
 
 // User returns user
-func (v generalParams) User() string {
+func (v GeneralParams) User() string {
 	return v.user
 }
 
 // NewConnectionString creates new connection parameters
-func NewConnectionString(driver, server, user, password, database string, options ...string) (connectionString generalParams, err error) {
-	connectionString = generalParams{
+func NewConnectionString(driver, server, user, password, database string, options ...string) (connectionString GeneralParams, err error) {
+	connectionString = GeneralParams{
 		driver:   driver,
 		server:   server,
 		catalog:  database,
@@ -99,7 +102,7 @@ func NewConnectionString(driver, server, user, password, database string, option
 }
 
 // String serializes connection parameters to a string
-func (v generalParams) String() string {
+func (v GeneralParams) String() string {
 	connectionParams := make([]string, 0, 8)
 	connectionParams = append(connectionParams, "server="+v.server)
 	//connectionParams = append(connectionParams, fmt.Sprintf("ServerSPN=MSSQLSvc/%v:1433", v.server))

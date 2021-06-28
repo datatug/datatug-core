@@ -80,11 +80,11 @@ FROM %v.%v
 
 	var repoID, projectID string
 	if repository != nil {
-		repoUrl, err := url.Parse(repository.WebURL)
+		repoURL, err := url.Parse(repository.WebURL)
 		if err != nil {
 			return nil, fmt.Errorf("project repository has invalid  (%v): %w", repository.WebURL, err)
 		}
-		repoID = repoUrl.Host
+		repoID = repoURL.Host
 		projectID = repository.ProjectID
 	}
 
@@ -177,7 +177,7 @@ FROM %v.%v
 		if index.IsHash {
 			indexProps = append(indexProps, "`HASH`")
 		}
-		if index.IsXml {
+		if index.IsXML {
 			indexProps = append(indexProps, "`XML`")
 		}
 		if index.IsColumnStore {
@@ -243,15 +243,15 @@ type refByWalker struct {
 	process   func(parent *models.Table, refBy *models.TableReferencedBy, level, index int) error
 }
 
-func (refByWalker) getTableId(schema, name string) string {
+func (refByWalker) getTableID(schema, name string) string {
 	return fmt.Sprintf("[%v].[%v]", schema, name)
 }
 
 func (walker *refByWalker) walkReferencedBy(table *models.Table, level int) error {
 	level++
-	walker.processed[walker.getTableId(table.Schema, table.Name)] = table
+	walker.processed[walker.getTableID(table.Schema, table.Name)] = table
 	for i, refBy := range table.ReferencedBy {
-		refByID := walker.getTableId(refBy.Schema, refBy.Name)
+		refByID := walker.getTableID(refBy.Schema, refBy.Name)
 		if _, ok := walker.processed[refByID]; ok {
 			continue
 		}

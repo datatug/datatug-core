@@ -51,9 +51,9 @@ func IsValidateStoreType(v string) bool {
 // Validate returns error if not valid
 func (v UserDatatugInfo) Validate() error {
 	if len(v.Stores) > 0 {
-		for storeId, storeBrief := range v.Stores {
+		for storeID, storeBrief := range v.Stores {
 			if err := storeBrief.Validate(); err != nil {
-				return validation.NewErrBadRecordFieldValue(fmt.Sprintf("stores[%v]", storeId), err.Error())
+				return validation.NewErrBadRecordFieldValue(fmt.Sprintf("stores[%v]", storeID), err.Error())
 			}
 
 		}

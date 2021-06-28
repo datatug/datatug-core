@@ -46,18 +46,20 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
+      - name: Pull new module version
+        uses: andrewslotin/go-proxy-pull-action@master
 
       - name: go get
-        run: go get
+        run: go get ./...
+
+      - name: go vet ./...
+        run: go vet ./...
 
       - name: go test ./...
         run: go test ./...
 
       - name: Build DataTug CLI
         run: go build -mod=mod
-
-      - name: Pull new module version
-        uses: andrewslotin/go-proxy-pull-action@master
 
 #      - name: list root directory
 #        run: ls

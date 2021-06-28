@@ -7,15 +7,15 @@ import (
 )
 
 // AddDbServer adds db server to project
-func AddDbServer(storeId, projectID string, projDbServer models.ProjDbServer) (err error) {
-	store, err := store.NewDatatugStore(storeId)
+func AddDbServer(storeID, projectID string, projDbServer models.ProjDbServer) (err error) {
+	store, err := store.NewDatatugStore(storeID)
 	if err != nil {
 		return err
 	}
 	return store.SaveDbServer(projectID, projDbServer, models.DatatugProject{})
 }
 
-// AddDbServer adds db server to project
+// UpdateDbServer adds db server to project
 //goland:noinspection GoUnusedExportedFunction
 func UpdateDbServer(ref ProjectRef, projDbServer models.ProjDbServer) (err error) {
 	var dal store.Interface

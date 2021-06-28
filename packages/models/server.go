@@ -7,8 +7,10 @@ import (
 	"strings"
 )
 
+// ServerReferences defines slice
 type ServerReferences []ServerReference
 
+// Validate returns error if not valid
 func (v ServerReferences) Validate() error {
 	for i, s := range v {
 		if err := s.Validate(); err != nil {
@@ -119,6 +121,7 @@ func (v ProjDbServers) Validate() error {
 	return nil
 }
 
+// GetProjDbServer returns db servers
 func (v ProjDbServers) GetProjDbServer(ref ServerReference) *ProjDbServer {
 	for _, item := range v {
 		if item.Server.Host == ref.Host && item.Server.Port == ref.Port && item.Server.Driver == ref.Driver {
@@ -134,6 +137,7 @@ type ProjDbServerFile struct {
 	Catalogs []string `catalogs,omitempty`
 }
 
+// Validate returns error if not valid
 func (v ProjDbServerFile) Validate() error {
 	if err := v.ServerReference.Validate(); err != nil {
 		return err

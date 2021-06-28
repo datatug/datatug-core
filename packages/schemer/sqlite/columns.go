@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	// required import
 	_ "embed"
 	"fmt"
 	"github.com/datatug/datatug/packages/schemer"

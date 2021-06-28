@@ -9,6 +9,7 @@ type EnvironmentFile struct {
 	ID string `json:"id"`
 }
 
+// Validate returns error if not valid
 func (v EnvironmentFile) Validate() error {
 	if v.ID == "" {
 		return validation.NewErrRecordIsMissingRequiredField("id")

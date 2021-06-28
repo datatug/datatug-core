@@ -15,7 +15,7 @@ func GetQueries(ref ProjectRef, folder string) (*models.QueryFolder, error) {
 	return dal.LoadQueries(ref.ProjectID, folder)
 }
 
-// CreateQuery creates a new query
+// CreateQueryFolder creates a new folder for queries
 func CreateQueryFolder(ref ProjectRef, path, id string) (folder models.QueryFolder, err error) {
 	dal, err := store.NewDatatugStore(ref.StoreID)
 	if err != nil {
@@ -54,7 +54,7 @@ func UpdateQuery(ref ProjectItemRef, query models.QueryDef) error {
 	return dal.UpdateQuery(ref.ProjectID, query)
 }
 
-// DeleteFolder deletes queries folder
+// DeleteQueryFolder deletes queries folder
 func DeleteQueryFolder(ref ProjectItemRef) error {
 	if ref.ProjectID == "" {
 		return validation.NewErrRequestIsMissingRequiredField("projectID")

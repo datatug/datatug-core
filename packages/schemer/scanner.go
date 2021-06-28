@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// NewScanner creates new scanner
 func NewScanner(schemaProvider SchemaProvider) Scanner {
 	return scanner{schemaProvider: schemaProvider}
 }

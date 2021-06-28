@@ -13,6 +13,7 @@ func validateProjectInput(projectID string) (err error) {
 	return nil
 }
 
+// GetProjects return all projects
 func GetProjects(storeID string) ([]models.ProjectBrief, error) {
 	dal, err := store.NewDatatugStore(storeID)
 	if err != nil {
@@ -20,6 +21,7 @@ func GetProjects(storeID string) ([]models.ProjectBrief, error) {
 	}
 	return dal.GetProjects()
 }
+
 // GetProjectSummary returns project summary
 func GetProjectSummary(ref ProjectRef) (*models.ProjectSummary, error) {
 	if ref.ProjectID == "" {

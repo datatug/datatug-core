@@ -15,6 +15,7 @@ type CatalogObject struct {
 	DefaultAlias string `json:"defaultAlias,omitempty"`
 }
 
+// Validate returns error if not valid
 func (v CatalogObject) Validate() error {
 	if v.Type == "" {
 		return validation.NewErrRecordIsMissingRequiredField("type")
@@ -28,8 +29,10 @@ func (v CatalogObject) Validate() error {
 	return nil
 }
 
+// CatalogObjects defines list of catalog objects
 type CatalogObjects []CatalogObject
 
+// Validate returns error if not valid
 func (v CatalogObjects) Validate() error {
 	for i, c := range v {
 		if err := c.Validate(); err != nil {
@@ -39,8 +42,10 @@ func (v CatalogObjects) Validate() error {
 	return nil
 }
 
+// CatalogObjectsWithRefs defines slice
 type CatalogObjectsWithRefs []CatalogObjectWithRefs
 
+// CatalogObjectWithRefs defines ref to catalog object
 type CatalogObjectWithRefs struct {
 	CatalogObject
 	PrimaryKey   *UniqueKey         `json:"primaryKey,omitempty"`
@@ -48,6 +53,7 @@ type CatalogObjectWithRefs struct {
 	ReferencedBy TableReferencedBys `json:"referencedBy,omitempty"`
 }
 
+// Validate returns error if not valid
 func (v CatalogObjectWithRefs) Validate() error {
 	if err := v.CatalogObject.Validate(); err != nil {
 		return err
@@ -58,6 +64,7 @@ func (v CatalogObjectWithRefs) Validate() error {
 	return nil
 }
 
+// Validate returns error if not valid
 func (v CatalogObjectsWithRefs) Validate() error {
 	for i, o := range v {
 		if err := o.Validate(); err != nil {
@@ -118,6 +125,7 @@ func (v DbSchema) Validate() error {
 // DbCatalogs is a slice of pointers to Database
 type DbCatalogs []*DbCatalog
 
+// GetTable returns table
 func (v DbCatalogs) GetTable(catalog, schema, name string) *Table {
 	for _, c := range v {
 		if c.ID == catalog {
@@ -216,6 +224,7 @@ func (v TableProps) Validate() error {
 	return nil
 }
 
+// UniqueKeys defines slice
 type UniqueKeys []UniqueKey
 
 // UniqueKey holds metadata about unique key
@@ -225,6 +234,7 @@ type UniqueKey struct {
 	IsClustered bool     `json:"isClustered,omitempty"`
 }
 
+// Validate returns error if not valid
 func (v UniqueKeys) Validate() error {
 	for i, uk := range v {
 		if err := uk.Validate(); err != nil {
@@ -234,8 +244,10 @@ func (v UniqueKeys) Validate() error {
 	return nil
 }
 
+// Indexes defines slice
 type Indexes []Index
 
+// Validate returns error if not valid
 func (v Indexes) Validate() error {
 	for i, index := range v {
 		if err := index.Validate(); err != nil {
@@ -252,7 +264,7 @@ type Index struct {
 	Origin             string         `json:"origin,omitempty"` // Used by SQLite
 	Columns            []*IndexColumn `json:"columns"`
 	IsClustered        bool           `json:"clustered,omitempty"`
-	IsXml              bool           `json:"xml,omitempty"`
+	IsXML              bool           `json:"xml,omitempty"`
 	IsColumnStore      bool           `json:"columnstore,omitempty"`
 	IsHash             bool           `json:"hash,omitempty"`
 	IsUnique           bool           `json:"unique,omitempty"`
@@ -261,6 +273,7 @@ type Index struct {
 	IsPartial          bool           `json:"partial,omitempty"`
 }
 
+// Validate returns error if not valid
 func (v Index) Validate() error {
 	if v.Name == "" {
 		return validation.NewErrRecordIsMissingRequiredField("name")
@@ -300,8 +313,10 @@ func (v *UniqueKey) Validate() error {
 	return nil
 }
 
+// ForeignKeys define list of foreighn keys
 type ForeignKeys []*ForeignKey
 
+// Validate returns error if not valid
 func (v ForeignKeys) Validate() error {
 	for i, fk := range v {
 		if err := fk.Validate(); err != nil {
@@ -347,11 +362,13 @@ type RefByForeignKey struct {
 // Tables is a slice of *Table
 type Tables []*Table
 
+// Constraint defines constraint
 type Constraint struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
 }
 
+// Validate returns error if not valid
 func (v Constraint) Validate() error {
 	if v.Name == "" {
 		return validation.NewErrRecordIsMissingRequiredField("name")
@@ -412,8 +429,10 @@ func (v Table) Validate() error {
 	return nil
 }
 
+// TableReferencedBys defines slice
 type TableReferencedBys []*TableReferencedBy
 
+// Validate returns error if not valid
 func (v TableReferencedBys) Validate() error {
 
 	return nil
@@ -476,26 +495,32 @@ type tableColsSorter struct {
 	Columns TableColumns
 }
 
+// ByPrimaryKeyPosition returns sort interface
 func (v TableColumns) ByPrimaryKeyPosition() sort.Interface {
 	return tableColsSorter{Columns: v}
 }
 
+// Len provides length
 func (v tableColsSorter) Len() int {
 	return len(v.Columns)
 }
 
+// Less compares 2 items
 func (v tableColsSorter) Less(i, j int) bool {
 	return v.Columns[i].PrimaryKeyPosition < v.Columns[j].PrimaryKeyPosition
 }
 
+// Swap swaps items
 func (v tableColsSorter) Swap(i, j int) {
 	c := v.Columns[i]
 	v.Columns[i] = v.Columns[j]
 	v.Columns[j] = c
 }
 
+// TableColumns defines slice
 type TableColumns []*TableColumn
 
+// Validate returns error if not valid
 func (v TableColumns) Validate() error {
 	for i, c := range v {
 		if err := c.Validate(); err != nil {

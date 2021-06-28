@@ -64,6 +64,7 @@ func (v Parameters) Validate() error {
 	return nil
 }
 
+// Parameter defines parameter
 type Parameter struct {
 	ID    string      `json:"id"`
 	Type  string      `json:"type"`

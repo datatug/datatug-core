@@ -6,8 +6,10 @@ import (
 	"time"
 )
 
+// QueryFolders defines slice
 type QueryFolders []*QueryFolder
 
+// Validate returns error if not valid
 func (v QueryFolders) Validate() error {
 	for _, folder := range v {
 		if err := folder.Validate(); err != nil {
@@ -17,12 +19,14 @@ func (v QueryFolders) Validate() error {
 	return nil
 }
 
+// QueryFolder defines folder
 type QueryFolder struct {
 	ProjectItem
 	Folders QueryFolders `json:"folders,omitempty" yaml:"folders,omitempty"`
 	Items   QueryDefs    `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
+// Validate returns error if not valid
 func (v QueryFolder) Validate() error {
 	if err := v.ProjectItem.Validate(false); err != nil {
 		return err
@@ -36,8 +40,10 @@ func (v QueryFolder) Validate() error {
 	return nil
 }
 
+// QueryDefs defines slice
 type QueryDefs []QueryDef
 
+// Validate returns error if not valid
 func (v QueryDefs) Validate() error {
 	for _, q := range v {
 		if err := q.Validate(); err != nil {
@@ -59,6 +65,7 @@ type QueryDef struct {
 	Recordsets []RecordsetDefinition `json:"recordsets,omitempty" yaml:"recordsets,omitempty"`
 }
 
+// QueryDefTarget defines target of query
 type QueryDefTarget struct {
 	Driver  string `json:"driver,omitempty" yaml:"driver,omitempty"`
 	Catalog string `json:"catalog,omitempty" yaml:"catalog,omitempty"`

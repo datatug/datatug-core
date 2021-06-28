@@ -13,7 +13,7 @@ func loadEnvServers(dirPath string, env *models.Environment) error {
 		env.DbServers = make([]*models.EnvDbServer, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 		fileName := f.Name()
-		serverName, suffix := getProjItemIdFromFileName(fileName)
+		serverName, suffix := getProjItemIDFromFileName(fileName)
 		if suffix != serverFileSuffix {
 			return nil
 		}

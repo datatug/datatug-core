@@ -51,6 +51,7 @@ type DbModel struct {
 // DbModelEnvironments slice of *DbModelEnv
 type DbModelEnvironments []*DbModelEnv
 
+// Validate returns error if not valid
 func (v DbModelEnvironments) Validate() error {
 	if v == nil {
 		return nil
@@ -79,6 +80,7 @@ type DbModelEnv struct {
 	DbCatalogs DbModelDbCatalogs
 }
 
+// Validate returns error if not valid
 func (v DbModelEnv) Validate() error {
 	if v.ID == "" {
 		return validation.NewErrRecordIsMissingRequiredField("id")
@@ -92,6 +94,7 @@ func (v DbModelEnv) Validate() error {
 // DbModelDbCatalogs slice of *DbModelDbCatalog
 type DbModelDbCatalogs []*DbModelDbCatalog
 
+// Validate returns error if not valid
 func (v DbModelDbCatalogs) Validate() error {
 	for i, item := range v {
 		if err := item.Validate(); err != nil {
@@ -116,6 +119,7 @@ type DbModelDbCatalog struct {
 	ID string `json:"id"`
 }
 
+// Validate returns error if not valid
 func (v DbModelDbCatalog) Validate() error {
 	if v.ID == "" {
 		return validation.NewErrRecordIsMissingRequiredField("id")
