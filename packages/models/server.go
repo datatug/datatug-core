@@ -134,7 +134,7 @@ func (v ProjDbServers) GetProjDbServer(ref ServerReference) *ProjDbServer {
 // ProjDbServerFile stores summary info about ServerReference
 type ProjDbServerFile struct {
 	ServerReference
-	Catalogs []string `catalogs,omitempty`
+	Catalogs []string `jsont:"catalogs,omitempty" firestore:"catalogs,omitempty"`
 }
 
 // Validate returns error if not valid

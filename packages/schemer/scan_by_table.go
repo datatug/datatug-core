@@ -141,5 +141,4 @@ func (s scanner) scanTableConstraints(c context.Context, db *sql.DB, catalog str
 			return fmt.Errorf("failed to process contraint record: %w", err)
 		}
 	}
-	return nil
 }

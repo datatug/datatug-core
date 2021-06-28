@@ -40,7 +40,7 @@ func (v Board) Validate() error {
 type ProjBoardBrief struct {
 	ProjectItem
 	Parameters     Parameters `json:"parameters,omitempty" firestore:"parameters,omitempty"`
-	RequiredParams [][]string `json:"requiredParams,omitempty"firestore:"requiredParams,omitempty"`
+	RequiredParams [][]string `json:"requiredParams,omitempty" firestore:"requiredParams,omitempty"`
 }
 
 // ParameterLookup holds definition for parameter lookup
