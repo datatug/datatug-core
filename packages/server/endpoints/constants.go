@@ -1,29 +1,29 @@
 package endpoints
 
 import (
-	"github.com/datatug/datatug/packages/api"
+	"github.com/datatug/datatug/packages/dto"
 	"net/url"
 )
 
 const (
 	urlQueryParamID          = "id"
-	urlQueryParamStoreID   = "store"
+	urlQueryParamStoreID     = "storage"
 	urlQueryParamProjectID   = "project"
 	urlQueryParamRecordsetID = "recordset"
 	urlQueryParamDataID      = "data"
 	urlQueryParamFolder      = "folder"
-	urlQueryParamQuery      = "query"
+	urlQueryParamQuery       = "query"
 )
 
-func newProjectRef(query url.Values) api.ProjectRef {
-	return api.ProjectRef{
-		StoreID: query.Get(urlQueryParamStoreID),
+func newProjectRef(query url.Values) dto.ProjectRef {
+	return dto.ProjectRef{
+		StoreID:   query.Get(urlQueryParamStoreID),
 		ProjectID: query.Get(urlQueryParamProjectID),
 	}
 }
-func newProjectItemRef(query url.Values) api.ProjectItemRef {
-	return api.ProjectItemRef{
+func newProjectItemRef(query url.Values) dto.ProjectItemRef {
+	return dto.ProjectItemRef{
 		ProjectRef: newProjectRef(query),
-		ID: query.Get(urlQueryParamID),
+		ID:         query.Get(urlQueryParamID),
 	}
 }

@@ -10,7 +10,7 @@ type UserDatatugInfo struct {
 	Stores map[string]DatatugStoreBrief `json:"stores,omitempty" firestore:"stores,omitempty"`
 }
 
-// DatatugStoreBrief stores info about datatug store known to a user
+// DatatugStoreBrief stores info about datatug storage known to a user
 type DatatugStoreBrief struct {
 	Type     string                  `json:"type,omitempty" firestore:"type,omitempty" yaml:"type,omitempty"`
 	Title    string                  `json:"title,omitempty" firestore:"title,omitempty" yaml:"title,omitempty"`
@@ -35,7 +35,7 @@ func (v DatatugStoreBrief) Validate() error {
 
 var validStoreTypes = []string{"firestore", "github.com", "agent"}
 
-// IsValidateStoreType checks if store type has valid value
+// IsValidateStoreType checks if storage type has valid value
 func IsValidateStoreType(v string) bool {
 	if v == "" {
 		return false

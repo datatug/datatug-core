@@ -6,8 +6,8 @@ import (
 	"github.com/datatug/datatug/packages/api"
 	"github.com/datatug/datatug/packages/dbconnection"
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/store"
-	"github.com/datatug/datatug/packages/store/filestore"
+	"github.com/datatug/datatug/packages/storage"
+	"github.com/datatug/datatug/packages/storage/filestore"
 	"github.com/mitchellh/go-homedir"
 	"log"
 	"os"
@@ -104,9 +104,9 @@ func (v *scanDbCommand) Execute(_ []string) (err error) {
 	}
 
 	log.Println("Saving project", dataTugProject.ID, "...")
-	store.Current, _ = filestore.NewSingleProjectStore(v.ProjectDir, v.projectID)
-	var dal store.Interface
-	if dal, err = store.NewDatatugStore(""); err != nil {
+	storage.Current, _ = filestore.NewSingleProjectStore(v.ProjectDir, v.projectID)
+	var dal storage.Store
+	if dal, err = storage.NewDatatugStore(""); err != nil {
 		return err
 	}
 	if err = dal.Save(*dataTugProject); err != nil {

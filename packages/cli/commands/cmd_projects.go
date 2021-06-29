@@ -2,8 +2,8 @@ package commands
 
 import (
 	"fmt"
-	"github.com/datatug/datatug/packages/store"
-	"github.com/datatug/datatug/packages/store/filestore"
+	"github.com/datatug/datatug/packages/storage"
+	"github.com/datatug/datatug/packages/storage/filestore"
 	"log"
 	"os"
 )
@@ -47,11 +47,11 @@ func (v *projectsCommand) Execute(_ []string) error {
 		return err
 	}
 	pathsByID := getProjPathsByID(config)
-	if store.Current, err = filestore.NewStore(pathsByID); err != nil {
+	if storage.Current, err = filestore.NewStore("file_system", pathsByID); err != nil {
 		return err
 	}
-	var dal store.Interface
-	if dal, err = store.NewDatatugStore(""); err != nil {
+	var dal storage.Store
+	if dal, err = storage.NewDatatugStore(""); err != nil {
 		return err
 	}
 	projects, err := dal.GetProjects()

@@ -1,14 +1,15 @@
 package api
 
 import (
+	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/store"
+	"github.com/datatug/datatug/packages/storage"
 	"github.com/strongo/validation"
 )
 
 // AddDbServer adds db server to project
 func AddDbServer(storeID, projectID string, projDbServer models.ProjDbServer) (err error) {
-	store, err := store.NewDatatugStore(storeID)
+	store, err := storage.NewDatatugStore(storeID)
 	if err != nil {
 		return err
 	}
@@ -17,9 +18,9 @@ func AddDbServer(storeID, projectID string, projDbServer models.ProjDbServer) (e
 
 // UpdateDbServer adds db server to project
 //goland:noinspection GoUnusedExportedFunction
-func UpdateDbServer(ref ProjectRef, projDbServer models.ProjDbServer) (err error) {
-	var dal store.Interface
-	dal, err = store.NewDatatugStore(ref.StoreID)
+func UpdateDbServer(ref dto.ProjectRef, projDbServer models.ProjDbServer) (err error) {
+	var dal storage.Store
+	dal, err = storage.NewDatatugStore(ref.StoreID)
 	if err != nil {
 		return
 	}
@@ -27,9 +28,9 @@ func UpdateDbServer(ref ProjectRef, projDbServer models.ProjDbServer) (err error
 }
 
 // DeleteDbServer adds db server to project
-func DeleteDbServer(ref ProjectRef, dbServer models.ServerReference) (err error) {
-	var dal store.Interface
-	dal, err = store.NewDatatugStore(ref.StoreID)
+func DeleteDbServer(ref dto.ProjectRef, dbServer models.ServerReference) (err error) {
+	var dal storage.Store
+	dal, err = storage.NewDatatugStore(ref.StoreID)
 	if err != nil {
 		return
 	}
@@ -37,13 +38,13 @@ func DeleteDbServer(ref ProjectRef, dbServer models.ServerReference) (err error)
 }
 
 // GetDbServerSummary returns summary on DB server
-func GetDbServerSummary(ref ProjectRef, dbServer models.ServerReference) (summary *models.ProjDbServerSummary, err error) {
+func GetDbServerSummary(ref dto.ProjectRef, dbServer models.ServerReference) (summary *models.ProjDbServerSummary, err error) {
 	if err = dbServer.Validate(); err != nil {
 		err = validation.NewBadRequestError(err)
 		return
 	}
-	var dal store.Interface
-	dal, err = store.NewDatatugStore(ref.StoreID)
+	var dal storage.Store
+	dal, err = storage.NewDatatugStore(ref.StoreID)
 	if err != nil {
 		return
 	}

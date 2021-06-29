@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/server"
-	"github.com/datatug/datatug/packages/store/filestore"
+	"github.com/datatug/datatug/packages/storage/filestore"
 	"log"
 	"os/exec"
 	runtime "runtime"

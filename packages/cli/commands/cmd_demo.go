@@ -4,10 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/datatug/datatug/packages/api"
+	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
-	"github.com/datatug/datatug/packages/store"
-	"github.com/datatug/datatug/packages/store/filestore"
+	"github.com/datatug/datatug/packages/storage"
+	"github.com/datatug/datatug/packages/storage/filestore"
 	"github.com/go-git/go-git/v5"
 	"io"
 	"log"
@@ -302,8 +303,8 @@ func (c demoCommand) creatDemoProject(demoProjectPath string) error {
 
 func (c demoCommand) updateDemoProject(demoProjectPath string, demoDbFiles []demoDbFile) error {
 	log.Println("Updating demo project...")
-	store.Current, _ = filestore.NewSingleProjectStore(demoProjectPath, demoProjectID)
-	project, err := api.GetProjectFull(api.ProjectRef{
+	storage.Current, _ = filestore.NewSingleProjectStore(demoProjectPath, demoProjectID)
+	project, err := api.GetProjectFull(dto.ProjectRef{
 		ProjectID: demoProjectID,
 	})
 	if err != nil {
@@ -327,8 +328,8 @@ func (c demoCommand) updateDemoProject(demoProjectPath string, demoDbFiles []dem
 		}
 	}
 
-	var dal store.Interface
-	if dal, err = store.NewDatatugStore(""); err != nil {
+	var dal storage.Store
+	if dal, err = storage.NewDatatugStore(""); err != nil {
 		return err
 	}
 	if err = dal.Save(*project); err != nil {

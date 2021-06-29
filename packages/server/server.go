@@ -3,8 +3,8 @@ package server
 import (
 	"fmt"
 	"github.com/datatug/datatug/packages/server/routes"
-	"github.com/datatug/datatug/packages/store"
-	"github.com/datatug/datatug/packages/store/filestore"
+	"github.com/datatug/datatug/packages/storage"
+	"github.com/datatug/datatug/packages/storage/filestore"
 	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
@@ -16,9 +16,9 @@ var agentPort int
 
 // ServeHTTP starts HTTP server
 func ServeHTTP(pathsByID map[string]string, host string, port int) error {
-	store.NewDatatugStore = func(id string) (v store.Interface, err error) {
+	storage.NewDatatugStore = func(id string) (v storage.Store, err error) {
 		if v, err = filestore.NewStore(pathsByID); err != nil {
-			err = fmt.Errorf("failed to create filestore for store id=%v: %w", id, err)
+			err = fmt.Errorf("failed to create filestore for storage id=%v: %w", id, err)
 			return
 		}
 		return
@@ -92,5 +92,5 @@ func root(writer http.ResponseWriter, _ *http.Request) {
 </footer>
 </body>
 </html>
-`, filestore.GetProjectPath(store.SingleProjectID))))
+`, filestore.GetProjectPath(storage.SingleProjectID))))
 }

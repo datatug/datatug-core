@@ -2,21 +2,23 @@ package endpoints
 
 import (
 	"encoding/json"
-	"github.com/datatug/datatug/packages/api"
+	"github.com/datatug/datatug/packages/dto"
 	"net/http"
 )
 
-func deleteItem(w http.ResponseWriter, request *http.Request, idParam string, del func(ref api.ProjectItemRef) error) {
-	query := request.URL.Query()
-	ref := newProjectItemRef(query)
-	err := del(ref)
-	returnJSON(w, request, http.StatusOK, err, true)
+func deleteProjItem(del func(ref dto.ProjectItemRef) error) func(w http.ResponseWriter, request *http.Request) {
+	return func(w http.ResponseWriter, request *http.Request) {
+		query := request.URL.Query()
+		ref := newProjectItemRef(query)
+		err := del(ref)
+		returnJSON(w, request, http.StatusOK, err, true)
+	}
 }
 
 func saveItem(
 	w http.ResponseWriter, r *http.Request,
 	target interface{},
-	saveFunc func(ref api.ProjectItemRef) (result interface{}, err error),
+	saveFunc func(ref dto.ProjectItemRef) (result interface{}, err error),
 ) {
 	projectIemRef := newProjectItemRef(r.URL.Query())
 

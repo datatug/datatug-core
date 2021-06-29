@@ -2,6 +2,7 @@ package endpoints
 
 import (
 	"github.com/datatug/datatug/packages/api"
+	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
 	"net/http"
 )
@@ -23,14 +24,11 @@ func GetEntities(w http.ResponseWriter, request *http.Request) {
 // SaveEntity handles save entity endpoint
 func SaveEntity(w http.ResponseWriter, request *http.Request) {
 	var entity models.Entity
-	saveFunc := func(ref api.ProjectItemRef) (interface{}, error) {
+	saveFunc := func(ref dto.ProjectItemRef) (interface{}, error) {
 		entity.ID = ref.ID
 		return entity, api.SaveEntity(ref.ProjectRef, &entity)
 	}
 	saveItem(w, request, &entity, saveFunc)
 }
 
-// DeleteEntity handles delete entity endpoint
-func DeleteEntity(w http.ResponseWriter, request *http.Request) {
-	deleteItem(w, request, "entity", api.DeleteEntity)
-}
+var DeleteEntity = deleteProjItem(api.DeleteEntity)

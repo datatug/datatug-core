@@ -2,7 +2,7 @@ package endpoints
 
 import (
 	"github.com/datatug/datatug/packages/api"
-	"github.com/datatug/datatug/packages/models"
+	"github.com/datatug/datatug/packages/dto"
 	"net/http"
 )
 
@@ -34,52 +34,40 @@ func GetQuery(w http.ResponseWriter, r *http.Request) {
 }
 
 // CreateQuery handles create query endpoint
-func CreateQuery(w http.ResponseWriter, r *http.Request) {
-	saveQuery(w, r, urlQueryParamID, api.CreateQuery)
-}
-
-// CreateQueryFolder handles create query endpoint
-func CreateQueryFolder(w http.ResponseWriter, r *http.Request) {
-	createQueryFolder(w, r)
+var CreateQuery = func(w http.ResponseWriter, r *http.Request) {
+	var request dto.CreateQuery
+	saveFunc := func(ref dto.ProjectItemRef) (interface{}, error) {
+		return &request, api.CreateQuery(request)
+	}
+	saveItem(w, r, &request, saveFunc)
 }
 
 // UpdateQuery handles update query endpoint
 func UpdateQuery(w http.ResponseWriter, r *http.Request) {
-	saveQuery(w, r, urlQueryParamQuery, api.UpdateQuery)
+	var request dto.UpdateQuery
+	saveFunc := func(ref dto.ProjectItemRef) (interface{}, error) {
+		return &request, api.UpdateQuery(request)
+	}
+	saveItem(w, r, &request, saveFunc)
 }
 
-func saveQuery(w http.ResponseWriter, r *http.Request, idParamName string, save func(ref api.ProjectItemRef, query models.QueryDef) error) {
-	var query models.QueryDef
-	saveFunc := func(ref api.ProjectItemRef) (interface{}, error) {
-		return query, save(ref, query)
+// CreateQueryFolder handles create query endpoint
+func CreateQueryFolder(w http.ResponseWriter, r *http.Request) {
+	var request dto.CreateFolder
+	saveFunc := func(ref dto.ProjectItemRef) (interface{}, error) {
+		return api.CreateQueryFolder(request)
 	}
-	saveItem(w, r, &query, saveFunc)
-}
-
-func createQueryFolder(w http.ResponseWriter, r *http.Request) {
-	type params struct {
-		Path string `json:"path"`
-		ID   string `json:"id"`
-	}
-	var p params
-	saveFunc := func(ref api.ProjectItemRef) (interface{}, error) {
-		return api.CreateQueryFolder(ref.ProjectRef, p.Path, p.ID)
-	}
-	saveItem(w, r, &p, saveFunc)
+	saveItem(w, r, &request, saveFunc)
 	return
 }
 
 // DeleteQuery handles delete query endpoint
-func DeleteQuery(w http.ResponseWriter, request *http.Request) {
-	deleteItem(w, request, "id", api.DeleteQuery)
-}
+var DeleteQuery = deleteProjItem(api.DeleteQuery)
 
-// DeleteQueryFolder handles delete query endpoint
-func DeleteQueryFolder(w http.ResponseWriter, request *http.Request) {
-	deleteItem(w, request, "id", api.DeleteQueryFolder)
-}
+// DeleteQueryFolder handles delete query folder endpoint
+var DeleteQueryFolder = deleteProjItem(api.DeleteQueryFolder)
 
-func getQueryRequestParams(r *http.Request, idParamName string) (ref api.ProjectItemRef, err error) {
+func getQueryRequestParams(r *http.Request, idParamName string) (ref dto.ProjectItemRef, err error) {
 	query := r.URL.Query()
 	ref = newProjectItemRef(query)
 	if err = ref.Validate(); err != nil {

@@ -7,7 +7,7 @@ import (
 	"github.com/datatug/datatug/packages/api"
 	"github.com/datatug/datatug/packages/execute"
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/store"
+	"github.com/datatug/datatug/packages/storage"
 	"github.com/strongo/validation"
 	"net/http"
 	"strconv"
@@ -75,7 +75,7 @@ func ExecuteSelectHandler(w http.ResponseWriter, r *http.Request) {
 		Limit:       int(limit),
 	}
 	if request.Project == "" {
-		request.Project = store.SingleProjectID
+		request.Project = storage.SingleProjectID
 	}
 	for qpName, qpValue := range query {
 		if !strings.HasPrefix(qpName, "p:") || len(qpName) == 2 {

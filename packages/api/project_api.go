@@ -1,8 +1,9 @@
 package api
 
 import (
+	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/store"
+	"github.com/datatug/datatug/packages/storage"
 	"github.com/strongo/validation"
 )
 
@@ -15,7 +16,7 @@ func validateProjectInput(projectID string) (err error) {
 
 // GetProjects return all projects
 func GetProjects(storeID string) ([]models.ProjectBrief, error) {
-	dal, err := store.NewDatatugStore(storeID)
+	dal, err := storage.NewDatatugStore(storeID)
 	if err != nil {
 		return nil, err
 	}
@@ -23,11 +24,11 @@ func GetProjects(storeID string) ([]models.ProjectBrief, error) {
 }
 
 // GetProjectSummary returns project summary
-func GetProjectSummary(ref ProjectRef) (*models.ProjectSummary, error) {
+func GetProjectSummary(ref dto.ProjectRef) (*models.ProjectSummary, error) {
 	if ref.ProjectID == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("id")
 	}
-	dal, err := store.NewDatatugStore(ref.StoreID)
+	dal, err := storage.NewDatatugStore(ref.StoreID)
 	if err != nil {
 		return nil, err
 	}
@@ -36,8 +37,8 @@ func GetProjectSummary(ref ProjectRef) (*models.ProjectSummary, error) {
 }
 
 // GetProjectFull returns full project metadata
-func GetProjectFull(ref ProjectRef) (project *models.DatatugProject, err error) {
-	dal, err := store.NewDatatugStore(ref.StoreID)
+func GetProjectFull(ref dto.ProjectRef) (project *models.DatatugProject, err error) {
+	dal, err := storage.NewDatatugStore(ref.StoreID)
 	if err != nil {
 		return
 	}

@@ -2,6 +2,7 @@ package endpoints
 
 import (
 	"github.com/datatug/datatug/packages/api"
+	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
 	"log"
 	"net/http"
@@ -10,7 +11,7 @@ import (
 // AddDbServer adds a new DB server to project
 func AddDbServer(w http.ResponseWriter, r *http.Request) {
 	var projDbServer models.ProjDbServer
-	saveFunc := func(ref api.ProjectItemRef) (interface{}, error) {
+	saveFunc := func(ref dto.ProjectItemRef) (interface{}, error) {
 		return projDbServer, api.AddDbServer(ref.StoreID, ref.ProjectID, projDbServer)
 	}
 	saveItem(w, r, &projDbServer, saveFunc)

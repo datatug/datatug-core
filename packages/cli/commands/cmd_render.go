@@ -2,8 +2,8 @@ package commands
 
 import (
 	"fmt"
-	"github.com/datatug/datatug/packages/store"
-	"github.com/datatug/datatug/packages/store/filestore"
+	"github.com/datatug/datatug/packages/storage"
+	"github.com/datatug/datatug/packages/storage/filestore"
 	"log"
 	"os"
 )
@@ -45,9 +45,9 @@ func (v *renderCommand) Execute(_ []string) error {
 	}
 
 	log.Println("Saving project", dataTugProject.ID, "...")
-	store.Current, _ = filestore.NewSingleProjectStore(v.ProjectDir, v.projectID)
-	var dal store.Interface
-	if dal, err = store.NewDatatugStore(""); err != nil {
+	storage.Current, _ = filestore.NewSingleProjectStore(v.ProjectDir, v.projectID)
+	var dal storage.Store
+	if dal, err = storage.NewDatatugStore(""); err != nil {
 		return err
 	}
 	if err = dal.Save(*dataTugProject); err != nil {

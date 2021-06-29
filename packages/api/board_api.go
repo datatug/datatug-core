@@ -1,14 +1,15 @@
 package api
 
 import (
+	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/store"
+	"github.com/datatug/datatug/packages/storage"
 )
 
 // GetBoard returns board by ID
-func GetBoard(projectItemRef ProjectItemRef) (board models.Board, err error) {
-	var dal store.Interface
-	dal, err = store.NewDatatugStore(projectItemRef.StoreID)
+func GetBoard(projectItemRef dto.ProjectItemRef) (board models.Board, err error) {
+	var dal storage.Store
+	dal, err = storage.NewDatatugStore(projectItemRef.StoreID)
 	if err != nil {
 		return
 	}
@@ -16,9 +17,9 @@ func GetBoard(projectItemRef ProjectItemRef) (board models.Board, err error) {
 }
 
 // DeleteBoard deletes board
-func DeleteBoard(projectItemRef ProjectItemRef) (err error) {
-	var dal store.Interface
-	dal, err = store.NewDatatugStore(projectItemRef.StoreID)
+func DeleteBoard(projectItemRef dto.ProjectItemRef) (err error) {
+	var dal storage.Store
+	dal, err = storage.NewDatatugStore(projectItemRef.StoreID)
 	if err != nil {
 		return
 	}
@@ -26,9 +27,9 @@ func DeleteBoard(projectItemRef ProjectItemRef) (err error) {
 }
 
 // SaveBoard saves board
-func SaveBoard(projectItemRef ProjectItemRef, board models.Board) (err error) {
-	var dal store.Interface
-	dal, err = store.NewDatatugStore(projectItemRef.StoreID)
+func SaveBoard(projectItemRef dto.ProjectItemRef, board models.Board) (err error) {
+	var dal storage.Store
+	dal, err = storage.NewDatatugStore(projectItemRef.StoreID)
 	if err != nil {
 		return
 	}

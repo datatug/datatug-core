@@ -2,19 +2,19 @@ package api
 
 import (
 	"fmt"
+	dto2 "github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/server/dto"
-	"github.com/datatug/datatug/packages/store"
+	"github.com/datatug/datatug/packages/storage"
 	"github.com/strongo/validation"
 	"strings"
 )
 
 // GetRecordsetsSummary returns board by ID
-func GetRecordsetsSummary(ref ProjectRef) (*dto.ProjRecordsetSummary, error) {
+func GetRecordsetsSummary(ref dto2.ProjectRef) (*dto2.ProjRecordsetSummary, error) {
 	if ref.ProjectID == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("project")
 	}
-	dal, err := store.NewDatatugStore(ref.StoreID)
+	dal, err := storage.NewDatatugStore(ref.StoreID)
 	if err != nil {
 		return nil, err
 	}
@@ -22,19 +22,19 @@ func GetRecordsetsSummary(ref ProjectRef) (*dto.ProjRecordsetSummary, error) {
 	if err != nil {
 		return nil, err
 	}
-	root := dto.ProjRecordsetSummary{}
+	root := dto2.ProjRecordsetSummary{}
 	root.ID = "/"
 	for _, dsDef := range datasetDefinitions {
 		dsPath := strings.Split(dsDef.ID, "/")
 
-		var folder *dto.ProjRecordsetSummary
+		var folder *dto2.ProjRecordsetSummary
 		if len(dsPath) > 1 {
 			folder = getRecordsetFolder(&root, dsPath[1:])
 		} else {
 			folder = &root
 		}
 
-		ds := dto.ProjRecordsetSummary{
+		ds := dto2.ProjRecordsetSummary{
 			ProjectItem: models.ProjectItem{
 				ID:    dsDef.ID,
 				Title: dsDef.Title,
@@ -52,7 +52,7 @@ func GetRecordsetsSummary(ref ProjectRef) (*dto.ProjRecordsetSummary, error) {
 	return &root, err
 }
 
-func getRecordsetFolder(folder *dto.ProjRecordsetSummary, paths []string) *dto.ProjRecordsetSummary {
+func getRecordsetFolder(folder *dto2.ProjRecordsetSummary, paths []string) *dto2.ProjRecordsetSummary {
 	if len(paths) == 0 {
 		return folder
 	}
@@ -63,7 +63,7 @@ func getRecordsetFolder(folder *dto.ProjRecordsetSummary, paths []string) *dto.P
 				continue
 			}
 		}
-		newFolder := &dto.ProjRecordsetSummary{
+		newFolder := &dto2.ProjRecordsetSummary{
 			ProjectItem: models.ProjectItem{ID: p},
 		}
 		folder.Recordsets = append(folder.Recordsets, newFolder)
@@ -73,8 +73,8 @@ func getRecordsetFolder(folder *dto.ProjRecordsetSummary, paths []string) *dto.P
 }
 
 // GetDatasetDefinition returns definition of a dataset by ID
-func GetDatasetDefinition(ref ProjectItemRef) (dataset *models.RecordsetDefinition, err error) {
-	dal, err := store.NewDatatugStore(ref.StoreID)
+func GetDatasetDefinition(ref dto2.ProjectItemRef) (dataset *models.RecordsetDefinition, err error) {
+	dal, err := storage.NewDatatugStore(ref.StoreID)
 	if err != nil {
 		return nil, err
 	}
@@ -82,8 +82,8 @@ func GetDatasetDefinition(ref ProjectItemRef) (dataset *models.RecordsetDefiniti
 }
 
 // GetRecordset saves board
-func GetRecordset(ref ProjectItemRef) (recordset *models.Recordset, err error) {
-	dal, err := store.NewDatatugStore(ref.StoreID)
+func GetRecordset(ref dto2.ProjectItemRef) (recordset *models.Recordset, err error) {
+	dal, err := storage.NewDatatugStore(ref.StoreID)
 	if err != nil {
 		return nil, err
 	}

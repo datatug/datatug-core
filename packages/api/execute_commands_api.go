@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"github.com/datatug/datatug/packages/execute"
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/store"
+	"github.com/datatug/datatug/packages/storage"
 )
 
 // ExecuteCommands executes command
 func ExecuteCommands(storeID string, request execute.Request) (response execute.Response, err error) {
 
-	var dal store.Interface
-	dal, err = store.NewDatatugStore(storeID)
+	var dal storage.Store
+	dal, err = storage.NewDatatugStore(storeID)
 	if err != nil {
 		return
 	}

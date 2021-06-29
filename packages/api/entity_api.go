@@ -2,8 +2,9 @@ package api
 
 import (
 	"fmt"
+	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/store"
+	"github.com/datatug/datatug/packages/storage"
 	"github.com/strongo/validation"
 	"log"
 )
@@ -19,12 +20,12 @@ func validateEntityInput(projectID, entityID string) (err error) {
 }
 
 // GetEntity returns board by ID
-func GetEntity(ref ProjectItemRef) (entity models.Entity, err error) {
+func GetEntity(ref dto.ProjectItemRef) (entity models.Entity, err error) {
 	if err = validateEntityInput(ref.ProjectID, ref.ID); err != nil {
 		return
 	}
-	var dal store.Interface
-	dal, err = store.NewDatatugStore(ref.StoreID)
+	var dal storage.Store
+	dal, err = storage.NewDatatugStore(ref.StoreID)
 	if err != nil {
 		return
 	}
@@ -32,12 +33,12 @@ func GetEntity(ref ProjectItemRef) (entity models.Entity, err error) {
 }
 
 // GetAllEntities returns all entities
-func GetAllEntities(ref ProjectRef) (entity models.Entities, err error) {
+func GetAllEntities(ref dto.ProjectRef) (entity models.Entities, err error) {
 	if err = validateProjectInput(ref.ProjectID); err != nil {
 		return
 	}
-	var dal store.Interface
-	dal, err = store.NewDatatugStore(ref.StoreID)
+	var dal storage.Store
+	dal, err = storage.NewDatatugStore(ref.StoreID)
 	if err != nil {
 		return
 	}
@@ -45,12 +46,12 @@ func GetAllEntities(ref ProjectRef) (entity models.Entities, err error) {
 }
 
 // DeleteEntity deletes board
-func DeleteEntity(ref ProjectItemRef) (err error) {
+func DeleteEntity(ref dto.ProjectItemRef) (err error) {
 	if err = validateEntityInput(ref.ProjectID, ref.ID); err != nil {
 		return
 	}
-	var dal store.Interface
-	dal, err = store.NewDatatugStore(ref.StoreID)
+	var dal storage.Store
+	dal, err = storage.NewDatatugStore(ref.StoreID)
 	if err != nil {
 		return
 	}
@@ -58,7 +59,7 @@ func DeleteEntity(ref ProjectItemRef) (err error) {
 }
 
 // SaveEntity saves board
-func SaveEntity(ref ProjectRef, entity *models.Entity) (err error) {
+func SaveEntity(ref dto.ProjectRef, entity *models.Entity) (err error) {
 	if entity.ID == "" {
 		entity.ID = entity.Title
 		entity.Title = ""
@@ -72,8 +73,8 @@ func SaveEntity(ref ProjectRef, entity *models.Entity) (err error) {
 		return fmt.Errorf("entity is not valid: %w", err)
 	}
 	log.Printf("Saving entity: %+v", entity)
-	var dal store.Interface
-	dal, err = store.NewDatatugStore(ref.StoreID)
+	var dal storage.Store
+	dal, err = storage.NewDatatugStore(ref.StoreID)
 	if err != nil {
 		return
 	}

@@ -120,7 +120,7 @@ func (v *ProjectRepository) Validate() error {
 	return nil
 }
 
-// ProjectFile defines what to store to project file
+// ProjectFile defines what to storage to project file
 type ProjectFile struct {
 	ProjectItem
 	//UUID         uuid.UUID           `json:"uuid"`

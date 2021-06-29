@@ -3,8 +3,8 @@ package commands
 import (
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/store"
-	"github.com/datatug/datatug/packages/store/filestore"
+	"github.com/datatug/datatug/packages/storage"
+	"github.com/datatug/datatug/packages/storage/filestore"
 	"github.com/strongo/random"
 	"log"
 	"os"
@@ -84,7 +84,7 @@ func (v *initProjectCommand) Execute(_ []string) (err error) {
 
 	projectID := random.ID(9)
 
-	store.Current, projectID = filestore.NewSingleProjectStore(v.ProjectDir, projectID)
+	storage.Current, projectID = filestore.NewSingleProjectStore(v.ProjectDir, projectID)
 	dataTugProject := models.DatatugProject{
 		ID:     projectID,
 		Access: "private",
@@ -117,8 +117,8 @@ func (v *initProjectCommand) Execute(_ []string) (err error) {
 		}
 	}
 
-	var dal store.Interface
-	if dal, err = store.NewDatatugStore(""); err != nil {
+	var dal storage.Store
+	if dal, err = storage.NewDatatugStore(""); err != nil {
 		return err
 	}
 	if err = dal.Save(dataTugProject); err != nil {

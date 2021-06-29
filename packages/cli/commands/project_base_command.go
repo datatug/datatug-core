@@ -2,8 +2,8 @@ package commands
 
 import (
 	"errors"
-	"github.com/datatug/datatug/packages/store"
-	"github.com/datatug/datatug/packages/store/filestore"
+	"github.com/datatug/datatug/packages/storage"
+	"github.com/datatug/datatug/packages/storage/filestore"
 	"strings"
 )
 
@@ -16,7 +16,7 @@ type projectBaseCommand struct {
 	projectDirCommand
 	ProjectName string `short:"p" long:"project"  required:"false" description:"Project name"`
 	projectID   string
-	loader      store.Loader
+	loader      storage.Loader
 }
 
 type projectCommandOptions struct {

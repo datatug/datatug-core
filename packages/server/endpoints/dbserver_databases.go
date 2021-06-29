@@ -3,6 +3,7 @@ package endpoints
 import (
 	"fmt"
 	"github.com/datatug/datatug/packages/api"
+	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/strongo/validation"
 	"log"
@@ -16,7 +17,7 @@ import (
 func GetServerDatabases(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.Method, r.RequestURI)
 	q := r.URL.Query()
-	request := api.GetServerDatabasesRequest{
+	request := dto.GetServerDatabasesRequest{
 		Project:     q.Get("proj"),
 		Environment: q.Get("env"),
 	}
