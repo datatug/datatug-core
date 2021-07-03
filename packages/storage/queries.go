@@ -2,25 +2,21 @@ package storage
 
 import "github.com/datatug/datatug/packages/models"
 
+// QueriesStore provides access to queries
 type QueriesStore interface {
-	Loader() QueriesLoader
-	Saver() QuerySaver
-}
-
-// QueriesLoader loads queries
-type QueriesLoader interface {
-	// LoadQueries loads tree of queries
+	ProjectStoreRef
+	Query(id string) QueryStore
 	LoadQueries(folderPath string) (folder *models.QueryFolder, err error)
-
-	//
-	LoadQuery(queryID string) (query *models.QueryDef, err error)
-}
-
-// QuerySaver saves queries
-type QuerySaver interface {
-	DeleteQuery(queryID string) (err error)
 	DeleteQueryFolder(path string) (err error)
 	CreateQueryFolder(path, id string) (folder *models.QueryFolder, err error)
 	CreateQuery(query models.QueryDef) (err error)
+}
+
+// QueryStore provides access to a specific query
+type QueryStore interface {
+	ID() string
+
+	LoadQuery() (query *models.QueryDef, err error)
+	DeleteQuery() (err error)
 	UpdateQuery(query models.QueryDef) (err error)
 }

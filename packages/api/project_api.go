@@ -28,19 +28,23 @@ func GetProjectSummary(ref dto.ProjectRef) (*models.ProjectSummary, error) {
 	if ref.ProjectID == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("id")
 	}
-	dal, err := storage.NewDatatugStore(ref.StoreID)
-	if err != nil {
+	store, err := storage.GetStore(ref.StoreID)
+	if err == nil {
 		return nil, err
 	}
-	projectSummary, err := dal.LoadProjectSummary(ref.ProjectID)
+	//goland:noinspection GoNilness
+	project := store.Project(ref.ProjectID)
+	projectSummary, err := project.LoadProjectSummary()
 	return &projectSummary, err
 }
 
 // GetProjectFull returns full project metadata
-func GetProjectFull(ref dto.ProjectRef) (project *models.DatatugProject, err error) {
-	dal, err := storage.NewDatatugStore(ref.StoreID)
-	if err != nil {
-		return
+func GetProjectFull(ref dto.ProjectRef) (*models.DatatugProject, error) {
+	store, err := storage.GetStore(ref.StoreID)
+	if err == nil {
+		return nil, err
 	}
-	return dal.LoadProject(ref.ProjectID)
+	//goland:noinspection GoNilness
+	project := store.Project(ref.ProjectID)
+	return project.LoadProject()
 }

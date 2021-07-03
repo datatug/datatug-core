@@ -17,10 +17,11 @@ var agentPort int
 // ServeHTTP starts HTTP server
 func ServeHTTP(pathsByID map[string]string, host string, port int) error {
 	storage.NewDatatugStore = func(id string) (v storage.Store, err error) {
-		if v, err = filestore.NewStore(pathsByID); err != nil {
-			err = fmt.Errorf("failed to create filestore for storage id=%v: %w", id, err)
-			return
-		}
+		//if v, err = filestore.NewStore(pathsByID); err != nil {
+		//	err = fmt.Errorf("failed to create filestore for storage id=%v: %w", id, err)
+		//	return
+		//}
+		panic("implement me")
 		return
 	}
 

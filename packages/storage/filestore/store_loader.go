@@ -17,8 +17,8 @@ type fileSystemLoader struct {
 }
 
 // NewSingleProjectLoader create new single project loader
-func NewSingleProjectLoader(path string) (loader storage.ProjectLoader) {
-	return newFsProjectStore(storage.SingleProjectID, path)
+func NewSingleProjectLoader(path string) (loader storage.ProjectStore, projectID string) {
+	return newFsProjectStore(storage.SingleProjectID, path), storage.SingleProjectID
 }
 
 // LoadProject loads project

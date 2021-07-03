@@ -98,7 +98,7 @@ func (v EnvDbServers) GetByServerRef(serverRef ServerReference) *EnvDbServer {
 	return nil
 }
 
-// EnvDbServer holds information about server in an environment
+// EnvDbServer holds information about DB server in an environment
 type EnvDbServer struct {
 	ServerReference
 	Catalogs []string `json:"catalogs,omitempty"`

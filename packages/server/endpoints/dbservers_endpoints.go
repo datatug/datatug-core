@@ -12,7 +12,7 @@ import (
 func AddDbServer(w http.ResponseWriter, r *http.Request) {
 	var projDbServer models.ProjDbServer
 	saveFunc := func(ref dto.ProjectItemRef) (interface{}, error) {
-		return projDbServer, api.AddDbServer(ref.StoreID, ref.ProjectID, projDbServer)
+		return projDbServer, api.AddDbServer(ref.ProjectRef, projDbServer)
 	}
 	saveItem(w, r, &projDbServer, saveFunc)
 }

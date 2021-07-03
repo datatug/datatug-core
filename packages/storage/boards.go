@@ -2,20 +2,18 @@ package storage
 
 import "github.com/datatug/datatug/packages/models"
 
-// BoardsStore defines DAL for boards
+// BoardsStore provides access to board records
 type BoardsStore interface {
-	Loader() BoardsLoader
-	Saver() BoardsSaver
+	ProjectStoreRef
+	Board(id string) BoardStore
 }
 
-// BoardsLoader loads boards
-type BoardsLoader interface {
+// BoardStore provides access to board record
+type BoardStore interface {
+	ID() string
+	Boards() BoardsStore
 	// LoadBoard loads board
-	LoadBoard(boardID string) (board models.Board, err error)
-}
-
-// BoardsSaver saves boards
-type BoardsSaver interface {
-	DeleteBoard(boardID string) (err error)
+	LoadBoard() (board *models.Board, err error)
+	DeleteBoard() (err error)
 	SaveBoard(board models.Board) (err error)
 }

@@ -13,7 +13,7 @@ import (
 )
 
 func getQueryPaths(queryID, queriesDirPath string) (
-	qID, // without directory and .json extension
+	qID,       // without directory and .json extension
 	queryType, // Usually sql or HTTP
 	queryFileName,
 	queryDir,
@@ -33,16 +33,8 @@ func getQueryPaths(queryID, queriesDirPath string) (
 	return
 }
 
-func (s fileSystemSaver) DeleteQueryFolder(folderPath string) error {
-	fullPath := path.Join(queriesDirPath(s.projDirPath), folderPath)
-	if err := os.RemoveAll(fullPath); err != nil {
-		return fmt.Errorf("failed to remove query folder %v: %w", folderPath, err)
-	}
-	return nil
-}
-
-func (s fileSystemSaver) DeleteQuery(queryID string) error {
-	_, _, queryFileName, queryDir, queryPath, err := getQueryPaths(queryID, queriesDirPath(s.projDirPath))
+func (store fsQueriesStore) DeleteQuery(queryID string) error {
+	_, _, queryFileName, queryDir, queryPath, err := getQueryPaths(queryID, store.queriesPath)
 	if err != nil {
 		return err
 	}
@@ -52,12 +44,12 @@ func (s fileSystemSaver) DeleteQuery(queryID string) error {
 	return err
 }
 
-func (s fileSystemSaver) UpdateQuery(query models.QueryDef) (err error) {
-	return s.saveQuery(query, false)
+func (store fsQueriesStore) UpdateQuery(query models.QueryDef) (err error) {
+	return store.saveQuery(query, false)
 }
 
-func (s fileSystemSaver) CreateQueryFolder(parentPath, id string) (folder *models.QueryFolder, err error) {
-	folderPath := path.Join(queriesDirPath(s.projDirPath), parentPath, id)
+func (store fsQueriesStore) CreateQueryFolder(parentPath, id string) (folder *models.QueryFolder, err error) {
+	folderPath := path.Join(store.queriesPath, parentPath, id)
 	if err = os.MkdirAll(folderPath, 0666); err != nil {
 		err = fmt.Errorf("failed to create folder: %w", err)
 		return
@@ -77,15 +69,15 @@ func (s fileSystemSaver) CreateQueryFolder(parentPath, id string) (folder *model
 	return
 }
 
-func (s fileSystemSaver) CreateQuery(query models.QueryDef) (err error) {
-	return s.saveQuery(query, true)
+func (store fsQueriesStore) CreateQuery(query models.QueryDef) (err error) {
+	return store.saveQuery(query, true)
 }
 
-func (s fileSystemSaver) saveQuery(query models.QueryDef, isNew bool) (err error) {
+func (store fsQueriesStore) saveQuery(query models.QueryDef, isNew bool) (err error) {
 	if err := query.Validate(); err != nil {
 		return fmt.Errorf("invalid query (isNew=%v): %w", isNew, err)
 	}
-	_, queryType, queryFileName, _, queryPath, err := getQueryPaths(query.ID, queriesDirPath(s.projDirPath))
+	_, queryType, queryFileName, _, queryPath, err := getQueryPaths(query.ID, store.queriesPath)
 
 	queryText := query.Text
 	queryType = strings.ToLower(queryType)
@@ -93,7 +85,7 @@ func (s fileSystemSaver) saveQuery(query models.QueryDef, isNew bool) (err error
 		query.Text = ""
 	}
 
-	if err = s.saveJSONFile(path.Base(queryPath), queryFileName, query); err != nil {
+	if err = saveJSONFile(path.Base(queryPath), queryFileName, query); err != nil {
 		return fmt.Errorf("failed to save query to json file: %w", err)
 	}
 

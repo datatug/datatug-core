@@ -2,24 +2,21 @@ package storage
 
 import "github.com/datatug/datatug/packages/models"
 
+type ProjectStoreRef interface {
+	Project() ProjectStore
+}
+
 type ProjectStore interface {
-	ProjectLoader
-	ProjectSaver
-	Environments() EnvironmentStore
+	ID() string
+	Environments() EnvironmentsStore
 	Queries() QueriesStore
 	Boards() BoardsStore
 	Entities() EntitiesStore
-	DbServers() DbServerStore
+	DbModels() DbModelsStore
+	DbServers() DbServersStore
 	Recordsets() RecordsetsStore
-}
 
-// ProjectSaver defines interface for saving DataTug project
-type ProjectSaver interface {
-	Save(project models.DatatugProject) (err error)
-}
-
-// ProjectLoader loads projects
-type ProjectLoader interface {
+	SaveProject(project models.DatatugProject) (err error)
 	// LoadProject returns full DataTug project
 	LoadProject() (*models.DatatugProject, error)
 

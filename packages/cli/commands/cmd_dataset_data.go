@@ -24,7 +24,7 @@ func (v *datasetDataCommand) Execute([]string) error {
 		return err
 	}
 	// TODO: Implement "datasets show" command
-	recordset, err := v.loader.LoadRecordsetData(v.projectID, v.Dataset, v.File)
+	recordset, err := v.store.Project(v.projectID).Recordsets().Recordset(v.Dataset).LoadRecordsetData(v.File)
 	if err != nil {
 		return err
 	}

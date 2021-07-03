@@ -20,16 +20,17 @@ func validateEntityInput(projectID, entityID string) (err error) {
 }
 
 // GetEntity returns board by ID
-func GetEntity(ref dto.ProjectItemRef) (entity models.Entity, err error) {
+func GetEntity(ref dto.ProjectItemRef) (entity *models.Entity, err error) {
 	if err = validateEntityInput(ref.ProjectID, ref.ID); err != nil {
 		return
 	}
-	var dal storage.Store
-	dal, err = storage.NewDatatugStore(ref.StoreID)
-	if err != nil {
-		return
+	store, err := storage.GetStore(ref.StoreID)
+	if err == nil {
+		return nil, err
 	}
-	return dal.LoadEntity(ref.ProjectID, ref.ID)
+	//goland:noinspection GoNilness
+	project := store.Project(ref.ProjectID)
+	return project.Entities().Entity(ref.ID).LoadEntity()
 }
 
 // GetAllEntities returns all entities
@@ -37,46 +38,49 @@ func GetAllEntities(ref dto.ProjectRef) (entity models.Entities, err error) {
 	if err = validateProjectInput(ref.ProjectID); err != nil {
 		return
 	}
-	var dal storage.Store
-	dal, err = storage.NewDatatugStore(ref.StoreID)
-	if err != nil {
-		return
+	store, err := storage.GetStore(ref.StoreID)
+	if err == nil {
+		return nil, err
 	}
-	return dal.LoadEntities(ref.ProjectID)
+	//goland:noinspection GoNilness
+	project := store.Project(ref.ProjectID)
+	return project.Entities().LoadEntities()
 }
 
 // DeleteEntity deletes board
-func DeleteEntity(ref dto.ProjectItemRef) (err error) {
-	if err = validateEntityInput(ref.ProjectID, ref.ID); err != nil {
-		return
+func DeleteEntity(ref dto.ProjectItemRef) error {
+	if err := validateEntityInput(ref.ProjectID, ref.ID); err != nil {
+		return err
 	}
-	var dal storage.Store
-	dal, err = storage.NewDatatugStore(ref.StoreID)
-	if err != nil {
-		return
+	store, err := storage.GetStore(ref.StoreID)
+	if err == nil {
+		return err
 	}
-	return dal.DeleteEntity(ref.ProjectID, ref.ID)
+	//goland:noinspection GoNilness
+	project := store.Project(ref.ProjectID)
+	return project.Entities().Entity(ref.ID).DeleteEntity()
 }
 
 // SaveEntity saves board
-func SaveEntity(ref dto.ProjectRef, entity *models.Entity) (err error) {
+func SaveEntity(ref dto.ProjectRef, entity *models.Entity) error {
 	if entity.ID == "" {
 		entity.ID = entity.Title
 		entity.Title = ""
 	} else if entity.Title == entity.ID {
 		entity.Title = ""
 	}
-	if err = validateEntityInput(ref.ProjectID, entity.ID); err != nil {
-		return
+	if err := validateEntityInput(ref.ProjectID, entity.ID); err != nil {
+		return err
 	}
-	if err = entity.Validate(); err != nil {
+	if err := entity.Validate(); err != nil {
 		return fmt.Errorf("entity is not valid: %w", err)
 	}
 	log.Printf("Saving entity: %+v", entity)
-	var dal storage.Store
-	dal, err = storage.NewDatatugStore(ref.StoreID)
-	if err != nil {
-		return
+	store, err := storage.GetStore(ref.StoreID)
+	if err == nil {
+		return err
 	}
-	return dal.SaveEntity(ref.ProjectID, entity)
+	//goland:noinspection GoNilness
+	project := store.Project(ref.ProjectID)
+	return project.Entities().Entity(entity.ID).SaveEntity(entity)
 }

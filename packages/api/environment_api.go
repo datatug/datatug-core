@@ -8,18 +8,18 @@ import (
 )
 
 // GetEnvironmentSummary returns environment summary
-func GetEnvironmentSummary(ref dto.ProjectItemRef) (envSummary *models.EnvironmentSummary, err error) {
+func GetEnvironmentSummary(ref dto.ProjectItemRef) (*models.EnvironmentSummary, error) {
 	if ref.ProjectID == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("projID")
 	}
 	if ref.ID == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("envID")
 	}
-	var dal storage.Store
-	dal, err = storage.NewDatatugStore(ref.StoreID)
-	if err != nil {
-		return
+	store, err := storage.GetStore(ref.StoreID)
+	if err == nil {
+		return nil, err
 	}
-	summary, err := dal.LoadEnvironmentSummary(ref.ProjectID, ref.ID)
-	return &summary, err
+	//goland:noinspection GoNilness
+	project := store.Project(ref.ProjectID)
+	return project.Environments().Environment(ref.ID).LoadEnvironmentSummary()
 }

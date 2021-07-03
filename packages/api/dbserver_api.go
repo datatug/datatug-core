@@ -8,46 +8,47 @@ import (
 )
 
 // AddDbServer adds db server to project
-func AddDbServer(storeID, projectID string, projDbServer models.ProjDbServer) (err error) {
-	store, err := storage.NewDatatugStore(storeID)
-	if err != nil {
+func AddDbServer(ref dto.ProjectRef, projDbServer models.ProjDbServer) error {
+	store, err := storage.GetStore(ref.StoreID)
+	if err == nil {
 		return err
 	}
-	return store.SaveDbServer(projectID, projDbServer, models.DatatugProject{})
+	//goland:noinspection GoNilness
+	dbServerStore := store.Project(ref.ProjectID).DbServers().DbServer(projDbServer.Server)
+	return dbServerStore.SaveDbServer(projDbServer, models.DatatugProject{})
 }
 
 // UpdateDbServer adds db server to project
 //goland:noinspection GoUnusedExportedFunction
-func UpdateDbServer(ref dto.ProjectRef, projDbServer models.ProjDbServer) (err error) {
-	var dal storage.Store
-	dal, err = storage.NewDatatugStore(ref.StoreID)
-	if err != nil {
-		return
+func UpdateDbServer(ref dto.ProjectRef, projDbServer models.ProjDbServer) error {
+	store, err := storage.GetStore(ref.StoreID)
+	if err == nil {
+		return err
 	}
-	return dal.SaveDbServer(ref.ProjectID, projDbServer, models.DatatugProject{})
+	//goland:noinspection GoNilness
+	return store.Project(ref.ProjectID).DbServers().DbServer(projDbServer.Server).SaveDbServer(projDbServer, models.DatatugProject{})
 }
 
 // DeleteDbServer adds db server to project
 func DeleteDbServer(ref dto.ProjectRef, dbServer models.ServerReference) (err error) {
-	var dal storage.Store
-	dal, err = storage.NewDatatugStore(ref.StoreID)
-	if err != nil {
-		return
+	store, err := storage.GetStore(ref.StoreID)
+	if err == nil {
+		return err
 	}
-	return dal.DeleteDbServer(ref.ProjectID, dbServer)
+	//goland:noinspection GoNilness
+	return store.Project(ref.ProjectID).DbServers().DbServer(dbServer).DeleteDbServer(dbServer)
 }
 
 // GetDbServerSummary returns summary on DB server
-func GetDbServerSummary(ref dto.ProjectRef, dbServer models.ServerReference) (summary *models.ProjDbServerSummary, err error) {
-	if err = dbServer.Validate(); err != nil {
+func GetDbServerSummary(ref dto.ProjectRef, dbServer models.ServerReference) (*models.ProjDbServerSummary, error) {
+	if err := dbServer.Validate(); err != nil {
 		err = validation.NewBadRequestError(err)
-		return
+		return nil, err
 	}
-	var dal storage.Store
-	dal, err = storage.NewDatatugStore(ref.StoreID)
-	if err != nil {
-		return
+	store, err := storage.GetStore(ref.StoreID)
+	if err == nil {
+		return nil, err
 	}
-	summary, err = dal.LoadDbServerSummary(ref.ProjectID, dbServer)
-	return
+	//goland:noinspection GoNilness
+	return store.Project(ref.ProjectID).DbServers().DbServer(dbServer).LoadDbServerSummary(dbServer)
 }

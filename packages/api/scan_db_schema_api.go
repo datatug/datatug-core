@@ -11,6 +11,7 @@ import (
 	"github.com/datatug/datatug/packages/schemer/mssql"
 	"github.com/datatug/datatug/packages/schemer/sqlite"
 	"github.com/datatug/datatug/packages/slice"
+	"github.com/datatug/datatug/packages/storage"
 	"github.com/strongo/random"
 	"github.com/strongo/validation"
 	"log"
@@ -21,14 +22,16 @@ import (
 // ProjectLoader defines an interface to load project info
 type ProjectLoader interface {
 	// Loads project summary
-	LoadProjectSummary(id string) (projectSummary models.ProjectSummary, err error)
+	LoadProjectSummary() (projectSummary models.ProjectSummary, err error)
 	// Loads the whole project
-	LoadProject(id string) (project *models.DatatugProject, err error)
+	LoadProject() (project *models.DatatugProject, err error)
 }
 
+var _ ProjectLoader = (storage.ProjectStore)(nil)
+
 // UpdateDbSchema updates DB schema
-func UpdateDbSchema(_ context.Context, loader ProjectLoader, projectID, environment, driver, dbModelID string, dbConnParams dbconnection.Params) (project *models.DatatugProject, err error) {
-	log.Printf("Updating DB info for project=%v, env=%v, driver=%v, dbModelId=%v, dbCatalog=%v, connStr=%v",
+func UpdateDbSchema(_ context.Context, projectLoader ProjectLoader, projectID, environment, driver, dbModelID string, dbConnParams dbconnection.Params) (project *models.DatatugProject, err error) {
+	log.Printf("Updating DB info for project=%v, env=%v, driver=%v, dbModelID=%v, dbCatalog=%v, connStr=%v",
 		projectID, environment, driver, dbModelID, dbConnParams.Catalog(), dbConnParams.String())
 
 	if dbConnParams.Catalog() == "" {
@@ -52,7 +55,7 @@ func UpdateDbSchema(_ context.Context, loader ProjectLoader, projectID, environm
 	)
 	var projSummaryErr error
 	getProjectSummaryWorker := func() error {
-		_, projSummaryErr = loader.LoadProjectSummary(projectID)
+		_, projSummaryErr = projectLoader.LoadProjectSummary()
 		if err != nil {
 			if models.ProjectDoesNotExist(projSummaryErr) {
 				return nil
@@ -98,7 +101,7 @@ func UpdateDbSchema(_ context.Context, loader ProjectLoader, projectID, environm
 		}
 	} else {
 		log.Printf("Loading existing project...")
-		if project, err = loader.LoadProject(projectID); err != nil {
+		if project, err = projectLoader.LoadProject(); err != nil {
 			err = fmt.Errorf("failed to load DataTug project: %w", err)
 			return
 		}

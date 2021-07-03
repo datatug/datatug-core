@@ -7,16 +7,16 @@ import (
 	"path"
 )
 
-func (s fileSystemSaver) saveEntities(entities models.Entities) (err error) {
+func (store fsEntitiesStore) saveEntities(entities models.Entities) (err error) {
 	return saveItems(EntitiesFolder, len(entities), func(i int) func() error {
 		return func() error {
-			return s.SaveEntity(entities[i])
+			return store.SaveEntity(entities[i])
 		}
 	})
 }
 
 // SaveEntity saves entity
-func (s fileSystemSaver) SaveEntity(entity *models.Entity) (err error) {
+func (store fsEntitiesStore) SaveEntity(entity *models.Entity) (err error) {
 	if entity == nil {
 		return validation.NewErrRequestIsMissingRequiredField("entity")
 	}
@@ -38,7 +38,7 @@ func (s fileSystemSaver) SaveEntity(entity *models.Entity) (err error) {
 		})
 		return nil
 	}
-	err = s.updateProjectFile(updateProjFileWithEntity)
+	err = store.updateProjectFile(updateProjFileWithEntity)
 	if err != nil {
 		return fmt.Errorf("failed to update project file with entity: %w", err)
 	}
@@ -46,8 +46,8 @@ func (s fileSystemSaver) SaveEntity(entity *models.Entity) (err error) {
 	if len(entity.Fields) == 0 && entity.Fields != nil {
 		entity.Fields = nil
 	}
-	dirPath := path.Join(s.entitiesDirPath(), entity.ID)
-	if err = s.saveJSONFile(
+	dirPath := path.Join(store.entitiesDirPath, entity.ID)
+	if err = saveJSONFile(
 		dirPath,
 		fileName,
 		entity,

@@ -30,7 +30,7 @@ func (v *showProjectCommand) Execute(_ []string) error {
 	if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err
 	}
-	project, err := v.loader.LoadProject(v.projectID)
+	project, err := v.store.Project(v.projectID).LoadProject()
 	if err != nil {
 		return fmt.Errorf("failed to load project from [%v]: %w", v.ProjectDir, err)
 	}

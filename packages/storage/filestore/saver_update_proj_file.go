@@ -4,12 +4,12 @@ import (
 	"github.com/datatug/datatug/packages/models"
 )
 
-func (s fileSystemSaver) loadProjectFile() (v models.ProjectFile, err error) {
-	return LoadProjectFile(s.projDirPath)
+func (store fsProjectStore) loadProjectFile() (v models.ProjectFile, err error) {
+	return LoadProjectFile(store.projectPath)
 }
 
-func (s fileSystemSaver) updateProjectFileWithBoard(board models.Board) (err error) {
-	projFile, err := s.loadProjectFile()
+func (store fsProjectStore) updateProjectFileWithBoard(board models.Board) (err error) {
+	projFile, err := store.loadProjectFile()
 	if err != nil {
 		return err
 	}
@@ -27,24 +27,24 @@ func (s fileSystemSaver) updateProjectFileWithBoard(board models.Board) (err err
 		Parameters:  board.Parameters,
 	})
 UPDATED:
-	err = s.putProjectFile(projFile)
+	err = store.putProjectFile(projFile)
 SAVED:
 	return err
 }
 
-func (s fileSystemSaver) updateProjectFile(updater func(projFile *models.ProjectFile) error) error {
-	s.projFileMutex.Lock()
+func (store fsProjectStore) updateProjectFile(updater func(projFile *models.ProjectFile) error) error {
+	store.projFileMutex.Lock()
 	defer func() {
-		s.projFileMutex.Unlock()
+		store.projFileMutex.Unlock()
 	}()
-	projFile, err := s.loadProjectFile()
+	projFile, err := store.loadProjectFile()
 	if err != nil {
 		return err
 	}
 	if err = updater(&projFile); err != nil {
 		return err
 	}
-	if err = s.putProjectFile(projFile); err != nil {
+	if err = store.putProjectFile(projFile); err != nil {
 		return err
 	}
 	return nil

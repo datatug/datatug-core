@@ -14,11 +14,12 @@ func GetRecordsetsSummary(ref dto2.ProjectRef) (*dto2.ProjRecordsetSummary, erro
 	if ref.ProjectID == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("project")
 	}
-	dal, err := storage.NewDatatugStore(ref.StoreID)
+	store, err := storage.GetStore(ref.StoreID)
 	if err != nil {
 		return nil, err
 	}
-	datasetDefinitions, err := dal.LoadRecordsetDefinitions(ref.ProjectID)
+	resordsetsStore := store.Project(ref.ProjectID).Recordsets()
+	datasetDefinitions, err := resordsetsStore.LoadRecordsetDefinitions()
 	if err != nil {
 		return nil, err
 	}
@@ -74,20 +75,22 @@ func getRecordsetFolder(folder *dto2.ProjRecordsetSummary, paths []string) *dto2
 
 // GetDatasetDefinition returns definition of a dataset by ID
 func GetDatasetDefinition(ref dto2.ProjectItemRef) (dataset *models.RecordsetDefinition, err error) {
-	dal, err := storage.NewDatatugStore(ref.StoreID)
+	store, err := storage.GetStore(ref.StoreID)
 	if err != nil {
 		return nil, err
 	}
-	return dal.LoadRecordsetDefinition(ref.ProjectID, ref.ID)
+	recorsetStore := store.Project(ref.ProjectID).Recordsets().Recordset(ref.ID)
+	return recorsetStore.LoadRecordsetDefinition()
 }
 
 // GetRecordset saves board
 func GetRecordset(ref dto2.ProjectItemRef) (recordset *models.Recordset, err error) {
-	dal, err := storage.NewDatatugStore(ref.StoreID)
+	store, err := storage.GetStore(ref.StoreID)
 	if err != nil {
 		return nil, err
 	}
-	return dal.LoadRecordsetData(ref.ProjectID, ref.ID, "")
+	recorsetStore := store.Project(ref.ProjectID).Recordsets().Recordset(ref.ID)
+	return recorsetStore.LoadRecordsetData("")
 }
 
 // AddRecords adds record

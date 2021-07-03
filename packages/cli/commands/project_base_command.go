@@ -16,7 +16,7 @@ type projectBaseCommand struct {
 	projectDirCommand
 	ProjectName string `short:"p" long:"project"  required:"false" description:"Project name"`
 	projectID   string
-	loader      storage.Loader
+	store       storage.Store
 }
 
 type projectCommandOptions struct {
@@ -46,10 +46,10 @@ func (v *projectBaseCommand) initProjectCommand(o projectCommandOptions) error {
 		v.ProjectDir = project.Path
 	}
 	if v.ProjectDir != "" && v.projectID == "" {
-		v.loader, v.projectID = filestore.NewSingleProjectLoader(v.ProjectDir)
+		v.store, v.projectID = filestore.NewSingleProjectStore(v.ProjectDir, v.projectID)
 	} else {
 		pathsByID := getProjPathsByID(config)
-		v.loader, err = filestore.NewStore(pathsByID)
+		v.store, err = filestore.NewStore("local_file_store_from_user_config", pathsByID)
 		if err != nil {
 			return err
 		}

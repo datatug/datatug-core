@@ -28,7 +28,7 @@ func (v *validateCommand) Execute([]string) (err error) {
 	}
 
 	var project *models.DatatugProject
-	if project, err = v.loader.LoadProject(v.projectID); err != nil {
+	if project, err = v.store.Project(v.projectID).LoadProject(); err != nil {
 		return fmt.Errorf("failed to load project from [%v]: %w", v.ProjectDir, err)
 	}
 	fmt.Println("Validating loaded project...")

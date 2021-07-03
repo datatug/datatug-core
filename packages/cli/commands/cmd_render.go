@@ -38,20 +38,16 @@ func (v *renderCommand) Execute(_ []string) error {
 		return fmt.Errorf("ProjectDir=[%v] not found: %w", v.ProjectDir, err)
 	}
 
-	loader, projectID := filestore.NewSingleProjectLoader(v.ProjectDir)
-	dataTugProject, err := loader.LoadProject(projectID)
+	store, _ := filestore.NewSingleProjectStore(storage.SingleProjectID, v.ProjectDir)
+	projectStore := store.Project(storage.SingleProjectID)
+	datatugProject, err := projectStore.LoadProject()
 	if err != nil {
 		return fmt.Errorf("failed to load project by ID=%v: %w", v.projectID, err)
 	}
 
-	log.Println("Saving project", dataTugProject.ID, "...")
-	storage.Current, _ = filestore.NewSingleProjectStore(v.ProjectDir, v.projectID)
-	var dal storage.Store
-	if dal, err = storage.NewDatatugStore(""); err != nil {
-		return err
-	}
-	if err = dal.Save(*dataTugProject); err != nil {
-		err = fmt.Errorf("failed to save datatug project [%v]: %w", v.projectID, err)
+	log.Println("Saving project", datatugProject.ID, "...")
+	if err = projectStore.SaveProject(*datatugProject); err != nil {
+		err = fmt.Errorf("failed to save datatug project: %w", err)
 		return err
 	}
 

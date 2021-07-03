@@ -2,22 +2,19 @@ package storage
 
 import "github.com/datatug/datatug/packages/models"
 
-// EntitiesStore defines DAL for entities
 type EntitiesStore interface {
-	Loader() EntitiesLoader
-	Saver() EntitiesSaver
-}
-
-// EntitiesSaver saves entity
-type EntitiesSaver interface {
-	DeleteEntity(id string) (err error)
-	SaveEntity(entity *models.Entity) (err error)
-}
-
-// EntitiesLoader loads entities
-type EntitiesLoader interface {
-	// LoadEntity loads entity
-	LoadEntity(id string) (entity models.Entity, err error)
+	ProjectStoreRef
+	Entity(id string) EntityStore
 	// LoadEntities loads entities
 	LoadEntities() (entities models.Entities, err error)
+}
+
+// EntityStore defines DAL for entities
+type EntityStore interface {
+	ID() string
+	Entities() EntitiesStore
+	// LoadEntity loads entity
+	LoadEntity() (entity *models.Entity, err error)
+	DeleteEntity() (err error)
+	SaveEntity(entity *models.Entity) (err error)
 }

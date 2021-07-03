@@ -3,7 +3,9 @@ package filestore
 import (
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
+	"github.com/datatug/datatug/packages/models2md"
 	"github.com/datatug/datatug/packages/storage"
+	"sync"
 )
 
 // NewStore create a storage for multiple projects by their dir paths
@@ -18,7 +20,7 @@ type fsStore struct {
 	id               string
 	pathByID         map[string]string
 	fileSystemLoader // TODO: To be deleted
-	storeSaver       // TODO: To be deleted
+	//storeSaver       // TODO: To be deleted
 }
 
 func (store fsStore) Project(id string) storage.ProjectStore {
@@ -29,16 +31,30 @@ func (store fsStore) Project(id string) storage.ProjectStore {
 var _ storage.ProjectStore = (*fsProjectStore)(nil)
 
 type fsProjectStore struct {
-	projectID   string
-	projectPath string
+	projectID     string
+	projectPath   string
+	projFileMutex *sync.Mutex
+	readmeEncoder models.ReadmeEncoder
 }
 
-func (store fsProjectStore) Save(project models.DatatugProject) (err error) {
-	panic("implement me")
+type fsProjectStoreRef struct {
+	fsProjectStore
 }
 
-func (store fsProjectStore) Environments() storage.EnvironmentStore {
-	return newFsEnvironmentStore(store)
+func (ps fsProjectStoreRef) Project() storage.ProjectStore {
+	return ps.fsProjectStore
+}
+
+func (store fsProjectStore) ID() string {
+	return store.projectID
+}
+
+func (store fsProjectStore) DbModels() storage.DbModelsStore {
+	return newFsDbModelsStore(store)
+}
+
+func (store fsProjectStore) Environments() storage.EnvironmentsStore {
+	return newFsEnvironmentsStore(store)
 }
 
 func (store fsProjectStore) Boards() storage.BoardsStore {
@@ -49,8 +65,8 @@ func (store fsProjectStore) Entities() storage.EntitiesStore {
 	panic("implement me")
 }
 
-func (store fsProjectStore) DbServers() storage.DbServerStore {
-	panic("implement me")
+func (store fsProjectStore) DbServers() storage.DbServersStore {
+	return newFsDbServersStore(store)
 }
 
 func (store fsProjectStore) Recordsets() storage.RecordsetsStore {
@@ -58,11 +74,19 @@ func (store fsProjectStore) Recordsets() storage.RecordsetsStore {
 }
 
 func newFsProjectStore(id string, projectPath string) fsProjectStore {
-	return fsProjectStore{projectID: id, projectPath: projectPath}
+	return fsProjectStore{
+		projectID:     id,
+		projectPath:   projectPath,
+		readmeEncoder: models2md.NewEncoder(),
+	}
 }
 
 func (store fsProjectStore) Queries() storage.QueriesStore {
 	return newFsQueriesStore(store)
+}
+
+func (store fsProjectStore) Query(id string) storage.QueryStore {
+	return newFsQueryStore(id, newFsQueriesStore(store))
 }
 
 // GetProjects returns list of projects
@@ -98,6 +122,7 @@ func NewSingleProjectStore(projectPath, projectID string) (storeInterface *fsSto
 	} else {
 		projID = projectID
 	}
-	storeInterface = newStore("single_project_file_store", map[string]string{projID: projectPath})
+	const storeID =  "single_project_file_store"
+	storeInterface = newStore(storeID, map[string]string{projID: projectPath})
 	return
 }

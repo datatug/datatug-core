@@ -48,7 +48,7 @@ func (v *scanDbCommand) Execute(_ []string) (err error) {
 	}
 
 	if v.Host == "" {
-		envDb, err := v.loader.LoadEnvironmentCatalog(v.projectID, v.Environment, v.Database)
+		envDb, err := v.store.Project(v.projectID).Environments().Environment(v.Environment).Servers().Server(v.Host).Catalogs().Catalog(v.Database).LoadEnvironmentCatalog()
 		if err != nil {
 			return err
 		}
@@ -76,7 +76,7 @@ func (v *scanDbCommand) Execute(_ []string) (err error) {
 	switch v.Driver {
 	case "sqlite3":
 		serverRef := models.ServerReference{Driver: v.Driver, Host: "localhost"}
-		dbCatalog, err := v.loader.LoadDbCatalogSummary(v.projectID, serverRef, v.Database)
+		dbCatalog, err := v.store.Project(v.projectID).DbServers().DbServer(serverRef).Catalogs().DbCatalog(v.Database).LoadDbCatalogSummary()
 		if err != nil {
 			return fmt.Errorf("failed to load DB catalog: %w", err)
 		}
@@ -98,18 +98,19 @@ func (v *scanDbCommand) Execute(_ []string) (err error) {
 		v.DbModel = v.Database
 	}
 
-	var dataTugProject *models.DatatugProject
-	if dataTugProject, err = api.UpdateDbSchema(context.Background(), v.loader, v.projectID, v.Environment, v.Driver, v.DbModel, connParams); err != nil {
+	var datatugProject *models.DatatugProject
+	projectStore := v.store.Project(v.projectID)
+	if datatugProject, err = api.UpdateDbSchema(context.Background(), projectStore, v.projectID, v.Environment, v.Driver, v.DbModel, connParams); err != nil {
 		return err
 	}
 
-	log.Println("Saving project", dataTugProject.ID, "...")
+	log.Println("Saving project", datatugProject.ID, "...")
 	storage.Current, _ = filestore.NewSingleProjectStore(v.ProjectDir, v.projectID)
 	var dal storage.Store
 	if dal, err = storage.NewDatatugStore(""); err != nil {
 		return err
 	}
-	if err = dal.Save(*dataTugProject); err != nil {
+	if err = dal.Project(datatugProject.ID).SaveProject(*datatugProject); err != nil {
 		err = fmt.Errorf("failed to save datatug project [%v]: %w", v.projectID, err)
 		return err
 	}

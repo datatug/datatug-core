@@ -3,10 +3,8 @@ package filestore
 import (
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/parallel"
 	"github.com/datatug/datatug/packages/slice"
 	"github.com/datatug/datatug/packages/storage"
-	"io"
 	"log"
 	"os"
 	"path"
@@ -16,24 +14,23 @@ import (
 var _ storage.DbServerStore = (*fsDbServerStore)(nil)
 
 type fsDbServerStore struct {
-	fsProjectStore
 	dbServer models.ServerReference
+	fsDbServersStore
 }
 
-func (store fsDbServerStore) DbServer() models.ServerReference {
+func newFsDbServerStore(dbServer models.ServerReference, fsDbServersStore fsDbServersStore) fsDbServerStore {
+	return fsDbServerStore{
+		dbServer: dbServer,
+		fsDbServersStore: fsDbServersStore,
+	}
+}
+
+func (store fsDbServerStore) ID() models.ServerReference {
 	return store.dbServer
 }
 
-func (store fsDbServerStore) Loader() storage.DbServerLoader {
-	return store
-}
-
-func (store fsDbServerStore) Saver() storage.DbServerSaver {
-	return store
-}
-
-func (store fsDbServerStore) Catalogs() storage.DbCatalogStore {
-	return newFsDbCatalogStore(store)
+func (store fsDbServerStore) Catalogs() storage.DbCatalogsStore {
+	return newFsDbCatalogsStore(store)
 }
 
 // GetDbServerSummary returns ProjDbServerSummary
@@ -120,113 +117,10 @@ func loadDbServerCatalogNamesByEnvironments(projPath string, dbServer models.Ser
 	return
 }
 
-func (store fsDbServerStore) saveDbServers(dbServers models.ProjDbServers, project models.DatatugProject) (err error) {
-	if len(dbServers) == 0 {
-		log.Println("Project have no DB servers to save.")
-		return nil
-	}
-	log.Printf("Saving %v DB servers...\n", len(project.DbServers))
-	dbServersDirPath := path.Join(store.projectPath, DatatugFolder, ServersFolder, DbFolder)
-	err = parallel.Run(
-		func() (err error) {
-			return store.saveDbServersJSON(dbServersDirPath, dbServers)
-		},
-		func() (err error) {
-			return store.saveDbServersReadme(dbServers)
-		},
-		func() (err error) {
-			return saveItems("servers", len(dbServers), func(i int) func() error {
-				return func() error {
-					return store.SaveDbServer(*dbServers[i], project)
-				}
-			})
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("failed to save DB servers: %w", err)
-	}
-	log.Printf("Saved %v DB servers.", len(project.DbServers))
-	return nil
-}
-
-func (store fsDbServerStore) saveDbServersJSON(dbServersDirPath string, dbServers models.ProjDbServers) error {
-	servers := make(models.ServerReferences, len(dbServers))
-	for i, server := range dbServers {
-		servers[i] = server.Server
-	}
-	if err := saveJSONFile(dbServersDirPath, "servers.json", servers); err != nil {
-		return fmt.Errorf("failed to save list of servers as JSON file: %w", err)
-	}
-	return nil
-}
-
-func (store fsDbServerStore) saveDbServersReadme(dbServers models.ProjDbServers) error {
-	return nil
-}
-
-// SaveDbServer saves ServerReference
-func (store fsDbServerStore) SaveDbServer(dbServer models.ProjDbServer, project models.DatatugProject) (err error) {
-	if err = dbServer.Validate(); err != nil {
-		return fmt.Errorf("db server is not valid: %w", err)
-	}
-	dbServerDirPath := path.Join(store.projectPath, DatatugFolder, ServersFolder, DbFolder, dbServer.Server.Driver, dbServer.Server.FileName())
-	if err := os.MkdirAll(dbServerDirPath, 0777); err != nil {
-		return fmt.Errorf("failed to created server directory: %w", err)
-	}
-	err = parallel.Run(
-		func() error {
-			return store.saveDbServerJSON(dbServer, dbServerDirPath, project)
-		},
-		func() error {
-			return store.saveDbServerReadme(dbServer, dbServerDirPath, project)
-		},
-		func() error {
-			store.Catalogs().Loader().
-			if err = store.saveDbCatalogs(dbServer, project.Repository); err != nil {
-				return fmt.Errorf("failed to save DB catalogs: %w", err)
-			}
-			return nil
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("failed to save DB server [%v]: %w", dbServer.ID, err)
-	}
-	return nil
-}
-
-func (store fsDbServerStore) saveDbServerReadme(dbServer models.ProjDbServer, dbServerDirPath string, project models.DatatugProject) error {
-	return saveReadme(dbServerDirPath, "DB server", func(w io.Writer) error {
-		if err := store.readmeEncoder.DbServerToReadme(w, project.Repository, dbServer); err != nil {
-			return fmt.Errorf("failed to write README.md for DB server: %w", err)
-		}
-		return nil
-	})
-}
-
-func (store fsDbServerStore) saveDbServerJSON(dbServer models.ProjDbServer, dbServerDirPath string, _ models.DatatugProject) error {
-	log.Println("store.projDirPath:", store.projectPath)
-	log.Println("dbServerDirPath:", dbServerDirPath)
-	if err := os.MkdirAll(dbServerDirPath, 0777); err != nil {
-		return fmt.Errorf("failed to create a directory for DB server files: %w", err)
-	}
-	serverFile := models.ProjDbServerFile{
-		ServerReference: dbServer.Server,
-	}
-	if len(dbServer.Catalogs) > 0 {
-		serverFile.Catalogs = make([]string, len(dbServer.Catalogs))
-		for i, catalog := range dbServer.Catalogs {
-			serverFile.Catalogs[i] = catalog.ID
-		}
-	}
-	if err := saveJSONFile(dbServerDirPath, jsonFileName(dbServer.Server.FileName(), dbServerFileSuffix), serverFile); err != nil {
-		return fmt.Errorf("failed to save DB server JSON file: %w", err)
-	}
-	return nil
-}
 
 // DeleteDbServer deletes DB server
 func (store fsDbServerStore) DeleteDbServer(dbServer models.ServerReference) (err error) {
-	dbServerDirPath := path.Join(store.projDirPath, "servers", "db", dbServer.Driver, dbServer.FileName())
+	dbServerDirPath := path.Join(store.projectPath, "servers", "db", dbServer.Driver, dbServer.FileName())
 	log.Println("Deleting folder:", dbServerDirPath)
 	if err = os.RemoveAll(dbServerDirPath); err != nil {
 		return fmt.Errorf("failed to remove db server directory: %w", err)

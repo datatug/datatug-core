@@ -10,44 +10,25 @@ import (
 )
 
 var _ storage.EntitiesStore = (*fsEntitiesStore)(nil)
-var _ storage.EntitiesSaver = (*fsEntitiesStore)(nil)
-var _ storage.EntitiesLoader = (*fsEntitiesStore)(nil)
 
 type fsEntitiesStore struct {
-	fsProjectStore
+	fsProjectStoreRef
 	entitiesDirPath string
 }
 
-func (store fsEntitiesStore) DeleteEntity(id string) (err error) {
-	panic("implement me")
+func (store fsEntitiesStore) Entity(id string) storage.EntityStore {
+	return store.entity(id)
 }
 
-func (store fsEntitiesStore) SaveEntity(entity *models.Entity) (err error) {
-	panic("implement me")
-}
-
-func (store fsEntitiesStore) Loader() storage.EntitiesLoader {
-	return store
-}
-
-func (store fsEntitiesStore) Saver() storage.EntitiesSaver {
-	return store
+func (store fsEntitiesStore) entity(id string) fsEntityStore {
+	return newFsEntityStore(id, store)
 }
 
 func newFsEntitiesStore(fsProjectStore fsProjectStore) fsEntitiesStore {
 	return fsEntitiesStore{
-		fsProjectStore:  fsProjectStore,
-		entitiesDirPath: path.Join(fsProjectStore.projectPath, EntitiesFolder),
+		fsProjectStoreRef: fsProjectStoreRef{fsProjectStore},
+		entitiesDirPath:   path.Join(fsProjectStore.projectPath, EntitiesFolder),
 	}
-}
-
-func (store fsEntitiesStore) LoadEntity(entityID string) (entity models.Entity, err error) {
-	fileName := path.Join(store.entitiesDirPath, entityID, jsonFileName(entityID, entityFileSuffix))
-	if err = readJSONFile(fileName, true, &entity); err != nil {
-		err = fmt.Errorf("faile to load entity [%v] from project [%v]: %w", entityID, store.projectID, err)
-		return
-	}
-	return
 }
 
 func loadEntities(projPath string) (entities models.Entities, err error) {

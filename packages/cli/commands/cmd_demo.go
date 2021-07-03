@@ -332,7 +332,7 @@ func (c demoCommand) updateDemoProject(demoProjectPath string, demoDbFiles []dem
 	if dal, err = storage.NewDatatugStore(""); err != nil {
 		return err
 	}
-	if err = dal.Save(*project); err != nil {
+	if err = dal.Project(project.ID).SaveProject(*project); err != nil {
 		return fmt.Errorf("faield to save project: %w", err)
 	}
 	return nil

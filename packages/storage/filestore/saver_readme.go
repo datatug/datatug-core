@@ -6,11 +6,11 @@ import (
 	"path"
 )
 
-func (s fsProjectStore) writeProjectReadme(project models.DatatugProject) error {
-	filePath := path.Join(s.projectPath, DatatugFolder, "README.md")
+func (store fsProjectStore) writeProjectReadme(project models.DatatugProject) error {
+	filePath := path.Join(store.projectPath, DatatugFolder, "README.md")
 	file, _ := os.Create(filePath)
 	defer func() {
 		_ = file.Close()
 	}()
-	return s.readmeEncoder.ProjectSummaryToReadme(file, project)
+	return store.readmeEncoder.ProjectSummaryToReadme(file, project)
 }

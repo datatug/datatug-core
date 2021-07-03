@@ -7,31 +7,31 @@ import (
 )
 
 // GetBoard returns board by ID
-func GetBoard(projectItemRef dto.ProjectItemRef) (board models.Board, err error) {
-	var dal storage.Store
-	dal, err = storage.NewDatatugStore(projectItemRef.StoreID)
-	if err != nil {
-		return
+func GetBoard(ref dto.ProjectItemRef) (*models.Board, error) {
+	store, err := storage.GetStore(ref.StoreID)
+	if err == nil {
+		return nil, err
 	}
-	return dal.LoadBoard(projectItemRef.ProjectID, projectItemRef.ID)
+	//goland:noinspection GoNilness
+	return store.Project(ref.ProjectID).Boards().Board(ref.ID).LoadBoard()
 }
 
 // DeleteBoard deletes board
-func DeleteBoard(projectItemRef dto.ProjectItemRef) (err error) {
-	var dal storage.Store
-	dal, err = storage.NewDatatugStore(projectItemRef.StoreID)
-	if err != nil {
-		return
+func DeleteBoard(ref dto.ProjectItemRef) error {
+	store, err := storage.GetStore(ref.StoreID)
+	if err == nil {
+		return err
 	}
-	return dal.DeleteBoard(projectItemRef.ProjectID, projectItemRef.ID)
+	//goland:noinspection GoNilness
+	return store.Project(ref.ProjectID).Boards().Board(ref.ID).DeleteBoard()
 }
 
 // SaveBoard saves board
-func SaveBoard(projectItemRef dto.ProjectItemRef, board models.Board) (err error) {
-	var dal storage.Store
-	dal, err = storage.NewDatatugStore(projectItemRef.StoreID)
-	if err != nil {
-		return
+func SaveBoard(ref dto.ProjectItemRef, board models.Board) error {
+	store, err := storage.GetStore(ref.StoreID)
+	if err == nil {
+		return err
 	}
-	return dal.SaveBoard(projectItemRef.ProjectID, board)
+	//goland:noinspection GoNilness
+	return store.Project(ref.ProjectID).Boards().Board(ref.ID).SaveBoard(board)
 }

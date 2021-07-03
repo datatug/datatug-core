@@ -85,7 +85,7 @@ func (v *initProjectCommand) Execute(_ []string) (err error) {
 	projectID := random.ID(9)
 
 	storage.Current, projectID = filestore.NewSingleProjectStore(v.ProjectDir, projectID)
-	dataTugProject := models.DatatugProject{
+	datatugProject := models.DatatugProject{
 		ID:     projectID,
 		Access: "private",
 		//Environments: []*models.Environment{
@@ -110,7 +110,7 @@ func (v *initProjectCommand) Execute(_ []string) (err error) {
 		return err
 	}
 	if currentUser != nil {
-		dataTugProject.Created = &models.ProjectCreated{
+		datatugProject.Created = &models.ProjectCreated{
 			//ByName:     currentUser.Name,
 			//ByUsername: currentUser.Username,
 			At: time.Now(),
@@ -121,7 +121,7 @@ func (v *initProjectCommand) Execute(_ []string) (err error) {
 	if dal, err = storage.NewDatatugStore(""); err != nil {
 		return err
 	}
-	if err = dal.Save(dataTugProject); err != nil {
+	if err = dal.Project(projectID).SaveProject(datatugProject); err != nil {
 		return err
 	}
 	return err

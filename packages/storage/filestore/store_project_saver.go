@@ -4,28 +4,26 @@ import (
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
-	"github.com/datatug/datatug/packages/slice"
 	"log"
 	"os"
 	"path"
 	"strings"
-	"sync"
 )
 
 // Save saves project
-func (s fsProjectStore) Save(project models.DatatugProject) (err error) {
-	log.Println("Validating project for saving to: ", s.projectPath)
+func (store fsProjectStore) SaveProject(project models.DatatugProject) (err error) {
+	log.Println("Validating project for saving to: ", store.projectPath)
 	if err = project.Validate(); err != nil {
 		return fmt.Errorf("project validation failed: %w", err)
 	}
 	log.Println("Project is valid")
-	if err = os.MkdirAll(path.Join(s.projectPath, DatatugFolder), 0777); err != nil {
+	if err = os.MkdirAll(path.Join(store.projectPath, DatatugFolder), 0777); err != nil {
 		return fmt.Errorf("failed to create datatug folder: %w", err)
 	}
 	if err = parallel.Run(
 		func() (err error) {
 			log.Println("Saving project file...")
-			if err = s.saveProjectFile(project); err != nil {
+			if err = store.saveProjectFile(project); err != nil {
 				return fmt.Errorf("failed to save project file: %w", err)
 			}
 			log.Println("Saved project file.")
@@ -34,7 +32,8 @@ func (s fsProjectStore) Save(project models.DatatugProject) (err error) {
 		func() (err error) {
 			if len(project.Entities) > 0 {
 				log.Printf("Saving %v entities...\n", len(project.Entities))
-				if err = s.saveEntities(project.Entities); err != nil {
+				entitiesStore := newFsEntitiesStore(store)
+				if err = entitiesStore.saveEntities(project.Entities); err != nil {
 					return fmt.Errorf("failed to save entities: %w", err)
 				}
 				log.Printf("Saved %v entities.\n", len(project.Entities))
@@ -46,7 +45,8 @@ func (s fsProjectStore) Save(project models.DatatugProject) (err error) {
 		func() (err error) {
 			if len(project.Environments) > 0 {
 				log.Printf("Saving %v environments...\n", len(project.Environments))
-				if err = s.saveEnvironments(project); err != nil {
+				environmentStore := newFsEnvironmentsStore(store)
+				if err = environmentStore.saveEnvironments(project); err != nil {
 					return fmt.Errorf("failed to save environments: %w", err)
 				}
 				log.Printf("Saved %v environments.", len(project.Environments))
@@ -57,7 +57,8 @@ func (s fsProjectStore) Save(project models.DatatugProject) (err error) {
 		},
 		func() (err error) {
 			log.Printf("Saving %v DB models...\n", len(project.DbModels))
-			if err = s.saveDbModels(project.DbModels); err != nil {
+			dbModelsStore := newFsDbModelsStore(store)
+			if err = dbModelsStore.saveDbModels(project.DbModels); err != nil {
 				return fmt.Errorf("failed to save DB models: %w", err)
 			}
 			log.Printf("Saved %v DB models.", len(project.DbModels))
@@ -66,7 +67,7 @@ func (s fsProjectStore) Save(project models.DatatugProject) (err error) {
 		func() (err error) {
 			if len(project.Boards) > 0 {
 				log.Printf("Saving %v boards...\n", len(project.Boards))
-				if err = s.saveBoards(project.Boards); err != nil {
+				if err = newFsBoardsStore(store).saveBoards(project.Boards); err != nil {
 					return fmt.Errorf("failed to save boards: %w", err)
 				}
 				log.Printf("Saved %v boards.", len(project.Boards))
@@ -76,7 +77,8 @@ func (s fsProjectStore) Save(project models.DatatugProject) (err error) {
 			return nil
 		},
 		func() (err error) {
-			if err = s.saveDbServers(project.DbServers, project); err != nil {
+			dbServersStore := newFsDbServersStore(store)
+			if err = dbServersStore.saveDbServers(project.DbServers, project); err != nil {
 				return fmt.Errorf("failed to save DB servers: %w", err)
 			}
 			return nil
@@ -87,40 +89,11 @@ func (s fsProjectStore) Save(project models.DatatugProject) (err error) {
 	return nil
 }
 
-// SaveBoard saves board
-func (s fileSystemSaver) SaveBoard(board models.Board) (err error) {
-	if err = s.updateProjectFileWithBoard(board); err != nil {
-		return fmt.Errorf("failed to update project file with board: %w", err)
-	}
-	fileName := jsonFileName(board.ID, boardFileSuffix)
-	board.ID = ""
-	if err = s.saveJSONFile(
-		s.boardsDirPath(),
-		fileName,
-		board,
-	); err != nil {
-		return fmt.Errorf("failed to save board file: %w", err)
-	}
-	return err
-}
-
-func (s fileSystemSaver) putProjectFile(projFile models.ProjectFile) error {
+func (s fsProjectStore) putProjectFile(projFile models.ProjectFile) error {
 	if err := projFile.Validate(); err != nil {
 		return fmt.Errorf("invalid project file: %w", err)
 	}
-	return s.saveJSONFile(path.Join(s.projectPath, DatatugFolder), ProjectSummaryFileName, projFile)
-}
-
-func (s fileSystemSaver) boardsDirPath() string {
-	return path.Join(s.projectPath, DatatugFolder, BoardsFolder)
-}
-
-func (s fileSystemSaver) entitiesDirPath() string {
-	return path.Join(s.projectPath, DatatugFolder, EntitiesFolder)
-}
-
-func queriesDirPath(projDirPath string) string {
-	return path.Join(projDirPath, DatatugFolder, QueriesFolder)
+	return saveJSONFile(path.Join(s.projectPath, DatatugFolder), ProjectSummaryFileName, projFile)
 }
 
 func projItemFileName(id, prefix string) string {
@@ -131,74 +104,9 @@ func projItemFileName(id, prefix string) string {
 	return fmt.Sprintf("%v-%v.json", prefix, id)
 }
 
-// DeleteBoard deletes board
-func (s fileSystemSaver) DeleteBoard(boardID string) error {
-	filePath := path.Join(s.boardsDirPath(), jsonFileName(boardID, boardFileSuffix))
-	if _, err := os.Stat(filePath); err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
-	return os.Remove(filePath)
-}
-
-// DeleteEntity deletes entity
-func (s fileSystemSaver) DeleteEntity(entityID string) error {
-	deleteFile := func() (err error) {
-		filePath := path.Join(s.entitiesDirPath(), jsonFileName(entityID, entityFileSuffix))
-		if _, err := os.Stat(filePath); err != nil {
-			if os.IsNotExist(err) {
-				return nil
-			}
-			return err
-		}
-		return os.Remove(filePath)
-	}
-	deleteFromProjectSummary := func() error {
-		projectSummary, err := s.loadProjectFile()
-		if err != nil {
-			return err
-		}
-
-		var entityIds []string
-		if err := loadDir(nil, s.entitiesDirPath(), processFiles, func(files []os.FileInfo) {
-			entityIds = make([]string, 0, len(files))
-		}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
-			fileName := f.Name()
-			if strings.HasSuffix(fileName, entityFileSuffix+".json") {
-				entityIds = append(entityIds, strings.Replace(fileName, entityFileSuffix+".json", "", 1))
-			}
-			return nil
-		}); err != nil {
-			return fmt.Errorf("failed to load names of entity files: %w", err)
-		}
-		shift := 0
-		for i, entity := range projectSummary.Entities {
-			if entity.ID == entityID || slice.IndexOfString(entityIds, entity.ID) < 0 {
-				shift++
-				continue
-			}
-			projectSummary.Entities[i-shift] = entity
-		}
-		projectSummary.Entities = projectSummary.Entities[0 : len(projectSummary.Entities)-shift]
-		if err := s.putProjectFile(projectSummary); err != nil {
-			return fmt.Errorf("failed to save project file: %w", err)
-		}
-		return nil
-	}
-	if err := deleteFile(); err != nil {
-		return fmt.Errorf("failed to delete entity file: %w", err)
-	}
-	if err := deleteFromProjectSummary(); err != nil {
-		fmt.Printf("Failed to remove entity record from project summary: %v\n", err) // TODO: Log as an error
-	}
-	return nil
-}
-
-func (s fsProjectStore) saveProjectFile(project models.DatatugProject) error {
+func (store fsProjectStore) saveProjectFile(project models.DatatugProject) error {
 	//var existingProject models.ProjectFile
-	//if err := readJSONFile(projDirPath.Join(s.projectPath, DatatugFolder, ProjectSummaryFileName), false, &existingProject); err != nil {
+	//if err := readJSONFile(projDirPath.Join(store.projectPath, DatatugFolder, ProjectSummaryFileName), false, &existingProject); err != nil {
 	//	return err
 	//}
 	projFile := models.ProjectFile{
@@ -260,90 +168,16 @@ func (s fsProjectStore) saveProjectFile(project models.DatatugProject) error {
 			&brief,
 		)
 	}
-	if err := s.writeProjectReadme(project); err != nil {
+	if err := store.writeProjectReadme(project); err != nil {
 		return fmt.Errorf("failed to write project doc file: %w", err)
 	}
-	if err := s.putProjectFile(projFile); err != nil {
+	if err := store.putProjectFile(projFile); err != nil {
 		return fmt.Errorf("failed to save project file: %w", err)
 	}
 	return nil
 }
 
-func (s fileSystemSaver) saveEnvironments(project models.DatatugProject) (err error) {
-	return saveItems("environments", len(project.Environments), func(i int) func() error {
-		return func() error {
-			return s.saveEnvironment(*project.Environments[i])
-		}
-	})
-}
 
-func (s fileSystemSaver) saveDbModels(dbModels models.DbModels) (err error) {
-	return saveItems(DbModelsFolder, len(dbModels), func(i int) func() error {
-		return func() error {
-			dbModel := dbModels[i]
-			err := s.saveDbModel(dbModel)
-			if err != nil {
-				if dbModel.ID == "" {
-					return fmt.Errorf("failed to save db model at index %v: %w", i, err)
-				}
-				return fmt.Errorf("failed to save db model [%v] at index %v: %w", dbModel.ID, i, err)
-			}
-			return nil
-		}
-	})
-}
-
-func (s fileSystemSaver) saveDbModel(dbModel *models.DbModel) (err error) {
-	if err = dbModel.Validate(); err != nil {
-		return fmt.Errorf("db models is invalid: %w", err)
-	}
-	dirPath := path.Join(s.projectPath, DatatugFolder, DbModelsFolder, dbModel.ID)
-	if err = os.MkdirAll(dirPath, 0777); err != nil {
-		return fmt.Errorf("failed to create db model folder: %w", err)
-	}
-	return parallel.Run(
-		func() error {
-			dbModelFile := DbModelFile{
-				ProjectItem:  dbModel.ProjectItem,
-				Environments: dbModel.Environments,
-			}
-			return s.saveJSONFile(dirPath, jsonFileName(dbModel.ID, dbModelFileSuffix), dbModelFile)
-		},
-		func() error {
-			return s.saveSchemaModels(dirPath, dbModel.Schemas)
-		},
-	)
-}
-
-func (s fileSystemSaver) saveBoards(boards models.Boards) (err error) {
-	return saveItems(BoardsFolder, len(boards), func(i int) func() error {
-		return func() error {
-			return s.SaveBoard(*boards[i])
-		}
-	})
-}
-
-func (s fileSystemSaver) saveEnvironment(env models.Environment) (err error) {
-	dirPath := path.Join(s.projectPath, DatatugFolder, EnvironmentsFolder, env.ID)
-	log.Printf("Saving environment [%v]: %v", env.ID, dirPath)
-	if err = os.MkdirAll(dirPath, 0777); err != nil {
-		return fmt.Errorf("failed to create environemtn folder: %w", err)
-	}
-	return parallel.Run(
-		func() error {
-			if err = s.saveJSONFile(dirPath, jsonFileName(env.ID, environmentFileSuffix), models.EnvironmentFile{ID: env.ID}); err != nil {
-				return fmt.Errorf("failed to write environment json to file: %w", err)
-			}
-			return nil
-		},
-		func() error {
-			if err = s.saveEnvServers(env.ID, env.DbServers); err != nil {
-				return fmt.Errorf("failed to save environment servers: %w", err)
-			}
-			return nil
-		},
-	)
-}
 
 //func (s fileSystemSaver) createStrFile() io.StringWriter {
 //
@@ -366,62 +200,6 @@ func (s fileSystemSaver) saveEnvironment(env models.Environment) (err error) {
 //	return err
 //}
 
-func (s fileSystemSaver) saveSchemaModels(dirPath string, schemas []*models.SchemaModel) error {
-	return saveItems("schemaModel", len(schemas), func(i int) func() error {
-		return func() error {
-			schema := schemas[i]
-			schemaDirPath := path.Join(dirPath, schema.ID)
-			if err := os.MkdirAll(schemaDirPath, 0777); err != nil {
-				return err
-			}
-			return s.saveSchemaModel(schemaDirPath, *schemas[i])
-		}
-	})
-}
-
-func (s fileSystemSaver) saveSchemaModel(schemaDirPath string, schema models.SchemaModel) error {
-	saveTables := func(plural string, tables []*models.TableModel) func() error {
-		dirPath := path.Join(schemaDirPath, plural)
-		return func() error {
-			return saveItems(fmt.Sprintf("models of %v for schema [%v]", plural, schema.ID), len(tables), func(i int) func() error {
-				return func() error {
-					return s.saveTableModel(dirPath, *tables[i])
-				}
-			})
-		}
-	}
-	return parallel.Run(
-		saveTables(TablesFolder, schema.Tables),
-		saveTables(ViewsFolder, schema.Views),
-	)
-}
-
-func (s fileSystemSaver) saveTableModel(dirPath string, table models.TableModel) error {
-	tableDirPath := path.Join(dirPath, table.Name)
-	if err := os.MkdirAll(tableDirPath, 0777); err != nil {
-		return err
-	}
-
-	var filePrefix string
-	if table.Schema == "" {
-		filePrefix = table.Name
-	} else {
-		filePrefix = fmt.Sprintf("%v.%v", table.Schema, table.Name)
-	}
-
-	tableKeyWithoutCatalog := table.TableKey
-	tableKeyWithoutCatalog.Catalog = ""
-	tableKeyWithoutCatalog.Schema = ""
-
-	workers := make([]func() error, 0, 9)
-	if len(table.Columns) > 0 { // Saving TABLE_NAME.columns.json
-		workers = append(workers, saveToFile(tableDirPath, jsonFileName(filePrefix, columnsFileSuffix), TableModelColumnsFile{
-			Columns: table.Columns,
-		}))
-	}
-	return parallel.Run(workers...)
-
-}
 
 func saveToFile(tableDirPath, fileName string, data interface{ Validate() error }) func() error {
 	return func() (err error) {

@@ -20,6 +20,7 @@ func init() {
 // datasetsCommand defines parameters for validate command
 type queriesCommand struct {
 	projectBaseCommand
+	Folder string `short:"f" long:"folder"  required:"false" description:"Folder path"`
 }
 
 // Execute executes validate command
@@ -28,7 +29,7 @@ func (v *queriesCommand) Execute([]string) error {
 		return err
 	}
 
-	queries, err := v.loader.LoadQueries(v.projectID, "")
+	queries, err := v.store.Project(v.projectID).Queries().LoadQueries(v.Folder)
 	if err != nil {
 		return fmt.Errorf("failed to load datasets from [%v]: %w", v.ProjectDir, err)
 	}

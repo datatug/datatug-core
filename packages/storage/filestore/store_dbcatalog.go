@@ -12,33 +12,29 @@ import (
 	"path"
 )
 
-var _ storage.DbCatalogStore = (*fsDbServerStore)(nil)
+var _ storage.DbCatalogStore = (*fsDbCatalogStore)(nil)
 
 type fsDbCatalogStore struct {
-	fsDbServerStore
-	catalogsDirPath string
+	catalogID       string
+	fsDbCatalogsStore
 }
 
-func (store fsDbCatalogStore) Loader() storage.DbCatalogLoader {
-	return store
+func (store fsDbCatalogStore) Server() storage.DbServerStore {
+	return store.fsDbServerStore
 }
 
-func (store fsDbCatalogStore) Saver() storage.DbCatalogSaver {
-	return store
-}
-
-func newFsDbCatalogStore(fsDbServerStore fsDbServerStore) fsDbCatalogStore {
+func newFsDbCatalogStore(catalogID string, fsDbCatalogsStore fsDbCatalogsStore) fsDbCatalogStore {
 	return fsDbCatalogStore{
-		fsDbServerStore: fsDbServerStore,
-		catalogsDirPath: path.Join(fsDbServerStore.projectPath, DatatugFolder, ServersFolder, DbFolder, fsDbServerStore.dbServer.Driver, fsDbServerStore.dbServer.Host, DbCatalogsFolder),
+		catalogID:       catalogID,
+		fsDbCatalogsStore:fsDbCatalogsStore,
 	}
 }
 
-func (store fsDbCatalogStore) LoadDbCatalogSummary(catalogID string) (*models.DbCatalogSummary, error) {
-	return loadDbCatalogSummary(store.catalogsDirPath, catalogID)
+func (store fsDbCatalogStore) LoadDbCatalogSummary() (*models.DbCatalogSummary, error) {
+	return loadDbCatalogSummary(store.catalogsDirPath, store.catalogID)
 }
 
-func (store fsDbCatalogStore) SaveDbCatalogs(dbServer models.ProjDbServer, repository *models.ProjectRepository) (err error) {
+func (store fsDbCatalogStore) saveDbCatalogs(dbServer models.ProjDbServer, repository *models.ProjectRepository) (err error) {
 	return saveItems("catalogs", len(dbServer.Catalogs), func(i int) func() error {
 		return func() error {
 			dbCatalog := dbServer.Catalogs[i]
@@ -62,7 +58,7 @@ func (store fsDbCatalogStore) saveDbCatalog(dbCatalog *models.DbCatalog, reposit
 	if err = dbCatalog.Validate(); err != nil {
 		return fmt.Errorf("invalid db catalog: %w", err)
 	}
-	serverName := store.dbServer.FileName()
+	//serverName := store.dbServer.FileName()
 	saverCtx := saveDbServerObjContext{
 		catalog: dbCatalog.ID,
 		//dbServer:   store.dbServer,
