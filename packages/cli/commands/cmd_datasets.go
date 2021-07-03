@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"log"
 )
@@ -25,8 +26,8 @@ func (v *datasetsCommand) Execute([]string) error {
 	if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err
 	}
-
-	datasets, err := v.store.Project(v.projectID).Recordsets().LoadRecordsetDefinitions()
+	ctx := context.Background()
+	datasets, err := v.store.Project(v.projectID).Recordsets().LoadRecordsetDefinitions(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to load datasets from [%v]: %w", v.ProjectDir, err)
 	}

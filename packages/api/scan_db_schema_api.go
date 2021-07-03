@@ -22,15 +22,15 @@ import (
 // ProjectLoader defines an interface to load project info
 type ProjectLoader interface {
 	// Loads project summary
-	LoadProjectSummary() (projectSummary models.ProjectSummary, err error)
+	LoadProjectSummary(ctx context.Context) (projectSummary models.ProjectSummary, err error)
 	// Loads the whole project
-	LoadProject() (project *models.DatatugProject, err error)
+	LoadProject(ctx context.Context) (project *models.DatatugProject, err error)
 }
 
 var _ ProjectLoader = (storage.ProjectStore)(nil)
 
 // UpdateDbSchema updates DB schema
-func UpdateDbSchema(_ context.Context, projectLoader ProjectLoader, projectID, environment, driver, dbModelID string, dbConnParams dbconnection.Params) (project *models.DatatugProject, err error) {
+func UpdateDbSchema(ctx context.Context, projectLoader ProjectLoader, projectID, environment, driver, dbModelID string, dbConnParams dbconnection.Params) (project *models.DatatugProject, err error) {
 	log.Printf("Updating DB info for project=%v, env=%v, driver=%v, dbModelID=%v, dbCatalog=%v, connStr=%v",
 		projectID, environment, driver, dbModelID, dbConnParams.Catalog(), dbConnParams.String())
 
@@ -55,7 +55,7 @@ func UpdateDbSchema(_ context.Context, projectLoader ProjectLoader, projectID, e
 	)
 	var projSummaryErr error
 	getProjectSummaryWorker := func() error {
-		_, projSummaryErr = projectLoader.LoadProjectSummary()
+		_, projSummaryErr = projectLoader.LoadProjectSummary(ctx)
 		if err != nil {
 			if models.ProjectDoesNotExist(projSummaryErr) {
 				return nil
@@ -101,7 +101,7 @@ func UpdateDbSchema(_ context.Context, projectLoader ProjectLoader, projectID, e
 		}
 	} else {
 		log.Printf("Loading existing project...")
-		if project, err = projectLoader.LoadProject(); err != nil {
+		if project, err = projectLoader.LoadProject(ctx); err != nil {
 			err = fmt.Errorf("failed to load DataTug project: %w", err)
 			return
 		}

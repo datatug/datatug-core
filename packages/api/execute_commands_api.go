@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/execute"
 	"github.com/datatug/datatug/packages/models"
@@ -33,7 +34,7 @@ func ExecuteCommands(storeID string, request execute.Request) (response execute.
 
 	var getCatalog = func(server models.ServerReference, catalogID string) (*models.DbCatalogSummary, error) {
 		serverStore := dal.Project(request.Project).DbServers().DbServer(server)
-		return serverStore.Catalogs().DbCatalog(catalogID).LoadDbCatalogSummary()
+		return serverStore.Catalogs().DbCatalog(catalogID).LoadDbCatalogSummary(context.Background())
 	}
 
 	executor := execute.NewExecutor(getEnvDbByID, getCatalog)

@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
@@ -15,7 +16,7 @@ import (
 var _ storage.DbCatalogStore = (*fsDbCatalogStore)(nil)
 
 type fsDbCatalogStore struct {
-	catalogID       string
+	catalogID string
 	fsDbCatalogsStore
 }
 
@@ -25,12 +26,12 @@ func (store fsDbCatalogStore) Server() storage.DbServerStore {
 
 func newFsDbCatalogStore(catalogID string, fsDbCatalogsStore fsDbCatalogsStore) fsDbCatalogStore {
 	return fsDbCatalogStore{
-		catalogID:       catalogID,
-		fsDbCatalogsStore:fsDbCatalogsStore,
+		catalogID:         catalogID,
+		fsDbCatalogsStore: fsDbCatalogsStore,
 	}
 }
 
-func (store fsDbCatalogStore) LoadDbCatalogSummary() (*models.DbCatalogSummary, error) {
+func (store fsDbCatalogStore) LoadDbCatalogSummary(context.Context) (*models.DbCatalogSummary, error) {
 	return loadDbCatalogSummary(store.catalogsDirPath, store.catalogID)
 }
 

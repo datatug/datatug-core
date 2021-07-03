@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
@@ -20,7 +21,7 @@ func validateEntityInput(projectID, entityID string) (err error) {
 }
 
 // GetEntity returns board by ID
-func GetEntity(ref dto.ProjectItemRef) (entity *models.Entity, err error) {
+func GetEntity(ctx context.Context, ref dto.ProjectItemRef) (entity *models.Entity, err error) {
 	if err = validateEntityInput(ref.ProjectID, ref.ID); err != nil {
 		return
 	}
@@ -30,11 +31,11 @@ func GetEntity(ref dto.ProjectItemRef) (entity *models.Entity, err error) {
 	}
 	//goland:noinspection GoNilness
 	project := store.Project(ref.ProjectID)
-	return project.Entities().Entity(ref.ID).LoadEntity()
+	return project.Entities().Entity(ref.ID).LoadEntity(ctx)
 }
 
 // GetAllEntities returns all entities
-func GetAllEntities(ref dto.ProjectRef) (entity models.Entities, err error) {
+func GetAllEntities(ctx context.Context, ref dto.ProjectRef) (entity models.Entities, err error) {
 	if err = validateProjectInput(ref.ProjectID); err != nil {
 		return
 	}
@@ -44,11 +45,11 @@ func GetAllEntities(ref dto.ProjectRef) (entity models.Entities, err error) {
 	}
 	//goland:noinspection GoNilness
 	project := store.Project(ref.ProjectID)
-	return project.Entities().LoadEntities()
+	return project.Entities().LoadEntities(ctx)
 }
 
 // DeleteEntity deletes board
-func DeleteEntity(ref dto.ProjectItemRef) error {
+func DeleteEntity(ctx context.Context, ref dto.ProjectItemRef) error {
 	if err := validateEntityInput(ref.ProjectID, ref.ID); err != nil {
 		return err
 	}
@@ -58,11 +59,11 @@ func DeleteEntity(ref dto.ProjectItemRef) error {
 	}
 	//goland:noinspection GoNilness
 	project := store.Project(ref.ProjectID)
-	return project.Entities().Entity(ref.ID).DeleteEntity()
+	return project.Entities().Entity(ref.ID).DeleteEntity(ctx)
 }
 
 // SaveEntity saves board
-func SaveEntity(ref dto.ProjectRef, entity *models.Entity) error {
+func SaveEntity(ctx context.Context, ref dto.ProjectRef, entity *models.Entity) error {
 	if entity.ID == "" {
 		entity.ID = entity.Title
 		entity.Title = ""
@@ -82,5 +83,5 @@ func SaveEntity(ref dto.ProjectRef, entity *models.Entity) error {
 	}
 	//goland:noinspection GoNilness
 	project := store.Project(ref.ProjectID)
-	return project.Entities().Entity(entity.ID).SaveEntity(entity)
+	return project.Entities().Entity(entity.ID).SaveEntity(ctx, entity)
 }

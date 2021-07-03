@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	dto2 "github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
@@ -10,7 +11,7 @@ import (
 )
 
 // GetRecordsetsSummary returns board by ID
-func GetRecordsetsSummary(ref dto2.ProjectRef) (*dto2.ProjRecordsetSummary, error) {
+func GetRecordsetsSummary(ctx context.Context, ref dto2.ProjectRef) (*dto2.ProjRecordsetSummary, error) {
 	if ref.ProjectID == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("project")
 	}
@@ -19,7 +20,7 @@ func GetRecordsetsSummary(ref dto2.ProjectRef) (*dto2.ProjRecordsetSummary, erro
 		return nil, err
 	}
 	resordsetsStore := store.Project(ref.ProjectID).Recordsets()
-	datasetDefinitions, err := resordsetsStore.LoadRecordsetDefinitions()
+	datasetDefinitions, err := resordsetsStore.LoadRecordsetDefinitions(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -74,23 +75,23 @@ func getRecordsetFolder(folder *dto2.ProjRecordsetSummary, paths []string) *dto2
 }
 
 // GetDatasetDefinition returns definition of a dataset by ID
-func GetDatasetDefinition(ref dto2.ProjectItemRef) (dataset *models.RecordsetDefinition, err error) {
+func GetDatasetDefinition(ctx context.Context, ref dto2.ProjectItemRef) (dataset *models.RecordsetDefinition, err error) {
 	store, err := storage.GetStore(ref.StoreID)
 	if err != nil {
 		return nil, err
 	}
 	recorsetStore := store.Project(ref.ProjectID).Recordsets().Recordset(ref.ID)
-	return recorsetStore.LoadRecordsetDefinition()
+	return recorsetStore.LoadRecordsetDefinition(ctx)
 }
 
 // GetRecordset saves board
-func GetRecordset(ref dto2.ProjectItemRef) (recordset *models.Recordset, err error) {
+func GetRecordset(ctx context.Context, ref dto2.ProjectItemRef) (recordset *models.Recordset, err error) {
 	store, err := storage.GetStore(ref.StoreID)
 	if err != nil {
 		return nil, err
 	}
 	recorsetStore := store.Project(ref.ProjectID).Recordsets().Recordset(ref.ID)
-	return recorsetStore.LoadRecordsetData("")
+	return recorsetStore.LoadRecordsetData(ctx, "")
 }
 
 // AddRecords adds record

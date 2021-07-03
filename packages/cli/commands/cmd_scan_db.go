@@ -73,10 +73,12 @@ func (v *scanDbCommand) Execute(_ []string) (err error) {
 
 	var connParams dbconnection.Params
 
+	ctx := context.Background()
+
 	switch v.Driver {
 	case "sqlite3":
 		serverRef := models.ServerReference{Driver: v.Driver, Host: "localhost"}
-		dbCatalog, err := v.store.Project(v.projectID).DbServers().DbServer(serverRef).Catalogs().DbCatalog(v.Database).LoadDbCatalogSummary()
+		dbCatalog, err := v.store.Project(v.projectID).DbServers().DbServer(serverRef).Catalogs().DbCatalog(v.Database).LoadDbCatalogSummary(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to load DB catalog: %w", err)
 		}
@@ -110,7 +112,7 @@ func (v *scanDbCommand) Execute(_ []string) (err error) {
 	if dal, err = storage.NewDatatugStore(""); err != nil {
 		return err
 	}
-	if err = dal.Project(datatugProject.ID).SaveProject(*datatugProject); err != nil {
+	if err = dal.Project(datatugProject.ID).SaveProject(context.Background(), *datatugProject); err != nil {
 		err = fmt.Errorf("failed to save datatug project [%v]: %w", v.projectID, err)
 		return err
 	}

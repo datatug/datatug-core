@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
@@ -60,7 +61,7 @@ func (store fsEnvironmentStore) LoadEnvironmentDbSummary(databaseID string) (mod
 	panic(fmt.Sprintf("implement me: %v, %v, %v", store.projectID, store.envID, databaseID))
 }
 
-func (store fsEnvironmentStore) saveEnvironment(env models.Environment) (err error) {
+func (store fsEnvironmentStore) saveEnvironment(ctx context.Context, env models.Environment) (err error) {
 	dirPath := path.Join(store.projectPath, DatatugFolder, EnvironmentsFolder, env.ID)
 	log.Printf("Saving environment [%v]: %v", env.ID, dirPath)
 	if err = os.MkdirAll(dirPath, 0777); err != nil {

@@ -1,6 +1,9 @@
 package storage
 
-import "github.com/datatug/datatug/packages/models"
+import (
+	"context"
+	"github.com/datatug/datatug/packages/models"
+)
 
 type DbServersStore interface {
 	ProjectStoreRef
@@ -12,7 +15,7 @@ type DbServerStore interface {
 	Catalogs() DbCatalogsStore
 
 	// LoadDbServerSummary loads summary on DB server
-	LoadDbServerSummary(dbServer models.ServerReference) (summary *models.ProjDbServerSummary, err error)
-	SaveDbServer(dbServer models.ProjDbServer, project models.DatatugProject) (err error)
-	DeleteDbServer(dbServer models.ServerReference) (err error)
+	LoadDbServerSummary(ctx context.Context, dbServer models.ServerReference) (summary *models.ProjDbServerSummary, err error)
+	SaveDbServer(ctx context.Context, dbServer models.ProjDbServer, project models.DatatugProject) (err error)
+	DeleteDbServer(ctx context.Context, dbServer models.ServerReference) (err error)
 }

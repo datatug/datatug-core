@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/models2md"
@@ -90,7 +91,7 @@ func (store fsProjectStore) Query(id string) storage.QueryStore {
 }
 
 // GetProjects returns list of projects
-func (store fsStore) GetProjects() (projectBriefs []models.ProjectBrief, err error) {
+func (store fsStore) GetProjects(context.Context) (projectBriefs []models.ProjectBrief, err error) {
 	projectBriefs = make([]models.ProjectBrief, len(store.pathByID))
 	var i int
 	for id, path := range store.pathByID {

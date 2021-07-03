@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
@@ -31,7 +32,7 @@ func newFsEntitiesStore(fsProjectStore fsProjectStore) fsEntitiesStore {
 	}
 }
 
-func loadEntities(projPath string) (entities models.Entities, err error) {
+func loadEntities(_ context.Context, projPath string) (entities models.Entities, err error) {
 	entitiesDirPath := path.Join(projPath, DatatugFolder, "entities")
 	if err = loadDir(nil, entitiesDirPath, processDirs,
 		func(files []os.FileInfo) {
@@ -66,6 +67,6 @@ func loadEntities(projPath string) (entities models.Entities, err error) {
 	return
 }
 
-func (store fsEntitiesStore) LoadEntities() (entities models.Entities, err error) {
-	return loadEntities(store.projectPath)
+func (store fsEntitiesStore) LoadEntities(ctx context.Context) (entities models.Entities, err error) {
+	return loadEntities(ctx, store.projectPath)
 }

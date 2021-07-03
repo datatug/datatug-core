@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
@@ -11,7 +12,7 @@ import (
 )
 
 // Save saves project
-func (store fsProjectStore) SaveProject(project models.DatatugProject) (err error) {
+func (store fsProjectStore) SaveProject(ctx context.Context, project models.DatatugProject) (err error) {
 	log.Println("Validating project for saving to: ", store.projectPath)
 	if err = project.Validate(); err != nil {
 		return fmt.Errorf("project validation failed: %w", err)
@@ -33,7 +34,7 @@ func (store fsProjectStore) SaveProject(project models.DatatugProject) (err erro
 			if len(project.Entities) > 0 {
 				log.Printf("Saving %v entities...\n", len(project.Entities))
 				entitiesStore := newFsEntitiesStore(store)
-				if err = entitiesStore.saveEntities(project.Entities); err != nil {
+				if err = entitiesStore.saveEntities(ctx, project.Entities); err != nil {
 					return fmt.Errorf("failed to save entities: %w", err)
 				}
 				log.Printf("Saved %v entities.\n", len(project.Entities))
@@ -46,7 +47,7 @@ func (store fsProjectStore) SaveProject(project models.DatatugProject) (err erro
 			if len(project.Environments) > 0 {
 				log.Printf("Saving %v environments...\n", len(project.Environments))
 				environmentStore := newFsEnvironmentsStore(store)
-				if err = environmentStore.saveEnvironments(project); err != nil {
+				if err = environmentStore.saveEnvironments(ctx, project); err != nil {
 					return fmt.Errorf("failed to save environments: %w", err)
 				}
 				log.Printf("Saved %v environments.", len(project.Environments))
@@ -67,7 +68,7 @@ func (store fsProjectStore) SaveProject(project models.DatatugProject) (err erro
 		func() (err error) {
 			if len(project.Boards) > 0 {
 				log.Printf("Saving %v boards...\n", len(project.Boards))
-				if err = newFsBoardsStore(store).saveBoards(project.Boards); err != nil {
+				if err = newFsBoardsStore(store).saveBoards(ctx, project.Boards); err != nil {
 					return fmt.Errorf("failed to save boards: %w", err)
 				}
 				log.Printf("Saved %v boards.", len(project.Boards))
@@ -78,7 +79,7 @@ func (store fsProjectStore) SaveProject(project models.DatatugProject) (err erro
 		},
 		func() (err error) {
 			dbServersStore := newFsDbServersStore(store)
-			if err = dbServersStore.saveDbServers(project.DbServers, project); err != nil {
+			if err = dbServersStore.saveDbServers(ctx, project.DbServers, project); err != nil {
 				return fmt.Errorf("failed to save DB servers: %w", err)
 			}
 			return nil

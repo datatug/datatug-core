@@ -38,21 +38,21 @@ func getRecordsetDataParams(r *http.Request) (params api.RecordsetDataRequestPar
 func GetRecordsetsSummary(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	ref := newProjectRef(query)
-	datasets, err := api.GetRecordsetsSummary(ref)
+	datasets, err := api.GetRecordsetsSummary(r.Context(), ref)
 	returnJSON(w, r, http.StatusOK, err, datasets)
 }
 
 // GetRecordsetDefinition returns list of dataset definitions
 func GetRecordsetDefinition(w http.ResponseWriter, r *http.Request) {
 	ref := newProjectItemRef(r.URL.Query())
-	datasets, err := api.GetDatasetDefinition(ref)
+	datasets, err := api.GetDatasetDefinition(r.Context(), ref)
 	returnJSON(w, r, http.StatusOK, err, datasets)
 }
 
 // GetRecordsetData returns data
 func GetRecordsetData(w http.ResponseWriter, r *http.Request) {
 	ref := newProjectItemRef(r.URL.Query())
-	recordset, err := api.GetRecordset(ref)
+	recordset, err := api.GetRecordset(r.Context(), ref)
 	returnJSON(w, r, http.StatusOK, err, recordset)
 }
 

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"gopkg.in/yaml.v3"
 	"os"
 )
@@ -14,8 +15,9 @@ func (v *datasetDefCommand) Execute([]string) error {
 	if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err
 	}
+	ctx := context.Background()
 	// TODO: Implement "dataset def" command
-	dataset, err := v.store.Project(v.projectID).Recordsets().Recordset(v.Dataset).LoadRecordsetDefinition()
+	dataset, err := v.store.Project(v.projectID).Recordsets().Recordset(v.Dataset).LoadRecordsetDefinition(ctx)
 	if err != nil {
 		return err
 	}

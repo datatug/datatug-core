@@ -1,19 +1,19 @@
 package filestore
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
 	"io/ioutil"
+	"os"
 	"path"
 	"strings"
 )
 
-
 func newFsQueryStore(queryID string, fsQueriesStore fsQueriesStore) fsQueryStore {
 	return fsQueryStore{queryID: queryID, fsQueriesStore: fsQueriesStore}
 }
-
 
 var _ storage.QueryStore = (*fsQueryStore)(nil)
 
@@ -26,7 +26,7 @@ func (store fsQueryStore) ID() string {
 	return store.queryID
 }
 
-func (store fsQueryStore) LoadQuery() (query *models.QueryDef, err error) {
+func (store fsQueryStore) LoadQuery(context.Context) (query *models.QueryDef, err error) {
 	queriesDirPath := path.Join(store.projectPath, DatatugFolder, QueriesFolder)
 	query = new(models.QueryDef)
 	err = store.loadQuery(queriesDirPath, query)
@@ -53,11 +53,17 @@ func (store fsQueryStore) loadQuery(dirPath string, query *models.QueryDef) erro
 	return nil
 }
 
-
-func (store fsQueryStore) DeleteQuery() (err error) {
-	panic("implement me")
+func (store fsQueryStore) DeleteQuery(context.Context) (err error) {
+	_, _, queryFileName, queryDir, queryPath, err := getQueryPaths(store.queryID, store.queriesPath)
+	if err != nil {
+		return err
+	}
+	if err = os.Remove(queryPath); err != nil {
+		return fmt.Errorf("failed to remove query file %v: %w", path.Join(queryDir, queryFileName), err)
+	}
+	return err
 }
 
-func (store fsQueryStore) UpdateQuery(query models.QueryDef) (err error) {
-	panic("implement me")
+func (store fsQueryStore) UpdateQuery(_ context.Context, query models.QueryDef) (err error) {
+	return store.saveQuery(query, false)
 }

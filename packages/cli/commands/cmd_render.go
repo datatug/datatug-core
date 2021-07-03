@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/storage"
 	"github.com/datatug/datatug/packages/storage/filestore"
@@ -40,13 +41,13 @@ func (v *renderCommand) Execute(_ []string) error {
 
 	store, _ := filestore.NewSingleProjectStore(storage.SingleProjectID, v.ProjectDir)
 	projectStore := store.Project(storage.SingleProjectID)
-	datatugProject, err := projectStore.LoadProject()
+	datatugProject, err := projectStore.LoadProject(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to load project by ID=%v: %w", v.projectID, err)
 	}
 
 	log.Println("Saving project", datatugProject.ID, "...")
-	if err = projectStore.SaveProject(*datatugProject); err != nil {
+	if err = projectStore.SaveProject(context.Background(), *datatugProject); err != nil {
 		err = fmt.Errorf("failed to save datatug project: %w", err)
 		return err
 	}

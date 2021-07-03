@@ -1,6 +1,9 @@
 package storage
 
-import "github.com/datatug/datatug/packages/models"
+import (
+	"context"
+	"github.com/datatug/datatug/packages/models"
+)
 
 type ProjectStoreRef interface {
 	Project() ProjectStore
@@ -16,10 +19,10 @@ type ProjectStore interface {
 	DbServers() DbServersStore
 	Recordsets() RecordsetsStore
 
-	SaveProject(project models.DatatugProject) (err error)
+	SaveProject(ctx context.Context, project models.DatatugProject) (err error)
 	// LoadProject returns full DataTug project
-	LoadProject() (*models.DatatugProject, error)
+	LoadProject(ctx context.Context) (*models.DatatugProject, error)
 
 	// LoadProjectSummary return summary metadata about DataTug project
-	LoadProjectSummary() (models.ProjectSummary, error)
+	LoadProjectSummary(ctx context.Context) (models.ProjectSummary, error)
 }

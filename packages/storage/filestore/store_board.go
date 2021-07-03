@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
@@ -17,11 +18,10 @@ type fsBoardStore struct {
 
 func newFsBoardStore(boardID string, fsBoardsStore fsBoardsStore) fsBoardStore {
 	return fsBoardStore{
-		boardID: boardID,
+		boardID:       boardID,
 		fsBoardsStore: fsBoardsStore,
 	}
 }
-
 
 func (store fsBoardStore) ID() string {
 	return store.boardID
@@ -31,7 +31,7 @@ func (store fsBoardStore) Boards() storage.BoardsStore {
 	return store.fsBoardsStore
 }
 
-func (store fsBoardStore) DeleteBoard() (err error) {
+func (store fsBoardStore) DeleteBoard(context.Context) (err error) {
 	filePath := path.Join(store.boardsDirPath, jsonFileName(store.boardID, boardFileSuffix))
 	if _, err := os.Stat(filePath); err != nil {
 		if os.IsNotExist(err) {
@@ -42,7 +42,7 @@ func (store fsBoardStore) DeleteBoard() (err error) {
 	return os.Remove(filePath)
 }
 
-func (store fsBoardStore) SaveBoard(board models.Board) (err error) {
+func (store fsBoardStore) SaveBoard(ctx context.Context, board models.Board) (err error) {
 	if err = store.updateProjectFileWithBoard(board); err != nil {
 		return fmt.Errorf("failed to update project file with board: %w", err)
 	}
@@ -59,7 +59,7 @@ func (store fsBoardStore) SaveBoard(board models.Board) (err error) {
 }
 
 // LoadBoard loads board
-func (store fsBoardStore) LoadBoard() (*models.Board, error) {
+func (store fsBoardStore) LoadBoard(context.Context) (*models.Board, error) {
 	fileName := path.Join(store.boardsDirPath, fmt.Sprintf("%v.json", store.boardID))
 	var board models.Board
 	if err := readJSONFile(fileName, true, &board); err != nil {

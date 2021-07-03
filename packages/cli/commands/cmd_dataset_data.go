@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
@@ -24,7 +25,8 @@ func (v *datasetDataCommand) Execute([]string) error {
 		return err
 	}
 	// TODO: Implement "datasets show" command
-	recordset, err := v.store.Project(v.projectID).Recordsets().Recordset(v.Dataset).LoadRecordsetData(v.File)
+	ctx := context.Background()
+	recordset, err := v.store.Project(v.projectID).Recordsets().Recordset(v.Dataset).LoadRecordsetData(ctx, v.File)
 	if err != nil {
 		return err
 	}

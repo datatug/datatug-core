@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"context"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
 	"path"
@@ -32,12 +33,12 @@ func newFsBoardsStore(fsProjectStore fsProjectStore) fsBoardsStore {
 	}
 }
 
-func (store fsBoardsStore) saveBoards(boards models.Boards) (err error) {
+func (store fsBoardsStore) saveBoards(ctx context.Context, boards models.Boards) (err error) {
 	return saveItems(BoardsFolder, len(boards), func(i int) func() error {
 		return func() error {
 			board := boards[i]
 			boardStore := store.board(board.ID)
-			return boardStore.SaveBoard(*board)
+			return boardStore.SaveBoard(ctx, *board)
 		}
 	})
 }

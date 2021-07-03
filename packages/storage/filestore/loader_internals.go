@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
@@ -16,7 +17,7 @@ func loadProjectFile(projPath string, project *models.DatatugProject) (err error
 	return readJSONFile(filePath, true, project)
 }
 
-func loadEnvironments(projPath string, project *models.DatatugProject) (err error) {
+func loadEnvironments(_ context.Context, projPath string, project *models.DatatugProject) (err error) {
 	envsDirPath := path.Join(projPath, DatatugFolder, EnvironmentsFolder)
 	err = loadDir(nil, envsDirPath, processDirs, func(files []os.FileInfo) {
 		project.Environments = make(models.Environments, 0, len(files))
@@ -90,7 +91,7 @@ func loadDir(
 	return parallel.Run(workers...)
 }
 
-func loadBoards(projPath string, project *models.DatatugProject) (err error) {
+func loadBoards(ctx context.Context, projPath string, project *models.DatatugProject) (err error) {
 	boardsDirPath := path.Join(projPath, DatatugFolder, "boards")
 	if err = loadDir(nil, boardsDirPath, processFiles,
 		func(files []os.FileInfo) {
@@ -124,7 +125,7 @@ func loadBoards(projPath string, project *models.DatatugProject) (err error) {
 	return err
 }
 
-func loadDbModels(projPath string, project *models.DatatugProject) error {
+func loadDbModels(ctx context.Context, projPath string, project *models.DatatugProject) error {
 	dbModelsDirPath := path.Join(projPath, DatatugFolder, "dbmodels")
 	if err := loadDir(nil, dbModelsDirPath, processDirs,
 		func(files []os.FileInfo) {

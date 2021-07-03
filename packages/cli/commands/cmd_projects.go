@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/storage"
 	"github.com/datatug/datatug/packages/storage/filestore"
@@ -54,7 +55,7 @@ func (v *projectsCommand) Execute(_ []string) error {
 	if dal, err = storage.NewDatatugStore(""); err != nil {
 		return err
 	}
-	projects, err := dal.GetProjects()
+	projects, err := dal.GetProjects(context.Background())
 	if err != nil {
 		fmt.Println("Failed to load projects: ", err)
 	}

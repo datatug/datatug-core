@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
@@ -33,22 +34,7 @@ func getQueryPaths(queryID, queriesDirPath string) (
 	return
 }
 
-func (store fsQueriesStore) DeleteQuery(queryID string) error {
-	_, _, queryFileName, queryDir, queryPath, err := getQueryPaths(queryID, store.queriesPath)
-	if err != nil {
-		return err
-	}
-	if err = os.Remove(queryPath); err != nil {
-		return fmt.Errorf("failed to remove query file %v: %w", path.Join(queryDir, queryFileName), err)
-	}
-	return err
-}
-
-func (store fsQueriesStore) UpdateQuery(query models.QueryDef) (err error) {
-	return store.saveQuery(query, false)
-}
-
-func (store fsQueriesStore) CreateQueryFolder(parentPath, id string) (folder *models.QueryFolder, err error) {
+func (store fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, id string) (folder *models.QueryFolder, err error) {
 	folderPath := path.Join(store.queriesPath, parentPath, id)
 	if err = os.MkdirAll(folderPath, 0666); err != nil {
 		err = fmt.Errorf("failed to create folder: %w", err)
@@ -69,7 +55,7 @@ func (store fsQueriesStore) CreateQueryFolder(parentPath, id string) (folder *mo
 	return
 }
 
-func (store fsQueriesStore) CreateQuery(query models.QueryDef) (err error) {
+func (store fsQueriesStore) CreateQuery(ctx context.Context, query models.QueryDef) (err error) {
 	return store.saveQuery(query, true)
 }
 

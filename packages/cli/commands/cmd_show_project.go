@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/gosuri/uitable"
@@ -30,7 +31,7 @@ func (v *showProjectCommand) Execute(_ []string) error {
 	if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err
 	}
-	project, err := v.store.Project(v.projectID).LoadProject()
+	project, err := v.store.Project(v.projectID).LoadProject(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to load project from [%v]: %w", v.ProjectDir, err)
 	}

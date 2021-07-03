@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
@@ -8,39 +9,40 @@ import (
 )
 
 // AddDbServer adds db server to project
-func AddDbServer(ref dto.ProjectRef, projDbServer models.ProjDbServer) error {
+func AddDbServer(ctx context.Context, ref dto.ProjectRef, projDbServer models.ProjDbServer) error {
 	store, err := storage.GetStore(ref.StoreID)
 	if err == nil {
 		return err
 	}
 	//goland:noinspection GoNilness
 	dbServerStore := store.Project(ref.ProjectID).DbServers().DbServer(projDbServer.Server)
-	return dbServerStore.SaveDbServer(projDbServer, models.DatatugProject{})
+	return dbServerStore.SaveDbServer(ctx, projDbServer, models.DatatugProject{})
 }
 
 // UpdateDbServer adds db server to project
 //goland:noinspection GoUnusedExportedFunction
-func UpdateDbServer(ref dto.ProjectRef, projDbServer models.ProjDbServer) error {
+func UpdateDbServer(ctx context.Context, ref dto.ProjectRef, projDbServer models.ProjDbServer) error {
 	store, err := storage.GetStore(ref.StoreID)
 	if err == nil {
 		return err
 	}
 	//goland:noinspection GoNilness
-	return store.Project(ref.ProjectID).DbServers().DbServer(projDbServer.Server).SaveDbServer(projDbServer, models.DatatugProject{})
+	dbServerStore := store.Project(ref.ProjectID).DbServers().DbServer(projDbServer.Server)
+	return dbServerStore.SaveDbServer(ctx, projDbServer, models.DatatugProject{})
 }
 
 // DeleteDbServer adds db server to project
-func DeleteDbServer(ref dto.ProjectRef, dbServer models.ServerReference) (err error) {
+func DeleteDbServer(ctx context.Context, ref dto.ProjectRef, dbServer models.ServerReference) (err error) {
 	store, err := storage.GetStore(ref.StoreID)
 	if err == nil {
 		return err
 	}
 	//goland:noinspection GoNilness
-	return store.Project(ref.ProjectID).DbServers().DbServer(dbServer).DeleteDbServer(dbServer)
+	return store.Project(ref.ProjectID).DbServers().DbServer(dbServer).DeleteDbServer(ctx, dbServer)
 }
 
 // GetDbServerSummary returns summary on DB server
-func GetDbServerSummary(ref dto.ProjectRef, dbServer models.ServerReference) (*models.ProjDbServerSummary, error) {
+func GetDbServerSummary(ctx context.Context, ref dto.ProjectRef, dbServer models.ServerReference) (*models.ProjDbServerSummary, error) {
 	if err := dbServer.Validate(); err != nil {
 		err = validation.NewBadRequestError(err)
 		return nil, err
@@ -50,5 +52,5 @@ func GetDbServerSummary(ref dto.ProjectRef, dbServer models.ServerReference) (*m
 		return nil, err
 	}
 	//goland:noinspection GoNilness
-	return store.Project(ref.ProjectID).DbServers().DbServer(dbServer).LoadDbServerSummary(dbServer)
+	return store.Project(ref.ProjectID).DbServers().DbServer(dbServer).LoadDbServerSummary(ctx, dbServer)
 }

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"log"
@@ -28,8 +29,8 @@ func (v *queriesCommand) Execute([]string) error {
 	if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err
 	}
-
-	queries, err := v.store.Project(v.projectID).Queries().LoadQueries(v.Folder)
+	ctx := context.Background()
+	queries, err := v.store.Project(v.projectID).Queries().LoadQueries(ctx, v.Folder)
 	if err != nil {
 		return fmt.Errorf("failed to load datasets from [%v]: %w", v.ProjectDir, err)
 	}

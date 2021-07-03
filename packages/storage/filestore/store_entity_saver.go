@@ -1,22 +1,23 @@
 package filestore
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/strongo/validation"
 	"path"
 )
 
-func (store fsEntitiesStore) saveEntities(entities models.Entities) (err error) {
+func (store fsEntitiesStore) saveEntities(ctx context.Context, entities models.Entities) (err error) {
 	return saveItems(EntitiesFolder, len(entities), func(i int) func() error {
 		return func() error {
-			return store.SaveEntity(entities[i])
+			return store.SaveEntity(ctx, entities[i])
 		}
 	})
 }
 
 // SaveEntity saves entity
-func (store fsEntitiesStore) SaveEntity(entity *models.Entity) (err error) {
+func (store fsEntitiesStore) SaveEntity(ctx context.Context, entity *models.Entity) (err error) {
 	if entity == nil {
 		return validation.NewErrRequestIsMissingRequiredField("entity")
 	}

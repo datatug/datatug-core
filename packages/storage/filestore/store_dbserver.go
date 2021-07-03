@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/slice"
@@ -34,7 +35,7 @@ func (store fsDbServerStore) Catalogs() storage.DbCatalogsStore {
 }
 
 // GetDbServerSummary returns ProjDbServerSummary
-func (store fsDbServerStore) LoadDbServerSummary(dbServer models.ServerReference) (summary *models.ProjDbServerSummary, err error) {
+func (store fsDbServerStore) LoadDbServerSummary(_ context.Context, dbServer models.ServerReference) (summary *models.ProjDbServerSummary, err error) {
 	summary, err = loadDbServerForDbServerSummary(store.projectPath, dbServer)
 	return
 }
@@ -119,7 +120,7 @@ func loadDbServerCatalogNamesByEnvironments(projPath string, dbServer models.Ser
 
 
 // DeleteDbServer deletes DB server
-func (store fsDbServerStore) DeleteDbServer(dbServer models.ServerReference) (err error) {
+func (store fsDbServerStore) DeleteDbServer(_ context.Context, dbServer models.ServerReference) (err error) {
 	dbServerDirPath := path.Join(store.projectPath, "servers", "db", dbServer.Driver, dbServer.FileName())
 	log.Println("Deleting folder:", dbServerDirPath)
 	if err = os.RemoveAll(dbServerDirPath); err != nil {

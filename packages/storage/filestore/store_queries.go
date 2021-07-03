@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
@@ -25,18 +26,18 @@ func newFsQueriesStore(fsProjectStore fsProjectStore) fsQueriesStore {
 	return fsQueriesStore{fsProjectStore: fsProjectStore, queriesPath: path.Join(fsProjectStore.projectPath, DatatugFolder, QueriesFolder)}
 }
 
-func (store fsQueriesStore) LoadQueries(folderPath string) (folder *models.QueryFolder, err error) {
-	return store.loadQueriesDir(store.queriesPath)
+func (store fsQueriesStore) LoadQueries(ctx context.Context, folderPath string) (folder *models.QueryFolder, err error) {
+	return store.loadQueriesDir(ctx, path.Join(store.queriesPath, folderPath))
 }
 
-func (store fsQueriesStore) loadQueriesDir(dirPath string) (folder *models.QueryFolder, err error) {
+func (store fsQueriesStore) loadQueriesDir(ctx context.Context, dirPath string) (folder *models.QueryFolder, err error) {
 	err = loadDir(nil, dirPath, processDirs|processFiles, func(files []os.FileInfo) {
 		folder = new(models.QueryFolder)
 		folder.Items = make(models.QueryDefs, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 		fileName := f.Name()
 		if f.IsDir() {
-			subFolder, err := store.loadQueriesDir(path.Join(dirPath, fileName))
+			subFolder, err := store.loadQueriesDir(ctx, path.Join(dirPath, fileName))
 			if err != nil {
 				return err
 			}
@@ -67,7 +68,7 @@ func (store fsQueriesStore) loadQueriesDir(dirPath string) (folder *models.Query
 	return
 }
 
-func (store fsQueriesStore) DeleteQueryFolder(folderPath string) error {
+func (store fsQueriesStore) DeleteQueryFolder(_ context.Context, folderPath string) error {
 	fullPath := path.Join(store.queriesPath, folderPath)
 	if err := os.RemoveAll(fullPath); err != nil {
 		return fmt.Errorf("failed to remove query folder %v: %w", folderPath, err)

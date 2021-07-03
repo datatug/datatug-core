@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
@@ -15,16 +16,16 @@ func validateProjectInput(projectID string) (err error) {
 }
 
 // GetProjects return all projects
-func GetProjects(storeID string) ([]models.ProjectBrief, error) {
+func GetProjects(ctx context.Context, storeID string) ([]models.ProjectBrief, error) {
 	dal, err := storage.NewDatatugStore(storeID)
 	if err != nil {
 		return nil, err
 	}
-	return dal.GetProjects()
+	return dal.GetProjects(ctx)
 }
 
 // GetProjectSummary returns project summary
-func GetProjectSummary(ref dto.ProjectRef) (*models.ProjectSummary, error) {
+func GetProjectSummary(ctx context.Context, ref dto.ProjectRef) (*models.ProjectSummary, error) {
 	if ref.ProjectID == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("id")
 	}
@@ -34,17 +35,17 @@ func GetProjectSummary(ref dto.ProjectRef) (*models.ProjectSummary, error) {
 	}
 	//goland:noinspection GoNilness
 	project := store.Project(ref.ProjectID)
-	projectSummary, err := project.LoadProjectSummary()
+	projectSummary, err := project.LoadProjectSummary(ctx)
 	return &projectSummary, err
 }
 
 // GetProjectFull returns full project metadata
-func GetProjectFull(ref dto.ProjectRef) (*models.DatatugProject, error) {
+func GetProjectFull(ctx context.Context, ref dto.ProjectRef) (*models.DatatugProject, error) {
 	store, err := storage.GetStore(ref.StoreID)
 	if err == nil {
 		return nil, err
 	}
 	//goland:noinspection GoNilness
 	project := store.Project(ref.ProjectID)
-	return project.LoadProject()
+	return project.LoadProject(ctx)
 }

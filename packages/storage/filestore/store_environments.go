@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"context"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
 	"path"
@@ -28,12 +29,12 @@ func newFsEnvironmentsStore(fsProjectStore fsProjectStore) fsEnvironmentsStore {
 	}
 }
 
-func (store fsEnvironmentsStore) saveEnvironments(project models.DatatugProject) (err error) {
+func (store fsEnvironmentsStore) saveEnvironments(ctx context.Context, project models.DatatugProject) (err error) {
 	return saveItems("environments", len(project.Environments), func(i int) func() error {
 		return func() error {
 			env := *project.Environments[i]
 			envStore := store.environment(env.ID)
-			return envStore.saveEnvironment(env)
+			return envStore.saveEnvironment(ctx, env)
 		}
 	})
 }

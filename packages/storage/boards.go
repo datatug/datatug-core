@@ -1,6 +1,9 @@
 package storage
 
-import "github.com/datatug/datatug/packages/models"
+import (
+	"context"
+	"github.com/datatug/datatug/packages/models"
+)
 
 // BoardsStore provides access to board records
 type BoardsStore interface {
@@ -13,7 +16,7 @@ type BoardStore interface {
 	ID() string
 	Boards() BoardsStore
 	// LoadBoard loads board
-	LoadBoard() (board *models.Board, err error)
-	DeleteBoard() (err error)
-	SaveBoard(board models.Board) (err error)
+	LoadBoard(ctx context.Context) (board *models.Board, err error)
+	DeleteBoard(ctx context.Context) (err error)
+	SaveBoard(ctx context.Context, board models.Board) (err error)
 }

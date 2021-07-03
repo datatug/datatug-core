@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
@@ -31,7 +32,7 @@ func (store fsDbServersStore) dbServer(dbServer models.ServerReference) storage.
 	return newFsDbServerStore(dbServer, store)
 }
 
-func (store fsDbServersStore) saveDbServers(dbServers models.ProjDbServers, project models.DatatugProject) (err error) {
+func (store fsDbServersStore) saveDbServers(ctx context.Context, dbServers models.ProjDbServers, project models.DatatugProject) (err error) {
 	if len(dbServers) == 0 {
 		log.Println("Project have no DB servers to save.")
 		return nil
@@ -50,7 +51,7 @@ func (store fsDbServersStore) saveDbServers(dbServers models.ProjDbServers, proj
 				return func() error {
 					dbServer := *dbServers[i]
 					dbServerStore := newFsDbServerStore(dbServer.Server, store)
-					return dbServerStore.SaveDbServer(*dbServers[i], project)
+					return dbServerStore.SaveDbServer(ctx, *dbServers[i], project)
 				}
 			})
 		},
@@ -78,7 +79,7 @@ func (store fsDbServersStore) saveDbServersReadme(dbServers models.ProjDbServers
 }
 
 // SaveDbServer saves ServerReference
-func (store fsDbServerStore) SaveDbServer(dbServer models.ProjDbServer, project models.DatatugProject) (err error) {
+func (store fsDbServerStore) SaveDbServer(_ context.Context, dbServer models.ProjDbServer, project models.DatatugProject) (err error) {
 	if err = dbServer.Validate(); err != nil {
 		return fmt.Errorf("db server is not valid: %w", err)
 	}

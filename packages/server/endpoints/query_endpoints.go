@@ -1,6 +1,7 @@
 package endpoints
 
 import (
+	"context"
 	"github.com/datatug/datatug/packages/api"
 	"github.com/datatug/datatug/packages/dto"
 	"net/http"
@@ -14,7 +15,7 @@ func GetQueries(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	folder := q.Get(urlQueryParamFolder)
 	ref := newProjectRef(r.URL.Query())
-	v, err := getQueries(ref, folder)
+	v, err := getQueries(r.Context(), ref, folder)
 	returnJSON(w, r, http.StatusOK, err, v)
 }
 
@@ -25,7 +26,7 @@ func GetQuery(w http.ResponseWriter, r *http.Request) {
 		handleError(err, w, r)
 		return
 	}
-	query, err := getQuery(params)
+	query, err := getQuery(r.Context(), params)
 	if err != nil {
 		handleError(err, w, r)
 		return
@@ -36,8 +37,8 @@ func GetQuery(w http.ResponseWriter, r *http.Request) {
 // CreateQuery handles create query endpoint
 var CreateQuery = func(w http.ResponseWriter, r *http.Request) {
 	var request dto.CreateQuery
-	saveFunc := func(ref dto.ProjectItemRef) (interface{}, error) {
-		return &request, api.CreateQuery(request)
+	saveFunc := func(ctx context.Context, ref dto.ProjectItemRef) (interface{}, error) {
+		return &request, api.CreateQuery(ctx, request)
 	}
 	saveItem(w, r, &request, saveFunc)
 }
@@ -45,8 +46,8 @@ var CreateQuery = func(w http.ResponseWriter, r *http.Request) {
 // UpdateQuery handles update query endpoint
 func UpdateQuery(w http.ResponseWriter, r *http.Request) {
 	var request dto.UpdateQuery
-	saveFunc := func(ref dto.ProjectItemRef) (interface{}, error) {
-		return &request, api.UpdateQuery(request)
+	saveFunc := func(ctx context.Context, ref dto.ProjectItemRef) (interface{}, error) {
+		return &request, api.UpdateQuery(ctx, request)
 	}
 	saveItem(w, r, &request, saveFunc)
 }
@@ -54,8 +55,8 @@ func UpdateQuery(w http.ResponseWriter, r *http.Request) {
 // CreateQueryFolder handles create query endpoint
 func CreateQueryFolder(w http.ResponseWriter, r *http.Request) {
 	var request dto.CreateFolder
-	saveFunc := func(ref dto.ProjectItemRef) (interface{}, error) {
-		return api.CreateQueryFolder(request)
+	saveFunc := func(ctx context.Context, ref dto.ProjectItemRef) (interface{}, error) {
+		return api.CreateQueryFolder(ctx, request)
 	}
 	saveItem(w, r, &request, saveFunc)
 	return

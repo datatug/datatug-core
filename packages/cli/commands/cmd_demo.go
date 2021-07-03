@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"github.com/datatug/datatug/packages/api"
@@ -304,7 +305,7 @@ func (c demoCommand) creatDemoProject(demoProjectPath string) error {
 func (c demoCommand) updateDemoProject(demoProjectPath string, demoDbFiles []demoDbFile) error {
 	log.Println("Updating demo project...")
 	storage.Current, _ = filestore.NewSingleProjectStore(demoProjectPath, demoProjectID)
-	project, err := api.GetProjectFull(dto.ProjectRef{
+	project, err := api.GetProjectFull(context.Background(), dto.ProjectRef{
 		ProjectID: demoProjectID,
 	})
 	if err != nil {
@@ -332,7 +333,8 @@ func (c demoCommand) updateDemoProject(demoProjectPath string, demoDbFiles []dem
 	if dal, err = storage.NewDatatugStore(""); err != nil {
 		return err
 	}
-	if err = dal.Project(project.ID).SaveProject(*project); err != nil {
+	ctx := context.Background()
+	if err = dal.Project(project.ID).SaveProject(ctx, *project); err != nil {
 		return fmt.Errorf("faield to save project: %w", err)
 	}
 	return nil

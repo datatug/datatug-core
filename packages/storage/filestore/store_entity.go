@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
@@ -22,7 +23,7 @@ func newFsEntityStore(id string, fsEntitiesStore fsEntitiesStore) fsEntityStore 
 	return fsEntityStore{entityID: id, fsEntitiesStore: fsEntitiesStore}
 }
 
-func (store fsEntityStore) DeleteEntity() (err error) {
+func (store fsEntityStore) DeleteEntity(_ context.Context) (err error) {
 	panic("not implemented")
 	//deleteFile := func() (err error) {
 	//	filePath := path.Join(s.entitiesDirPath(), jsonFileName(entityID, entityFileSuffix))
@@ -75,11 +76,7 @@ func (store fsEntityStore) DeleteEntity() (err error) {
 	//return nil
 }
 
-func (store fsEntityStore) SaveEntity(entity *models.Entity) (err error) {
-	panic("implement me")
-}
-
-func (store fsEntityStore) LoadEntity() (*models.Entity, error) {
+func (store fsEntityStore) LoadEntity(_ context.Context) (*models.Entity, error) {
 	fileName := path.Join(store.entitiesDirPath, store.entityID, jsonFileName(store.entityID, entityFileSuffix))
 	var entity models.Entity
 	if err := readJSONFile(fileName, true, &entity); err != nil {

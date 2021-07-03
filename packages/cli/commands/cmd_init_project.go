@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
@@ -121,7 +122,7 @@ func (v *initProjectCommand) Execute(_ []string) (err error) {
 	if dal, err = storage.NewDatatugStore(""); err != nil {
 		return err
 	}
-	if err = dal.Project(projectID).SaveProject(datatugProject); err != nil {
+	if err = dal.Project(projectID).SaveProject(context.Background(), datatugProject); err != nil {
 		return err
 	}
 	return err
