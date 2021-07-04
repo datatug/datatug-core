@@ -13,7 +13,7 @@ import (
 func GetBoard(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	ref := newProjectItemRef(query)
-	ctx, err := Context(r)
+	ctx, err := Context(w, r)
 	if err != nil {
 		handleError(err, w, r)
 	}

@@ -11,7 +11,7 @@ import (
 // GetEntity handles get entity endpoint
 func GetEntity(w http.ResponseWriter, r *http.Request) {
 	ref := newProjectItemRef(r.URL.Query())
-	ctx, err := Context(r)
+	ctx, err := Context(w, r)
 	if err != nil {
 		handleError(err, w, r)
 	}
@@ -21,7 +21,7 @@ func GetEntity(w http.ResponseWriter, r *http.Request) {
 
 // GetEntities returns list of project entities
 func GetEntities(w http.ResponseWriter, r *http.Request) {
-	ctx, err := Context(r)
+	ctx, err := Context(w, r)
 	if err != nil {
 		handleError(err, w, r)
 	}
