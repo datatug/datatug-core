@@ -34,8 +34,8 @@ func getQueryPaths(queryID, queriesDirPath string) (
 	return
 }
 
-func (store fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, id string) (folder *models.QueryFolder, err error) {
-	folderPath := path.Join(store.queriesPath, parentPath, id)
+func (store fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, name string) (err error) {
+	folderPath := path.Join(store.queriesPath, parentPath, name)
 	if err = os.MkdirAll(folderPath, 0666); err != nil {
 		err = fmt.Errorf("failed to create folder: %w", err)
 		return
@@ -46,12 +46,11 @@ func (store fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, id 
 			err = fmt.Errorf("failed to check README.md: %w", err)
 			return
 		}
-		if err = ioutil.WriteFile(readmePath, []byte(fmt.Sprintf("# %v", id)), 0666); err != nil {
+		if err = ioutil.WriteFile(readmePath, []byte(fmt.Sprintf("# %v", name)), 0666); err != nil {
 			err = fmt.Errorf("failed to write to README.md file: %w", err)
 			return
 		}
 	}
-	folder.ID = id
 	return
 }
 
@@ -63,7 +62,7 @@ func (store fsQueriesStore) saveQuery(folderPath string, query models.QueryDef, 
 	if err := query.Validate(); err != nil {
 		return fmt.Errorf("invalid query (isNew=%v): %w", isNew, err)
 	}
-	_, queryType, queryFileName, _, queryPath, err := getQueryPaths(folderPath + query.ID, store.queriesPath)
+	_, queryType, queryFileName, _, queryPath, err := getQueryPaths(folderPath+query.ID, store.queriesPath)
 
 	queryText := query.Text
 	queryType = strings.ToLower(queryType)

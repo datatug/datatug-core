@@ -64,7 +64,7 @@ func UpdateQuery(w http.ResponseWriter, r *http.Request) {
 func CreateQueryFolder(w http.ResponseWriter, r *http.Request) {
 	var request dto.CreateFolder
 	saveFunc := func(ctx context.Context, ref dto.ProjectItemRef) (interface{}, error) {
-		return api.CreateQueryFolder(ctx, request)
+		return nil, api.CreateQueryFolder(ctx, request)
 	}
 	saveItem(w, r, &request, saveFunc)
 	return

@@ -11,7 +11,7 @@ type QueriesStore interface {
 	Query(id string) QueryStore
 	LoadQueries(ctx context.Context, folderPath string) (folder *models.QueryFolder, err error)
 	DeleteQueryFolder(ctx context.Context, path string) (err error)
-	CreateQueryFolder(ctx context.Context, folderPath, title string) (folder *models.QueryFolder, err error)
+	CreateQueryFolder(ctx context.Context, folderPath, name string) (err error)
 	CreateQuery(ctx context.Context, folderPath string, query models.QueryDef) (err error)
 }
 

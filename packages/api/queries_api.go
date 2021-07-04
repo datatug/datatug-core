@@ -20,13 +20,13 @@ func GetQueries(ctx context.Context, ref dto.ProjectRef, folder string) (*models
 }
 
 // CreateQueryFolder creates a new folder for queries
-func CreateQueryFolder(ctx context.Context, request dto.CreateFolder) (*models.QueryFolder, error) {
+func CreateQueryFolder(ctx context.Context, request dto.CreateFolder) (error) {
 	if err := request.ProjectRef.Validate(); err != nil {
-		return nil, err
+		return err
 	}
 	store, err := storage.GetStore(ctx, request.StoreID)
 	if err == nil {
-		return nil, err
+		return err
 	}
 	//goland:noinspection GoNilness
 	project := store.Project(request.ProjectID)
