@@ -14,5 +14,5 @@ func TestContextWithDatatugStore(t *testing.T) {
 	store := NoOpStore{}
 	ctx := ContextWithDatatugStore(context.Background(), store)
 	assert.NotNil(t, ctx)
-	assert.Equal(t, store, storeFromContext(ctx))
+	assert.Equal(t, store, StoreFromContext(ctx))
 }

@@ -23,7 +23,7 @@ func ContextWithDatatugStore(ctx context.Context, store Store) context.Context {
 	return context.WithValue(ctx, storeContextKey, store)
 }
 
-func storeFromContext(ctx context.Context) Store {
+func StoreFromContext(ctx context.Context) Store {
 	return ctx.Value(storeContextKey).(Store)
 }
 
@@ -31,7 +31,7 @@ func GetStore(ctx context.Context, id string) (Store, error) {
 	if store, ok := stores[id]; ok && store != nil {
 		return store, nil
 	}
-	store := storeFromContext(ctx)
+	store := StoreFromContext(ctx)
 	if store == nil {
 		return nil, fmt.Errorf("no store configured for id=" + id)
 	}
