@@ -29,7 +29,7 @@ func GetProjectSummary(ctx context.Context, ref dto.ProjectRef) (*models.Project
 	if ref.ProjectID == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("id")
 	}
-	store, err := storage.GetStore(ref.StoreID)
+	store, err := storage.GetStore(ctx, ref.StoreID)
 	if err == nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func GetProjectSummary(ctx context.Context, ref dto.ProjectRef) (*models.Project
 
 // GetProjectFull returns full project metadata
 func GetProjectFull(ctx context.Context, ref dto.ProjectRef) (*models.DatatugProject, error) {
-	store, err := storage.GetStore(ref.StoreID)
+	store, err := storage.GetStore(ctx, ref.StoreID)
 	if err == nil {
 		return nil, err
 	}

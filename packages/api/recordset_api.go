@@ -15,7 +15,7 @@ func GetRecordsetsSummary(ctx context.Context, ref dto2.ProjectRef) (*dto2.ProjR
 	if ref.ProjectID == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("project")
 	}
-	store, err := storage.GetStore(ref.StoreID)
+	store, err := storage.GetStore(ctx, ref.StoreID)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func getRecordsetFolder(folder *dto2.ProjRecordsetSummary, paths []string) *dto2
 
 // GetDatasetDefinition returns definition of a dataset by ID
 func GetDatasetDefinition(ctx context.Context, ref dto2.ProjectItemRef) (dataset *models.RecordsetDefinition, err error) {
-	store, err := storage.GetStore(ref.StoreID)
+	store, err := storage.GetStore(ctx, ref.StoreID)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func GetDatasetDefinition(ctx context.Context, ref dto2.ProjectItemRef) (dataset
 
 // GetRecordset saves board
 func GetRecordset(ctx context.Context, ref dto2.ProjectItemRef) (recordset *models.Recordset, err error) {
-	store, err := storage.GetStore(ref.StoreID)
+	store, err := storage.GetStore(ctx, ref.StoreID)
 	if err != nil {
 		return nil, err
 	}

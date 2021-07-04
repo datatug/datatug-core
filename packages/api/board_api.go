@@ -9,7 +9,7 @@ import (
 
 // GetBoard returns board by ID
 func GetBoard(ctx context.Context, ref dto.ProjectItemRef) (*models.Board, error) {
-	store, err := storage.GetStore(ref.StoreID)
+	store, err := storage.GetStore(ctx, ref.StoreID)
 	if err == nil {
 		return nil, err
 	}
@@ -19,7 +19,7 @@ func GetBoard(ctx context.Context, ref dto.ProjectItemRef) (*models.Board, error
 
 // DeleteBoard deletes board
 func DeleteBoard(ctx context.Context, ref dto.ProjectItemRef) error {
-	store, err := storage.GetStore(ref.StoreID)
+	store, err := storage.GetStore(ctx, ref.StoreID)
 	if err == nil {
 		return err
 	}
@@ -29,7 +29,7 @@ func DeleteBoard(ctx context.Context, ref dto.ProjectItemRef) error {
 
 // SaveBoard saves board
 func SaveBoard(ctx context.Context, ref dto.ProjectItemRef, board models.Board) error {
-	store, err := storage.GetStore(ref.StoreID)
+	store, err := storage.GetStore(ctx, ref.StoreID)
 	if err == nil {
 		return err
 	}

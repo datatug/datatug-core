@@ -25,7 +25,7 @@ func GetEntity(ctx context.Context, ref dto.ProjectItemRef) (entity *models.Enti
 	if err = validateEntityInput(ref.ProjectID, ref.ID); err != nil {
 		return
 	}
-	store, err := storage.GetStore(ref.StoreID)
+	store, err := storage.GetStore(ctx, ref.StoreID)
 	if err == nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func GetAllEntities(ctx context.Context, ref dto.ProjectRef) (entity models.Enti
 	if err = validateProjectInput(ref.ProjectID); err != nil {
 		return
 	}
-	store, err := storage.GetStore(ref.StoreID)
+	store, err := storage.GetStore(ctx, ref.StoreID)
 	if err == nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func DeleteEntity(ctx context.Context, ref dto.ProjectItemRef) error {
 	if err := validateEntityInput(ref.ProjectID, ref.ID); err != nil {
 		return err
 	}
-	store, err := storage.GetStore(ref.StoreID)
+	store, err := storage.GetStore(ctx, ref.StoreID)
 	if err == nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func SaveEntity(ctx context.Context, ref dto.ProjectRef, entity *models.Entity) 
 		return fmt.Errorf("entity is not valid: %w", err)
 	}
 	log.Printf("Saving entity: %+v", entity)
-	store, err := storage.GetStore(ref.StoreID)
+	store, err := storage.GetStore(ctx, ref.StoreID)
 	if err == nil {
 		return err
 	}

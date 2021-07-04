@@ -15,7 +15,7 @@ func GetEnvironmentSummary(ref dto.ProjectItemRef) (*models.EnvironmentSummary, 
 	if ref.ID == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("envID")
 	}
-	store, err := storage.GetStore(ref.StoreID)
+	store, err := storage.GetStore(ctx, ref.StoreID)
 	if err == nil {
 		return nil, err
 	}

@@ -10,7 +10,7 @@ import (
 
 // GetQueries returns queries
 func GetQueries(ctx context.Context, ref dto.ProjectRef, folder string) (*models.QueryFolder, error) {
-	store, err := storage.GetStore(ref.StoreID)
+	store, err := storage.GetStore(ctx, ref.StoreID)
 	if err == nil {
 		return nil, err
 	}
@@ -24,7 +24,7 @@ func CreateQueryFolder(ctx context.Context, request dto.CreateFolder) (*models.Q
 	if err := request.ProjectRef.Validate(); err != nil {
 		return nil, err
 	}
-	store, err := storage.GetStore(request.StoreID)
+	store, err := storage.GetStore(ctx, request.StoreID)
 	if err == nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func CreateQuery(ctx context.Context, request dto.CreateQuery) error {
 	if err := request.ProjectRef.Validate(); err != nil {
 		return err
 	}
-	store, err := storage.GetStore(request.StoreID)
+	store, err := storage.GetStore(ctx, request.StoreID)
 	if err == nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func UpdateQuery(ctx context.Context, request dto.UpdateQuery) error {
 	if err := request.Validate(); err != nil {
 		return validation.NewBadRequestError(err)
 	}
-	store, err := storage.GetStore(request.StoreID)
+	store, err := storage.GetStore(ctx, request.StoreID)
 	if err == nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func DeleteQueryFolder(ctx context.Context, ref dto.ProjectItemRef) error {
 	if ref.ProjectID == "" {
 		return validation.NewErrRequestIsMissingRequiredField("projectID")
 	}
-	store, err := storage.GetStore(ref.StoreID)
+	store, err := storage.GetStore(ctx, ref.StoreID)
 	if err == nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func DeleteQuery(ctx context.Context, ref dto.ProjectItemRef) error {
 	if err := ref.Validate(); err != nil {
 		return err
 	}
-	store, err := storage.GetStore(ref.StoreID)
+	store, err := storage.GetStore(ctx, ref.StoreID)
 	if err == nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func GetQuery(ctx context.Context, ref dto.ProjectItemRef) (query *models.QueryD
 	if err = ref.Validate(); err != nil {
 		return query, err
 	}
-	store, err := storage.GetStore(ref.StoreID)
+	store, err := storage.GetStore(ctx, ref.StoreID)
 	if err == nil {
 		return nil, err
 	}
