@@ -6,9 +6,9 @@ import (
 )
 
 // GetEnvironmentSummary returns summary about environment
-func GetEnvironmentSummary(w http.ResponseWriter, request *http.Request) {
+func GetEnvironmentSummary(w http.ResponseWriter, r *http.Request) {
 
-	ref := newProjectItemRef(request.URL.Query())
-	summary, err := api.GetEnvironmentSummary(ref)
-	returnJSON(w, request, http.StatusOK, err, summary)
+	ref := newProjectItemRef(r.URL.Query())
+	summary, err := api.GetEnvironmentSummary(r.Context(), ref)
+	returnJSON(w, r, http.StatusOK, err, summary)
 }

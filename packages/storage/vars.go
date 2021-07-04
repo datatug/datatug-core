@@ -35,8 +35,5 @@ func GetStore(ctx context.Context, id string) (Store, error) {
 	if store == nil {
 		return nil, fmt.Errorf("no store configured for id=" + id)
 	}
-	if storeID := store.ID(); storeID != id {
-		return nil, fmt.Errorf("store.ID() != id: %v != %v", storeID, id)
-	}
 	return store, nil
 }
