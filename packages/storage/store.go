@@ -12,3 +12,17 @@ type Store interface {
 	// Project returns project store
 	Project(id string) ProjectStore
 }
+
+var _ Store = (*NoOpStore)(nil)
+
+type NoOpStore struct {
+
+}
+
+func (n NoOpStore) GetProjects(ctx context.Context) (projectBriefs []models.ProjectBrief, err error) {
+	panic("implement me")
+}
+
+func (n NoOpStore) Project(id string) ProjectStore {
+	panic("implement me")
+}
