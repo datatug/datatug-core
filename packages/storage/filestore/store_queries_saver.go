@@ -14,7 +14,7 @@ import (
 )
 
 func getQueryPaths(queryID, queriesDirPath string) (
-	qID,       // without directory and .json extension
+	qID, // without directory and .json extension
 	queryType, // Usually sql or HTTP
 	queryFileName,
 	queryDir,

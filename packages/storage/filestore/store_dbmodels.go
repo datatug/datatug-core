@@ -44,7 +44,7 @@ func (store fsDbModelStore) ID() string {
 
 func newFsDbModelStore(dbModelID string, fsDbModelsStore fsDbModelsStore) fsDbModelStore {
 	return fsDbModelStore{
-		dbModelID: dbModelID,
+		dbModelID:       dbModelID,
 		fsDbModelsStore: fsDbModelsStore,
 	}
 }

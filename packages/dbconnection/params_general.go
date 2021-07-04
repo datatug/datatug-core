@@ -129,4 +129,3 @@ func (v GeneralParams) String() string {
 
 	return strings.Join(connectionParams, ";")
 }
-

@@ -16,7 +16,6 @@ type Store interface {
 var _ Store = (*NoOpStore)(nil)
 
 type NoOpStore struct {
-
 }
 
 func (n NoOpStore) GetProjects(ctx context.Context) (projectBriefs []models.ProjectBrief, err error) {

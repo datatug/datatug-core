@@ -9,8 +9,7 @@ import (
 
 // NewSchemaProvider creates a new SchemaProvider for MS SQL Server
 func NewSchemaProvider() schemer.SchemaProvider {
-	return schemaProvider{
-	}
+	return schemaProvider{}
 }
 
 var _ schemer.SchemaProvider = (*schemaProvider)(nil)

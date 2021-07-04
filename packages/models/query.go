@@ -26,6 +26,9 @@ type QueryFolder struct {
 	Items   QueryDefs    `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
+type QueryFolderBried struct {
+}
+
 // Validate returns error if not valid
 func (v QueryFolder) Validate() error {
 	if err := v.ProjectItem.Validate(false); err != nil {

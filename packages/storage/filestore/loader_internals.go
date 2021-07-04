@@ -22,11 +22,8 @@ func loadEnvironments(_ context.Context, projPath string, project *models.Datatu
 	err = loadDir(nil, envsDirPath, processDirs, func(files []os.FileInfo) {
 		project.Environments = make(models.Environments, 0, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) (err error) {
-		env := &models.Environment{
-			ProjectItem: models.ProjectItem{
-				ID: f.Name(),
-			},
-		}
+		env := new(models.Environment)
+		env.ID = f.Name()
 		project.Environments = append(project.Environments, env)
 		if err = loadEnvironment(path.Join(envsDirPath, env.ID), env); err != nil {
 			return err
@@ -101,13 +98,8 @@ func loadBoards(ctx context.Context, projPath string, project *models.DatatugPro
 			if f.IsDir() {
 				return nil
 			}
-			board := &models.Board{
-				ProjBoardBrief: models.ProjBoardBrief{
-					ProjectItem: models.ProjectItem{
-						ID: f.Name(),
-					},
-				},
-			}
+			board := new(models.Board)
+			board.ID = f.Name()
 			var suffix string
 			board.ID, suffix = getProjItemIDFromFileName(f.Name())
 			if strings.ToLower(suffix) != boardFileSuffix {
@@ -181,9 +173,8 @@ func loadDbModel(dbModelsDirPath, id string) (dbModel *models.DbModel, err error
 }
 
 func loadSchemaModel(dbModelDirPath, schemaID string) (schemaModel *models.SchemaModel, err error) {
-	schemaModel = &models.SchemaModel{
-		ProjectItem: models.ProjectItem{ID: schemaID},
-	}
+	schemaModel = &models.SchemaModel{}
+	schemaModel.ID = schemaID
 	schemaDirPath := path.Join(dbModelDirPath, schemaID)
 
 	loadTableModels := func(dir, dbType string) (tables models.TableModels, err error) {
@@ -272,9 +263,8 @@ func loadDbCatalog(dirPath string, dbCatalog *models.DbCatalog) (err error) {
 
 func loadSchema(schemasDirPath string, id string) (dbSchema *models.DbSchema, err error) {
 	log.Printf("Loading schema: %v...", id)
-	dbSchema = &models.DbSchema{
-		ProjectItem: models.ProjectItem{ID: id},
-	}
+	dbSchema = &models.DbSchema{}
+	dbSchema.ID = id
 	err = parallel.Run(
 		func() (err error) {
 			dbSchema.Tables, err = loadTables(schemasDirPath, dbSchema.ID, "tables")

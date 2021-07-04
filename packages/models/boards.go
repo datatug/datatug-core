@@ -27,7 +27,7 @@ type Board struct {
 
 // Validate returns error if failed
 func (v Board) Validate() error {
-	if err := v.ProjBoardBrief.Validate(true); err != nil {
+	if err := v.ProjBoardBrief.Validate(); err != nil {
 		return err
 	}
 	if err := v.Rows.Validate(); err != nil {
@@ -38,9 +38,22 @@ func (v Board) Validate() error {
 
 // ProjBoardBrief defines brief information of Board
 type ProjBoardBrief struct {
-	ProjectItem
-	Parameters     Parameters `json:"parameters,omitempty" firestore:"parameters,omitempty"`
+	ProjItemBrief
+	Parameters Parameters `json:"parameters,omitempty" firestore:"parameters,omitempty"`
+	// TODO: Document why and how to use, add tests
 	RequiredParams [][]string `json:"requiredParams,omitempty" firestore:"requiredParams,omitempty"`
+}
+
+func (v ProjBoardBrief) Validate() error {
+	if err := v.ProjItemBrief.Validate(true); err != nil {
+		return err
+	}
+	for i, p := range v.Parameters {
+		if err := p.Validate(); err != nil {
+			return validation.NewErrBadRecordFieldValue("parameters", fmt.Sprintf("invalid parameter #%v: %v", i+1, err))
+		}
+	}
+	return nil
 }
 
 // ParameterLookup holds definition for parameter lookup

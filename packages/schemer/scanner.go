@@ -74,7 +74,8 @@ func (s scanner) scanTables(c context.Context, db *sql.DB, catalog *models.DbCat
 		tables = append(tables, t)
 		schema := catalog.Schemas.GetByID(t.Schema)
 		if schema == nil {
-			schema = &models.DbSchema{ProjectItem: models.ProjectItem{ID: t.Schema}}
+			schema = new(models.DbSchema)
+			schema.ID = t.Schema
 			catalog.Schemas = append(catalog.Schemas, schema)
 		}
 		switch t.DbType {

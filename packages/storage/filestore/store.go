@@ -123,7 +123,7 @@ func NewSingleProjectStore(projectPath, projectID string) (storeInterface *fsSto
 	} else {
 		projID = projectID
 	}
-	const storeID =  "single_project_file_store"
+	const storeID = "single_project_file_store"
 	storeInterface = newStore(storeID, map[string]string{projID: projectPath})
 	return
 }

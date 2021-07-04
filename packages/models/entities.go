@@ -45,7 +45,7 @@ func (v Entities) IDs() (ids []string) {
 
 // ProjEntityBrief hold brief info about entity in project file
 type ProjEntityBrief struct {
-	ProjectItem
+	ProjItemBrief
 }
 
 // Entity hold full info about entity

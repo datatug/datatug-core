@@ -23,8 +23,8 @@ func (store fsProjectStore) updateProjectFileWithBoard(board models.Board) (err 
 		}
 	}
 	projFile.Boards = append(projFile.Boards, &models.ProjBoardBrief{
-		ProjectItem: models.ProjectItem{ID: board.ID, Title: board.Title},
-		Parameters:  board.Parameters,
+		ProjItemBrief: models.ProjItemBrief{ID: board.ID, Title: board.Title},
+		Parameters:    board.Parameters,
 	})
 UPDATED:
 	err = store.putProjectFile(projFile)

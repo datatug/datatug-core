@@ -21,7 +21,7 @@ type fsDbServerStore struct {
 
 func newFsDbServerStore(dbServer models.ServerReference, fsDbServersStore fsDbServersStore) fsDbServerStore {
 	return fsDbServerStore{
-		dbServer: dbServer,
+		dbServer:         dbServer,
 		fsDbServersStore: fsDbServersStore,
 	}
 }
@@ -117,7 +117,6 @@ func loadDbServerCatalogNamesByEnvironments(projPath string, dbServer models.Ser
 	})
 	return
 }
-
 
 // DeleteDbServer deletes DB server
 func (store fsDbServerStore) DeleteDbServer(_ context.Context, dbServer models.ServerReference) (err error) {

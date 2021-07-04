@@ -38,10 +38,12 @@ func GetRecordsetsSummary(ctx context.Context, ref dto2.ProjectRef) (*dto2.ProjR
 
 		ds := dto2.ProjRecordsetSummary{
 			ProjectItem: models.ProjectItem{
-				ID:    dsDef.ID,
-				Title: dsDef.Title,
-				ListOfTags: models.ListOfTags{
-					Tags: dsDef.Tags,
+				ProjItemBrief: models.ProjItemBrief{
+					ID:    dsDef.ID,
+					Title: dsDef.Title,
+					ListOfTags: models.ListOfTags{
+						Tags: dsDef.Tags,
+					},
 				},
 			},
 		}
@@ -66,7 +68,7 @@ func getRecordsetFolder(folder *dto2.ProjRecordsetSummary, paths []string) *dto2
 			}
 		}
 		newFolder := &dto2.ProjRecordsetSummary{
-			ProjectItem: models.ProjectItem{ID: p},
+			ProjectItem: models.ProjectItem{ProjItemBrief: models.ProjItemBrief{ID: p}},
 		}
 		folder.Recordsets = append(folder.Recordsets, newFolder)
 		folder = newFolder

@@ -14,7 +14,7 @@ import (
 var _ storage.EnvServerStore = (*fsEnvServerStore)(nil)
 
 type fsEnvServerStore struct {
-	serverID          string
+	serverID string
 	fsEnvServersStore
 }
 
@@ -28,7 +28,7 @@ func (store fsEnvServerStore) SaveEnvServer(envServer *models.EnvDbServer) error
 
 func newFsEnvServerStore(serverID string, fsEnvServersStore fsEnvServersStore) fsEnvServerStore {
 	return fsEnvServerStore{
-		serverID:           serverID,
+		serverID:          serverID,
 		fsEnvServersStore: fsEnvServersStore,
 	}
 }

@@ -87,8 +87,10 @@ func (v *initProjectCommand) Execute(_ []string) (err error) {
 
 	storage.Current, projectID = filestore.NewSingleProjectStore(v.ProjectDir, projectID)
 	datatugProject := models.DatatugProject{
-		ID:     projectID,
-		Access: "private",
+		ProjectItem: models.ProjectItem{
+			ProjItemBrief: models.ProjItemBrief{ID: projectID},
+			Access:        "private",
+		},
 		//Environments: []*models.Environment{
 		//	{
 		//		ProjectItem: models.ProjectItem{ID: v.Environment},

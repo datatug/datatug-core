@@ -2,7 +2,7 @@ package dbconnection
 
 const (
 	// ModeReadOnly specifies a read-only mode
-	ModeReadOnly  Mode = "ro"
+	ModeReadOnly Mode = "ro"
 	// ModeReadWrite specifies read-write mode
 	ModeReadWrite Mode = "rw"
 )

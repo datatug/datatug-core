@@ -49,4 +49,4 @@ func saveConfig(config ConfigFile) error {
 		return err
 	}
 	return nil
-} 
+}

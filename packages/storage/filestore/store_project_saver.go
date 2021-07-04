@@ -112,10 +112,12 @@ func (store fsProjectStore) saveProjectFile(project models.DatatugProject) error
 	//}
 	projFile := models.ProjectFile{
 		ProjectItem: models.ProjectItem{
-			ID: project.ID,
+			ProjItemBrief: models.ProjItemBrief{
+				ID: project.ID,
+			},
+			Access: project.Access,
 		},
 		Repository: project.Repository,
-		Access:     project.Access,
 		//UUID:    project.UUID,
 		Created: project.Created,
 	}
@@ -149,8 +151,8 @@ func (store fsProjectStore) saveProjectFile(project models.DatatugProject) error
 	for _, board := range project.Boards {
 		projFile.Boards = append(projFile.Boards,
 			&models.ProjBoardBrief{
-				ProjectItem: board.ProjectItem,
-				Parameters:  board.Parameters,
+				ProjItemBrief: board.ProjItemBrief,
+				Parameters:    board.Parameters,
 			},
 		)
 	}
@@ -178,8 +180,6 @@ func (store fsProjectStore) saveProjectFile(project models.DatatugProject) error
 	return nil
 }
 
-
-
 //func (s fileSystemSaver) createStrFile() io.StringWriter {
 //
 //}
@@ -200,7 +200,6 @@ func (store fsProjectStore) saveProjectFile(project models.DatatugProject) error
 //
 //	return err
 //}
-
 
 func saveToFile(tableDirPath, fileName string, data interface{ Validate() error }) func() error {
 	return func() (err error) {

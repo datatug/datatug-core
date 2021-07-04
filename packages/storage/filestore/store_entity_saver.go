@@ -35,7 +35,7 @@ func (store fsEntitiesStore) SaveEntity(ctx context.Context, entity *models.Enti
 			}
 		}
 		projFile.Entities = append(projFile.Entities, &models.ProjEntityBrief{
-			ProjectItem: models.ProjectItem{ID: entity.ID, Title: entity.Title},
+			ProjItemBrief: models.ProjItemBrief{ID: entity.ID, Title: entity.Title},
 		})
 		return nil
 	}

@@ -222,15 +222,15 @@ FROM %v.%v
 	}
 
 	data = map[string]interface{}{
-		"table": table,
-		"catalog": catalog,
-		recordsCount: recordsCount,
+		"table":            table,
+		"catalog":          catalog,
+		recordsCount:       recordsCount,
 		"openInDatatugApp": openInDatatugApp,
-		"primaryKey": primaryKey,
-		"foreignKeys": foreignKeys,
-		"columns": strings.Join(columns, "\n"),
-		"indexes": indexesStr,
-		"referencedBy": referencedBy,
+		"primaryKey":       primaryKey,
+		"foreignKeys":      foreignKeys,
+		"columns":          strings.Join(columns, "\n"),
+		"indexes":          indexesStr,
+		"referencedBy":     referencedBy,
 	}
 
 	return data, nil

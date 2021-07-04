@@ -31,7 +31,8 @@ func (s InformationSchema) GetDatabase(name string) (database *models.DbCatalog,
 	for _, t := range tables {
 		schema := database.Schemas.GetByID(t.Schema)
 		if schema == nil {
-			schema = &models.DbSchema{ProjectItem: models.ProjectItem{ID: t.Schema}}
+			schema = new(models.DbSchema)
+			schema.ID = t.Schema
 			database.Schemas = append(database.Schemas, schema)
 		}
 		switch t.DbType {

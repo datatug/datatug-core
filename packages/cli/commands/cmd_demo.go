@@ -345,7 +345,7 @@ func (c demoCommand) updateDemoProjectDbServer(project *models.DatatugProject) (
 	if projDbServer == nil {
 		projDbServer = &models.ProjDbServer{
 			ProjectItem: models.ProjectItem{
-				ID: localhost,
+				ProjItemBrief: models.ProjItemBrief{ID: localhost},
 			},
 			Server: models.ServerReference{
 				Driver: demoDriver,

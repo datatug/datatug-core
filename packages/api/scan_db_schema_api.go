@@ -151,7 +151,7 @@ func updateProjectWithDbCatalog(project *models.DatatugProject, envID string, db
 		if environment := project.Environments.GetEnvByID(envID); environment == nil {
 			environment = &models.Environment{
 				ProjectItem: models.ProjectItem{
-					ID: envID,
+					ProjItemBrief: models.ProjItemBrief{ID: envID},
 				},
 				DbServers: models.EnvDbServers{
 					{
@@ -175,7 +175,7 @@ func updateProjectWithDbCatalog(project *models.DatatugProject, envID string, db
 		projDbServer := project.DbServers.GetProjDbServer(dbServerRef)
 		if projDbServer == nil {
 			projDbServer = &models.ProjDbServer{
-				ProjectItem: models.ProjectItem{ID: dbServerRef.ID()},
+				ProjectItem: models.ProjectItem{ProjItemBrief: models.ProjItemBrief{ID: dbServerRef.ID()}},
 				Server:      dbServerRef,
 				Catalogs:    models.DbCatalogs{dbCatalog},
 			}
@@ -206,7 +206,10 @@ func newProjectWithDatabase(environment string, dbServer models.ServerReference,
 	//	return
 	//}
 	project = &models.DatatugProject{
-		Access: "private",
+		ProjectItem: models.ProjectItem{
+			ProjItemBrief: models.ProjItemBrief{ID: random.ID(9)},
+			Access:        "private",
+		},
 		Created: &models.ProjectCreated{
 			//ByUsername: currentUser.Username,
 			//ByName:     currentUser.Name,
@@ -214,12 +217,12 @@ func newProjectWithDatabase(environment string, dbServer models.ServerReference,
 		},
 		DbModels: models.DbModels{
 			&models.DbModel{
-				ProjectItem: models.ProjectItem{ID: dbCatalog.DbModel},
+				ProjectItem: models.ProjectItem{ProjItemBrief: models.ProjItemBrief{ID: dbCatalog.DbModel}},
 			},
 		},
 		Environments: models.Environments{
 			{
-				ProjectItem: models.ProjectItem{ID: environment},
+				ProjectItem: models.ProjectItem{ProjItemBrief: models.ProjItemBrief{ID: environment}},
 				DbServers: []*models.EnvDbServer{
 					{
 						ServerReference: dbServer,
@@ -230,7 +233,7 @@ func newProjectWithDatabase(environment string, dbServer models.ServerReference,
 		},
 		DbServers: models.ProjDbServers{
 			{
-				ProjectItem: models.ProjectItem{ID: dbServer.ID()},
+				ProjectItem: models.ProjectItem{ProjItemBrief: models.ProjItemBrief{ID: dbServer.ID()}},
 				Server:      dbServer,
 				Catalogs: models.DbCatalogs{
 					dbCatalog,
@@ -238,7 +241,6 @@ func newProjectWithDatabase(environment string, dbServer models.ServerReference,
 			},
 		},
 	}
-	project.ID = random.ID(9)
 	log.Println("project.ID:", project.ID)
 	return project, err
 }

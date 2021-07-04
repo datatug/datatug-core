@@ -10,12 +10,10 @@ import (
 
 // DatatugProject holds info about project
 type DatatugProject struct {
-	ID string `json:"id,omitempty" firestore:"id,omitempty"`
-	//UUID          uuid.UUID           `json:"uuid"`
-	Title         string              `json:"title,omitempty" firestore:"title,omitempty"`
+	ProjectItem
 	Created       *ProjectCreated     `json:"created,omitempty" firestore:"created,omitempty"`
-	Access        string              `json:"access" firestore:"access,omitempty"` // e.g. "private", "protected", "public"
 	Boards        Boards              `json:"boards,omitempty" firestore:"boards,omitempty"`
+	Queries       *QueryFolder        `json:"queries,omitempty" firestore:"queries,omitempty"`
 	Entities      Entities            `json:"entities,omitempty" firestore:"entities,omitempty"`
 	Environments  Environments        `json:"environments,omitempty" firestore:"environments,omitempty"`
 	DbModels      DbModels            `json:"dbModels,omitempty" firestore:"dbModels,omitempty"`
@@ -97,7 +95,7 @@ func (v *ProjectBrief) Validate() error {
 	return nil
 }
 
-// ProjectSummary hold project summary
+// ProjectSummary hold project summary - TODO: document why we need it in addition to ProjectFile
 type ProjectSummary struct {
 	ProjectFile
 }
@@ -122,12 +120,11 @@ func (v *ProjectRepository) Validate() error {
 
 // ProjectFile defines what to storage to project file
 type ProjectFile struct {
+	Created *ProjectCreated `json:"created,omitempty" firestore:"created,omitempty"`
 	ProjectItem
 	//UUID         uuid.UUID           `json:"uuid"`
-	UserIDs      []string            `json:"userIds,omitempty" firestore:"userIds,omitempty"`
+	Queries      *QueryFolder        `json:"repository,omitempty" firestore:"repository,omitempty"`
 	Repository   *ProjectRepository  `json:"repository,omitempty" firestore:"repository,omitempty"`
-	Created      *ProjectCreated     `json:"created,omitempty" firestore:"created,omitempty"`
-	Access       string              `json:"access" firestore:"access"` // e.g. "private", "protected", "public"
 	DbModels     []*ProjDbModelBrief `json:"dbModels,omitempty" firestore:"dbModels,omitempty"`
 	Boards       []*ProjBoardBrief   `json:"boards,omitempty" firestore:"boards,omitempty"`
 	Entities     []*ProjEntityBrief  `json:"entities,omitempty" firestore:"entities,omitempty"`
@@ -155,7 +152,7 @@ func (v ProjectFile) Validate() error {
 		return validation.NewErrBadRecordFieldValue("access", "expected 'private', 'protected' or 'public', got: "+v.Access)
 	}
 	for _, board := range v.Boards {
-		if err := board.Validate(true); err != nil {
+		if err := board.Validate(); err != nil {
 			return err
 		}
 	}
