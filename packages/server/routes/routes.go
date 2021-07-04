@@ -17,23 +17,23 @@ func handle(r router, wrap wrapper, method, path string, handler http.HandlerFun
 	r.HandlerFunc(method, path, handler)
 }
 
-func registerRoutes(path string, r router, w wrapper, writeOnly bool) {
-	if r == nil {
-		panic("r == nil")
+func registerRoutes(path string, router router, wrapper wrapper, writeOnly bool) {
+	if router == nil {
+		panic("router == nil")
 	}
 	path = strings.TrimRight(path, "/") + "/datatug"
 	if !writeOnly {
-		handle(r, w, http.MethodGet, path+"/ping", endpoints.Ping)
-		handle(r, w, http.MethodGet, path+"/agent-info", endpoints.AgentInfo)
+		handle(router, wrapper, http.MethodGet, path+"/ping", endpoints.Ping)
+		handle(router, wrapper, http.MethodGet, path+"/agent-info", endpoints.AgentInfo)
 	}
-	projectsRoutes(path, r, w, writeOnly)
-	queriesRoutes(path, r, w, writeOnly)
-	boardsRoutes(path, r, w, writeOnly)
-	environmentsRoutes(path, r, w, writeOnly)
-	dbServerRoutes(path, r, w, writeOnly)
-	entitiesRoutes(path, r, w, writeOnly)
-	recordsetsRoutes(path, r, w, writeOnly)
-	executeRoutes(path, r, w, writeOnly)
+	projectsRoutes(path, router, wrapper, writeOnly)
+	queriesRoutes(path, router, wrapper, writeOnly)
+	boardsRoutes(path, router, wrapper, writeOnly)
+	environmentsRoutes(path, router, wrapper, writeOnly)
+	dbServerRoutes(path, router, wrapper, writeOnly)
+	entitiesRoutes(path, router, wrapper, writeOnly)
+	recordsetsRoutes(path, router, wrapper, writeOnly)
+	executeRoutes(path, router, wrapper, writeOnly)
 
 }
 

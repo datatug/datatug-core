@@ -7,12 +7,16 @@ import (
 	"net/http"
 )
 
-func deleteProjItem(del func(ctx context.Context, ref dto.ProjectItemRef) error) func(w http.ResponseWriter, request *http.Request) {
-	return func(w http.ResponseWriter, request *http.Request) {
-		query := request.URL.Query()
+func deleteProjItem(del func(ctx context.Context, ref dto.ProjectItemRef) error) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query()
 		ref := newProjectItemRef(query)
-		err := del(request.Context(), ref)
-		returnJSON(w, request, http.StatusOK, err, true)
+		ctx, err := Context(r)
+		if err != nil {
+			handleError(err, w, r)
+		}
+		err = del(ctx, ref)
+		returnJSON(w, r, http.StatusOK, err, true)
 	}
 }
 
@@ -29,7 +33,11 @@ func saveItem(
 	if err = decoder.Decode(target); err != nil {
 		handleError(err, w, r)
 	}
+	ctx, err := Context(r)
+	if err != nil {
+		handleError(err, w, r)
+	}
 	var result interface{}
-	result, err = saveFunc(r.Context(), projectIemRef)
+	result, err = saveFunc(ctx, projectIemRef)
 	returnJSON(w, r, http.StatusOK, err, result)
 }

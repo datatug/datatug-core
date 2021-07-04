@@ -7,7 +7,11 @@ import (
 
 // GetProjectFull returns full info about a project
 func GetProjectFull(w http.ResponseWriter, r *http.Request) {
+	ctx, err := Context(r)
+	if err != nil {
+		handleError(err, w, r)
+	}
 	ref := newProjectRef(r.URL.Query())
-	project, err := api.GetProjectFull(r.Context(), ref)
+	project, err := api.GetProjectFull(ctx, ref)
 	returnJSON(w, r, http.StatusOK, err, project)
 }

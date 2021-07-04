@@ -13,7 +13,11 @@ import (
 func GetBoard(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	ref := newProjectItemRef(query)
-	board, err := api.GetBoard(r.Context(), ref)
+	ctx, err := Context(r)
+	if err != nil {
+		handleError(err, w, r)
+	}
+	board, err := api.GetBoard(ctx, ref)
 	returnJSON(w, r, http.StatusOK, err, board)
 }
 

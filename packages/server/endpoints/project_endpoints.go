@@ -25,7 +25,11 @@ func (ProjectAgentEndpoints) DeleteProject(w http.ResponseWriter, r *http.Reques
 
 // GetProjectSummary a handler to return project summary
 func GetProjectSummary(w http.ResponseWriter, r *http.Request) {
+	ctx, err := Context(r)
+	if err != nil {
+		handleError(err, w, r)
+	}
 	ref := newProjectRef(r.URL.Query())
-	projectSummary, err := api.GetProjectSummary(r.Context(), ref)
+	projectSummary, err := api.GetProjectSummary(ctx, ref)
 	returnJSON(w, r, http.StatusOK, err, projectSummary)
 }

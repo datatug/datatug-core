@@ -27,7 +27,11 @@ func GetDbServerSummary(w http.ResponseWriter, r *http.Request) {
 		Host:   q.Get("host"),
 	}
 	ref := newProjectRef(q)
-	summary, err := api.GetDbServerSummary(r.Context(), ref, dbServer)
+	ctx, err := Context(r)
+	if err != nil {
+		handleError(err, w, r)
+	}
+	summary, err := api.GetDbServerSummary(ctx, ref, dbServer)
 	returnJSON(w, r, http.StatusOK, err, summary)
 }
 
@@ -41,8 +45,12 @@ func DeleteDbServer(w http.ResponseWriter, r *http.Request) {
 		handleError(err, w, r)
 		return
 	}
+	ctx, err := Context(r)
+	if err != nil {
+		handleError(err, w, r)
+	}
 	ref := newProjectRef(q)
-	if err = api.DeleteDbServer(r.Context(), ref, dbServer); err != nil {
+	if err = api.DeleteDbServer(ctx, ref, dbServer); err != nil {
 		handleError(err, w, r)
 		return
 	}

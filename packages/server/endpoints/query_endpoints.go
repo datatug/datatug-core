@@ -15,7 +15,11 @@ func GetQueries(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	folder := q.Get(urlQueryParamFolder)
 	ref := newProjectRef(r.URL.Query())
-	v, err := getQueries(r.Context(), ref, folder)
+	ctx, err := Context(r)
+	if err != nil {
+		handleError(err, w, r)
+	}
+	v, err := getQueries(ctx, ref, folder)
 	returnJSON(w, r, http.StatusOK, err, v)
 }
 
@@ -26,7 +30,11 @@ func GetQuery(w http.ResponseWriter, r *http.Request) {
 		handleError(err, w, r)
 		return
 	}
-	query, err := getQuery(r.Context(), params)
+	ctx, err := Context(r)
+	if err != nil {
+		handleError(err, w, r)
+	}
+	query, err := getQuery(ctx, params)
 	if err != nil {
 		handleError(err, w, r)
 		return
