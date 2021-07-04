@@ -30,8 +30,8 @@ type QueryFolder struct {
 // QueryFolderBrief defines brief for queries folder
 type QueryFolderBrief struct {
 	ProjItemBrief
-	Folders []QueryFolderBrief `json:"folders,omitempty" yaml:"folders,omitempty"`
-	Items   []QueryDefBrief    `json:"items,omitempty" yaml:"items,omitempty"`
+	Folders []*QueryFolderBrief `json:"folders,omitempty" yaml:"folders,omitempty"`
+	Items   []*QueryDefBrief    `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 // Validate returns error if not valid
