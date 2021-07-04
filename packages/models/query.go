@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"github.com/strongo/validation"
+	"strings"
 	"time"
 )
 
@@ -26,7 +27,29 @@ type QueryFolder struct {
 	Items   QueryDefs    `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
-type QueryFolderBried struct {
+// QueryFolderBrief defines brief for queries folder
+type QueryFolderBrief struct {
+	ProjItemBrief
+	Folders []QueryFolderBrief `json:"folders,omitempty" yaml:"folders,omitempty"`
+	Items   []QueryDefBrief    `json:"items,omitempty" yaml:"items,omitempty"`
+}
+
+// Validate returns error if not valid
+func (v QueryFolderBrief) Validate() error {
+	if err := v.ProjItemBrief.Validate(true); err != nil {
+		return err
+	}
+	for i, folder := range v.Folders {
+		if err := folder.Validate(); err != nil {
+			return validation.NewErrBadRecordFieldValue(fmt.Sprintf("folders[%v]", i), err.Error())
+		}
+	}
+	for i, item := range v.Items {
+		if err := item.Validate(); err != nil {
+			return validation.NewErrBadRecordFieldValue(fmt.Sprintf("items[%v]", i), err.Error())
+		}
+	}
+	return nil
 }
 
 // Validate returns error if not valid
@@ -52,6 +75,22 @@ func (v QueryDefs) Validate() error {
 		if err := q.Validate(); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+type QueryDefBrief struct {
+	ProjItemBrief
+	Type  string `json:"type"` // Possible value: folder, SQL, GraphQL, etc.
+	Draft bool   `json:"draft,omitempty" yaml:"draft,omitempty"`
+}
+
+func (v QueryDefBrief) Validate() error {
+	if err := v.ProjItemBrief.Validate(true); err != nil {
+		return err
+	}
+	if strings.TrimSpace(v.Type) == "" {
+		return validation.NewErrRecordIsMissingRequiredField("type")
 	}
 	return nil
 }
