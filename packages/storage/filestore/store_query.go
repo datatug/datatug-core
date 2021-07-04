@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -65,5 +66,7 @@ func (store fsQueryStore) DeleteQuery(context.Context) (err error) {
 }
 
 func (store fsQueryStore) UpdateQuery(_ context.Context, query models.QueryDef) (err error) {
-	return store.saveQuery(query, false)
+	folderPath := filepath.Dir(query.ID)
+	query.ID = filepath.Base(query.ID)
+	return store.saveQuery(folderPath, query, false)
 }

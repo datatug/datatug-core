@@ -44,7 +44,7 @@ func CreateQuery(ctx context.Context, request dto.CreateQuery) error {
 	}
 	//goland:noinspection GoNilness
 	project := store.Project(request.ProjectID)
-	return project.Queries().CreateQuery(ctx, request.Query)
+	return project.Queries().CreateQuery(ctx, request.Folder, request.Query)
 }
 
 // UpdateQuery updates existing query

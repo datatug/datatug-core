@@ -32,7 +32,8 @@ func (v GetServerDatabasesRequest) Validate() error {
 
 type CreateQuery struct {
 	ProjectRef
-	Query models.QueryDef `json:"query"`
+	Folder string          `json:"folder"`
+	Query  models.QueryDef `json:"query"`
 }
 
 type UpdateQuery struct {

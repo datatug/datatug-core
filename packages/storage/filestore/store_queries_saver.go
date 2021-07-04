@@ -14,7 +14,7 @@ import (
 )
 
 func getQueryPaths(queryID, queriesDirPath string) (
-	qID, // without directory and .json extension
+	qID,       // without directory and .json extension
 	queryType, // Usually sql or HTTP
 	queryFileName,
 	queryDir,
@@ -55,15 +55,15 @@ func (store fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, id 
 	return
 }
 
-func (store fsQueriesStore) CreateQuery(ctx context.Context, query models.QueryDef) (err error) {
-	return store.saveQuery(query, true)
+func (store fsQueriesStore) CreateQuery(ctx context.Context, folderPath string, query models.QueryDef) (err error) {
+	return store.saveQuery(folderPath, query, true)
 }
 
-func (store fsQueriesStore) saveQuery(query models.QueryDef, isNew bool) (err error) {
+func (store fsQueriesStore) saveQuery(folderPath string, query models.QueryDef, isNew bool) (err error) {
 	if err := query.Validate(); err != nil {
 		return fmt.Errorf("invalid query (isNew=%v): %w", isNew, err)
 	}
-	_, queryType, queryFileName, _, queryPath, err := getQueryPaths(query.ID, store.queriesPath)
+	_, queryType, queryFileName, _, queryPath, err := getQueryPaths(folderPath + query.ID, store.queriesPath)
 
 	queryText := query.Text
 	queryType = strings.ToLower(queryType)
