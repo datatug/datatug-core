@@ -13,17 +13,18 @@ var _ ProjectEndpoints = (*ProjectAgentEndpoints)(nil)
 type ProjectAgentEndpoints struct {
 }
 
+var createProjectVerifyOptions = verifyRequestOptions{
+	minContentLength: int64(len(`{}`)),
+	maxContentLength: 1024,
+	authRequired:     true,
+}
+
 // CreateProject creates project
 func (ProjectAgentEndpoints) CreateProject(w http.ResponseWriter, r *http.Request) {
 	request := dto.CreateProjectRequest{
 		StoreID: r.URL.Query().Get("store"),
 	}
-	verifyOptions := verifyRequestOptions{
-		minContentLength: len(`{"title"":""}`),
-		maxContentLength: 1024,
-		authRequired:     true,
-	}
-	handle(w, r, request, verifyOptions, http.StatusOK, func(ctx context.Context) (response ResponseDTO, err error) {
+	handle(w, r, request, createProjectVerifyOptions, http.StatusOK, func(ctx context.Context) (response ResponseDTO, err error) {
 		return api.CreateProject(r.Context(), request)
 	})
 }
