@@ -14,9 +14,9 @@ type ProjectAgentEndpoints struct {
 }
 
 var createProjectVerifyOptions = VerifyRequest{
-	minContentLength: int64(len(`{}`)),
-	maxContentLength: 1024,
-	authRequired:     true,
+	MinContentLength: int64(len(`{}`)),
+	MaxContentLength: 1024,
+	AuthRequired:     true,
 }
 
 // CreateProject creates project

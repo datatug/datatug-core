@@ -38,24 +38,24 @@ var _ VerifyRequestOptions = (*VerifyRequest)(nil)
 
 // VerifyRequest implements VerifyRequestOptions
 type VerifyRequest struct { // TODO: move to shared Sneat package
-	minContentLength int64
-	maxContentLength int64
-	authRequired     bool
+	MinContentLength int64
+	MaxContentLength int64
+	AuthRequired     bool
 }
 
 // MinimumContentLength defines min content length
 func (v VerifyRequest) MinimumContentLength() int64 {
-	return v.minContentLength
+	return v.MinContentLength
 }
 
 // MaximumContentLength defines max content length, if < 0 no limit
 func (v VerifyRequest) MaximumContentLength() int64 {
-	return v.maxContentLength
+	return v.MaxContentLength
 }
 
 // AuthenticationRequired specifies if authentication is mandatory
 func (v VerifyRequest) AuthenticationRequired() bool {
-	return v.authRequired
+	return v.AuthRequired
 }
 
 // Handler is responsible for creating context and call `handler()` func that should use
