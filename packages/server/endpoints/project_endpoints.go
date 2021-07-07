@@ -13,7 +13,7 @@ var _ ProjectEndpoints = (*ProjectAgentEndpoints)(nil)
 type ProjectAgentEndpoints struct {
 }
 
-var createProjectVerifyOptions = verifyRequestOptions{
+var createProjectVerifyOptions = VerifyRequest{
 	minContentLength: int64(len(`{}`)),
 	maxContentLength: 1024,
 	authRequired:     true,

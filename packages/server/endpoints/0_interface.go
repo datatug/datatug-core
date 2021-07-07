@@ -28,28 +28,28 @@ type ResponseDTO interface {
 
 // VerifyRequestOptions - options for request verification
 type VerifyRequestOptions interface {
-	MinContentLength() int64
-	MaxContentLength() int64
-	AuthRequired() bool
+	MinimumContentLength() int64
+	MaximumContentLength() int64
+	AuthenticationRequired() bool
 }
 
-var _ VerifyRequestOptions = (*verifyRequestOptions)(nil)
+var _ VerifyRequestOptions = (*VerifyRequest)(nil)
 
-type verifyRequestOptions struct {
+type VerifyRequest struct {
 	minContentLength int64
 	maxContentLength int64
 	authRequired     bool
 }
 
-func (v verifyRequestOptions) MinContentLength() int64 {
+func (v VerifyRequest) MinimumContentLength() int64 {
 	return v.minContentLength
 }
 
-func (v verifyRequestOptions) MaxContentLength() int64 {
+func (v VerifyRequest) MaximumContentLength() int64 {
 	return v.maxContentLength
 }
 
-func (v verifyRequestOptions) AuthRequired() bool {
+func (v VerifyRequest) AuthenticationRequired() bool {
 	return v.authRequired
 }
 
