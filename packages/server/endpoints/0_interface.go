@@ -11,6 +11,7 @@ type ProjectEndpoints interface {
 	DeleteProject(w http.ResponseWriter, r *http.Request)
 }
 
+// Context creates context
 var Context = func(w http.ResponseWriter, r *http.Request) (context.Context, error) {
 	return r.Context(), nil
 }
@@ -27,7 +28,7 @@ type ResponseDTO interface {
 }
 
 // VerifyRequestOptions - options for request verification
-type VerifyRequestOptions interface {
+type VerifyRequestOptions interface { // TODO: move to shared Sneat package
 	MinimumContentLength() int64
 	MaximumContentLength() int64
 	AuthenticationRequired() bool
@@ -35,20 +36,24 @@ type VerifyRequestOptions interface {
 
 var _ VerifyRequestOptions = (*VerifyRequest)(nil)
 
-type VerifyRequest struct {
+// VerifyRequest implements VerifyRequestOptions
+type VerifyRequest struct { // TODO: move to shared Sneat package
 	minContentLength int64
 	maxContentLength int64
 	authRequired     bool
 }
 
+// MinimumContentLength defines min content length
 func (v VerifyRequest) MinimumContentLength() int64 {
 	return v.minContentLength
 }
 
+// MaximumContentLength defines max content length, if < 0 no limit
 func (v VerifyRequest) MaximumContentLength() int64 {
 	return v.maxContentLength
 }
 
+// AuthenticationRequired specifies if authentication is mandatory
 func (v VerifyRequest) AuthenticationRequired() bool {
 	return v.authRequired
 }
@@ -65,6 +70,7 @@ type Handler = func(
 	handler func(ctx context.Context) (responseDTO ResponseDTO, err error),
 )
 
+// SetHandler sets handler
 func SetHandler(handler Handler) {
 	if handler == nil {
 		panic("handler is not provided")
