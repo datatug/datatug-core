@@ -19,19 +19,6 @@ func GetQueries(ctx context.Context, ref dto.ProjectRef, folder string) (*models
 	return project.Queries().LoadQueries(ctx, folder)
 }
 
-// CreateQueryFolder creates a new folder for queries
-func CreateQueryFolder(ctx context.Context, request dto.CreateFolder) (error) {
-	if err := request.ProjectRef.Validate(); err != nil {
-		return err
-	}
-	store, err := storage.GetStore(ctx, request.StoreID)
-	if err == nil {
-		return err
-	}
-	//goland:noinspection GoNilness
-	project := store.Project(request.ProjectID)
-	return project.Queries().CreateQueryFolder(ctx, request.Path, request.Name)
-}
 
 // CreateQuery creates a new query
 func CreateQuery(ctx context.Context, request dto.CreateQuery) error {
@@ -59,20 +46,6 @@ func UpdateQuery(ctx context.Context, request dto.UpdateQuery) error {
 	//goland:noinspection GoNilness
 	project := store.Project(request.ProjectID)
 	return project.Queries().Query(request.Query.ID).UpdateQuery(ctx, request.Query)
-}
-
-// DeleteQueryFolder deletes queries folder
-func DeleteQueryFolder(ctx context.Context, ref dto.ProjectItemRef) error {
-	if ref.ProjectID == "" {
-		return validation.NewErrRequestIsMissingRequiredField("projectID")
-	}
-	store, err := storage.GetStore(ctx, ref.StoreID)
-	if err == nil {
-		return err
-	}
-	//goland:noinspection GoNilness
-	project := store.Project(ref.ProjectID)
-	return project.Queries().DeleteQueryFolder(ctx, ref.ID)
 }
 
 // DeleteQuery deletes query

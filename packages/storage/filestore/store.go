@@ -55,6 +55,10 @@ func (store fsProjectStore) ID() string {
 	return store.projectID
 }
 
+func (store fsProjectStore) Folder(id string) storage.FolderStore {
+	return fsFolderStore{folderID: id, fsProjectStore: store}
+}
+
 func (store fsProjectStore) DbModels() storage.DbModelsStore {
 	return newFsDbModelsStore(store)
 }

@@ -60,21 +60,9 @@ func UpdateQuery(w http.ResponseWriter, r *http.Request) {
 	saveItem(w, r, &request, saveFunc)
 }
 
-// CreateQueryFolder handles create query endpoint
-func CreateQueryFolder(w http.ResponseWriter, r *http.Request) {
-	var request dto.CreateFolder
-	saveFunc := func(ctx context.Context, ref dto.ProjectItemRef) (interface{}, error) {
-		return nil, api.CreateQueryFolder(ctx, request)
-	}
-	saveItem(w, r, &request, saveFunc)
-	return
-}
-
 // DeleteQuery handles delete query endpoint
 var DeleteQuery = deleteProjItem(api.DeleteQuery)
 
-// DeleteQueryFolder handles delete query folder endpoint
-var DeleteQueryFolder = deleteProjItem(api.DeleteQueryFolder)
 
 func getQueryRequestParams(r *http.Request, idParamName string) (ref dto.ProjectItemRef, err error) {
 	query := r.URL.Query()

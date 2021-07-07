@@ -90,11 +90,11 @@ func (store fsProjectStore) SaveProject(ctx context.Context, project models.Data
 	return nil
 }
 
-func (s fsProjectStore) putProjectFile(projFile models.ProjectFile) error {
+func (store fsProjectStore) putProjectFile(projFile models.ProjectFile) error {
 	if err := projFile.Validate(); err != nil {
 		return fmt.Errorf("invalid project file: %w", err)
 	}
-	return saveJSONFile(path.Join(s.projectPath, DatatugFolder), ProjectSummaryFileName, projFile)
+	return saveJSONFile(path.Join(store.projectPath, DatatugFolder), ProjectSummaryFileName, projFile)
 }
 
 func projItemFileName(id, prefix string) string {

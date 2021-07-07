@@ -25,6 +25,7 @@ func registerRoutes(path string, router router, wrapper wrapper, writeOnly bool)
 	handle(router, wrapper, http.MethodGet, path+"/ping", endpoints.Ping)
 	handle(router, wrapper, http.MethodGet, path+"/agent-info", endpoints.AgentInfo)
 	projectsRoutes(path, router, wrapper, writeOnly)
+	foldersRoutes(path, router, wrapper, writeOnly)
 	queriesRoutes(path, router, wrapper, writeOnly)
 	boardsRoutes(path, router, wrapper, writeOnly)
 	environmentsRoutes(path, router, wrapper, writeOnly)
@@ -35,16 +36,19 @@ func registerRoutes(path string, router router, wrapper wrapper, writeOnly bool)
 
 }
 
+func foldersRoutes(path string, r router, w wrapper, writeOnly bool) {
+	handle(r, w, http.MethodPut, path+"/folders/create_folder", endpoints.CreateFolder)
+	handle(r, w, http.MethodDelete, path+"/folders/delete_folder", endpoints.DeleteFolder)
+}
+
 func queriesRoutes(path string, r router, w wrapper, writeOnly bool) {
 	if !writeOnly {
 		handle(r, w, http.MethodGet, path+"/queries/all_queries", endpoints.GetQueries)
 		handle(r, w, http.MethodGet, path+"/queries/get_query", endpoints.GetQuery)
 	}
-	handle(r, w, http.MethodPut, path+"/queries/create_folder", endpoints.CreateQueryFolder)
 	handle(r, w, http.MethodPost, path+"/queries/create_query", endpoints.CreateQuery)
 	handle(r, w, http.MethodPut, path+"/queries/update_query", endpoints.UpdateQuery)
 	handle(r, w, http.MethodDelete, path+"/queries/delete_query", endpoints.DeleteQuery)
-	handle(r, w, http.MethodDelete, path+"/queries/delete_folder", endpoints.DeleteQueryFolder)
 }
 
 func boardsRoutes(path string, r router, w wrapper, writeOnly bool) {

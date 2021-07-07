@@ -11,6 +11,7 @@ type ProjectStoreRef interface {
 
 type ProjectStore interface {
 	ID() string
+	Folder(id string) FolderStore
 	Environments() EnvironmentsStore
 	Queries() QueriesStore
 	Boards() BoardsStore
