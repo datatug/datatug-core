@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
@@ -37,6 +38,18 @@ func GetProjectSummary(ctx context.Context, ref dto.ProjectRef) (*models.Project
 	project := store.Project(ref.ProjectID)
 	projectSummary, err := project.LoadProjectSummary(ctx)
 	return &projectSummary, err
+}
+
+// CreateProject create a new DataTug project using requested store
+func CreateProject(ctx context.Context, request dto.CreateProjectRequest) (*models.ProjectSummary, error) {
+	if err := request.Validate(); err != nil {
+		return nil, err
+	}
+	store, err := storage.GetStore(ctx, request.StoreID)
+	if err == nil {
+		return nil, fmt.Errorf("failed to get store by ID=%v: %w", request.StoreID, err)
+	}
+	return store.CreateProject(ctx, request)
 }
 
 // GetProjectFull returns full project metadata

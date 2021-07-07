@@ -30,6 +30,22 @@ func (v GetServerDatabasesRequest) Validate() error {
 	return nil
 }
 
+// CreateProjectRequest request
+type CreateProjectRequest struct {
+	StoreID string `json:"store"`
+	Title   string `json:"title"`
+}
+
+func (v CreateProjectRequest) Validate() error {
+	if strings.TrimSpace(v.StoreID) == "" {
+		return validation.NewErrRequestIsMissingRequiredField("store")
+	}
+	if strings.TrimSpace(v.Title) == "" {
+		return validation.NewErrRequestIsMissingRequiredField("title")
+	}
+	return nil
+}
+
 type CreateQuery struct {
 	ProjectRef
 	Folder string          `json:"folder"`

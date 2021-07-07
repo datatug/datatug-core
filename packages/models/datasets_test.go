@@ -7,8 +7,10 @@ import (
 
 func TestDatasetDefinition_Validate(t *testing.T) {
 	projectEntity := ProjectItem{
-		ID:    "dataset-id",
-		Title: "DatasetDef title",
+		ProjItemBrief: ProjItemBrief{
+			ID:    "dataset-id",
+			Title: "DatasetDef title",
+		},
 	}
 	t.Run("should fail", func(t *testing.T) {
 		t.Run("no project entity", func(t *testing.T) {

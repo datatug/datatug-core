@@ -1,7 +1,9 @@
 package endpoints
 
 import (
+	"context"
 	"github.com/datatug/datatug/packages/api"
+	"github.com/datatug/datatug/packages/dto"
 	"net/http"
 )
 
@@ -13,8 +15,17 @@ type ProjectAgentEndpoints struct {
 
 // CreateProject creates project
 func (ProjectAgentEndpoints) CreateProject(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-	w.Write([]byte("Creation of a new DataTug project is not implemented at agent yet. For now use DataTug CLI to create a new project."))
+	request := dto.CreateProjectRequest{
+		StoreID: r.URL.Query().Get("store"),
+	}
+	verifyOptions := verifyRequestOptions{
+		minContentLength: len(`{"title"":""}`),
+		maxContentLength: 1024,
+		authRequired:     true,
+	}
+	handle(w, r, request, verifyOptions, http.StatusOK, func(ctx context.Context) (response ResponseDTO, err error) {
+		return api.CreateProject(r.Context(), request)
+	})
 }
 
 // DeleteProject deletes project

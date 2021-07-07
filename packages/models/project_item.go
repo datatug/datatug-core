@@ -35,7 +35,7 @@ type ProjectItem struct {
 
 // Validate returns error if not valid
 func (v ProjectItem) Validate(isTitleRequired bool) error {
-	if err := v.Validate(isTitleRequired); err != nil {
+	if err := v.ProjItemBrief.Validate(isTitleRequired); err != nil {
 		return err
 	}
 	switch v.Access {

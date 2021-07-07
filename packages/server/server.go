@@ -48,7 +48,7 @@ func ServeHTTP(pathsByID map[string]string, host string, port int) error {
 			handler(w, r)
 		}
 	}
-	routes.RegisterAllDatatugHandlers("", router, logWrapper)
+	routes.RegisterDatatugHandlers("", router, routes.AllHandlers, logWrapper, nil)
 
 	s := http.Server{
 		Addr:           fmt.Sprintf("%v:%v", agentHost, agentPort),

@@ -3,6 +3,7 @@ package filestore
 import (
 	"context"
 	"fmt"
+	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/models2md"
 	"github.com/datatug/datatug/packages/storage"
@@ -22,6 +23,10 @@ type fsStore struct {
 	pathByID         map[string]string
 	fileSystemLoader // TODO: To be deleted
 	//storeSaver       // TODO: To be deleted
+}
+
+func (store fsStore) CreateProject(ctx context.Context, request dto.CreateProjectRequest) (*models.ProjectSummary, error) {
+	panic("not implemented")
 }
 
 func (store fsStore) Project(id string) storage.ProjectStore {

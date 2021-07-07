@@ -1,7 +1,10 @@
 package routes
 
 import (
+	"context"
+	"github.com/datatug/datatug/packages/server/endpoints"
 	"github.com/julienschmidt/httprouter"
+	"net/http"
 	"testing"
 )
 
@@ -12,10 +15,16 @@ func TestRegisterDatatugWriteOnlyHandlers(t *testing.T) {
 				t.Fatal("a panic expected for nil router")
 			}
 		}()
-		RegisterDatatugWriteOnlyHandlers("", nil, nil)
+		RegisterDatatugHandlers("", nil, WriteOnlyHandlers, nil, nil)
 	})
 
 	t.Run("should_pass", func(t *testing.T) {
-		RegisterDatatugWriteOnlyHandlers("", httprouter.New(), nil)
+		contextProvider := func(w http.ResponseWriter, r *http.Request, requestDTO endpoints.RequestDTO,
+			verifyOptions endpoints.VerifyRequestOptions, statusCode int,
+			handler func(ctx context.Context) (responseDTO endpoints.ResponseDTO, err error),
+		) {
+			handler(r.Context())
+		}
+		RegisterDatatugHandlers("", httprouter.New(), AllHandlers, nil, contextProvider)
 	})
 }

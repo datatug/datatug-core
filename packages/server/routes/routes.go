@@ -22,10 +22,8 @@ func registerRoutes(path string, router router, wrapper wrapper, writeOnly bool)
 		panic("router == nil")
 	}
 	path = strings.TrimRight(path, "/") + "/datatug"
-	if !writeOnly {
-		handle(router, wrapper, http.MethodGet, path+"/ping", endpoints.Ping)
-		handle(router, wrapper, http.MethodGet, path+"/agent-info", endpoints.AgentInfo)
-	}
+	handle(router, wrapper, http.MethodGet, path+"/ping", endpoints.Ping)
+	handle(router, wrapper, http.MethodGet, path+"/agent-info", endpoints.AgentInfo)
 	projectsRoutes(path, router, wrapper, writeOnly)
 	queriesRoutes(path, router, wrapper, writeOnly)
 	boardsRoutes(path, router, wrapper, writeOnly)
@@ -60,13 +58,13 @@ func boardsRoutes(path string, r router, w wrapper, writeOnly bool) {
 
 func projectsRoutes(path string, r router, w wrapper, writeOnly bool) {
 	if !writeOnly {
-		handle(r, w, http.MethodGet, path+"/projects/projects-summary", endpoints.GetProjects)
-		handle(r, w, http.MethodGet, path+"/projects/project-summary", endpoints.GetProjectSummary)
-		handle(r, w, http.MethodGet, path+"/projects/project-full", endpoints.GetProjectFull)
+		handle(r, w, http.MethodGet, path+"/projects/projects_summary", endpoints.GetProjects)
+		handle(r, w, http.MethodGet, path+"/projects/project_summary", endpoints.GetProjectSummary)
+		handle(r, w, http.MethodGet, path+"/projects/project_full", endpoints.GetProjectFull)
 	}
 	projectEndpoints := endpoints.ProjectAgentEndpoints{}
-	handle(r, w, http.MethodPost, path+"/projects/create-project", projectEndpoints.CreateProject)
-	handle(r, w, http.MethodDelete, path+"/projects/create-project", projectEndpoints.DeleteProject)
+	handle(r, w, http.MethodPost, path+"/projects/create_project", projectEndpoints.CreateProject)
+	handle(r, w, http.MethodDelete, path+"/projects/delete_project", projectEndpoints.DeleteProject)
 }
 
 func environmentsRoutes(path string, r router, w wrapper, writeOnly bool) {
