@@ -48,8 +48,8 @@ func (v CreateProjectRequest) Validate() error {
 
 type CreateQuery struct {
 	ProjectRef
-	Folder string          `json:"folder"`
-	Query  models.QueryDef `json:"query"`
+	Folder string                        `json:"folder"`
+	Query  models.QueryDefWithFolderPath `json:"query"`
 }
 
 type UpdateQuery struct {

@@ -1,11 +1,7 @@
 package commands
 
 import (
-	"context"
-	"fmt"
-	"gopkg.in/yaml.v3"
 	"log"
-	"os"
 )
 
 func init() {
@@ -26,17 +22,18 @@ type queriesCommand struct {
 
 // Execute executes validate command
 func (v *queriesCommand) Execute([]string) error {
-	if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
-		return err
-	}
-	ctx := context.Background()
-	queries, err := v.store.Project(v.projectID).Queries().LoadQueries(ctx, v.Folder)
-	if err != nil {
-		return fmt.Errorf("failed to load datasets from [%v]: %w", v.ProjectDir, err)
-	}
-	encoder := yaml.NewEncoder(os.Stdout)
-	if err = encoder.Encode(queries); err != nil {
-		return err
-	}
-	return nil
+	//if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
+	//	return err
+	//}
+	//ctx := context.Background()
+	//queries, err := v.store.Project(v.projectID).Queries().LoadQueries(ctx, v.Folder)
+	//if err != nil {
+	//	return fmt.Errorf("failed to load datasets from [%v]: %w", v.ProjectDir, err)
+	//}
+	//encoder := yaml.NewEncoder(os.Stdout)
+	//if err = encoder.Encode(queries); err != nil {
+	//	return err
+	//}
+	//return nil
+	panic("not implemented")
 }

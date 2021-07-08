@@ -8,44 +8,43 @@ import (
 	"github.com/strongo/validation"
 )
 
-// GetQueries returns queries
-func GetQueries(ctx context.Context, ref dto.ProjectRef, folder string) (*models.QueryFolder, error) {
-	store, err := storage.GetStore(ctx, ref.StoreID)
+//// GetQueries returns queries
+//func GetQueries(ctx context.Context, ref dto.ProjectRef, folder string) (*models.QueryFolder, error) {
+//	store, err := storage.GetStore(ctx, ref.StoreID)
+//	if err == nil {
+//		return nil, err
+//	}
+//	//goland:noinspection GoNilness
+//	project := store.Project(ref.ProjectID)
+//	return project.Queries().LoadQueries(ctx, folder)
+//}
+
+// CreateQuery creates a new query
+func CreateQuery(ctx context.Context, request dto.CreateQuery) (*models.QueryDefWithFolderPath, error) {
+	if err := request.ProjectRef.Validate(); err != nil {
+		return nil, err
+	}
+	store, err := storage.GetStore(ctx, request.StoreID)
 	if err == nil {
 		return nil, err
 	}
 	//goland:noinspection GoNilness
-	project := store.Project(ref.ProjectID)
-	return project.Queries().LoadQueries(ctx, folder)
-}
-
-
-// CreateQuery creates a new query
-func CreateQuery(ctx context.Context, request dto.CreateQuery) error {
-	if err := request.ProjectRef.Validate(); err != nil {
-		return err
-	}
-	store, err := storage.GetStore(ctx, request.StoreID)
-	if err == nil {
-		return err
-	}
-	//goland:noinspection GoNilness
 	project := store.Project(request.ProjectID)
-	return project.Queries().CreateQuery(ctx, request.Folder, request.Query)
+	return project.Queries().CreateQuery(ctx, request.Query)
 }
 
 // UpdateQuery updates existing query
-func UpdateQuery(ctx context.Context, request dto.UpdateQuery) error {
+func UpdateQuery(ctx context.Context, request dto.UpdateQuery) (*models.QueryDefWithFolderPath, error) {
 	if err := request.Validate(); err != nil {
-		return validation.NewBadRequestError(err)
+		return nil, validation.NewBadRequestError(err)
 	}
 	store, err := storage.GetStore(ctx, request.StoreID)
-	if err == nil {
-		return err
+	if err != nil {
+		return nil, err
 	}
 	//goland:noinspection GoNilness
 	project := store.Project(request.ProjectID)
-	return project.Queries().Query(request.Query.ID).UpdateQuery(ctx, request.Query)
+	return project.Queries().UpdateQuery(ctx, request.Query)
 }
 
 // DeleteQuery deletes query
@@ -59,11 +58,11 @@ func DeleteQuery(ctx context.Context, ref dto.ProjectItemRef) error {
 	}
 	//goland:noinspection GoNilness
 	project := store.Project(ref.ProjectID)
-	return project.Queries().Query(ref.ID).DeleteQuery(ctx)
+	return project.Queries().DeleteQuery(ctx, ref.ID)
 }
 
 // GetQuery returns query definition
-func GetQuery(ctx context.Context, ref dto.ProjectItemRef) (query *models.QueryDef, err error) {
+func GetQuery(ctx context.Context, ref dto.ProjectItemRef) (query *models.QueryDefWithFolderPath, err error) {
 	if err = ref.Validate(); err != nil {
 		return query, err
 	}
@@ -73,5 +72,5 @@ func GetQuery(ctx context.Context, ref dto.ProjectItemRef) (query *models.QueryD
 	}
 	//goland:noinspection GoNilness
 	project := store.Project(ref.ProjectID)
-	return project.Queries().Query(ref.ID).LoadQuery(ctx)
+	return project.Queries().GetQuery(ctx, ref.ID)
 }

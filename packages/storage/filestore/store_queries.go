@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
+	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -54,8 +55,7 @@ func (store fsQueriesStore) loadQueriesDir(ctx context.Context, dirPath string) 
 		}
 		var query models.QueryDef
 		query.ID = fileName[:len(fileName)-len(".json")]
-		queryStore := newFsQueryStore(query.ID, store)
-		if err = queryStore.loadQuery(dirPath, &query); err != nil {
+		if err = store.loadQuery(dirPath, &query); err != nil {
 			return err
 		}
 		if mutex != nil {
@@ -74,4 +74,59 @@ func (store fsQueriesStore) DeleteQueryFolder(_ context.Context, folderPath stri
 		return fmt.Errorf("failed to remove query folder %v: %w", folderPath, err)
 	}
 	return nil
+}
+
+func (store fsQueriesStore) GetQuery(_ context.Context, id string) (query *models.QueryDefWithFolderPath, err error) {
+	query = new(models.QueryDefWithFolderPath)
+	query.ID = id
+	if query.FolderPath, err = store.getQueryFolderPath(id); err != nil {
+		return
+	}
+	dirPath := path.Join(store.queriesPath, strings.Trim(query.FolderPath, "~"))
+	err = store.loadQuery(dirPath, &query.QueryDef)
+	return
+}
+
+func (store fsQueriesStore) loadQuery(dirPath string, query *models.QueryDef) error {
+	if strings.HasSuffix(query.ID, ".json") {
+		return fmt.Errorf("queryID can't have .json suffix")
+	}
+	_, queryType, queryFileName, queryDir, queryPath, err := getQueryPaths(query.ID, dirPath)
+	if err = readJSONFile(queryPath, true, &query); err != nil {
+		return fmt.Errorf("failed to load query definition from file: %v: %w", path.Join(queryDir, queryFileName), err)
+	}
+	if query.Text == "" && strings.HasSuffix(query.ID, "."+querySQLFileSuffix) {
+		content, err := ioutil.ReadFile(queryPath[:len(queryPath)-len("."+querySQLFileSuffix)])
+		if err != nil {
+			return fmt.Errorf("failed to load query text from .sql file: %w", err)
+		}
+		query.Text = string(content)
+	}
+	query.Type = queryType
+	return nil
+}
+
+func (store fsQueriesStore) DeleteQuery(_ context.Context, id string) (err error) {
+	_, _, queryFileName, queryDir, queryPath, err := getQueryPaths(id, store.queriesPath)
+	if err != nil {
+		return err
+	}
+	if err = os.Remove(queryPath); err != nil {
+		return fmt.Errorf("failed to remove query file %v: %w", path.Join(queryDir, queryFileName), err)
+	}
+	return err
+}
+
+func (store fsQueriesStore) getQueryFolderPath(queryID string) (folderPath string, err error) {
+	panic("not implemented")
+}
+
+func (store fsQueriesStore) UpdateQuery(_ context.Context, query models.QueryDef) (q *models.QueryDefWithFolderPath, err error) {
+	q = new(models.QueryDefWithFolderPath)
+	q.QueryDef = query
+	if q.FolderPath, err = store.getQueryFolderPath(query.ID); err != nil {
+		return
+	}
+	err = store.saveQuery(q.FolderPath, query, false)
+	return
 }

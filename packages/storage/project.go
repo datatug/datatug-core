@@ -11,10 +11,11 @@ type ProjectStoreRef interface {
 
 type ProjectStore interface {
 	ID() string
-	Folder(id string) FolderStore
-	Environments() EnvironmentsStore
+	Folders() FoldersStore
 	Queries() QueriesStore
 	Boards() BoardsStore
+
+	Environments() EnvironmentsStore
 	Entities() EntitiesStore
 	DbModels() DbModelsStore
 	DbServers() DbServersStore

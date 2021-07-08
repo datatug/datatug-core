@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+const AutoID = "<auto/id>"
+
 type ProjItemBrief struct {
 	ID    string `json:"id,omitempty" firestore:"id,omitempty" yaml:"id,omitempty"`
 	Title string `json:"title,omitempty" firestore:"title,omitempty" yaml:"title,omitempty"`

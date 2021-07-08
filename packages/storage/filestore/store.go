@@ -55,20 +55,12 @@ func (store fsProjectStore) ID() string {
 	return store.projectID
 }
 
-func (store fsProjectStore) Folder(id string) storage.FolderStore {
-	return fsFolderStore{folderID: id, fsProjectStore: store}
-}
-
 func (store fsProjectStore) DbModels() storage.DbModelsStore {
 	return newFsDbModelsStore(store)
 }
 
 func (store fsProjectStore) Environments() storage.EnvironmentsStore {
 	return newFsEnvironmentsStore(store)
-}
-
-func (store fsProjectStore) Boards() storage.BoardsStore {
-	return newFsBoardsStore(store)
 }
 
 func (store fsProjectStore) Entities() storage.EntitiesStore {
@@ -83,20 +75,23 @@ func (store fsProjectStore) Recordsets() storage.RecordsetsStore {
 	panic("implement me")
 }
 
+func (store fsProjectStore) Folders() storage.FoldersStore {
+	return fsFoldersStore{fsProjectStore: store}
+}
+
+func (store fsProjectStore) Boards() storage.BoardsStore {
+	return newFsBoardsStore(store)
+}
+func (store fsProjectStore) Queries() storage.QueriesStore {
+	return newFsQueriesStore(store)
+}
+
 func newFsProjectStore(id string, projectPath string) fsProjectStore {
 	return fsProjectStore{
 		projectID:     id,
 		projectPath:   projectPath,
 		readmeEncoder: models2md.NewEncoder(),
 	}
-}
-
-func (store fsProjectStore) Queries() storage.QueriesStore {
-	return newFsQueriesStore(store)
-}
-
-func (store fsProjectStore) Query(id string) storage.QueryStore {
-	return newFsQueryStore(id, newFsQueriesStore(store))
 }
 
 // GetProjects returns list of projects

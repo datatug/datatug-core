@@ -95,6 +95,20 @@ func (v QueryDefBrief) Validate() error {
 	return nil
 }
 
+// QueryDefWithFolderPath adds folder path to query definition
+type QueryDefWithFolderPath struct {
+	FolderPath string `json:"folderPath"`
+	QueryDef
+}
+
+// Validate returns error if not valid
+func (v QueryDefWithFolderPath) Validate() error {
+	if v.FolderPath == "" {
+		return validation.NewErrRecordIsMissingRequiredField("folderPath")
+	}
+	return v.QueryDef.Validate()
+}
+
 // QueryDef holds query data
 type QueryDef struct {
 	ProjectItem

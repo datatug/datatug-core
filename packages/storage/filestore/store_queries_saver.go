@@ -54,8 +54,8 @@ func (store fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, nam
 	return
 }
 
-func (store fsQueriesStore) CreateQuery(ctx context.Context, folderPath string, query models.QueryDef) (err error) {
-	return store.saveQuery(folderPath, query, true)
+func (store fsQueriesStore) CreateQuery(_ context.Context, query models.QueryDefWithFolderPath) (*models.QueryDefWithFolderPath, error) {
+	return &query, store.saveQuery(query.FolderPath, query.QueryDef, true)
 }
 
 func (store fsQueriesStore) saveQuery(folderPath string, query models.QueryDef, isNew bool) (err error) {

@@ -7,21 +7,21 @@ import (
 	"net/http"
 )
 
-var getQueries = api.GetQueries
+//var getQueries = api.GetQueries
 var getQuery = api.GetQuery
 
-// GetQueries returns list of project queries
-func GetQueries(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
-	folder := q.Get(urlQueryParamFolder)
-	ref := newProjectRef(r.URL.Query())
-	ctx, err := Context(w, r)
-	if err != nil {
-		handleError(err, w, r)
-	}
-	v, err := getQueries(ctx, ref, folder)
-	returnJSON(w, r, http.StatusOK, err, v)
-}
+//// GetQueries returns list of project queries
+//func GetQueries(w http.ResponseWriter, r *http.Request) {
+//	q := r.URL.Query()
+//	folder := q.Get(urlQueryParamFolder)
+//	ref := newProjectRef(r.URL.Query())
+//	ctx, err := Context(w, r)
+//	if err != nil {
+//		handleError(err, w, r)
+//	}
+//	v, err := getQueries(ctx, ref, folder)
+//	returnJSON(w, r, http.StatusOK, err, v)
+//}
 
 // GetQuery returns query definition
 func GetQuery(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +46,7 @@ func GetQuery(w http.ResponseWriter, r *http.Request) {
 var CreateQuery = func(w http.ResponseWriter, r *http.Request) {
 	var request dto.CreateQuery
 	saveFunc := func(ctx context.Context, ref dto.ProjectItemRef) (interface{}, error) {
-		return &request, api.CreateQuery(ctx, request)
+		return api.CreateQuery(ctx, request)
 	}
 	saveItem(w, r, &request, saveFunc)
 }
@@ -55,7 +55,7 @@ var CreateQuery = func(w http.ResponseWriter, r *http.Request) {
 func UpdateQuery(w http.ResponseWriter, r *http.Request) {
 	var request dto.UpdateQuery
 	saveFunc := func(ctx context.Context, ref dto.ProjectItemRef) (interface{}, error) {
-		return &request, api.UpdateQuery(ctx, request)
+		return api.UpdateQuery(ctx, request)
 	}
 	saveItem(w, r, &request, saveFunc)
 }

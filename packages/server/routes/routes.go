@@ -43,7 +43,7 @@ func foldersRoutes(path string, r router, w wrapper, writeOnly bool) {
 
 func queriesRoutes(path string, r router, w wrapper, writeOnly bool) {
 	if !writeOnly {
-		handle(r, w, http.MethodGet, path+"/queries/all_queries", endpoints.GetQueries)
+		//handle(r, w, http.MethodGet, path+"/queries/all_queries", endpoints.GetQueries)
 		handle(r, w, http.MethodGet, path+"/queries/get_query", endpoints.GetQuery)
 	}
 	handle(r, w, http.MethodPost, path+"/queries/create_query", endpoints.CreateQuery)

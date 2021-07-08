@@ -8,14 +8,12 @@ import (
 
 // Store defines interface for loading & saving DataTug projects
 type Store interface {
+	Project(id string) ProjectStore
 	// CreateProject creates a new DataTug project
 	CreateProject(ctx context.Context, request dto.CreateProjectRequest) (summary *models.ProjectSummary, err error)
 
 	// GetProjects returns list of projects
 	GetProjects(ctx context.Context) (projectBriefs []models.ProjectBrief, err error)
-
-	// Project returns project store
-	Project(id string) ProjectStore
 }
 
 var _ Store = (*NoOpStore)(nil)

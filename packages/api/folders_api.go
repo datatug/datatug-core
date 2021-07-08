@@ -18,7 +18,7 @@ func CreateFolder(ctx context.Context, request dto.CreateFolder) error {
 	}
 	//goland:noinspection GoNilness
 	project := store.Project(request.ProjectID)
-	return project.Folder(request.Path).CreateFolder(ctx, request.Name)
+	return project.Folders().CreateFolder(ctx, request.Path, request.Name)
 }
 
 // DeleteFolder deletes queries folder
@@ -32,5 +32,5 @@ func DeleteFolder(ctx context.Context, ref dto.ProjectItemRef) error {
 	}
 	//goland:noinspection GoNilness
 	project := store.Project(ref.ProjectID)
-	return project.Folder(ref.ID).DeleteFolder(ctx)
+	return project.Folders().DeleteFolder(ctx, ref.ID)
 }
