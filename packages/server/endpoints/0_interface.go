@@ -72,13 +72,14 @@ type Handler = func(
 	requestDTO RequestDTO,
 	verifyOptions VerifyRequestOptions,
 	statusCode int,
-	handler func(ctx context.Context) (responseDTO ResponseDTO, err error),
+	getContext ContextProvider,
+	handler Worker,
 )
 
-type worker = func(ctx context.Context) (responseDTO ResponseDTO, err error)
+type Worker = func(ctx context.Context) (responseDTO ResponseDTO, err error)
 
 //goland:noinspection GoVarAndConstTypeMayBeOmitted
-var handle Handler = func(w http.ResponseWriter, r *http.Request, requestDTO RequestDTO, verifyOptions VerifyRequestOptions, statusCode int, doWork worker) {
+var handle Handler = func(w http.ResponseWriter, r *http.Request, requestDTO RequestDTO, verifyOptions VerifyRequestOptions, statusCode int, getContext ContextProvider, doWork Worker) {
 	panic("not initialized properly")
 }
 

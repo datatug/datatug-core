@@ -26,7 +26,7 @@ func (ProjectAgentEndpoints) createProject(w http.ResponseWriter, r *http.Reques
 		MaxContentLength: 1024,
 		AuthRequired:     true,
 	}
-	handle(w, r, &request, verifyOptions, http.StatusOK, worker)
+	handle(w, r, &request, verifyOptions, http.StatusOK, getContextFromRequest, worker)
 }
 
 // deleteProject deletes project
@@ -41,5 +41,5 @@ func getProjectSummary(w http.ResponseWriter, r *http.Request) {
 	worker := func(ctx context.Context) (response ResponseDTO, err error) {
 		return api.GetProjectSummary(ctx, ref)
 	}
-	handle(w, r, &ref, VerifyRequest{AuthRequired: true}, http.StatusOK, worker)
+	handle(w, r, &ref, VerifyRequest{AuthRequired: true}, http.StatusOK, getContextFromRequest, worker)
 }

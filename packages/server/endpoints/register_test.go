@@ -20,9 +20,17 @@ func TestRegisterDatatugWriteOnlyHandlers(t *testing.T) {
 	t.Run("should_pass", func(t *testing.T) {
 		requestHandler := func(w http.ResponseWriter, r *http.Request, requestDTO RequestDTO,
 			verifyOptions VerifyRequestOptions, statusCode int,
-			handler func(ctx context.Context) (responseDTO ResponseDTO, err error),
+			getContext ContextProvider,
+			doWork Worker,
 		) {
-			handler(r.Context())
+			ctx, err := getContext(r)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err = doWork(ctx); err != nil {
+				t.Fatal(err)
+			}
+			return
 		}
 		RegisterDatatugHandlers("", httprouter.New(), AllHandlers, nil, func(r *http.Request) (context.Context, error) {
 			return r.Context(), nil
