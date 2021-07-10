@@ -5,8 +5,8 @@ import (
 	"net/http"
 )
 
-// GetProjectFull returns full info about a project
-func GetProjectFull(w http.ResponseWriter, r *http.Request) {
+// getProjectFull returns full info about a project
+func getProjectFull(w http.ResponseWriter, r *http.Request) {
 	ctx, err := getContextFromRequest(r)
 	if err != nil {
 		handleError(err, w, r)

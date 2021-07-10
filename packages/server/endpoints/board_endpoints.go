@@ -9,8 +9,8 @@ import (
 	"net/http"
 )
 
-// GetBoard handles get board endpoint
-func GetBoard(w http.ResponseWriter, r *http.Request) {
+// getBoard handles get board endpoint
+func getBoard(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	ref := newProjectItemRef(query, "")
 	ctx, err := getContextFromRequest(r)
@@ -21,8 +21,8 @@ func GetBoard(w http.ResponseWriter, r *http.Request) {
 	returnJSON(w, r, http.StatusOK, err, board)
 }
 
-// CreateBoard handles board creation endpoint
-func CreateBoard(w http.ResponseWriter, r *http.Request) {
+// createBoard handles board creation endpoint
+func createBoard(w http.ResponseWriter, r *http.Request) {
 	var ref dto.ProjectRef
 	var board models.Board
 	saveFunc := func(ctx context.Context) (ResponseDTO, error) {
@@ -32,8 +32,8 @@ func CreateBoard(w http.ResponseWriter, r *http.Request) {
 	createProjectItem(w, r, &ref, &board, saveFunc)
 }
 
-// SaveBoard handles save board endpoint
-func SaveBoard(w http.ResponseWriter, r *http.Request) {
+// saveBoard handles save board endpoint
+func saveBoard(w http.ResponseWriter, r *http.Request) {
 	ref := newProjectItemRef(r.URL.Query(), "")
 	var board models.Board
 	saveBoard := func(ctx context.Context) (ResponseDTO, error) {
@@ -42,5 +42,5 @@ func SaveBoard(w http.ResponseWriter, r *http.Request) {
 	saveProjectItem(w, r, &ref, &board, saveBoard)
 }
 
-// DeleteBoard handles delete board endpoint
-var DeleteBoard = deleteProjItem(api.DeleteBoard)
+// deleteBoard handles delete board endpoint
+var deleteBoard = deleteProjItem(api.DeleteBoard)

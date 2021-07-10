@@ -7,8 +7,8 @@ import (
 	"net/http"
 )
 
-// CreateFolder handles create query endpoint
-func CreateFolder(w http.ResponseWriter, r *http.Request) {
+// createFolder handles create query endpoint
+func createFolder(w http.ResponseWriter, r *http.Request) {
 	var ref dto.ProjectRef
 	var request dto.CreateFolder
 	saveFunc := func(ctx context.Context) (ResponseDTO, error) {
@@ -18,5 +18,5 @@ func CreateFolder(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// DeleteFolder handles delete query folder endpoint
-var DeleteFolder = deleteProjItem(api.DeleteFolder)
+// deleteFolder handles delete query folder endpoint
+var deleteFolder = deleteProjItem(api.DeleteFolder)

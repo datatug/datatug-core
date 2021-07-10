@@ -13,8 +13,8 @@ import (
 	"strings"
 )
 
-// GetServerDatabases returns databases hosted at server
-func GetServerDatabases(w http.ResponseWriter, r *http.Request) {
+// getServerDatabases returns databases hosted at server
+func getServerDatabases(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.Method, r.RequestURI)
 	q := r.URL.Query()
 	request := dto.GetServerDatabasesRequest{

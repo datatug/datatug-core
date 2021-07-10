@@ -9,8 +9,8 @@ import (
 	"net/http"
 )
 
-// AddDbServer adds a new DB server to project
-func AddDbServer(w http.ResponseWriter, r *http.Request) {
+// addDbServer adds a new DB server to project
+func addDbServer(w http.ResponseWriter, r *http.Request) {
 	var ref dto.ProjectRef
 	var projDbServer models.ProjDbServer
 	saveFunc := func(ctx context.Context) (ResponseDTO, error) {
@@ -19,8 +19,8 @@ func AddDbServer(w http.ResponseWriter, r *http.Request) {
 	createProjectItem(w, r, &ref, &projDbServer, saveFunc)
 }
 
-// GetDbServerSummary returns summary about environment
-func GetDbServerSummary(w http.ResponseWriter, r *http.Request) {
+// getDbServerSummary returns summary about environment
+func getDbServerSummary(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.Method, r.RequestURI)
 	q := r.URL.Query()
 	dbServer := models.ServerReference{
@@ -36,8 +36,8 @@ func GetDbServerSummary(w http.ResponseWriter, r *http.Request) {
 	returnJSON(w, r, http.StatusOK, err, summary)
 }
 
-// DeleteDbServer removes a DB server from project
-func DeleteDbServer(w http.ResponseWriter, r *http.Request) {
+// deleteDbServer removes a DB server from project
+func deleteDbServer(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.Method, r.RequestURI)
 	q := r.URL.Query()
 	var err error

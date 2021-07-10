@@ -14,8 +14,8 @@ import (
 	"strings"
 )
 
-// ExecuteCommandsHandler handler for execute command endpoint
-func ExecuteCommandsHandler(w http.ResponseWriter, r *http.Request) {
+// executeCommandsHandler handler for execute command endpoint
+func executeCommandsHandler(w http.ResponseWriter, r *http.Request) {
 
 	var executeRequest execute.Request
 
@@ -52,8 +52,8 @@ func ExecuteCommandsHandler(w http.ResponseWriter, r *http.Request) {
 	returnJSON(w, r, http.StatusOK, err, response)
 }
 
-// ExecuteSelectHandler executes select command
-func ExecuteSelectHandler(w http.ResponseWriter, r *http.Request) {
+// executeSelectHandler executes select command
+func executeSelectHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	var limit int64
 	var err error

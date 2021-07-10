@@ -5,8 +5,8 @@ import (
 	"net/http"
 )
 
-// GetEnvironmentSummary returns summary about environment
-func GetEnvironmentSummary(w http.ResponseWriter, r *http.Request) {
+// getEnvironmentSummary returns summary about environment
+func getEnvironmentSummary(w http.ResponseWriter, r *http.Request) {
 	ctx, err := getContextFromRequest(r)
 	if err != nil {
 		handleError(err, w, r)

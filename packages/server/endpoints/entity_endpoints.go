@@ -8,8 +8,8 @@ import (
 	"net/http"
 )
 
-// GetEntity handles get entity endpoint
-func GetEntity(w http.ResponseWriter, r *http.Request) {
+// getEntity handles get entity endpoint
+func getEntity(w http.ResponseWriter, r *http.Request) {
 	ref := newProjectItemRef(r.URL.Query(), "")
 	ctx, err := getContextFromRequest(r)
 	if err != nil {
@@ -19,8 +19,8 @@ func GetEntity(w http.ResponseWriter, r *http.Request) {
 	returnJSON(w, r, http.StatusOK, err, v)
 }
 
-// GetEntities returns list of project entities
-func GetEntities(w http.ResponseWriter, r *http.Request) {
+// getEntities returns list of project entities
+func getEntities(w http.ResponseWriter, r *http.Request) {
 	ctx, err := getContextFromRequest(r)
 	if err != nil {
 		handleError(err, w, r)
@@ -30,8 +30,8 @@ func GetEntities(w http.ResponseWriter, r *http.Request) {
 	returnJSON(w, r, http.StatusOK, err, v)
 }
 
-// SaveEntity handles save entity endpoint
-func SaveEntity(w http.ResponseWriter, r *http.Request) {
+// saveEntity handles save entity endpoint
+func saveEntity(w http.ResponseWriter, r *http.Request) {
 	var ref dto.ProjectItemRef
 	var entity models.Entity
 	saveFunc := func(ctx context.Context) (ResponseDTO, error) {
@@ -41,4 +41,4 @@ func SaveEntity(w http.ResponseWriter, r *http.Request) {
 	saveProjectItem(w, r, &ref, &entity, saveFunc)
 }
 
-var DeleteEntity = deleteProjItem(api.DeleteEntity)
+var deleteEntity = deleteProjItem(api.DeleteEntity)

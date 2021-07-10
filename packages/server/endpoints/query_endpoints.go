@@ -23,16 +23,16 @@ var getQuery = api.GetQuery
 //	returnJSON(w, r, http.StatusOK, err, v)
 //}
 
-// GetQuery returns query definition
-func GetQuery(w http.ResponseWriter, r *http.Request) {
+// getQueryHandler returns query definition
+func getQueryHandler(w http.ResponseWriter, r *http.Request) {
 	var ref dto.ProjectItemRef
 	getProjectItem(w, r, &ref, nil, func(ctx context.Context) (responseDTO ResponseDTO, err error) {
 		return getQuery(ctx, ref)
 	})
 }
 
-// CreateQuery handles create query endpoint
-var CreateQuery = func(w http.ResponseWriter, r *http.Request) {
+// createQuery handles create query endpoint
+var createQuery = func(w http.ResponseWriter, r *http.Request) {
 	var ref dto.ProjectRef
 	var request dto.CreateQuery
 	saveFunc := func(ctx context.Context) (ResponseDTO, error) {
@@ -41,8 +41,8 @@ var CreateQuery = func(w http.ResponseWriter, r *http.Request) {
 	createProjectItem(w, r, &ref, &request, saveFunc)
 }
 
-// UpdateQuery handles update query endpoint
-func UpdateQuery(w http.ResponseWriter, r *http.Request) {
+// updateQuery handles update query endpoint
+func updateQuery(w http.ResponseWriter, r *http.Request) {
 	var ref dto.ProjectItemRef
 	var request dto.UpdateQuery
 	saveFunc := func(ctx context.Context) (ResponseDTO, error) {
@@ -51,5 +51,5 @@ func UpdateQuery(w http.ResponseWriter, r *http.Request) {
 	saveProjectItem(w, r, &ref, &request, saveFunc)
 }
 
-// DeleteQuery handles delete query endpoint
-var DeleteQuery = deleteProjItem(api.DeleteQuery)
+// deleteQuery handles delete query endpoint
+var deleteQuery = deleteProjItem(api.DeleteQuery)

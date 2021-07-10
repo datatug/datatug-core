@@ -34,8 +34,8 @@ func getRecordsetDataParams(r *http.Request) (params api.RecordsetDataRequestPar
 	return
 }
 
-// GetRecordsetsSummary returns list of dataset definitions
-func GetRecordsetsSummary(w http.ResponseWriter, r *http.Request) {
+// getRecordsetsSummary returns list of dataset definitions
+func getRecordsetsSummary(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	ref := newProjectRef(query)
 	ctx, err := getContextFromRequest(r)
@@ -46,8 +46,8 @@ func GetRecordsetsSummary(w http.ResponseWriter, r *http.Request) {
 	returnJSON(w, r, http.StatusOK, err, datasets)
 }
 
-// GetRecordsetDefinition returns list of dataset definitions
-func GetRecordsetDefinition(w http.ResponseWriter, r *http.Request) {
+// getRecordsetDefinition returns list of dataset definitions
+func getRecordsetDefinition(w http.ResponseWriter, r *http.Request) {
 	ctx, err := getContextFromRequest(r)
 	if err != nil {
 		handleError(err, w, r)
@@ -57,8 +57,8 @@ func GetRecordsetDefinition(w http.ResponseWriter, r *http.Request) {
 	returnJSON(w, r, http.StatusOK, err, datasets)
 }
 
-// GetRecordsetData returns data
-func GetRecordsetData(w http.ResponseWriter, r *http.Request) {
+// getRecordsetData returns data
+func getRecordsetData(w http.ResponseWriter, r *http.Request) {
 	ctx, err := getContextFromRequest(r)
 	if err != nil {
 		handleError(err, w, r)
@@ -68,8 +68,8 @@ func GetRecordsetData(w http.ResponseWriter, r *http.Request) {
 	returnJSON(w, r, http.StatusOK, err, recordset)
 }
 
-// AddRowsToRecordset adds rows to a recordset
-func AddRowsToRecordset(w http.ResponseWriter, r *http.Request) {
+// addRowsToRecordset adds rows to a recordset
+func addRowsToRecordset(w http.ResponseWriter, r *http.Request) {
 	var err error
 	params, err := getRecordsetDataParams(r)
 	if err != nil {
@@ -93,8 +93,8 @@ func AddRowsToRecordset(w http.ResponseWriter, r *http.Request) {
 	returnJSON(w, r, http.StatusCreated, err, numberOfRecords)
 }
 
-// DeleteRowsFromRecordset deletes rows from a recordset
-func DeleteRowsFromRecordset(w http.ResponseWriter, r *http.Request) {
+// deleteRowsFromRecordset deletes rows from a recordset
+func deleteRowsFromRecordset(w http.ResponseWriter, r *http.Request) {
 	params, err := getRecordsetDataParams(r)
 	if err != nil {
 		handleError(err, w, r)
@@ -109,8 +109,8 @@ func DeleteRowsFromRecordset(w http.ResponseWriter, r *http.Request) {
 	returnJSON(w, r, http.StatusCreated, err, numberOfRecords)
 }
 
-// UpdateRowsInRecordset updates rows in a recordset
-func UpdateRowsInRecordset(w http.ResponseWriter, r *http.Request) {
+// updateRowsInRecordset updates rows in a recordset
+func updateRowsInRecordset(w http.ResponseWriter, r *http.Request) {
 	params, err := getRecordsetDataParams(r)
 	if err != nil {
 		handleError(err, w, r)
