@@ -16,9 +16,9 @@ type ProjItemBrief struct {
 
 // Validate returns error if not valid
 func (v ProjItemBrief) Validate(isTitleRequired bool) error {
-	if v.ID == "" {
-		return validation.NewErrRecordIsMissingRequiredField("id")
-	}
+	//if v.ID == "" {
+	//	return validation.NewErrRecordIsMissingRequiredField("id")
+	//}
 	if err := validateStringField("title", v.Title, isTitleRequired, MaxTitleLength); err != nil {
 		return err
 	}
