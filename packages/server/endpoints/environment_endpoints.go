@@ -7,7 +7,7 @@ import (
 
 // GetEnvironmentSummary returns summary about environment
 func GetEnvironmentSummary(w http.ResponseWriter, r *http.Request) {
-	ctx, err := Context(w, r)
+	ctx, err := GetContext(r)
 	if err != nil {
 		handleError(err, w, r)
 	}

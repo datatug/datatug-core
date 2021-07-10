@@ -11,8 +11,8 @@ type ProjectEndpoints interface {
 	DeleteProject(w http.ResponseWriter, r *http.Request)
 }
 
-// Context creates context
-var Context = func(w http.ResponseWriter, r *http.Request) (context.Context, error) {
+// GetContext creates context
+var GetContext = func(r *http.Request) (context.Context, error) {
 	return r.Context(), nil
 }
 

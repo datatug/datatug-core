@@ -15,7 +15,7 @@ var getQuery = api.GetQuery
 //	q := r.URL.Query()
 //	folder := q.Get(urlQueryParamFolder)
 //	ref := newProjectRef(r.URL.Query())
-//	ctx, err := Context(w, r)
+//	ctx, err := GetContext(r)
 //	if err != nil {
 //		handleError(err, w, r)
 //	}
@@ -30,7 +30,7 @@ func GetQuery(w http.ResponseWriter, r *http.Request) {
 		handleError(err, w, r)
 		return
 	}
-	ctx, err := Context(w, r)
+	ctx, err := GetContext(r)
 	if err != nil {
 		handleError(err, w, r)
 	}
@@ -62,7 +62,6 @@ func UpdateQuery(w http.ResponseWriter, r *http.Request) {
 
 // DeleteQuery handles delete query endpoint
 var DeleteQuery = deleteProjItem(api.DeleteQuery)
-
 
 func getQueryRequestParams(r *http.Request, idParamName string) (ref dto.ProjectItemRef, err error) {
 	query := r.URL.Query()
