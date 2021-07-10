@@ -6,6 +6,7 @@ import (
 	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/strongo/random"
+	"log"
 	"net/http"
 )
 
@@ -26,6 +27,7 @@ func createBoard(w http.ResponseWriter, r *http.Request) {
 	var ref dto.ProjectRef
 	var board models.Board
 	saveFunc := func(ctx context.Context) (ResponseDTO, error) {
+		log.Println("saveFunc()")
 		board.ID = random.ID(9)
 		return api.CreateBoard(ctx, ref, board)
 	}

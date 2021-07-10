@@ -71,7 +71,7 @@ type Handler = func(
 	r *http.Request,
 	requestDTO RequestDTO,
 	verifyOptions VerifyRequestOptions,
-	statusCode int,
+	successStatusCode int,
 	getContext ContextProvider,
 	handler Worker,
 )
@@ -84,11 +84,11 @@ var handle Handler = func(
 	r *http.Request,
 	requestDTO RequestDTO,
 	verifyOptions VerifyRequestOptions,
-	statusCode int,
+	successStatusCode int,
 	getContext ContextProvider,
 	doWork Worker,
 ) {
-	panic("not initialized properly")
+	panic("handle is not initialized properly")
 }
 
 func route(r router, wrap wrapper, method, path string, handler http.HandlerFunc) {
