@@ -11,6 +11,7 @@ type Store interface {
 	Project(id string) ProjectStore
 	// CreateProject creates a new DataTug project
 	CreateProject(ctx context.Context, request dto.CreateProjectRequest) (summary *models.ProjectSummary, err error)
+	DeleteProject(ctx context.Context, id string) error
 
 	// GetProjects returns list of projects
 	GetProjects(ctx context.Context) (projectBriefs []models.ProjectBrief, err error)
@@ -30,5 +31,9 @@ func (n NoOpStore) GetProjects(ctx context.Context) (projectBriefs []models.Proj
 }
 
 func (n NoOpStore) Project(id string) ProjectStore {
+	panic("implement me")
+}
+
+func (n NoOpStore) DeleteProject(ctx context.Context, id string) error {
 	panic("implement me")
 }
