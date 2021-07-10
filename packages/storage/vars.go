@@ -24,7 +24,7 @@ func ContextWithDatatugStore(ctx context.Context, store Store) context.Context {
 	if store == nil {
 		panic("store == nil")
 	}
-	log.Println("storage.ContextWithDatatugStore(): %T", store)
+	log.Printf("storage.ContextWithDatatugStore(): %T: %+v", store, store)
 	return context.WithValue(ctx, &storeContextKey, store)
 }
 
