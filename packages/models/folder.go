@@ -38,7 +38,7 @@ func (v FolderItem) Validate() error {
 	return nil
 }
 
-type FolderItemsByType = map[string][]FolderItem
+type FolderItemsByType = map[string][]*FolderItem
 
 // Validate returns error if failed
 func (v Folder) Validate() error {
