@@ -24,7 +24,7 @@ func (ProjectAgentEndpoints) CreateProject(w http.ResponseWriter, r *http.Reques
 	request := dto.CreateProjectRequest{
 		StoreID: r.URL.Query().Get("store"),
 	}
-	handle(w, r, request, createProjectVerifyOptions, http.StatusOK, func(ctx context.Context) (response ResponseDTO, err error) {
+	handle(w, r, &request, createProjectVerifyOptions, http.StatusOK, func(ctx context.Context) (response ResponseDTO, err error) {
 		return api.CreateProject(r.Context(), request)
 	})
 }
