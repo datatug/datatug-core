@@ -1,4 +1,4 @@
-package routes
+package endpoints
 
 import (
 	"github.com/stretchr/testify/assert"

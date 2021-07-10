@@ -1,7 +1,7 @@
-package routes
+package endpoints
 
 import (
-	"github.com/datatug/datatug/packages/server/endpoints"
+	"context"
 	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
@@ -22,9 +22,14 @@ func RegisterDatatugHandlers(
 	router *httprouter.Router,
 	mode Mode,
 	wrap wrapper,
-	handler endpoints.Handler,
+	contextProvider func(r *http.Request) (context.Context, error),
+	handler Handler,
 ) {
 	log.Println("Registering DataTug handlers on path:", path)
-	endpoints.SetHandler(handler)
+	if handler == nil {
+		panic("handler is not provided")
+	}
+	handle = handler
+	getContextFromRequest = contextProvider
 	registerRoutes(path, router, wrap, mode == WriteOnlyHandlers)
 }

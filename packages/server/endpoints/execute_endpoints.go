@@ -47,7 +47,7 @@ func ExecuteCommandsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storeID := r.URL.Query().Get(urlQueryParamStoreID)
+	storeID := r.URL.Query().Get(urlParamStoreID)
 	response, err := api.ExecuteCommands(storeID, executeRequest)
 	returnJSON(w, r, http.StatusOK, err, response)
 }
@@ -122,7 +122,7 @@ func ExecuteSelectHandler(w http.ResponseWriter, r *http.Request) {
 	if cols != "" {
 		request.Columns = strings.Split(cols, ",")
 	}
-	storeID := query.Get(urlQueryParamStoreID)
+	storeID := query.Get(urlParamStoreID)
 	response, err := api.ExecuteSelect(storeID, request)
 	returnJSON(w, r, http.StatusOK, err, response)
 }

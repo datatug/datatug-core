@@ -2,6 +2,7 @@ package endpoints
 
 import (
 	"context"
+	"log"
 	"net/http"
 )
 
@@ -11,10 +12,12 @@ type ProjectEndpoints interface {
 	DeleteProject(w http.ResponseWriter, r *http.Request)
 }
 
-// GetContextFromRequest creates context for a given request
+type ContextProvider = func(r *http.Request) (context.Context, error)
+
+// getContextFromRequest creates context for a given request
 // We need a request for example to decode Firebase token
 // Probably can be done better then being hard-depending on an *http.Request
-var GetContextFromRequest = func(r *http.Request) (context.Context, error) {
+var getContextFromRequest = func(r *http.Request) (context.Context, error) {
 	return r.Context(), nil
 }
 
@@ -72,14 +75,17 @@ type Handler = func(
 	handler func(ctx context.Context) (responseDTO ResponseDTO, err error),
 )
 
-// SetHandler sets handler
-func SetHandler(handler Handler) {
-	if handler == nil {
-		panic("handler is not provided")
-	}
-	handle = handler
+type worker = func(ctx context.Context) (responseDTO ResponseDTO, err error)
+
+//goland:noinspection GoVarAndConstTypeMayBeOmitted
+var handle Handler = func(w http.ResponseWriter, r *http.Request, requestDTO RequestDTO, verifyOptions VerifyRequestOptions, statusCode int, doWork worker) {
+	panic("not initialized properly")
 }
 
-var handle Handler = func(w http.ResponseWriter, r *http.Request, requestDTO RequestDTO, verifyOptions VerifyRequestOptions, statusCode int, handler func(ctx context.Context) (responseDTO ResponseDTO, err error)) {
-	panic("not initialized properly")
+func route(r router, wrap wrapper, method, path string, handler http.HandlerFunc) {
+	log.Printf("Registering %v %v", method, path)
+	if wrap != nil {
+		handler = wrap(handler)
+	}
+	r.HandlerFunc(method, path, handler)
 }

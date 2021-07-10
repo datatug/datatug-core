@@ -6,17 +6,17 @@ import (
 )
 
 const (
-	urlParamID               = "id"
-	urlQueryParamStoreID     = "storage"
-	urlQueryParamProjectID   = "project"
-	urlQueryParamRecordsetID = "recordset"
-	urlQueryParamDataID      = "data"
+	urlParamID          = "id"
+	urlParamStoreID     = "storage"
+	urlParamProjectID   = "project"
+	urlParamRecordsetID = "recordset"
+	urlParamDataID      = "data"
 )
 
 func newProjectRef(query url.Values) dto.ProjectRef {
 	return dto.ProjectRef{
-		StoreID:   query.Get(urlQueryParamStoreID),
-		ProjectID: query.Get(urlQueryParamProjectID),
+		StoreID:   query.Get(urlParamStoreID),
+		ProjectID: query.Get(urlParamProjectID),
 	}
 }
 func newProjectItemRef(query url.Values, idParamName string) dto.ProjectItemRef {

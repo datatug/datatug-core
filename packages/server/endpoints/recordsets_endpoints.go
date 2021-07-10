@@ -12,12 +12,12 @@ import (
 
 func getRecordsetRequestParams(r *http.Request) (params api.RecordsetRequestParams, err error) {
 	query := r.URL.Query()
-	if params.Project = query.Get(urlQueryParamProjectID); params.Project == "" {
-		err = validation.NewErrRequestIsMissingRequiredField(urlQueryParamProjectID)
+	if params.Project = query.Get(urlParamProjectID); params.Project == "" {
+		err = validation.NewErrRequestIsMissingRequiredField(urlParamProjectID)
 		return
 	}
-	if params.Recordset = query.Get(urlQueryParamRecordsetID); params.Recordset == "" {
-		err = validation.NewErrRequestIsMissingRequiredField(urlQueryParamRecordsetID)
+	if params.Recordset = query.Get(urlParamRecordsetID); params.Recordset == "" {
+		err = validation.NewErrRequestIsMissingRequiredField(urlParamRecordsetID)
 		return
 	}
 	return
@@ -27,8 +27,8 @@ func getRecordsetDataParams(r *http.Request) (params api.RecordsetDataRequestPar
 	query := r.URL.Query()
 	params.RecordsetRequestParams, err = getRecordsetRequestParams(r)
 
-	if params.Data = query.Get(urlQueryParamDataID); params.Data == "" {
-		err = validation.NewErrRequestIsMissingRequiredField(urlQueryParamDataID)
+	if params.Data = query.Get(urlParamDataID); params.Data == "" {
+		err = validation.NewErrRequestIsMissingRequiredField(urlParamDataID)
 		return
 	}
 	return
@@ -38,7 +38,7 @@ func getRecordsetDataParams(r *http.Request) (params api.RecordsetDataRequestPar
 func GetRecordsetsSummary(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	ref := newProjectRef(query)
-	ctx, err := GetContextFromRequest(r)
+	ctx, err := getContextFromRequest(r)
 	if err != nil {
 		handleError(err, w, r)
 	}
@@ -48,7 +48,7 @@ func GetRecordsetsSummary(w http.ResponseWriter, r *http.Request) {
 
 // GetRecordsetDefinition returns list of dataset definitions
 func GetRecordsetDefinition(w http.ResponseWriter, r *http.Request) {
-	ctx, err := GetContextFromRequest(r)
+	ctx, err := getContextFromRequest(r)
 	if err != nil {
 		handleError(err, w, r)
 	}
@@ -59,7 +59,7 @@ func GetRecordsetDefinition(w http.ResponseWriter, r *http.Request) {
 
 // GetRecordsetData returns data
 func GetRecordsetData(w http.ResponseWriter, r *http.Request) {
-	ctx, err := GetContextFromRequest(r)
+	ctx, err := getContextFromRequest(r)
 	if err != nil {
 		handleError(err, w, r)
 	}

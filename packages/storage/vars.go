@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"errors"
 	"fmt"
 )
 
@@ -27,7 +26,7 @@ func ContextWithDatatugStore(ctx context.Context, store Store) context.Context {
 func StoreFromContext(ctx context.Context) (Store, error) {
 	var store = ctx.Value(storeContextKey)
 	if store == nil {
-		return nil, errors.New("context have no `storage.Store` value")
+		return nil, fmt.Errorf("context of type %T have no `storage.Store` value", ctx)
 	}
 	return store.(Store), nil
 }

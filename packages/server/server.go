@@ -1,8 +1,9 @@
 package server
 
 import (
+	"context"
 	"fmt"
-	"github.com/datatug/datatug/packages/server/routes"
+	"github.com/datatug/datatug/packages/server/endpoints"
 	"github.com/datatug/datatug/packages/storage"
 	"github.com/datatug/datatug/packages/storage/filestore"
 	"github.com/julienschmidt/httprouter"
@@ -48,7 +49,9 @@ func ServeHTTP(pathsByID map[string]string, host string, port int) error {
 			handler(w, r)
 		}
 	}
-	routes.RegisterDatatugHandlers("", router, routes.AllHandlers, logWrapper, nil)
+	endpoints.RegisterDatatugHandlers("", router, endpoints.AllHandlers, logWrapper, func(r *http.Request) (context.Context, error) {
+		return r.Context(), nil
+	}, nil)
 
 	s := http.Server{
 		Addr:           fmt.Sprintf("%v:%v", agentHost, agentPort),

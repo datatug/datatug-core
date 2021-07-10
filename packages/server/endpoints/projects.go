@@ -5,10 +5,10 @@ import (
 	"net/http"
 )
 
-// GetProjects returns list of projects
-func GetProjects(w http.ResponseWriter, r *http.Request) {
-	storeID := r.URL.Query().Get(urlQueryParamStoreID)
-	ctx, err := GetContextFromRequest(r)
+// getProjects returns list of projects
+func getProjects(w http.ResponseWriter, r *http.Request) {
+	storeID := r.URL.Query().Get(urlParamStoreID)
+	ctx, err := getContextFromRequest(r)
 	if err != nil {
 		handleError(err, w, r)
 	}

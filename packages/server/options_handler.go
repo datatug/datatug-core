@@ -2,7 +2,7 @@ package server
 
 import (
 	"fmt"
-	"github.com/datatug/datatug/packages/server/routes"
+	"github.com/datatug/datatug/packages/server/endpoints"
 	"net/http"
 )
 
@@ -16,7 +16,7 @@ func globalOptionsHandler(w http.ResponseWriter, r *http.Request) {
 		_, _ = fmt.Fprintln(w, "accessControlRequestMethod: ", accessControlRequestMethod)
 		return
 	}
-	if !routes.IsSupportedOrigin(origin) {
+	if !endpoints.IsSupportedOrigin(origin) {
 		w.WriteHeader(http.StatusForbidden)
 		_, _ = fmt.Fprintf(w, "Unsupported origin: %v", origin)
 		return

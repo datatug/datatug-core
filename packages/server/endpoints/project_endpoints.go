@@ -7,38 +7,39 @@ import (
 	"net/http"
 )
 
-var _ ProjectEndpoints = (*ProjectAgentEndpoints)(nil)
+//var _ ProjectEndpoints = (*ProjectAgentEndpoints)(nil)
 
 // ProjectAgentEndpoints defines project endpoints
 type ProjectAgentEndpoints struct {
 }
 
-var createProjectVerifyOptions = VerifyRequest{
-	MinContentLength: int64(len(`{}`)),
-	MaxContentLength: 1024,
-	AuthRequired:     true,
-}
-
-// CreateProject creates project
-func (ProjectAgentEndpoints) CreateProject(w http.ResponseWriter, r *http.Request) {
+// createProject creates project
+func (ProjectAgentEndpoints) createProject(w http.ResponseWriter, r *http.Request) {
 	request := dto.CreateProjectRequest{
 		StoreID: r.URL.Query().Get("store"),
 	}
-	handle(w, r, &request, createProjectVerifyOptions, http.StatusOK, func(ctx context.Context) (response ResponseDTO, err error) {
+	var worker = func(ctx context.Context) (responseDTO ResponseDTO, err error) {
 		return api.CreateProject(ctx, request)
-	})
+	}
+	verifyOptions := VerifyRequest{
+		MinContentLength: int64(len(`{"title":""}`)),
+		MaxContentLength: 1024,
+		AuthRequired:     true,
+	}
+	handle(w, r, &request, verifyOptions, http.StatusOK, worker)
 }
 
-// DeleteProject deletes project
-func (ProjectAgentEndpoints) DeleteProject(w http.ResponseWriter, r *http.Request) {
+// deleteProject deletes project
+func (ProjectAgentEndpoints) deleteProject(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 	w.Write([]byte("Deletion of a DataTug project is not implemented at agent yet."))
 }
 
-// GetProjectSummary a handler to return project summary
-func GetProjectSummary(w http.ResponseWriter, r *http.Request) {
+// getProjectSummary a handler to return project summary
+func getProjectSummary(w http.ResponseWriter, r *http.Request) {
 	ref := newProjectRef(r.URL.Query())
-	handle(w, r, &ref, createProjectVerifyOptions, http.StatusOK, func(ctx context.Context) (response ResponseDTO, err error) {
+	worker := func(ctx context.Context) (response ResponseDTO, err error) {
 		return api.GetProjectSummary(ctx, ref)
-	})
+	}
+	handle(w, r, &ref, VerifyRequest{AuthRequired: true}, http.StatusOK, worker)
 }
