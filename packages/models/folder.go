@@ -9,9 +9,11 @@ import (
 
 // Folder keeps info about folder
 type Folder struct {
-	Name  string            `json:"name" firestore:"name"`
-	Note  string            `json:"note,omitempty" firestore:"note,omitempty"`
-	Items FolderItemsByType `json:"items,omitempty" firestore:"items:omitempty"`
+	Name    string            `json:"name,omitempty" firestore:"name,omitempty"` // empty for root folder
+	Note    string            `json:"note,omitempty" firestore:"note,omitempty"`
+	Items   FolderItemsByType `json:"items,omitempty" firestore:"items:omitempty"`
+	Boards  []*FolderItem     `json:"boards,omitempty" firestore:"boards:omitempty"`
+	Queries []*FolderItem     `json:"queries,omitempty" firestore:"queries:omitempty"`
 
 	// NumberOf keeps count of all successor objects in all sub-folders
 	NumberOf map[string]int `json:"numberOf,omitempty" firestore:"numberOf,omitempty"`
@@ -48,10 +50,7 @@ func (v Folder) Validate() error {
 	if strings.TrimSpace(v.Name) == v.Name {
 		return validation.NewErrBadRecordFieldValue("name", "folder name can't start or end with spaces")
 	}
-	for itemsType, items := range v.Items {
-		if !isKnownFolderItemType(itemsType) {
-			return validation.NewErrBadRecordFieldValue("items", "unknown items type: "+itemsType)
-		}
+	var validateItems = func(itemsType string, items []*FolderItem) error {
 		names := make([]string, 0, len(items))
 		ids := make([]string, 0, len(items))
 		for i, item := range items {
@@ -69,6 +68,21 @@ func (v Folder) Validate() error {
 				}
 			}
 			names = append(names, item.Name)
+		}
+		return nil
+	}
+	if err := validateItems("boards", v.Boards); err != nil {
+		return err
+	}
+	if err := validateItems("queries", v.Queries); err != nil {
+		return err
+	}
+	for itemsType, items := range v.Items {
+		if !isKnownFolderItemType(itemsType) {
+			return validation.NewErrBadRecordFieldValue("items", "unknown items type: "+itemsType)
+		}
+		if err := validateItems(itemsType, items); err != nil {
+			return err
 		}
 	}
 	for k, n := range v.NumberOf {
