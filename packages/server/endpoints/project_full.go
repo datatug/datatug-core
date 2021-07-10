@@ -7,7 +7,7 @@ import (
 
 // GetProjectFull returns full info about a project
 func GetProjectFull(w http.ResponseWriter, r *http.Request) {
-	ctx, err := GetContext(r.Context())
+	ctx, err := GetContextFromRequest(r)
 	if err != nil {
 		handleError(err, w, r)
 	}

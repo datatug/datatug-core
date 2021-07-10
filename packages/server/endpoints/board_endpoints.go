@@ -12,8 +12,8 @@ import (
 // GetBoard handles get board endpoint
 func GetBoard(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
-	ref := newProjectItemRef(query)
-	ctx, err := GetContext(r.Context())
+	ref := newProjectItemRef(query, "")
+	ctx, err := GetContextFromRequest(r)
 	if err != nil {
 		handleError(err, w, r)
 	}

@@ -11,9 +11,11 @@ type ProjectEndpoints interface {
 	DeleteProject(w http.ResponseWriter, r *http.Request)
 }
 
-// GetContext creates context
-var GetContext = func(ctx context.Context) (context.Context, error) {
-	return ctx, nil
+// GetContextFromRequest creates context for a given request
+// We need a request for example to decode Firebase token
+// Probably can be done better then being hard-depending on an *http.Request
+var GetContextFromRequest = func(r *http.Request) (context.Context, error) {
+	return r.Context(), nil
 }
 
 // RequestDTO defines an interface that should be implemented by request DTO struct

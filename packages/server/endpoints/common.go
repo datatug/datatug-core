@@ -10,8 +10,8 @@ import (
 func deleteProjItem(del func(ctx context.Context, ref dto.ProjectItemRef) error) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
-		ref := newProjectItemRef(query)
-		ctx, err := GetContext(r.Context())
+		ref := newProjectItemRef(query, "")
+		ctx, err := GetContextFromRequest(r)
 		if err != nil {
 			handleError(err, w, r)
 		}
@@ -25,7 +25,7 @@ func saveItem(
 	target interface{},
 	saveFunc func(ctx context.Context, ref dto.ProjectItemRef) (result interface{}, err error),
 ) {
-	projectIemRef := newProjectItemRef(r.URL.Query())
+	projectIemRef := newProjectItemRef(r.URL.Query(), "")
 
 	decoder := json.NewDecoder(r.Body)
 
@@ -33,7 +33,7 @@ func saveItem(
 	if err = decoder.Decode(target); err != nil {
 		handleError(err, w, r)
 	}
-	ctx, err := GetContext(r.Context())
+	ctx, err := GetContextFromRequest(r)
 	if err != nil {
 		handleError(err, w, r)
 	}
