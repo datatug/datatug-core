@@ -11,11 +11,12 @@ import (
 
 // AddDbServer adds a new DB server to project
 func AddDbServer(w http.ResponseWriter, r *http.Request) {
+	var ref dto.ProjectRef
 	var projDbServer models.ProjDbServer
-	saveFunc := func(ctx context.Context, ref dto.ProjectItemRef) (interface{}, error) {
-		return projDbServer, api.AddDbServer(ctx, ref.ProjectRef, projDbServer)
+	saveFunc := func(ctx context.Context) (ResponseDTO, error) {
+		return projDbServer, api.AddDbServer(ctx, ref, projDbServer)
 	}
-	saveItem(w, r, &projDbServer, saveFunc)
+	createProjectItem(w, r, &ref, &projDbServer, saveFunc)
 }
 
 // GetDbServerSummary returns summary about environment

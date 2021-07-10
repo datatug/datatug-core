@@ -19,12 +19,16 @@ func newProjectRef(query url.Values) dto.ProjectRef {
 		ProjectID: query.Get(urlParamProjectID),
 	}
 }
-func newProjectItemRef(query url.Values, idParamName string) dto.ProjectItemRef {
+
+func fillProjectItemRef(ref *dto.ProjectItemRef, query url.Values, idParamName string) {
+	ref.ProjectRef = newProjectRef(query)
+	ref.ID = query.Get(idParamName)
+}
+
+func newProjectItemRef(query url.Values, idParamName string) (ref dto.ProjectItemRef) {
 	if idParamName == "" {
 		idParamName = urlParamID
 	}
-	return dto.ProjectItemRef{
-		ProjectRef: newProjectRef(query),
-		ID:         query.Get(idParamName),
-	}
+	fillProjectItemRef(&ref, query, idParamName)
+	return
 }

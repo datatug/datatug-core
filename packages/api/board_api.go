@@ -37,7 +37,7 @@ func DeleteBoard(ctx context.Context, ref dto.ProjectItemRef) error {
 }
 
 // SaveBoard saves board
-func SaveBoard(ctx context.Context, ref dto.ProjectItemRef, board models.Board) (*models.Board, error) {
+func SaveBoard(ctx context.Context, ref dto.ProjectRef, board models.Board) (*models.Board, error) {
 	store, err := storage.GetStore(ctx, ref.StoreID)
 	if err != nil {
 		return nil, err

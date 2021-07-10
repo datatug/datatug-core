@@ -36,6 +36,10 @@ type CreateProjectRequest struct {
 	Title   string `json:"title"`
 }
 
+type CreateProjectItemRequest struct {
+	Title string `json:"title"`
+}
+
 func (v CreateProjectRequest) Validate() error {
 	if strings.TrimSpace(v.StoreID) == "" {
 		return validation.NewErrRequestIsMissingRequiredField("store")

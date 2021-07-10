@@ -2,7 +2,6 @@ package endpoints
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/datatug/datatug/packages/dto"
 	"net/http"
 )
@@ -20,24 +19,46 @@ func deleteProjItem(del func(ctx context.Context, ref dto.ProjectItemRef) error)
 	}
 }
 
-func saveItem(
-	w http.ResponseWriter, r *http.Request,
-	target interface{},
-	saveFunc func(ctx context.Context, ref dto.ProjectItemRef) (result interface{}, err error),
+func createProjectItem(
+	w http.ResponseWriter,
+	r *http.Request,
+	ref *dto.ProjectRef,
+	requestDTO RequestDTO,
+	f func(ctx context.Context) (responseDTO ResponseDTO, err error),
 ) {
-	projectIemRef := newProjectItemRef(r.URL.Query(), "")
+	q := r.URL.Query()
+	ref.StoreID = q.Get(urlParamStoreID)
+	ref.ProjectID = q.Get(urlParamProjectID)
 
-	decoder := json.NewDecoder(r.Body)
+	handle(w, r, requestDTO, VerifyRequest{
+		AuthRequired:     true,
+		MinContentLength: 0,
+		MaxContentLength: 1024 * 1024,
+	}, http.StatusCreated, getContextFromRequest, f)
+}
 
-	var err error
-	if err = decoder.Decode(target); err != nil {
-		handleError(err, w, r)
-	}
-	ctx, err := getContextFromRequest(r)
-	if err != nil {
-		handleError(err, w, r)
-	}
-	var result interface{}
-	result, err = saveFunc(ctx, projectIemRef)
-	returnJSON(w, r, http.StatusOK, err, result)
+func saveProjectItem(
+	w http.ResponseWriter, r *http.Request,
+	ref *dto.ProjectItemRef,
+	requestDTO RequestDTO,
+	f func(ctx context.Context) (responseDTO ResponseDTO, err error),
+) {
+	fillProjectItemRef(ref, r.URL.Query(), "")
+	handle(w, r, requestDTO, VerifyRequest{
+		AuthRequired:     true,
+		MinContentLength: 0,
+		MaxContentLength: 1024 * 1024,
+	}, http.StatusCreated, getContextFromRequest, f)
+}
+
+func getProjectItem(
+	w http.ResponseWriter, r *http.Request,
+	ref *dto.ProjectItemRef,
+	requestDTO RequestDTO,
+	f func(ctx context.Context) (responseDTO ResponseDTO, err error),
+) {
+	fillProjectItemRef(ref, r.URL.Query(), "")
+	handle(w, r, requestDTO, VerifyRequest{
+		AuthRequired: true,
+	}, http.StatusCreated, getContextFromRequest, f)
 }

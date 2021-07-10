@@ -32,12 +32,13 @@ func GetEntities(w http.ResponseWriter, r *http.Request) {
 
 // SaveEntity handles save entity endpoint
 func SaveEntity(w http.ResponseWriter, r *http.Request) {
+	var ref dto.ProjectItemRef
 	var entity models.Entity
-	saveFunc := func(ctx context.Context, ref dto.ProjectItemRef) (interface{}, error) {
+	saveFunc := func(ctx context.Context) (ResponseDTO, error) {
 		entity.ID = ref.ID
 		return entity, api.SaveEntity(ctx, ref.ProjectRef, &entity)
 	}
-	saveItem(w, r, &entity, saveFunc)
+	saveProjectItem(w, r, &ref, &entity, saveFunc)
 }
 
 var DeleteEntity = deleteProjItem(api.DeleteEntity)

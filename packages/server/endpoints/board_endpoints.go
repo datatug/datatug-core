@@ -23,22 +23,23 @@ func GetBoard(w http.ResponseWriter, r *http.Request) {
 
 // CreateBoard handles board creation endpoint
 func CreateBoard(w http.ResponseWriter, r *http.Request) {
+	var ref dto.ProjectRef
 	var board models.Board
-	saveBoard := func(ctx context.Context, projectIemRef dto.ProjectItemRef) (interface{}, error) {
+	saveFunc := func(ctx context.Context) (ResponseDTO, error) {
 		board.ID = random.ID(9)
-		projectIemRef.ID = board.ID
-		return api.SaveBoard(ctx, projectIemRef, board)
+		return api.CreateBoard(ctx, ref, board)
 	}
-	saveItem(w, r, &board, saveBoard)
+	createProjectItem(w, r, &ref, &board, saveFunc)
 }
 
 // SaveBoard handles save board endpoint
 func SaveBoard(w http.ResponseWriter, r *http.Request) {
+	ref := newProjectItemRef(r.URL.Query(), "")
 	var board models.Board
-	saveBoard := func(ctx context.Context, ref dto.ProjectItemRef) (interface{}, error) {
-		return api.SaveBoard(ctx, ref, board)
+	saveBoard := func(ctx context.Context) (ResponseDTO, error) {
+		return api.SaveBoard(ctx, ref.ProjectRef, board)
 	}
-	saveItem(w, r, &board, saveBoard)
+	saveProjectItem(w, r, &ref, &board, saveBoard)
 }
 
 // DeleteBoard handles delete board endpoint

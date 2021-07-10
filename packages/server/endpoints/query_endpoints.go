@@ -25,49 +25,31 @@ var getQuery = api.GetQuery
 
 // GetQuery returns query definition
 func GetQuery(w http.ResponseWriter, r *http.Request) {
-	params, err := getQueryRequestParams(r, "")
-	if err != nil {
-		handleError(err, w, r)
-		return
-	}
-	ctx, err := getContextFromRequest(r)
-	if err != nil {
-		handleError(err, w, r)
-	}
-	query, err := getQuery(ctx, params)
-	if err != nil {
-		handleError(err, w, r)
-		return
-	}
-	returnJSON(w, r, http.StatusOK, err, query)
+	var ref dto.ProjectItemRef
+	getProjectItem(w, r, &ref, nil, func(ctx context.Context) (responseDTO ResponseDTO, err error) {
+		return getQuery(ctx, ref)
+	})
 }
 
 // CreateQuery handles create query endpoint
 var CreateQuery = func(w http.ResponseWriter, r *http.Request) {
+	var ref dto.ProjectRef
 	var request dto.CreateQuery
-	saveFunc := func(ctx context.Context, ref dto.ProjectItemRef) (interface{}, error) {
+	saveFunc := func(ctx context.Context) (ResponseDTO, error) {
 		return api.CreateQuery(ctx, request)
 	}
-	saveItem(w, r, &request, saveFunc)
+	createProjectItem(w, r, &ref, &request, saveFunc)
 }
 
 // UpdateQuery handles update query endpoint
 func UpdateQuery(w http.ResponseWriter, r *http.Request) {
+	var ref dto.ProjectItemRef
 	var request dto.UpdateQuery
-	saveFunc := func(ctx context.Context, ref dto.ProjectItemRef) (interface{}, error) {
+	saveFunc := func(ctx context.Context) (ResponseDTO, error) {
 		return api.UpdateQuery(ctx, request)
 	}
-	saveItem(w, r, &request, saveFunc)
+	saveProjectItem(w, r, &ref, &request, saveFunc)
 }
 
 // DeleteQuery handles delete query endpoint
 var DeleteQuery = deleteProjItem(api.DeleteQuery)
-
-func getQueryRequestParams(r *http.Request, idParamName string) (ref dto.ProjectItemRef, err error) {
-	query := r.URL.Query()
-	ref = newProjectItemRef(query, idParamName)
-	if err = ref.Validate(); err != nil {
-		return
-	}
-	return
-}
