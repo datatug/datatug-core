@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"log"
 )
 
 // Current holds currently active storage interface
@@ -17,14 +18,18 @@ var NewDatatugStore = func(id string) (Store, error) {
 	panic("var 'NewDatatugStore' is not initialized")
 }
 
-const storeContextKey = "datatug_store"
+var storeContextKey = "datatug_store"
 
 func ContextWithDatatugStore(ctx context.Context, store Store) context.Context {
-	return context.WithValue(ctx, storeContextKey, store)
+	if store == nil {
+		panic("store == nil")
+	}
+	log.Println("storage.ContextWithDatatugStore(): %T", store)
+	return context.WithValue(ctx, &storeContextKey, store)
 }
 
 func StoreFromContext(ctx context.Context) (Store, error) {
-	var store = ctx.Value(storeContextKey)
+	var store = ctx.Value(&storeContextKey)
 	if store == nil {
 		return nil, fmt.Errorf("context of type %T have no `storage.Store` value", ctx)
 	}
