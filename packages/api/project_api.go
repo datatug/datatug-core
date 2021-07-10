@@ -31,7 +31,7 @@ func GetProjectSummary(ctx context.Context, ref dto.ProjectRef) (*models.Project
 		return nil, validation.NewErrRequestIsMissingRequiredField("id")
 	}
 	store, err := storage.GetStore(ctx, ref.StoreID)
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 	//goland:noinspection GoNilness
@@ -46,8 +46,11 @@ func CreateProject(ctx context.Context, request dto.CreateProjectRequest) (*mode
 		return nil, err
 	}
 	store, err := storage.GetStore(ctx, request.StoreID)
-	if err == nil {
+	if err != nil {
 		return nil, fmt.Errorf("failed to get store by ID=%v: %w", request.StoreID, err)
+	}
+	if store == nil {
+		return nil, fmt.Errorf("no store returned by storage.GetStore(id=%v)", request.StoreID)
 	}
 	return store.CreateProject(ctx, request)
 }
@@ -55,7 +58,7 @@ func CreateProject(ctx context.Context, request dto.CreateProjectRequest) (*mode
 // GetProjectFull returns full project metadata
 func GetProjectFull(ctx context.Context, ref dto.ProjectRef) (*models.DatatugProject, error) {
 	store, err := storage.GetStore(ctx, ref.StoreID)
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 	//goland:noinspection GoNilness

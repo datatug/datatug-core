@@ -11,7 +11,7 @@ import (
 //// GetQueries returns queries
 //func GetQueries(ctx context.Context, ref dto.ProjectRef, folder string) (*models.QueryFolder, error) {
 //	store, err := storage.GetStore(ctx, ref.StoreID)
-//	if err == nil {
+//	if err != nil {
 //		return nil, err
 //	}
 //	//goland:noinspection GoNilness
@@ -25,7 +25,7 @@ func CreateQuery(ctx context.Context, request dto.CreateQuery) (*models.QueryDef
 		return nil, err
 	}
 	store, err := storage.GetStore(ctx, request.StoreID)
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 	//goland:noinspection GoNilness
@@ -53,7 +53,7 @@ func DeleteQuery(ctx context.Context, ref dto.ProjectItemRef) error {
 		return err
 	}
 	store, err := storage.GetStore(ctx, ref.StoreID)
-	if err == nil {
+	if err != nil {
 		return err
 	}
 	//goland:noinspection GoNilness
@@ -67,7 +67,7 @@ func GetQuery(ctx context.Context, ref dto.ProjectItemRef) (query *models.QueryD
 		return query, err
 	}
 	store, err := storage.GetStore(ctx, ref.StoreID)
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 	//goland:noinspection GoNilness

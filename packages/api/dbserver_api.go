@@ -11,7 +11,7 @@ import (
 // AddDbServer adds db server to project
 func AddDbServer(ctx context.Context, ref dto.ProjectRef, projDbServer models.ProjDbServer) error {
 	store, err := storage.GetStore(ctx, ref.StoreID)
-	if err == nil {
+	if err != nil {
 		return err
 	}
 	//goland:noinspection GoNilness
@@ -23,7 +23,7 @@ func AddDbServer(ctx context.Context, ref dto.ProjectRef, projDbServer models.Pr
 //goland:noinspection GoUnusedExportedFunction
 func UpdateDbServer(ctx context.Context, ref dto.ProjectRef, projDbServer models.ProjDbServer) error {
 	store, err := storage.GetStore(ctx, ref.StoreID)
-	if err == nil {
+	if err != nil {
 		return err
 	}
 	//goland:noinspection GoNilness
@@ -34,7 +34,7 @@ func UpdateDbServer(ctx context.Context, ref dto.ProjectRef, projDbServer models
 // DeleteDbServer adds db server to project
 func DeleteDbServer(ctx context.Context, ref dto.ProjectRef, dbServer models.ServerReference) (err error) {
 	store, err := storage.GetStore(ctx, ref.StoreID)
-	if err == nil {
+	if err != nil {
 		return err
 	}
 	//goland:noinspection GoNilness
@@ -48,7 +48,7 @@ func GetDbServerSummary(ctx context.Context, ref dto.ProjectRef, dbServer models
 		return nil, err
 	}
 	store, err := storage.GetStore(ctx, ref.StoreID)
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 	//goland:noinspection GoNilness

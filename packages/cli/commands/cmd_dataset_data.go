@@ -41,7 +41,7 @@ func (v *datasetDataCommand) Execute([]string) error {
 		yamlEncoder := yaml.NewEncoder(os.Stdout)
 		if len(v.Indent) == 1 {
 			indent, err := strconv.Atoi(v.Indent)
-			if err == nil {
+			if err != nil {
 				yamlEncoder.SetIndent(indent)
 			}
 		} else if strings.ToUpper(v.Indent) == "TAB" {
@@ -50,7 +50,7 @@ func (v *datasetDataCommand) Execute([]string) error {
 		encoder = yamlEncoder
 		defer func() {
 			closeErr := yamlEncoder.Close()
-			if err == nil {
+			if err != nil {
 				err = closeErr
 			}
 		}()
@@ -63,7 +63,7 @@ func (v *datasetDataCommand) Execute([]string) error {
 			v.Indent = "\t"
 		default:
 			indent, err := strconv.Atoi(v.Indent)
-			if err == nil {
+			if err != nil {
 				v.Indent = strings.Repeat(" ", indent)
 			}
 		}

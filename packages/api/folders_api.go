@@ -13,7 +13,7 @@ func CreateFolder(ctx context.Context, request dto.CreateFolder) error {
 		return err
 	}
 	store, err := storage.GetStore(ctx, request.StoreID)
-	if err == nil {
+	if err != nil {
 		return err
 	}
 	//goland:noinspection GoNilness
@@ -27,7 +27,7 @@ func DeleteFolder(ctx context.Context, ref dto.ProjectItemRef) error {
 		return validation.NewErrRequestIsMissingRequiredField("projectID")
 	}
 	store, err := storage.GetStore(ctx, ref.StoreID)
-	if err == nil {
+	if err != nil {
 		return err
 	}
 	//goland:noinspection GoNilness

@@ -17,7 +17,7 @@ func GetEnvironmentSummary(ctx context.Context, ref dto.ProjectItemRef) (*models
 		return nil, validation.NewErrRequestIsMissingRequiredField("envID")
 	}
 	store, err := storage.GetStore(ctx, ref.StoreID)
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 	//goland:noinspection GoNilness

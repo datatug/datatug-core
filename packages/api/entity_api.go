@@ -26,7 +26,7 @@ func GetEntity(ctx context.Context, ref dto.ProjectItemRef) (entity *models.Enti
 		return
 	}
 	store, err := storage.GetStore(ctx, ref.StoreID)
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 	//goland:noinspection GoNilness
@@ -40,7 +40,7 @@ func GetAllEntities(ctx context.Context, ref dto.ProjectRef) (entity models.Enti
 		return
 	}
 	store, err := storage.GetStore(ctx, ref.StoreID)
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 	//goland:noinspection GoNilness
@@ -54,7 +54,7 @@ func DeleteEntity(ctx context.Context, ref dto.ProjectItemRef) error {
 		return err
 	}
 	store, err := storage.GetStore(ctx, ref.StoreID)
-	if err == nil {
+	if err != nil {
 		return err
 	}
 	//goland:noinspection GoNilness
@@ -78,7 +78,7 @@ func SaveEntity(ctx context.Context, ref dto.ProjectRef, entity *models.Entity) 
 	}
 	log.Printf("Saving entity: %+v", entity)
 	store, err := storage.GetStore(ctx, ref.StoreID)
-	if err == nil {
+	if err != nil {
 		return err
 	}
 	//goland:noinspection GoNilness
