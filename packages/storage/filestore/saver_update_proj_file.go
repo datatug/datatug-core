@@ -8,27 +8,27 @@ func (store fsProjectStore) loadProjectFile() (v models.ProjectFile, err error) 
 	return LoadProjectFile(store.projectPath)
 }
 
-func (store fsProjectStore) updateProjectFileWithBoard(board models.Board) (err error) {
-	projFile, err := store.loadProjectFile()
-	if err != nil {
-		return err
-	}
-	for _, b := range projFile.Boards {
-		if b.ID == board.ID {
-			if b.Title == board.Title {
-				goto SAVED
-			}
-			b.Title = board.Title
-			goto UPDATED
-		}
-	}
-	projFile.Boards = append(projFile.Boards, &models.ProjBoardBrief{
-		ProjItemBrief: models.ProjItemBrief{ID: board.ID, Title: board.Title},
-		Parameters:    board.Parameters,
-	})
-UPDATED:
-	err = store.putProjectFile(projFile)
-SAVED:
+func (store fsProjectStore) updateProjectFileWithBoard(_ models.Board) (err error) {
+	//	projFile, err := store.loadProjectFile()
+	//	if err != nil {
+	//		return err
+	//	}
+	//	for _, b := range projFile.Boards {
+	//		if b.ID == board.ID {
+	//			if b.Title == board.Title {
+	//				goto SAVED
+	//			}
+	//			b.Title = board.Title
+	//			goto UPDATED
+	//		}
+	//	}
+	//	projFile.Boards = append(projFile.Boards, &models.ProjBoardBrief{
+	//		ProjItemBrief: models.ProjItemBrief{ID: board.ID, Title: board.Title},
+	//		Parameters:    board.Parameters,
+	//	})
+	//UPDATED:
+	//	err = store.putProjectFile(projFile)
+	//SAVED:
 	return err
 }
 

@@ -122,11 +122,8 @@ func (v *ProjectRepository) Validate() error {
 type ProjectFile struct {
 	Created *ProjectCreated `json:"created,omitempty" firestore:"created,omitempty"`
 	ProjectItem
-	//UUID         uuid.UUID           `json:"uuid"`
-	Queries      *QueryFolder        `json:"repository,omitempty" firestore:"repository,omitempty"`
 	Repository   *ProjectRepository  `json:"repository,omitempty" firestore:"repository,omitempty"`
 	DbModels     []*ProjDbModelBrief `json:"dbModels,omitempty" firestore:"dbModels,omitempty"`
-	Boards       []*ProjBoardBrief   `json:"boards,omitempty" firestore:"boards,omitempty"`
 	Entities     []*ProjEntityBrief  `json:"entities,omitempty" firestore:"entities,omitempty"`
 	Environments []*ProjEnvBrief     `json:"environments,omitempty" firestore:"environments,omitempty"`
 }
@@ -150,11 +147,6 @@ func (v ProjectFile) Validate() error {
 	case "private", "protected", "public":
 	default:
 		return validation.NewErrBadRecordFieldValue("access", "expected 'private', 'protected' or 'public', got: "+v.Access)
-	}
-	for _, board := range v.Boards {
-		if err := board.Validate(); err != nil {
-			return err
-		}
 	}
 	for _, entity := range v.Entities {
 		if err := entity.Validate(false); err != nil {

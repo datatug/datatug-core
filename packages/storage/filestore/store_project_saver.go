@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"path"
-	"strings"
 )
 
 // Save saves project
@@ -97,13 +96,13 @@ func (store fsProjectStore) putProjectFile(projFile models.ProjectFile) error {
 	return saveJSONFile(path.Join(store.projectPath, DatatugFolder), ProjectSummaryFileName, projFile)
 }
 
-func projItemFileName(id, prefix string) string {
-	id = strings.ToLower(id)
-	if prefix == "" {
-		return fmt.Sprintf("%v.json", id)
-	}
-	return fmt.Sprintf("%v-%v.json", prefix, id)
-}
+//func projItemFileName(id, prefix string) string {
+//	id = strings.ToLower(id)
+//	if prefix == "" {
+//		return fmt.Sprintf("%v.json", id)
+//	}
+//	return fmt.Sprintf("%v-%v.json", prefix, id)
+//}
 
 func (store fsProjectStore) saveProjectFile(project models.DatatugProject) error {
 	//var existingProject models.ProjectFile
@@ -147,14 +146,6 @@ func (store fsProjectStore) saveProjectFile(project models.DatatugProject) error
 		//	envBrief.NumberOf.Catalogs += len(dbServer.Catalogs)
 		//}
 		projFile.Environments = append(projFile.Environments, &envBrief)
-	}
-	for _, board := range project.Boards {
-		projFile.Boards = append(projFile.Boards,
-			&models.ProjBoardBrief{
-				ProjItemBrief: board.ProjItemBrief,
-				Parameters:    board.Parameters,
-			},
-		)
 	}
 	for _, dbModel := range project.DbModels {
 		brief := models.ProjDbModelBrief{
