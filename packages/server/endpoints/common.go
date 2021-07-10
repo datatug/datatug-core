@@ -9,14 +9,11 @@ import (
 
 func deleteProjItem(del func(ctx context.Context, ref dto.ProjectItemRef) error) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		query := r.URL.Query()
-		ref := newProjectItemRef(query, "")
-		ctx, err := getContextFromRequest(r)
-		if err != nil {
-			handleError(err, w, r)
+		ref := newProjectItemRef(r.URL.Query(), "")
+		worker := func(ctx context.Context) (responseDTO ResponseDTO, err error) {
+			return nil, del(ctx, ref)
 		}
-		err = del(ctx, ref)
-		returnJSON(w, r, http.StatusOK, err, true)
+		handle(w, r, nil, nil, http.StatusOK, getContextFromRequest, worker)
 	}
 }
 
@@ -53,11 +50,10 @@ func saveProjectItem(
 func getProjectItem(
 	w http.ResponseWriter, r *http.Request,
 	ref *dto.ProjectItemRef,
-	requestDTO RequestDTO,
 	f func(ctx context.Context) (responseDTO ResponseDTO, err error),
 ) {
 	fillProjectItemRef(ref, r.URL.Query(), "")
-	handle(w, r, requestDTO, VerifyRequest{
+	handle(w, r, nil, VerifyRequest{
 		AuthRequired: true,
 	}, http.StatusCreated, getContextFromRequest, f)
 }

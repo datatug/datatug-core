@@ -1,9 +1,11 @@
 package endpoints
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/datatug/datatug/packages/api"
+	"github.com/datatug/datatug/packages/dto"
 	"github.com/strongo/validation"
 	"log"
 	"net/http"
@@ -48,24 +50,18 @@ func getRecordsetsSummary(w http.ResponseWriter, r *http.Request) {
 
 // getRecordsetDefinition returns list of dataset definitions
 func getRecordsetDefinition(w http.ResponseWriter, r *http.Request) {
-	ctx, err := getContextFromRequest(r)
-	if err != nil {
-		handleError(err, w, r)
-	}
-	ref := newProjectItemRef(r.URL.Query(), "")
-	datasets, err := api.GetDatasetDefinition(ctx, ref)
-	returnJSON(w, r, http.StatusOK, err, datasets)
+	var ref dto.ProjectItemRef
+	getProjectItem(w, r, &ref, func(ctx context.Context) (responseDTO ResponseDTO, err error) {
+		return api.GetDatasetDefinition(ctx, ref)
+	})
 }
 
 // getRecordsetData returns data
 func getRecordsetData(w http.ResponseWriter, r *http.Request) {
-	ctx, err := getContextFromRequest(r)
-	if err != nil {
-		handleError(err, w, r)
-	}
-	ref := newProjectItemRef(r.URL.Query(), "")
-	recordset, err := api.GetRecordset(ctx, ref)
-	returnJSON(w, r, http.StatusOK, err, recordset)
+	var ref dto.ProjectItemRef
+	getProjectItem(w, r, &ref, func(ctx context.Context) (responseDTO ResponseDTO, err error) {
+		return api.GetRecordset(ctx, ref)
+	})
 }
 
 // addRowsToRecordset adds rows to a recordset

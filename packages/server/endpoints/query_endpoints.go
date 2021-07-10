@@ -26,7 +26,7 @@ var getQuery = api.GetQuery
 // getQueryHandler returns query definition
 func getQueryHandler(w http.ResponseWriter, r *http.Request) {
 	var ref dto.ProjectItemRef
-	getProjectItem(w, r, &ref, nil, func(ctx context.Context) (responseDTO ResponseDTO, err error) {
+	getProjectItem(w, r, &ref, func(ctx context.Context) (responseDTO ResponseDTO, err error) {
 		return getQuery(ctx, ref)
 	})
 }

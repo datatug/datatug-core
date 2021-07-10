@@ -6,42 +6,34 @@ import (
 	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/strongo/random"
-	"log"
 	"net/http"
 )
 
 // getBoard handles get board endpoint
 func getBoard(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	ref := newProjectItemRef(query, "")
-	ctx, err := getContextFromRequest(r)
-	if err != nil {
-		handleError(err, w, r)
-	}
-	board, err := api.GetBoard(ctx, ref)
-	returnJSON(w, r, http.StatusOK, err, board)
+	var ref dto.ProjectItemRef
+	getProjectItem(w, r, &ref, func(ctx context.Context) (responseDTO ResponseDTO, err error) {
+		return api.GetBoard(ctx, ref)
+	})
 }
 
 // createBoard handles board creation endpoint
 func createBoard(w http.ResponseWriter, r *http.Request) {
 	var ref dto.ProjectRef
 	var board models.Board
-	saveFunc := func(ctx context.Context) (ResponseDTO, error) {
-		log.Println("saveFunc()")
+	createProjectItem(w, r, &ref, &board, func(ctx context.Context) (ResponseDTO, error) {
 		board.ID = random.ID(9)
 		return api.CreateBoard(ctx, ref, board)
-	}
-	createProjectItem(w, r, &ref, &board, saveFunc)
+	})
 }
 
 // saveBoard handles save board endpoint
 func saveBoard(w http.ResponseWriter, r *http.Request) {
-	ref := newProjectItemRef(r.URL.Query(), "")
+	var ref dto.ProjectItemRef
 	var board models.Board
-	saveBoard := func(ctx context.Context) (ResponseDTO, error) {
+	saveProjectItem(w, r, &ref, &board, func(ctx context.Context) (ResponseDTO, error) {
 		return api.SaveBoard(ctx, ref.ProjectRef, board)
-	}
-	saveProjectItem(w, r, &ref, &board, saveBoard)
+	})
 }
 
 // deleteBoard handles delete board endpoint
