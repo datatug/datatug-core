@@ -12,8 +12,8 @@ type Folder struct {
 	Name    string            `json:"name,omitempty" firestore:"name,omitempty"` // empty for root folder
 	Note    string            `json:"note,omitempty" firestore:"note,omitempty"`
 	Items   FolderItemsByType `json:"items,omitempty" firestore:"items:omitempty"`
-	Boards  []*FolderItem     `json:"boards,omitempty" firestore:"boards:omitempty"`
-	Queries []*FolderItem     `json:"queries,omitempty" firestore:"queries:omitempty"`
+	Boards  map[string]string `json:"boards,omitempty" firestore:"boards:omitempty"`
+	Queries map[string]string `json:"queries,omitempty" firestore:"queries:omitempty"`
 
 	// NumberOf keeps count of all successor objects in all sub-folders
 	NumberOf map[string]int `json:"numberOf,omitempty" firestore:"numberOf,omitempty"`
@@ -50,7 +50,7 @@ func (v Folder) Validate() error {
 	if strings.TrimSpace(v.Name) == v.Name {
 		return validation.NewErrBadRecordFieldValue("name", "folder name can't start or end with spaces")
 	}
-	var validateItems = func(itemsType string, items []*FolderItem) error {
+	var validateSliceOfItems = func(itemsType string, items []*FolderItem) error {
 		names := make([]string, 0, len(items))
 		ids := make([]string, 0, len(items))
 		for i, item := range items {
@@ -71,17 +71,24 @@ func (v Folder) Validate() error {
 		}
 		return nil
 	}
-	if err := validateItems("boards", v.Boards); err != nil {
+
+	validateMapOfItems := func(itemsType string, items map[string]string) error {
+		//for id, name := range items {
+		//
+		//}
+		return nil
+	}
+	if err := validateMapOfItems("boards", v.Boards); err != nil {
 		return err
 	}
-	if err := validateItems("queries", v.Queries); err != nil {
+	if err := validateMapOfItems("queries", v.Queries); err != nil {
 		return err
 	}
 	for itemsType, items := range v.Items {
 		if !isKnownFolderItemType(itemsType) {
 			return validation.NewErrBadRecordFieldValue("items", "unknown items type: "+itemsType)
 		}
-		if err := validateItems(itemsType, items); err != nil {
+		if err := validateSliceOfItems(itemsType, items); err != nil {
 			return err
 		}
 	}
