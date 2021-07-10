@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-//const AutoID = "<auto/id>"
+const AutoID = "<auto/id>"
 const RootFolderName = "~"
 const FoldersPathSeparator = `\`
 

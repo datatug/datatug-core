@@ -21,6 +21,7 @@ func getBoard(w http.ResponseWriter, r *http.Request) {
 func createBoard(w http.ResponseWriter, r *http.Request) {
 	var ref dto.ProjectRef
 	var board models.Board
+	board.ID = models.AutoID
 	createProjectItem(w, r, &ref, &board, func(ctx context.Context) (ResponseDTO, error) {
 		board.ID = random.ID(9)
 		return api.CreateBoard(ctx, ref, board)
