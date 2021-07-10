@@ -3,6 +3,7 @@ package endpoints
 import (
 	"context"
 	"github.com/datatug/datatug/packages/dto"
+	"log"
 	"net/http"
 )
 
@@ -26,10 +27,8 @@ func createProjectItem(
 	requestDTO RequestDTO,
 	f func(ctx context.Context) (responseDTO ResponseDTO, err error),
 ) {
-	q := r.URL.Query()
-	ref.StoreID = q.Get(urlParamStoreID)
-	ref.ProjectID = q.Get(urlParamProjectID)
-
+	log.Printf("createProjectItem(ref=%+v, request: %T)", ref, requestDTO)
+	fillProjectRef(ref, r.URL.Query())
 	handle(w, r, requestDTO, VerifyRequest{
 		AuthRequired:     true,
 		MinContentLength: 0,

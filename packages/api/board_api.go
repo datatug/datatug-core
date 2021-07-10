@@ -5,10 +5,12 @@ import (
 	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
+	"log"
 )
 
 // CreateBoard creates board
 func CreateBoard(ctx context.Context, ref dto.ProjectRef, board models.Board) (*models.Board, error) {
+	log.Printf("api.CreateBoard(ref=%+v)", ref)
 	store, err := storage.GetStore(ctx, ref.StoreID)
 	if err != nil {
 		return nil, err

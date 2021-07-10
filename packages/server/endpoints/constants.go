@@ -13,22 +13,28 @@ const (
 	urlParamDataID      = "data"
 )
 
-func newProjectRef(query url.Values) dto.ProjectRef {
-	return dto.ProjectRef{
-		StoreID:   query.Get(urlParamStoreID),
-		ProjectID: query.Get(urlParamProjectID),
+func fillProjectRef(ref *dto.ProjectRef, q url.Values) {
+	ref.StoreID = q.Get(urlParamStoreID)
+	if ref.StoreID == "" {
+		ref.StoreID = "firestore"
 	}
+	ref.ProjectID = q.Get(urlParamProjectID)
 }
 
-func fillProjectItemRef(ref *dto.ProjectItemRef, query url.Values, idParamName string) {
-	ref.ProjectRef = newProjectRef(query)
-	ref.ID = query.Get(idParamName)
+func newProjectRef(q url.Values) (ref dto.ProjectRef) {
+	fillProjectRef(&ref, q)
+	return
 }
 
-func newProjectItemRef(query url.Values, idParamName string) (ref dto.ProjectItemRef) {
+func fillProjectItemRef(ref *dto.ProjectItemRef, q url.Values, idParamName string) {
+	fillProjectRef(&ref.ProjectRef, q)
+	ref.ID = q.Get(idParamName)
+}
+
+func newProjectItemRef(q url.Values, idParamName string) (ref dto.ProjectItemRef) {
 	if idParamName == "" {
 		idParamName = urlParamID
 	}
-	fillProjectItemRef(&ref, query, idParamName)
+	fillProjectItemRef(&ref, q, idParamName)
 	return
 }
