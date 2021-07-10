@@ -3,24 +3,47 @@ package models
 import (
 	"fmt"
 	"github.com/strongo/validation"
+	"strconv"
 	"strings"
 )
 
-const AutoID = "<auto/id>"
+//const AutoID = "<auto/id>"
+const RootFolderName = "~"
+const FoldersPathSeparator = `\`
 
 type ProjItemBrief struct {
-	ID    string `json:"id,omitempty" firestore:"id,omitempty" yaml:"id,omitempty"`
-	Title string `json:"title,omitempty" firestore:"title,omitempty" yaml:"title,omitempty"`
+	ID     string `json:"id,omitempty" firestore:"id,omitempty" yaml:"id,omitempty"`
+	Title  string `json:"title,omitempty" firestore:"title,omitempty" yaml:"title,omitempty"`
+	Folder string `json:"folder,omitempty" firestore:"folder,omitempty" yaml:"folder,omitempty"`
 	ListOfTags
 }
 
 // Validate returns error if not valid
 func (v ProjItemBrief) Validate(isTitleRequired bool) error {
-	//if v.ID == "" {
-	//	return validation.NewErrRecordIsMissingRequiredField("id")
-	//}
+	if v.ID == "" {
+		return validation.NewErrRecordIsMissingRequiredField("id")
+	}
 	if err := validateStringField("title", v.Title, isTitleRequired, MaxTitleLength); err != nil {
 		return err
+	}
+	if v.Folder == "" {
+		return validation.NewErrRecordIsMissingRequiredField("folder")
+	}
+	folders := strings.Split(v.Folder, FoldersPathSeparator)
+	if folders[0] != RootFolderName {
+		return validation.NewErrBadRecordFieldValue("folder", fmt.Sprintf("should start with root folder '%v'", RootFolderName))
+	}
+	for i, folder := range folders[1:] {
+		name := strings.TrimSpace(folder)
+		if name == "" {
+			return validation.NewErrBadRecordFieldValue("folder", "invalid folder name at index "+strconv.Itoa(i))
+		}
+		if name != folder {
+			return validation.NewErrBadRecordFieldValue("folder", "folder name at index starts or ends with spaces")
+		}
+		if name == RootFolderName {
+			return validation.NewErrBadRecordFieldValue("folder", "sub-folders can't be named as `~`")
+		}
 	}
 	if err := v.ListOfTags.Validate(); err != nil {
 		return err
@@ -62,7 +85,7 @@ func (v ProjectItem) Validate(isTitleRequired bool) error {
 const MaxTitleLength = 100
 
 // MaxTagLength defines maximum length of a tag = 100
-const MaxTagLength = 100
+const MaxTagLength = 50
 
 func validateStringField(name, value string, isRequired bool, maxLen int) error {
 	if isRequired && strings.TrimSpace(value) == "" {
