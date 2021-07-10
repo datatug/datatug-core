@@ -2,6 +2,7 @@ package routes
 
 import (
 	"github.com/datatug/datatug/packages/server/endpoints"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -11,6 +12,7 @@ type router interface {
 }
 
 func handle(r router, wrap wrapper, method, path string, handler http.HandlerFunc) {
+	log.Printf("Registering %v %v", method, path)
 	if wrap != nil {
 		handler = wrap(handler)
 	}

@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/datatug/datatug/packages/server/endpoints"
 	"github.com/julienschmidt/httprouter"
+	"log"
 	"net/http"
 )
 
@@ -23,6 +24,7 @@ func RegisterDatatugHandlers(
 	wrap wrapper,
 	handler endpoints.Handler,
 ) {
+	log.Println("Registering DataTug handlers on path:", path)
 	endpoints.SetHandler(handler)
 	registerRoutes(path, router, wrap, mode == WriteOnlyHandlers)
 }
