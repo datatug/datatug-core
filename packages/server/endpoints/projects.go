@@ -8,7 +8,7 @@ import (
 // GetProjects returns list of projects
 func GetProjects(w http.ResponseWriter, r *http.Request) {
 	storeID := r.URL.Query().Get(urlQueryParamStoreID)
-	ctx, err := GetContext(r)
+	ctx, err := GetContext(r.Context())
 	if err != nil {
 		handleError(err, w, r)
 	}

@@ -25,7 +25,7 @@ func (ProjectAgentEndpoints) CreateProject(w http.ResponseWriter, r *http.Reques
 		StoreID: r.URL.Query().Get("store"),
 	}
 	handle(w, r, &request, createProjectVerifyOptions, http.StatusOK, func(ctx context.Context) (response ResponseDTO, err error) {
-		return api.CreateProject(r.Context(), request)
+		return api.CreateProject(ctx, request)
 	})
 }
 
@@ -37,11 +37,8 @@ func (ProjectAgentEndpoints) DeleteProject(w http.ResponseWriter, r *http.Reques
 
 // GetProjectSummary a handler to return project summary
 func GetProjectSummary(w http.ResponseWriter, r *http.Request) {
-	ctx, err := GetContext(r)
-	if err != nil {
-		handleError(err, w, r)
-	}
 	ref := newProjectRef(r.URL.Query())
-	projectSummary, err := api.GetProjectSummary(ctx, ref)
-	returnJSON(w, r, http.StatusOK, err, projectSummary)
+	handle(w, r, &ref, createProjectVerifyOptions, http.StatusOK, func(ctx context.Context) (response ResponseDTO, err error) {
+		return api.GetProjectSummary(ctx, ref)
+	})
 }

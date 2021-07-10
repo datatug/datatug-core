@@ -15,7 +15,7 @@ var getQuery = api.GetQuery
 //	q := r.URL.Query()
 //	folder := q.Get(urlQueryParamFolder)
 //	ref := newProjectRef(r.URL.Query())
-//	ctx, err := GetContext(r)
+//	ctx, err := GetContext(r.Context())
 //	if err != nil {
 //		handleError(err, w, r)
 //	}
@@ -30,7 +30,7 @@ func GetQuery(w http.ResponseWriter, r *http.Request) {
 		handleError(err, w, r)
 		return
 	}
-	ctx, err := GetContext(r)
+	ctx, err := GetContext(r.Context())
 	if err != nil {
 		handleError(err, w, r)
 	}

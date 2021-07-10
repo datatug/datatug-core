@@ -11,7 +11,7 @@ func deleteProjItem(del func(ctx context.Context, ref dto.ProjectItemRef) error)
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
 		ref := newProjectItemRef(query)
-		ctx, err := GetContext(r)
+		ctx, err := GetContext(r.Context())
 		if err != nil {
 			handleError(err, w, r)
 		}
@@ -33,7 +33,7 @@ func saveItem(
 	if err = decoder.Decode(target); err != nil {
 		handleError(err, w, r)
 	}
-	ctx, err := GetContext(r)
+	ctx, err := GetContext(r.Context())
 	if err != nil {
 		handleError(err, w, r)
 	}
