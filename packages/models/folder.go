@@ -9,14 +9,28 @@ import (
 
 // Folder keeps info about folder
 type Folder struct {
-	Name    string                 `json:"name,omitempty" firestore:"name,omitempty"` // empty for root folder
-	Note    string                 `json:"note,omitempty" firestore:"note,omitempty"`
-	Items   FolderItemsByType      `json:"items,omitempty" firestore:"items:omitempty"`
-	Boards  map[string]*FolderItem `json:"boards,omitempty" firestore:"boards,omitempty"`
-	Queries map[string]string      `json:"queries,omitempty" firestore:"queries:omitempty"`
+	Name    string                      `json:"name,omitempty" firestore:"name,omitempty"` // empty for root folder
+	Note    string                      `json:"note,omitempty" firestore:"note,omitempty"`
+	Folders map[string]*FolderItemBrief `json:"folders,omitempty" firestore:"folders,omitempty"`
+	Boards  map[string]*FolderItemBrief `json:"boards,omitempty" firestore:"boards,omitempty"`
+	Queries map[string]*FolderItemBrief `json:"queries,omitempty" firestore:"queries,omitempty"`
 
 	// NumberOf keeps count of all successor objects in all sub-folders
 	NumberOf map[string]int `json:"numberOf,omitempty" firestore:"numberOf,omitempty"`
+}
+
+type FolderItemBrief struct {
+	Name string `json:"name" firestore:"name"`
+}
+
+func (v FolderItemBrief) Validate() error {
+	if strings.TrimSpace(v.Name) == "" {
+		return validation.NewErrRecordIsMissingRequiredField("name")
+	}
+	if strings.TrimSpace(v.Name) != v.Name {
+		return validation.NewErrBadRecordFieldValue("name", "can't start or end with spaces")
+	}
+	return nil
 }
 
 type FolderItem struct {
@@ -50,47 +64,31 @@ func (v Folder) Validate() error {
 	if strings.TrimSpace(v.Name) == v.Name {
 		return validation.NewErrBadRecordFieldValue("name", "folder name can't start or end with spaces")
 	}
-	var validateSliceOfItems = func(itemsType string, items []*FolderItem) error {
+
+	validateMapOfItems := func(itemsType string, items map[string]*FolderItemBrief) error {
 		names := make([]string, 0, len(items))
-		ids := make([]string, 0, len(items))
-		for i, item := range items {
+		for id, item := range items {
 			if err := item.Validate(); err != nil {
-				return fmt.Errorf("invalid item of type %v at index %v: %w", itemsType, i, err)
-			}
-			for _, id := range ids {
-				if id == item.ID {
-					return validation.NewErrBadRecordFieldValue(fmt.Sprintf("items.%v[%v]", itemsType, i), "duplicate id")
-				}
+				return validation.NewErrBadRecordFieldValue(fmt.Sprintf("%v[%v]", itemsType, id), err.Error())
 			}
 			for _, name := range names {
 				if name == item.Name {
-					return validation.NewErrBadRecordFieldValue(fmt.Sprintf("items.%v[%v]", itemsType, i), "duplicate name")
+					return validation.NewErrBadRecordFieldValue(fmt.Sprintf("%v[%v]", itemsType, id), "duplicate name")
 				}
 			}
 			names = append(names, item.Name)
+
 		}
 		return nil
 	}
-
-	//validateMapOfItems := func(itemsType string, items map[string]string) error {
-	//	//for id, name := range items {
-	//	//
-	//	//}
-	//	return nil
-	//}
-	//if err := validateMapOfItems("boards", v.Boards); err != nil {
-	//	return err
-	//}
-	//if err := validateMapOfItems("queries", v.Queries); err != nil {
-	//	return err
-	//}
-	for itemsType, items := range v.Items {
-		if !isKnownFolderItemType(itemsType) {
-			return validation.NewErrBadRecordFieldValue("items", "unknown items type: "+itemsType)
-		}
-		if err := validateSliceOfItems(itemsType, items); err != nil {
-			return err
-		}
+	if err := validateMapOfItems("folders", v.Folders); err != nil {
+		return err
+	}
+	if err := validateMapOfItems("boards", v.Boards); err != nil {
+		return err
+	}
+	if err := validateMapOfItems("queries", v.Queries); err != nil {
+		return err
 	}
 	for k, n := range v.NumberOf {
 		if n < 0 {
@@ -101,13 +99,4 @@ func (v Folder) Validate() error {
 		}
 	}
 	return nil
-}
-
-func isKnownFolderItemType(v string) bool {
-	switch v {
-	case "queries", "boards", "folders":
-		return true
-	default:
-		return false
-	}
 }
