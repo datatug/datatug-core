@@ -9,11 +9,11 @@ import (
 
 // Folder keeps info about folder
 type Folder struct {
-	Name    string            `json:"name,omitempty" firestore:"name,omitempty"` // empty for root folder
-	Note    string            `json:"note,omitempty" firestore:"note,omitempty"`
-	Items   FolderItemsByType `json:"items,omitempty" firestore:"items:omitempty"`
-	Boards  map[string]string `json:"boards,omitempty" firestore:"boards,omitempty"`
-	Queries map[string]string `json:"queries,omitempty" firestore:"queries:omitempty"`
+	Name    string                 `json:"name,omitempty" firestore:"name,omitempty"` // empty for root folder
+	Note    string                 `json:"note,omitempty" firestore:"note,omitempty"`
+	Items   FolderItemsByType      `json:"items,omitempty" firestore:"items:omitempty"`
+	Boards  map[string]*FolderItem `json:"boards,omitempty" firestore:"boards,omitempty"`
+	Queries map[string]string      `json:"queries,omitempty" firestore:"queries:omitempty"`
 
 	// NumberOf keeps count of all successor objects in all sub-folders
 	NumberOf map[string]int `json:"numberOf,omitempty" firestore:"numberOf,omitempty"`
