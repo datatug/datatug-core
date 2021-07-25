@@ -212,7 +212,7 @@ func newProjectWithDatabase(environment string, dbServer models.ServerReference,
 		},
 		Created: &models.ProjectCreated{
 			//ByUsername: currentUser.Username,
-			//ByName:     currentUser.Title,
+			//ByName:     currentUser.Name,
 			At: time.Now(),
 		},
 		DbModels: models.DbModels{

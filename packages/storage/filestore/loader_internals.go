@@ -297,7 +297,7 @@ func loadSchema(schemasDirPath string, id string) (dbSchema *models.DbSchema, er
 //	dirNames = make([]string, 0, len(files))
 //	for _, f := range files {
 //		if f.IsDir() {
-//			dirNames = append(dirNames, f.Title())
+//			dirNames = append(dirNames, f.Name())
 //		}
 //	}
 //	sort.Slice(dirNames, func(i, j int) bool {

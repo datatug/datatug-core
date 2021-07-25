@@ -32,7 +32,7 @@ func (v DatatugProject) Validate() error {
 	default:
 		return validation.NewErrBadRecordFieldValue("access", "unknown value")
 	}
-	//if strings.TrimSpace(v.Title) == "" {
+	//if strings.TrimSpace(v.Name) == "" {
 	//	return validation.NewErrRecordIsMissingRequiredField("title")
 	//}
 	if l := len(v.Title); l > 100 {

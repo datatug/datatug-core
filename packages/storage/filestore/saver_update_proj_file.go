@@ -15,15 +15,15 @@ func (store fsProjectStore) updateProjectFileWithBoard(_ models.Board) (err erro
 	//	}
 	//	for _, b := range projFile.Boards {
 	//		if b.ID == board.ID {
-	//			if b.Title == board.Title {
+	//			if b.Name == board.Name {
 	//				goto SAVED
 	//			}
-	//			b.Title = board.Title
+	//			b.Name = board.Name
 	//			goto UPDATED
 	//		}
 	//	}
 	//	projFile.Boards = append(projFile.Boards, &models.ProjBoardBrief{
-	//		ProjItemBrief: models.ProjItemBrief{ID: board.ID, Title: board.Title},
+	//		ProjItemBrief: models.ProjItemBrief{ID: board.ID, Name: board.Name},
 	//		Parameters:    board.Parameters,
 	//	})
 	//UPDATED:

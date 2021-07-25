@@ -71,7 +71,7 @@ func validateFolderPath(folderPath string) error {
 	return nil
 }
 
-// ProjectItem base class with ID and Title
+// ProjectItem base class with ID and Name
 type ProjectItem struct {
 	ProjItemBrief
 	UserIDs []string `json:"userIds,omitempty" firestore:"userIds,omitempty"`

@@ -93,7 +93,7 @@ func (store fsDbCatalogStore) saveTable(table *models.Table, save saveDbServerOb
 
 func (store fsDbCatalogStore) writeTableReadme(table *models.Table, save saveDbServerObjContext) func() error {
 	return func() error {
-		//log.Printf("Saving readme.md for table %v.%v.%v...\n", catalog, table.Schema, table.Title)
+		//log.Printf("Saving readme.md for table %v.%v.%v...\n", catalog, table.Schema, table.Name)
 		file, _ := os.Create(path.Join(save.dirPath, "README.md"))
 		defer func() {
 			_ = file.Close()

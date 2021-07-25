@@ -60,13 +60,13 @@ func (v *projectsCommand) Execute(_ []string) error {
 		fmt.Println("Failed to load projects: ", err)
 	}
 	for _, p := range projects {
-		fmt.Printf("ID=%v, Title: %v\n", p.ID, p.Title)
+		fmt.Printf("ID=%v, Name: %v\n", p.ID, p.Title)
 	}
 	//for _, p := range config.Stores {
-	//	if p.Title == "" {
+	//	if p.Name == "" {
 	//		fmt.Println(p.Path)
 	//	} else {
-	//		fmt.Println(p.Path, ":", p.Title)
+	//		fmt.Println(p.Path, ":", p.Name)
 	//	}
 	//}
 	return nil

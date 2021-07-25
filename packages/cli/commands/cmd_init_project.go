@@ -114,7 +114,7 @@ func (v *initProjectCommand) Execute(_ []string) (err error) {
 	}
 	if currentUser != nil {
 		datatugProject.Created = &models.ProjectCreated{
-			//ByName:     currentUser.Title,
+			//ByName:     currentUser.Name,
 			//ByUsername: currentUser.Username,
 			At: time.Now(),
 		}
