@@ -49,7 +49,7 @@ func ServeHTTP(pathsByID map[string]string, host string, port int) error {
 			handler(w, r)
 		}
 	}
-	endpoints.RegisterDatatugHandlers("", router, endpoints.AllHandlers, logWrapper, func(r *http.Request) (context.Context, error) {
+	endpoints.RegisterDatatugHandlers("", router, endpoints.RegisterAllHandlers, logWrapper, func(r *http.Request) (context.Context, error) {
 		return r.Context(), nil
 	}, nil)
 
