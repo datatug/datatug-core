@@ -36,7 +36,7 @@ func TestDatasetDefinition_Validate(t *testing.T) {
 					ProjectItem: projectEntity,
 					Type:        "json",
 				}
-				datasetDef.Folder = "~"
+				datasetDef.Folder = RootSharedFolderName
 
 				if err := datasetDef.Validate(); err == nil {
 					t.Error("expected to get an error if no schema defined")
@@ -54,7 +54,7 @@ func TestDatasetDefinition_Validate(t *testing.T) {
 				ProjectItem: projectEntity,
 				Type:        "recordset",
 			}
-			datasetDef.Folder = "~"
+			datasetDef.Folder = RootSharedFolderName
 			if err := datasetDef.Validate(); err != nil {
 				t.Error(err)
 			}
@@ -65,7 +65,7 @@ func TestDatasetDefinition_Validate(t *testing.T) {
 				Type:        "json",
 				JSONSchema:  "{}",
 			}
-			datasetDef.Folder = "~"
+			datasetDef.Folder = RootSharedFolderName
 			if err := datasetDef.Validate(); err != nil {
 				t.Error(err)
 			}

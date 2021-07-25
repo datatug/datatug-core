@@ -7,10 +7,17 @@ import (
 	"strings"
 )
 
+// AutoID defines a value that indicate system to use automatically generated ID
 const AutoID = "<auto/id>"
-const RootFolderName = "~"
-const FoldersPathSeparator = `\`
 
+// RootSharedFolderName defines name for a root shared folder
+const RootSharedFolderName = "~"
+const RootUserFolderPrefix = "user:"
+
+// FoldersPathSeparator defines a character to be used in folders path
+const FoldersPathSeparator = `/`
+
+// ProjItemBrief hold a brief about a project item
 type ProjItemBrief struct {
 	ID     string `json:"id,omitempty" firestore:"id,omitempty" yaml:"id,omitempty"`
 	Title  string `json:"title,omitempty" firestore:"title,omitempty" yaml:"title,omitempty"`
@@ -26,12 +33,28 @@ func (v ProjItemBrief) Validate(isTitleRequired bool) error {
 	if err := validateStringField("title", v.Title, isTitleRequired, MaxTitleLength); err != nil {
 		return err
 	}
-	if v.Folder == "" {
+	if err := v.ListOfTags.Validate(); err != nil {
+		return err
+	}
+	if err := validateFolderPath(v.Folder); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateFolderPath(folderPath string) error {
+	if folderPath == "" {
 		return validation.NewErrRecordIsMissingRequiredField("folder")
 	}
-	folders := strings.Split(v.Folder, FoldersPathSeparator)
-	if folders[0] != RootFolderName {
-		return validation.NewErrBadRecordFieldValue("folder", fmt.Sprintf("should start with root folder '%v'", RootFolderName))
+	folders := strings.Split(folderPath, FoldersPathSeparator)
+	rootFolderName := folders[0]
+	if strings.HasPrefix(rootFolderName, RootUserFolderPrefix) {
+		userID := rootFolderName[len(RootUserFolderPrefix):]
+		if err := validateUserID(userID); err != nil {
+			return validation.NewErrBadRecordFieldValue("folder", fmt.Sprintf("user's root folder references invalid user ID: %v", err))
+		}
+	} else if rootFolderName != RootSharedFolderName {
+		return validation.NewErrBadRecordFieldValue("folder", fmt.Sprintf("should start with root folder '%v'", RootSharedFolderName))
 	}
 	for i, folder := range folders[1:] {
 		name := strings.TrimSpace(folder)
@@ -41,12 +64,9 @@ func (v ProjItemBrief) Validate(isTitleRequired bool) error {
 		if name != folder {
 			return validation.NewErrBadRecordFieldValue("folder", "folder name at index starts or ends with spaces")
 		}
-		if name == RootFolderName {
+		if name == RootSharedFolderName {
 			return validation.NewErrBadRecordFieldValue("folder", "sub-folders can't be named as `~`")
 		}
-	}
-	if err := v.ListOfTags.Validate(); err != nil {
-		return err
 	}
 	return nil
 }
@@ -69,14 +89,21 @@ func (v ProjectItem) Validate(isTitleRequired bool) error {
 		return validation.NewErrBadRecordFieldValue("access", "not empty and not equal one of next: private, protected, public")
 	}
 	for i, userID := range v.UserIDs {
-		if strings.TrimSpace(userID) == "" {
-			return validation.NewErrBadRecordFieldValue("userIds", fmt.Sprintf("empty at index %v", i))
+		if err := validateUserID(userID); err != nil {
+			return validation.NewErrBadRecordFieldValue(fmt.Sprintf("userIDs[%v]", i), err.Error())
 		}
 		for j, uid := range v.UserIDs {
 			if uid == userID {
 				return validation.NewErrBadRecordFieldValue("userIds", fmt.Sprintf("duplicate value at indexex %v and %v", i, j))
 			}
 		}
+	}
+	return nil
+}
+
+func validateUserID(userID string) error {
+	if strings.TrimSpace(userID) == "" {
+		return fmt.Errorf("is empty")
 	}
 	return nil
 }
