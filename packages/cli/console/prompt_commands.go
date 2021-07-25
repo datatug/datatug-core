@@ -30,11 +30,11 @@ package console
 //}
 //
 //func rootCommand(command *flags.Command) {
-//	commands[command.Name] = command
+//	commands[command.Title] = command
 //	for _, alias := range command.Aliases {
 //		commands[alias] = command
 //	}
-//	rootCommands = append(rootCommands, prompt.Suggest{Text: command.Name, Description: command.ShortDescription})
+//	rootCommands = append(rootCommands, prompt.Suggest{Text: command.Title, Description: command.ShortDescription})
 //}
 //
 //func init() {

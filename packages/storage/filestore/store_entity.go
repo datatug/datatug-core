@@ -45,7 +45,7 @@ func (store fsEntityStore) DeleteEntity(_ context.Context) (err error) {
 	//	if err := loadDir(nil, s.entitiesDirPath(), processFiles, func(files []os.FileInfo) {
 	//		entityIds = make([]string, 0, len(files))
 	//	}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
-	//		fileName := f.Name()
+	//		fileName := f.Title()
 	//		if strings.HasSuffix(fileName, entityFileSuffix+".json") {
 	//			entityIds = append(entityIds, strings.Replace(fileName, entityFileSuffix+".json", "", 1))
 	//		}

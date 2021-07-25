@@ -95,6 +95,15 @@ func (v QueryDefBrief) Validate() error {
 	return nil
 }
 
+func validateQueryBriefsMappedByID(queries map[string]*QueryDefBrief) error {
+	for id, query := range queries {
+		if err := validateItemMappedByID(id, query.ID, query); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // QueryDefWithFolderPath adds folder path to query definition
 type QueryDefWithFolderPath struct {
 	FolderPath string `json:"folderPath"`

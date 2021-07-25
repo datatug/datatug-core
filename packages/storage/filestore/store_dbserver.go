@@ -90,7 +90,7 @@ func loadDbCatalogSummary(catalogsDirPath, dirName string) (*models.DbCatalogSum
 //	err = loadDir(envsPath, processDirs, func(count int) {
 //		environments = make([]string, count)
 //	}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
-//		environments[i] = f.Name()
+//		environments[i] = f.Title()
 //		return
 //	})
 //	return

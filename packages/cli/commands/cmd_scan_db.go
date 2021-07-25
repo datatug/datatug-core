@@ -32,8 +32,8 @@ type scanDbCommand struct {
 	Port        int    `long:"port" description:"ServerReference network port, if not specified default is used."`
 	User        string `short:"U" long:"user" description:"User name to login to DB."`
 	Password    string `short:"P" long:"password" description:"Password to login to DB."`
-	Database    string `long:"db" required:"true" description:"Name of database to be scanned."`
-	DbModel     string `long:"dbmodel" required:"false" description:"Name of DB model, is required for newly scanned databases."`
+	Database    string `long:"db" required:"true" description:"Title of database to be scanned."`
+	DbModel     string `long:"dbmodel" required:"false" description:"Title of DB model, is required for newly scanned databases."`
 	Environment string `long:"env" required:"true" description:"Specify environment the DB belongs to. E.g.: LOCAL, DEV, SIT, UAT, PERF, PROD."`
 }
 
