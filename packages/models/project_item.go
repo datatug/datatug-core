@@ -36,13 +36,14 @@ func (v ProjItemBrief) Validate(isTitleRequired bool) error {
 	if err := v.ListOfTags.Validate(); err != nil {
 		return err
 	}
-	if err := validateFolderPath(v.Folder); err != nil {
+	if err := ValidateFolderPath(v.Folder); err != nil {
 		return err
 	}
 	return nil
 }
 
-func validateFolderPath(folderPath string) error {
+// ValidateFolderPath validates folder path
+func ValidateFolderPath(folderPath string) error {
 	if folderPath == "" {
 		return validation.NewErrRecordIsMissingRequiredField("folder")
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
+	"github.com/strongo/validation"
 )
 
 var _ storage.FoldersStore = (*fsFoldersStore)(nil)
@@ -12,7 +13,10 @@ type fsFoldersStore struct {
 	fsProjectStore
 }
 
-func (f fsFoldersStore) CreateFolder(ctx context.Context, path, name string) (err error) {
+func (f fsFoldersStore) CreateFolder(ctx context.Context, request storage.CreateFolderRequest) (folder *models.Folder, err error) {
+	if err := models.ValidateFolderPath(request.Path); err != nil {
+		return nil, validation.NewErrBadRequestFieldValue("path", err.Error())
+	}
 	panic("implement me")
 }
 
@@ -23,4 +27,3 @@ func (f fsFoldersStore) GetFolder(ctx context.Context, path string) (folder *mod
 func (f fsFoldersStore) DeleteFolder(ctx context.Context, path string) (err error) {
 	panic("implement me")
 }
-
