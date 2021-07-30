@@ -42,6 +42,7 @@ type CreateFolder struct {
 	ProjectRef
 	Name string `json:"name"`
 	Path string `json:"path"`
+	Note string `json:"note,omitempty"`
 }
 
 // Validate returns error if not valid

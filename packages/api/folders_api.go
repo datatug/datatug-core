@@ -22,7 +22,7 @@ func CreateFolder(ctx context.Context, request dto.CreateFolder) (folder *models
 	createFolderRequest := storage.CreateFolderRequest{
 		Name: request.Name,
 		Path: request.Path,
-		Note: request.Name,
+		Note: request.Note,
 	}
 	return project.Folders().CreateFolder(ctx, createFolderRequest)
 }
