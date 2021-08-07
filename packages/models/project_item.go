@@ -94,7 +94,7 @@ func (v ProjectItem) Validate(isTitleRequired bool) error {
 			return validation.NewErrBadRecordFieldValue(fmt.Sprintf("userIDs[%v]", i), err.Error())
 		}
 		for j, uid := range v.UserIDs {
-			if uid == userID {
+			if j != i && uid == userID {
 				return validation.NewErrBadRecordFieldValue("userIds", fmt.Sprintf("duplicate value at indexex %v and %v", i, j))
 			}
 		}

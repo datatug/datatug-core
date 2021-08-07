@@ -18,7 +18,7 @@ func ValidRequest(t *testing.T, name string, r request) {
 	})
 }
 
-func InvalidRequest(t *testing.T, name string, r request) {
+func InvalidRequest(t *testing.T, name string, r request, errorValidators ...func(t *testing.T, err error)) {
 	t.Run(name, func(t *testing.T) {
 		err := r.Validate()
 		if err == nil {
@@ -29,6 +29,9 @@ func InvalidRequest(t *testing.T, name string, r request) {
 		}
 		if !validation.IsBadRequestError(err) {
 			t.Errorf("returned error is not a bad request error: %T: %v; request: %+v", err, err, r)
+		}
+		for _, errValidator := range errorValidators {
+			errValidator(t, err)
 		}
 	})
 }

@@ -151,7 +151,7 @@ func (v QueryDef) Validate() error {
 		if v.Text != "" {
 			return validation.NewErrBadRecordFieldValue("text", "should be empty for folders")
 		}
-	case "sql", "graphql":
+	case "SQL", "GraphQL", "HTTP":
 		//if strings.TrimSpace(v.Text) == "" {
 		//	return validation.NewErrRequestIsMissingRequiredField("text")
 		//}
