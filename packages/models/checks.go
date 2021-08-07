@@ -80,7 +80,7 @@ func (v SQLCheck) Validate() error {
 	return nil
 }
 
-// RegexpValueCheck validate value with regular expression
+// RegexpValueCheck test value with regular expression
 type RegexpValueCheck struct {
 	Regexp string `json:"regexp"`
 }
@@ -96,7 +96,7 @@ func (v RegexpValueCheck) Validate() error {
 	return nil
 }
 
-// OptionsValueCheck validate value is matching one of the available options
+// OptionsValueCheck test value is matching one of the available options
 type OptionsValueCheck struct {
 	Type    string        `json:"type"`
 	Options []interface{} `json:"options"`

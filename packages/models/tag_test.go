@@ -2,7 +2,7 @@ package models
 
 import "testing"
 
-func TestListOfTags_Validate(t *testing.T) { // TODO: validate error type & text
+func TestListOfTags_Validate(t *testing.T) { // TODO: test error type & text
 	t.Run("should_pass_validation_for_nil_tags", func(t *testing.T) {
 		v := ListOfTags{
 			Tags: nil,

@@ -35,12 +35,12 @@ type datasetBaseCommand struct {
 	Dataset string `long:"dataset"`
 }
 
-// datasetCommand defines parameters for validate command
+// datasetCommand defines parameters for test command
 type datasetCommand struct {
 	datasetBaseCommand
 }
 
-// Execute executes validate command
+// Execute executes test command
 func (v *datasetCommand) Execute([]string) error {
 	if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err

@@ -16,12 +16,12 @@ func init() {
 	}
 }
 
-// datasetsCommand defines parameters for validate command
+// datasetsCommand defines parameters for test command
 type datasetsCommand struct {
 	projectBaseCommand
 }
 
-// Execute executes validate command
+// Execute executes test command
 func (v *datasetsCommand) Execute([]string) error {
 	if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err

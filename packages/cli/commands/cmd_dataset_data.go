@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-// datasetCommand defines parameters for validate command
+// datasetCommand defines parameters for test command
 type datasetDataCommand struct {
 	datasetBaseCommand
 	File   string `long:"file" required:"true"`
@@ -19,7 +19,7 @@ type datasetDataCommand struct {
 	Indent string `long:"indent" description:"Pass a digit to specify number of spaces (default=1). Special value: 'TAB'."`
 }
 
-// Execute executes validate command
+// Execute executes test command
 func (v *datasetDataCommand) Execute([]string) error {
 	if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err

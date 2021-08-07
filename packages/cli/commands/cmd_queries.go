@@ -14,13 +14,13 @@ func init() {
 	}
 }
 
-// datasetsCommand defines parameters for validate command
+// datasetsCommand defines parameters for test command
 type queriesCommand struct {
 	projectBaseCommand
 	Folder string `short:"f" long:"folder"  required:"false" description:"Folder path"`
 }
 
-// Execute executes validate command
+// Execute executes test command
 func (v *queriesCommand) Execute([]string) error {
 	//if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 	//	return err

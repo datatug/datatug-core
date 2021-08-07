@@ -8,21 +8,21 @@ import (
 )
 
 func init() {
-	_, err := Parser.AddCommand("validate",
+	_, err := Parser.AddCommand("test",
 		"Runs validation scripts",
-		"The `validate` command executes validation scripts.",
+		"The `test` command executes validation scripts.",
 		&validateCommand{})
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-// validateCommand defines parameters for validate command
+// validateCommand defines parameters for test command
 type validateCommand struct {
 	projectBaseCommand
 }
 
-// Execute executes validate command
+// Execute executes test command
 func (v *validateCommand) Execute([]string) (err error) {
 	if err = v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err

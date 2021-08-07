@@ -2,7 +2,10 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"github.com/datatug/datatug/packages/models"
+	"github.com/strongo/validation"
+	"strings"
 )
 
 type CreateFolderRequest struct {
@@ -12,6 +15,22 @@ type CreateFolderRequest struct {
 }
 
 func (v CreateFolderRequest) Validate() error {
+	if strings.TrimSpace(v.Name) == "" {
+		return validation.NewErrRequestIsMissingRequiredField("name")
+	}
+	if strings.TrimSpace(v.Path) == "" {
+		return validation.NewErrRequestIsMissingRequiredField("path")
+	}
+	paths := strings.Split(v.Path, "/")
+	for i, p := range paths {
+		if strings.TrimSpace(p) == "" {
+			return validation.NewErrBadRequestFieldValue("path",
+				fmt.Sprintf("empty path segment at index %v", i))
+		}
+	}
+	if len(v.Note) > 0 && strings.TrimSpace(v.Note) == "" {
+		return validation.NewErrBadRequestFieldValue("path", "empty note")
+	}
 	return nil
 }
 

@@ -94,7 +94,7 @@ type BoardRow struct {
 
 // Validate returns error if failed
 func (v BoardRow) Validate() error {
-	// TODO: validate MinHeight & MaxHeight
+	// TODO: test MinHeight & MaxHeight
 	if err := v.Cards.Validate(); err != nil {
 		return validation.NewErrBadRecordFieldValue("cards", err.Error())
 	}
@@ -171,7 +171,7 @@ func (v BoardWidget) Validate() (err error) {
 		return validation.NewErrBadRecordFieldValue("id", "unknown widget id")
 	}
 	if err = widget.Validate(); err != nil {
-		return fmt.Errorf("failed to validate widget of type %T: %w", widget, err)
+		return fmt.Errorf("failed to test widget of type %T: %w", widget, err)
 	}
 	return nil
 }
