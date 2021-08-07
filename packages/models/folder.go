@@ -61,7 +61,7 @@ func (v Folder) Validate() error {
 	if strings.TrimSpace(v.Name) == "" {
 		return validation.NewErrRecordIsMissingRequiredField("name")
 	}
-	if strings.TrimSpace(v.Name) == v.Name {
+	if strings.TrimSpace(v.Name) != v.Name {
 		return validation.NewErrBadRecordFieldValue("name", "folder name can't start or end with spaces")
 	}
 

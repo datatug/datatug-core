@@ -28,7 +28,7 @@ func InvalidRequest(t *testing.T, name string, r request) {
 			t.Errorf("returned error is not a validation error: %T: %v; request: %+v", err, err, r)
 		}
 		if !validation.IsBadRequestError(err) {
-			t.Errorf("returned error is not a bad r error: %T: %v; request: %+v", err, err, r)
+			t.Errorf("returned error is not a bad request error: %T: %v; request: %+v", err, err, r)
 		}
 	})
 }
