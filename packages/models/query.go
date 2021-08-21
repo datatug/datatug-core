@@ -119,9 +119,10 @@ func (v QueryDefWithFolderPath) Validate() error {
 }
 
 // QueryDef holds query data
+// For HTTP request host, port, etc, are stored in Targets property,
 type QueryDef struct {
 	ProjectItem
-	Type       string           `json:"type"` // Possible value: folder, SQL, GraphQL, etc.
+	Type       string           `json:"type"` // Possible value: folder, SQL, GraphQL, HTTP, etc.
 	Text       string           `json:"text,omitempty" yaml:"text,omitempty"`
 	Draft      bool             `json:"draft,omitempty" yaml:"draft,omitempty"`
 	Parameters Parameters       `json:"parameters,omitempty" yaml:"parameters,omitempty"`
@@ -132,10 +133,11 @@ type QueryDef struct {
 
 // QueryDefTarget defines target of query
 type QueryDefTarget struct {
-	Driver  string `json:"driver,omitempty" yaml:"driver,omitempty"`
-	Catalog string `json:"catalog,omitempty" yaml:"catalog,omitempty"`
-	Host    string `json:"host,omitempty" yaml:"host,omitempty"`
-	Port    int    `json:"port,omitempty" yaml:"port,omitempty"`
+	Driver   string `json:"driver,omitempty" yaml:"driver,omitempty"`
+	Catalog  string `json:"catalog,omitempty" yaml:"catalog,omitempty"`
+	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
+	Host     string `json:"host,omitempty" yaml:"host,omitempty"`
+	Port     int    `json:"port,omitempty" yaml:"port,omitempty"`
 	Credentials
 }
 
@@ -151,7 +153,13 @@ func (v QueryDef) Validate() error {
 		if v.Text != "" {
 			return validation.NewErrBadRecordFieldValue("text", "should be empty for folders")
 		}
-	case "SQL", "GraphQL", "HTTP":
+	case "HTTP":
+		for i, target := range v.Targets {
+			if target.Catalog != "" {
+				return validation.NewErrBadRecordFieldValue(fmt.Sprintf("targets[%v]", i), "for HTTP queries catalog should be empty, got: %v"+target.Catalog)
+			}
+		}
+	case "SQL", "GraphQL":
 		//if strings.TrimSpace(v.Text) == "" {
 		//	return validation.NewErrRequestIsMissingRequiredField("text")
 		//}
