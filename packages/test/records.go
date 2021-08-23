@@ -10,7 +10,7 @@ type record interface {
 	Validate() error
 }
 
-func ValidRecord(t *testing.T, name string, r record) {
+func IsValidRecord(t *testing.T, name string, r record) {
 	t.Helper()
 	t.Run(name, func(t *testing.T) {
 		if err := r.Validate(); err != nil {
@@ -19,7 +19,7 @@ func ValidRecord(t *testing.T, name string, r record) {
 	})
 }
 
-func InvalidRecord(t *testing.T, name string, r record, errorValidators ...func(t *testing.T, err error)) {
+func IsInvalidRecord(t *testing.T, name string, r record, errorValidators ...func(t *testing.T, err error)) {
 	t.Run(name, func(t *testing.T) {
 		err := r.Validate()
 		if err == nil {

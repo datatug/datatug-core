@@ -28,7 +28,7 @@ func (v GeneralParams) Mode() Mode {
 
 // Catalog returns catalog
 func (v GeneralParams) Catalog() string {
-	panic("implement me")
+	return v.catalog
 }
 
 // ConnectionString returns ConnectionString

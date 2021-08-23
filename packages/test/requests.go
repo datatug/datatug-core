@@ -10,7 +10,7 @@ type request interface {
 	Validate() error
 }
 
-func ValidRequest(t *testing.T, name string, r request) {
+func IsValidRequest(t *testing.T, name string, r request) {
 	t.Run(name, func(t *testing.T) {
 		if err := r.Validate(); err != nil {
 			t.Error(fmt.Sprintf("unexpected error of type %T for request %+v", err, r), err)
@@ -18,7 +18,7 @@ func ValidRequest(t *testing.T, name string, r request) {
 	})
 }
 
-func InvalidRequest(t *testing.T, name string, r request, errorValidators ...func(t *testing.T, err error)) {
+func IsInvalidRequest(t *testing.T, name string, r request, errorValidators ...func(t *testing.T, err error)) {
 	t.Run(name, func(t *testing.T) {
 		err := r.Validate()
 		if err == nil {
