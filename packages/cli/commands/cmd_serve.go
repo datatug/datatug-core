@@ -80,7 +80,9 @@ func (v *serveCommand) Execute(_ []string) (err error) {
 	if err := openBrowser(url); err != nil {
 		_, _ = fmt.Printf("failed to open browser with URl=%v: %v", url, err)
 	}
-	return server.ServeHTTP(pathsByID, v.Host, v.Port)
+	httpServer := server.NewHttpServer()
+	// TODO: implement graceful shutdown
+	return httpServer.ServeHTTP(pathsByID, v.Host, v.Port)
 }
 
 func openBrowser(url string) error {

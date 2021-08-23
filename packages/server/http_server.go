@@ -15,8 +15,20 @@ import (
 var agentHost string
 var agentPort int
 
+type httpServer struct {
+	s *http.Server
+}
+
+func NewHttpServer() httpServer {
+	return httpServer{}
+}
+
+func (s httpServer) Shutdown(ctx context.Context) error {
+	return s.s.Shutdown(ctx)
+}
+
 // ServeHTTP starts HTTP server
-func ServeHTTP(pathsByID map[string]string, host string, port int) error {
+func (s httpServer) ServeHTTP(pathsByID map[string]string, host string, port int) error {
 	storage.NewDatatugStore = func(id string) (v storage.Store, err error) {
 		//if v, err = filestore.NewStore(pathsByID); err != nil {
 		//	err = fmt.Errorf("failed to create filestore for storage id=%v: %w", id, err)
@@ -53,7 +65,7 @@ func ServeHTTP(pathsByID map[string]string, host string, port int) error {
 		return r.Context(), nil
 	}, nil)
 
-	s := http.Server{
+	s.s = &http.Server{
 		Addr:           fmt.Sprintf("%v:%v", agentHost, agentPort),
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
@@ -62,7 +74,7 @@ func ServeHTTP(pathsByID map[string]string, host string, port int) error {
 	}
 	log.Printf("Serving on: http://%v:%v", agentHost, agentPort)
 
-	return s.ListenAndServe()
+	return s.s.ListenAndServe()
 }
 
 func root(writer http.ResponseWriter, _ *http.Request) {
