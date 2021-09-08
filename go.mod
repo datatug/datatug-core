@@ -8,7 +8,7 @@ require (
 	github.com/fatih/color v1.10.0 // indirect
 	github.com/gdamore/tcell/v2 v2.4.1-0.20210904044819-ae5116d72813
 	github.com/go-git/go-git/v5 v5.4.2
-	github.com/google/uuid v1.2.0
+	github.com/google/uuid v1.3.0
 	github.com/gosuri/uitable v0.0.4
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/julienschmidt/httprouter v1.3.0
