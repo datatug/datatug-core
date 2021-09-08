@@ -35,7 +35,6 @@ func (s httpServer) ServeHTTP(pathsByID map[string]string, host string, port int
 		//	return
 		//}
 		panic("implement me")
-		return
 	}
 
 	if host == "" {
