@@ -15,7 +15,7 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-sqlite3 v1.14.8
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/qri-io/jsonschema v0.2.0
+	github.com/qri-io/jsonschema v0.2.1
 	github.com/rivo/tview v0.0.0-20210904173154-2f13f81dcb15
 	github.com/stretchr/testify v1.7.0
 	github.com/strongo/random v0.0.0-20201120164511-f20cfe28165d
