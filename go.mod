@@ -6,7 +6,7 @@ require (
 	github.com/datatug/sql2csv v0.0.0-20200927071952-a7fb986d1ec2
 	github.com/denisenkom/go-mssqldb v0.9.0
 	github.com/fatih/color v1.10.0 // indirect
-	github.com/gdamore/tcell/v2 v2.4.1-0.20210904044819-ae5116d72813
+	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/google/uuid v1.3.0
 	github.com/gosuri/uitable v0.0.4
@@ -16,7 +16,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.8
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
-	github.com/rivo/tview v0.0.0-20210904173154-2f13f81dcb15
+	github.com/rivo/tview v0.0.0-20210909154944-f7430b878d17
 	github.com/stretchr/testify v1.7.0
 	github.com/strongo/random v0.0.0-20201120164511-f20cfe28165d
 	github.com/strongo/validation v0.0.0-20210908182457-7acc8bdbeffd
