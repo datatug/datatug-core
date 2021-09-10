@@ -31,6 +31,8 @@ github.com/gdamore/tcell/v2 v2.1.0 h1:UnSmozHgBkQi2PGsFr+rpdXuAPRRucMegpQp3Z3kDr
 github.com/gdamore/tcell/v2 v2.1.0/go.mod h1:vSVL/GV5mCSlPC6thFP5kfOFdM9MGZcalipmpTxTgQA=
 github.com/gdamore/tcell/v2 v2.4.1-0.20210904044819-ae5116d72813 h1:uqlt4EHPdtAAXKBq6OKc0auHsQP5zfhdHo/BYe6hz2Q=
 github.com/gdamore/tcell/v2 v2.4.1-0.20210904044819-ae5116d72813/go.mod h1:Az6Jt+M5idSED2YPGtwnfJV0kXohgdCBPmHGSYc1r04=
+github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1 h1:QqwPZCwh/k1uYqq6uXSb9TRDhTkfQbO80v8zhnIe5zM=
+github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1/go.mod h1:Az6Jt+M5idSED2YPGtwnfJV0kXohgdCBPmHGSYc1r04=
 github.com/gliderlabs/ssh v0.2.2 h1:6zsha5zo/TWhRhwqCD3+EarCAgZ2yN28ipRnGPnwkI0=
 github.com/gliderlabs/ssh v0.2.2/go.mod h1:U7qILu1NlMHj9FlMhZLlkCdDnU1DBEAqr0aevW3Awn0=
 github.com/go-git/gcfg v1.5.0 h1:Q5ViNfGF8zFgyJWPqYwA7qGFoMTEiBmdlkcfRmpIMa4=
@@ -117,6 +119,8 @@ github.com/rivo/tview v0.0.0-20210217110421-8a8f78a6dd01 h1:rtCzDXdaqhiRakJsz0bU
 github.com/rivo/tview v0.0.0-20210217110421-8a8f78a6dd01/go.mod h1:n2q/ydglZJ1kqxiNrnYO+FaX1H14vA0wKyIo953QakU=
 github.com/rivo/tview v0.0.0-20210904173154-2f13f81dcb15 h1:p35+RodnbYZDDXbuISWCm3WPo/lA/qQMSSA0+J+Xd98=
 github.com/rivo/tview v0.0.0-20210904173154-2f13f81dcb15/go.mod h1:NpihEwB0BMEMry10psTJveTy9b5l3GMVwBuVpKR3Jo0=
+github.com/rivo/tview v0.0.0-20210909154944-f7430b878d17 h1:Hvt6NxqL7PhMn3SpabVqp8bFkf8xR3tzXYbMFF0z0DI=
+github.com/rivo/tview v0.0.0-20210909154944-f7430b878d17/go.mod h1:WIfMkQNY+oq/mWwtsjOYHIZBuwthioY2srOmljJkTnk=
 github.com/rivo/uniseg v0.1.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.2.0 h1:S1pD9weZBuJdFmowNwbpi7BJ8TNftyUImj/0WQi72jY=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
