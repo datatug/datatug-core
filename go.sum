@@ -127,6 +127,8 @@ github.com/rivo/tview v0.0.0-20210909154944-f7430b878d17 h1:Hvt6NxqL7PhMn3SpabVq
 github.com/rivo/tview v0.0.0-20210909154944-f7430b878d17/go.mod h1:WIfMkQNY+oq/mWwtsjOYHIZBuwthioY2srOmljJkTnk=
 github.com/rivo/tview v0.0.0-20211001102648-5508f4b00266 h1:UrmGSzDIp4gfkDuMLdXk1Tx4FjS8GTWrWJjHfnS6GmY=
 github.com/rivo/tview v0.0.0-20211001102648-5508f4b00266/go.mod h1:WIfMkQNY+oq/mWwtsjOYHIZBuwthioY2srOmljJkTnk=
+github.com/rivo/tview v0.0.0-20211027140524-e0e4bba1c33f h1:oTMOaDsrLfHJuxuf7ZURICSn7d09zkKYfO7y41SVigA=
+github.com/rivo/tview v0.0.0-20211027140524-e0e4bba1c33f/go.mod h1:WIfMkQNY+oq/mWwtsjOYHIZBuwthioY2srOmljJkTnk=
 github.com/rivo/uniseg v0.1.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.2.0 h1:S1pD9weZBuJdFmowNwbpi7BJ8TNftyUImj/0WQi72jY=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
