@@ -16,9 +16,7 @@ func TestProjectItemRef_Validate(t *testing.T) {
 		}
 	})
 	t.Run("must_return_error", func(t *testing.T) {
-		v := ProjectItemRef{
-
-		}
+		v := ProjectItemRef{}
 		if err := v.Validate(); err == nil {
 			t.Error("Expected to get an error for validation of empty ProjectItemRef")
 		}
