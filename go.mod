@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/datatug/sql2csv v0.0.0-20200927071952-a7fb986d1ec2
-	github.com/denisenkom/go-mssqldb v0.11.0
+	github.com/denisenkom/go-mssqldb v0.12.0
 	github.com/fatih/color v1.10.0 // indirect
 	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1
 	github.com/go-git/go-git/v5 v5.4.2
