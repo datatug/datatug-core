@@ -6,7 +6,7 @@ require (
 	github.com/datatug/sql2csv v0.0.0-20200927071952-a7fb986d1ec2
 	github.com/denisenkom/go-mssqldb v0.12.0
 	github.com/fatih/color v1.10.0 // indirect
-	github.com/gdamore/tcell/v2 v2.5.0
+	github.com/gdamore/tcell/v2 v2.5.1
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/google/uuid v1.3.0
 	github.com/gosuri/uitable v0.0.4
