@@ -9,7 +9,6 @@ import (
 	"github.com/datatug/datatug/packages/parallel"
 	"github.com/datatug/datatug/packages/schemer"
 	"github.com/datatug/datatug/packages/schemer/mssql"
-	"github.com/datatug/datatug/packages/schemer/sqlite"
 	"github.com/datatug/datatug/packages/slice"
 	"github.com/datatug/datatug/packages/storage"
 	"github.com/strongo/random"
@@ -261,8 +260,9 @@ func scanDbCatalog(server models.ServerReference, connectionParams dbconnection.
 	switch server.Driver {
 	case "sqlserver":
 		scanner = schemer.NewScanner(mssql.NewSchemaProvider())
-	case "sqlite3":
-		scanner = schemer.NewScanner(sqlite.NewSchemaProvider())
+	// TODO: Disabled until figured out how to exclude it from Google Appengine Build
+	//case "sqlite3":
+	//	scanner = schemer.NewScanner(sqlite.NewSchemaProvider())
 	default:
 		return nil, fmt.Errorf("unsupported DB driver: %v", err)
 	}
