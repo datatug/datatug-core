@@ -21,5 +21,5 @@ require (
 	github.com/strongo/random v0.0.0-20201120164511-f20cfe28165d
 	github.com/strongo/validation v0.0.0-20210908182457-7acc8bdbeffd
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
-	gopkg.in/yaml.v3 v3.0.0
+	gopkg.in/yaml.v3 v3.0.1
 )
