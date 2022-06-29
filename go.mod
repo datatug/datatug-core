@@ -17,7 +17,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/rivo/tview v0.0.0-20220307222120-9994674d60a8
-	github.com/stretchr/testify v1.7.5
+	github.com/stretchr/testify v1.8.0
 	github.com/strongo/random v0.0.0-20201120164511-f20cfe28165d
 	github.com/strongo/validation v0.0.0-20210908182457-7acc8bdbeffd
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
