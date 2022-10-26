@@ -13,7 +13,7 @@ require (
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
-	github.com/mattn/go-sqlite3 v1.14.15
+	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/rivo/tview v0.0.0-20220307222120-9994674d60a8
