@@ -1,6 +1,6 @@
 module github.com/datatug/datatug
 
-go 1.16
+go 1.19
 
 require (
 	github.com/datatug/sql2csv v0.0.0-20200927071952-a7fb986d1ec2
