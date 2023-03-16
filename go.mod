@@ -7,7 +7,7 @@ require (
 	github.com/denisenkom/go-mssqldb v0.12.3
 	github.com/fatih/color v1.10.0 // indirect
 	github.com/gdamore/tcell/v2 v2.6.0
-	github.com/go-git/go-git/v5 v5.6.0
+	github.com/go-git/go-git/v5 v5.6.1
 	github.com/google/uuid v1.3.0
 	github.com/gosuri/uitable v0.0.4
 	github.com/jessevdk/go-flags v1.5.0
