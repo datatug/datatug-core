@@ -59,6 +59,12 @@ func (s InformationSchema) GetDatabase(name string) (database *models.DbCatalog,
 			}
 			return nil
 		},
+		func() error {
+			if err = s.getIndexes(name, sortedTables{tables: tables}); err != nil {
+				return fmt.Errorf("failed to retrive indexes metadata: %w", err)
+			}
+			return nil
+		},
 	)
 	log.Println("GetDatabase completed")
 	return

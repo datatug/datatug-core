@@ -37,7 +37,7 @@ type serveCommand struct {
 
 // Execute executes serve command
 func (v *serveCommand) Execute(_ []string) (err error) {
-	var pathsByID map[string]string
+	pathsByID := make(map[string]string)
 	if v.ProjectDir != "" {
 		if strings.Contains(v.ProjectDir, ";") {
 			return errors.New("serving multiple specified throw a command line argument is not supported yet")

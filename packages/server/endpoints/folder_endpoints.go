@@ -15,7 +15,6 @@ func createFolder(w http.ResponseWriter, r *http.Request) {
 		return api.CreateFolder(ctx, request)
 	}
 	createProjectItem(w, r, &ref, &request, saveFunc)
-	return
 }
 
 // deleteFolder handles delete query folder endpoint

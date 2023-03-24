@@ -101,6 +101,9 @@ func (v Folder) Validate() error {
 	return nil
 }
 
-func validateItemMappedByID(mapID, itemID string, item validatable) error {
-	return nil
-}
+//func validateItemMappedByID(mapID, itemID string, item validatable) error {
+//	if err := item.Validate(); err != nil {
+//		return validation.NewErrBadRecordFieldValue(mapID+"["+itemID+"]", err.Error())
+//	}
+//	return nil
+//}

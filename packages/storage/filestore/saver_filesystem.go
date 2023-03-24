@@ -3,30 +3,28 @@ package filestore
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
 	"log"
 	"os"
 	"path"
-	"sync"
 )
 
-// fileSystemSaver saves or updates DataTug project
-type fileSystemSaver struct {
-	// pathByID map[string]string
-	projFileMutex *sync.Mutex
-	projDirPath   string
-	readmeEncoder models.ReadmeEncoder
-}
-
-// newSaver creates a new project saver
-func newSaver(projDirPath string, readmeEncoder models.ReadmeEncoder) fileSystemSaver {
-	return fileSystemSaver{
-		projDirPath:   projDirPath,
-		readmeEncoder: readmeEncoder,
-		projFileMutex: new(sync.Mutex),
-	}
-}
+//// fileSystemSaver saves or updates DataTug project
+//type fileSystemSaver struct {
+//	// pathByID map[string]string
+//	projFileMutex *sync.Mutex
+//	projDirPath   string
+//	readmeEncoder models.ReadmeEncoder
+//}
+//
+//// newSaver creates a new project saver
+//func newSaver(projDirPath string, readmeEncoder models.ReadmeEncoder) fileSystemSaver {
+//	return fileSystemSaver{
+//		projDirPath:   projDirPath,
+//		readmeEncoder: readmeEncoder,
+//		projFileMutex: new(sync.Mutex),
+//	}
+//}
 
 func saveJSONFile(dirPath, fileName string, v interface{ Validate() error }) (err error) {
 	if err = v.Validate(); err != nil {

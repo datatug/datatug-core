@@ -25,8 +25,8 @@ func getConfig() (config ConfigFile, err error) {
 	var f *os.File
 	var homeDir string
 	if homeDir, err = homedir.Dir(); err != nil {
-		_ = fmt.Sprintf("Failed to get user's home dir: %v", err)
-		err = nil
+		err = fmt.Errorf("Failed to get user's home dir: %w", err)
+		return
 	}
 
 	config.Path = ".datatug.yaml"

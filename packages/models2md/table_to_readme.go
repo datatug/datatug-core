@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-var reUnquoted = regexp.MustCompile("\\w+")
+var reUnquoted = regexp.MustCompile(`\w+`)
 
 var reUpperCase = regexp.MustCompile("[A-Z]")
 

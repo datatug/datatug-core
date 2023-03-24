@@ -17,6 +17,6 @@ var started = time.Now()
 func GetAgentInfo() AgentInfo {
 	return AgentInfo{
 		Version:       DataTugAgentVersion,
-		UptimeMinutes: time.Now().Sub(started).Minutes(),
+		UptimeMinutes: time.Since(started).Minutes(),
 	}
 }

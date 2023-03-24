@@ -30,7 +30,6 @@ func TestRegisterDatatugWriteOnlyHandlers(t *testing.T) {
 			if _, err = doWork(ctx); err != nil {
 				t.Fatal(err)
 			}
-			return
 		}
 		RegisterDatatugHandlers("", httprouter.New(), RegisterAllHandlers, nil, func(r *http.Request) (context.Context, error) {
 			return r.Context(), nil

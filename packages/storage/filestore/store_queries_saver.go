@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/strongo/validation"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -46,7 +45,7 @@ func (store fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, nam
 			err = fmt.Errorf("failed to check README.md: %w", err)
 			return
 		}
-		if err = ioutil.WriteFile(readmePath, []byte(fmt.Sprintf("# %v", name)), 0666); err != nil {
+		if err = os.WriteFile(readmePath, []byte(fmt.Sprintf("# %v", name)), 0666); err != nil {
 			err = fmt.Errorf("failed to write to README.md file: %w", err)
 			return
 		}
@@ -63,7 +62,9 @@ func (store fsQueriesStore) saveQuery(folderPath string, query models.QueryDef, 
 		return fmt.Errorf("invalid query (isNew=%v): %w", isNew, err)
 	}
 	_, queryType, queryFileName, _, queryPath, err := getQueryPaths(folderPath+query.ID, store.queriesPath)
-
+	if err != nil {
+		return err
+	}
 	queryText := query.Text
 	queryType = strings.ToLower(queryType)
 	if queryType == "sql" {
@@ -77,7 +78,7 @@ func (store fsQueriesStore) saveQuery(folderPath string, query models.QueryDef, 
 	if queryType == "sql" {
 		sqlFilePath := queryPath[:len(queryPath)-len(".json")]
 
-		if err = ioutil.WriteFile(sqlFilePath, []byte(queryText), 0666); err != nil {
+		if err = os.WriteFile(sqlFilePath, []byte(queryText), 0666); err != nil {
 			return fmt.Errorf("faile to write query text to .sql file: %w", err)
 		}
 	}

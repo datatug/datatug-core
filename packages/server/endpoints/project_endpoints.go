@@ -32,7 +32,7 @@ func (ProjectAgentEndpoints) createProject(w http.ResponseWriter, r *http.Reques
 // deleteProject deletes project
 func (ProjectAgentEndpoints) deleteProject(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
-	w.Write([]byte("Deletion of a DataTug project is not implemented at agent yet."))
+	_, _ = w.Write([]byte("Deletion of a DataTug project is not implemented at agent yet."))
 }
 
 // getProjectSummary a handler to return project summary

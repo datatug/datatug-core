@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -92,11 +91,14 @@ func (store fsQueriesStore) loadQuery(dirPath string, query *models.QueryDef) er
 		return fmt.Errorf("queryID can't have .json suffix")
 	}
 	_, queryType, queryFileName, queryDir, queryPath, err := getQueryPaths(query.ID, dirPath)
+	if err != nil {
+		return fmt.Errorf("failed to get query paths: %w", err)
+	}
 	if err = readJSONFile(queryPath, true, &query); err != nil {
 		return fmt.Errorf("failed to load query definition from file: %v: %w", path.Join(queryDir, queryFileName), err)
 	}
 	if query.Text == "" && strings.HasSuffix(query.ID, "."+querySQLFileSuffix) {
-		content, err := ioutil.ReadFile(queryPath[:len(queryPath)-len("."+querySQLFileSuffix)])
+		content, err := os.ReadFile(queryPath[:len(queryPath)-len("."+querySQLFileSuffix)])
 		if err != nil {
 			return fmt.Errorf("failed to load query text from .sql file: %w", err)
 		}

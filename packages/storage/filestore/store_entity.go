@@ -16,7 +16,7 @@ type fsEntityStore struct {
 }
 
 func (store fsEntityStore) ID() string {
-	return store.ID()
+	return store.entityID
 }
 
 func newFsEntityStore(id string, fsEntitiesStore fsEntitiesStore) fsEntityStore {

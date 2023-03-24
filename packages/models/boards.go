@@ -56,14 +56,14 @@ func (v ProjBoardBrief) Validate() error {
 	return nil
 }
 
-func validateBoardBriefsMappedByID(boards map[string]*ProjBoardBrief) error { // TODO: generic
-	for id, board := range boards {
-		if err := validateItemMappedByID(id, board.ID, board); err != nil {
-			return err
-		}
-	}
-	return nil
-}
+//func validateBoardBriefsMappedByID(boards map[string]*ProjBoardBrief) error { // TODO: generic
+//	for id, board := range boards {
+//		if err := validateItemMappedByID(id, board.ID, board); err != nil {
+//			return err
+//		}
+//	}
+//	return nil
+//}
 
 // ParameterLookup holds definition for parameter lookup
 type ParameterLookup struct {

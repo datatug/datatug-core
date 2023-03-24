@@ -154,9 +154,7 @@ func (c demoCommand) getRecordsCountWorker(objName, filePath string, i int, resu
 		if err != nil {
 			return fmt.Errorf("failed to retrieve how many records in [%v]: %w", objName, err)
 		}
-		if rows.Next() {
-
-		}
+		_ = rows.Next()
 		if err := rows.Err(); err != nil {
 			return fmt.Errorf("failed to retrieve 1st row: %w", err)
 		}
@@ -223,14 +221,14 @@ func (c demoCommand) downloadChinookSQLiteFile(dbFilePaths ...string) error {
 	return err
 }
 
-func (c demoCommand) isDemoProjectExists(demoProjectPath string) (bool, error) {
-	if _, err := os.Stat(demoProjectPath); os.IsNotExist(err) {
-		return false, nil
-	} else if err != nil {
-		return false, err
-	}
-	return true, nil
-}
+//func (c demoCommand) isDemoProjectExists(demoProjectPath string) (bool, error) {
+//	if _, err := os.Stat(demoProjectPath); os.IsNotExist(err) {
+//		return false, nil
+//	} else if err != nil {
+//		return false, err
+//	}
+//	return true, nil
+//}
 
 type demoDbFile struct {
 	env   string
@@ -382,10 +380,12 @@ func (c demoCommand) updateDemoProjectDbModel(project *models.DatatugProject, ca
 	dbModel := project.DbModels.GetDbModelByID(demoDb.model)
 	if dbModel == nil {
 		dbModel := new(models.DbModel)
-		dbModel.ID = chinookDbModel
+		dbModel.ID = demoDb.model
 		project.DbModels = append(project.DbModels, dbModel)
+		dbModel.Environments = make([]*models.DbModelEnv, 0) // weird lint requires it twice
+	} else if dbModel.Environments == nil {
+		dbModel.Environments = make([]*models.DbModelEnv, 0)
 	}
-	//goland:noinspection GoNilness
 	dbModelEnv := dbModel.Environments.GetByID(demoDb.env)
 	if dbModelEnv == nil {
 		dbModelEnv = &models.DbModelEnv{

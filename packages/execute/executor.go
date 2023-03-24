@@ -94,7 +94,7 @@ func (e Executor) executeMulti(request Request) (response Response, err error) {
 	return
 }
 
-var reParameter = regexp.MustCompile("@\\w+")
+var reParameter = regexp.MustCompile(`@\w+`)
 
 func (e Executor) executeCommand(command RequestCommand) (recordset models.Recordset, err error) {
 

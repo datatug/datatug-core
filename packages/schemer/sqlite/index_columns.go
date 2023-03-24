@@ -32,7 +32,7 @@ func (v indexColumnsProvider) GetIndexColumns(_ context.Context, db *sql.DB, cat
 var _ schemer.IndexColumnsReader = (*indexColumnsReader)(nil)
 
 type indexColumnsReader struct {
-	index string
+	//index string
 	schemer.TablePropsReader
 }
 

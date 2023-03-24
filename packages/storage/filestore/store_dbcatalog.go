@@ -7,7 +7,6 @@ import (
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
 	"github.com/datatug/datatug/packages/storage"
-	"io"
 	"log"
 	"os"
 	"path"
@@ -116,14 +115,14 @@ func (store fsDbCatalogStore) saveDbCatalogJSON(dbCatalog models.DbCatalog, save
 	return nil
 }
 
-func (store fsDbCatalogStore) saveDbCatalogReadme(dbCatalog models.DbCatalog, saverCtx saveDbServerObjContext) error {
-	return saveReadme(saverCtx.dirPath, "DB catalog", func(w io.Writer) error {
-		if err := store.readmeEncoder.DbCatalogToReadme(w, saverCtx.repository, saverCtx.dbServer, dbCatalog); err != nil {
-			return fmt.Errorf("failed to write README.md for DB server: %w", err)
-		}
-		return nil
-	})
-}
+//func (store fsDbCatalogStore) saveDbCatalogReadme(dbCatalog models.DbCatalog, saverCtx saveDbServerObjContext) error {
+//	return saveReadme(saverCtx.dirPath, "DB catalog", func(w io.Writer) error {
+//		if err := store.readmeEncoder.DbCatalogToReadme(w, saverCtx.repository, saverCtx.dbServer, dbCatalog); err != nil {
+//			return fmt.Errorf("failed to write README.md for DB server: %w", err)
+//		}
+//		return nil
+//	})
+//}
 
 func (store fsDbCatalogStore) saveDbCatalogObjects(dbCatalog models.DbCatalog, saverCtx saveDbServerObjContext) error {
 	dbObjects := make(models.CatalogObjects, 0)
@@ -150,7 +149,7 @@ func (store fsDbCatalogStore) saveDbCatalogObjects(dbCatalog models.DbCatalog, s
 		if err := saveJSONFile(saverCtx.dirPath, fileName, dbObjects); err != nil {
 			return fmt.Errorf("failed to write dbCatalog objects json to file: %w", err)
 		}
-	} else {
+		//} else {
 		// TODO: delete file if exists
 	}
 	return nil
@@ -197,7 +196,7 @@ func (store fsDbCatalogStore) saveDbCatalogRefs(dbCatalog models.DbCatalog, save
 		if err := saveJSONFile(saverCtx.dirPath, fileName, dbObjects); err != nil {
 			return fmt.Errorf("failed to write dbCatalog refs json to file: %w", err)
 		}
-	} else {
+		//} else {
 		// TODO: delete file if exists
 	}
 	return nil

@@ -116,7 +116,7 @@ func executeSelectHandler(w http.ResponseWriter, r *http.Request) {
 			Type:  pType,
 			Value: pVal,
 		})
-		qpName = qpName[:i]
+		//qpName = qpName[:i]
 
 	}
 	if cols != "" {

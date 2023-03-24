@@ -46,9 +46,7 @@ func (v *initProjectCommand) Execute(_ []string) (err error) {
 	dataTugDirPath := path.Join(v.ProjectDir, "datatug")
 	var fileInfo os.FileInfo
 	if fileInfo, err = os.Stat(dataTugDirPath); err != nil {
-		if os.IsNotExist(err) {
-			err = nil
-		} else {
+		if !os.IsNotExist(err) {
 			return fmt.Errorf("failed to get info about %v: %w", dataTugDirPath, err)
 		}
 	} else if fileInfo.IsDir() {
