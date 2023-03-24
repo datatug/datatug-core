@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/slice"
 	"github.com/datatug/datatug/packages/storage"
+	"github.com/strongo/slice"
 	"log"
 	"os"
 	"path"
@@ -64,7 +64,7 @@ func loadDbCatalogsForDbServerSummary(dbServerPath string, dbsByEnv map[string][
 		}
 		catalogSummaries = append(catalogSummaries, catalogSummary)
 		for env, dbs := range dbsByEnv {
-			if slice.IndexOfString(dbs, catalogSummaries[i].ID) >= 0 {
+			if slice.Index(dbs, catalogSummaries[i].ID) >= 0 {
 				catalogSummaries[i].Environments = append(catalogSummaries[i].Environments, env)
 			} else {
 				catalogSummaries[i].Environments = []string{}

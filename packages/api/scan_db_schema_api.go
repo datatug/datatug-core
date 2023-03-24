@@ -9,9 +9,9 @@ import (
 	"github.com/datatug/datatug/packages/parallel"
 	"github.com/datatug/datatug/packages/schemer"
 	"github.com/datatug/datatug/packages/schemer/mssql"
-	"github.com/datatug/datatug/packages/slice"
 	"github.com/datatug/datatug/packages/storage"
 	"github.com/strongo/random"
+	"github.com/strongo/slice"
 	"github.com/strongo/validation"
 	"log"
 	"strings"
@@ -165,7 +165,7 @@ func updateProjectWithDbCatalog(project *models.DatatugProject, envID string, db
 				ServerReference: dbServerRef,
 				Catalogs:        []string{dbCatalog.ID},
 			})
-		} else if i := slice.IndexOfString(envDbServer.Catalogs, dbCatalog.ID); i < 0 {
+		} else if i := slice.Index(envDbServer.Catalogs, dbCatalog.ID); i < 0 {
 			envDbServer.Catalogs = append(envDbServer.Catalogs, dbCatalog.ID)
 		}
 	}

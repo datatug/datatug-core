@@ -2,7 +2,7 @@ package models
 
 import (
 	"fmt"
-	"github.com/datatug/datatug/packages/slice"
+	"github.com/strongo/slice"
 	"github.com/strongo/validation"
 	"strings"
 )
@@ -114,7 +114,7 @@ func (v EnvDbServer) Validate() error {
 		if strings.TrimSpace(catalogID) == "" {
 			return validation.NewErrRecordIsMissingRequiredField(fmt.Sprintf("catalogs[%v]", i))
 		}
-		if prevIndex := slice.IndexOfString(v.Catalogs[:i], catalogID); prevIndex >= 0 {
+		if prevIndex := slice.Index(v.Catalogs[:i], catalogID); prevIndex >= 0 {
 			return validation.NewErrBadRecordFieldValue("catalogs", fmt.Sprintf("duplicate value at indexes %v & %v: %v", prevIndex, i, catalogID))
 		}
 	}

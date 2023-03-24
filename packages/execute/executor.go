@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"github.com/datatug/datatug/packages/dbconnection"
 	"github.com/datatug/datatug/packages/models"
-	"github.com/datatug/datatug/packages/slice"
 	"github.com/google/uuid"
 	"github.com/mitchellh/go-homedir"
+	"github.com/strongo/slice"
 	"log"
 	"regexp"
 	"strconv"
@@ -181,7 +181,7 @@ func (e Executor) executeCommand(command RequestCommand) (recordset models.Recor
 		if strings.HasPrefix(err.Error(), "not enough args to execute query:") {
 			if len(parameters) > 0 {
 				for i, p := range parameters {
-					if slice.IndexOfString(parameters[:i], p) >= 0 {
+					if slice.Index(parameters[:i], p) >= 0 {
 						continue
 					}
 					args = append(args, nil)

@@ -55,7 +55,7 @@ func (store fsEntityStore) DeleteEntity(_ context.Context) (err error) {
 	//	}
 	//	shift := 0
 	//	for i, entity := range projectSummary.Entities {
-	//		if entity.ID == entityID || slice.IndexOfString(entityIds, entity.ID) < 0 {
+	//		if entity.ID == entityID || slice.Index(entityIds, entity.ID) < 0 {
 	//			shift++
 	//			continue
 	//		}

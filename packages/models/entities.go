@@ -2,7 +2,7 @@ package models
 
 import (
 	"fmt"
-	"github.com/datatug/datatug/packages/slice"
+	"github.com/strongo/slice"
 	"github.com/strongo/validation"
 	"regexp"
 	"strings"
@@ -130,7 +130,7 @@ func (v EntityField) Validate() error {
 	if v.Type == "" {
 		return validation.NewErrRequestIsMissingRequiredField("type")
 	}
-	if slice.IndexOfString(KnownTypes, v.Type) < 0 {
+	if slice.Index(KnownTypes, v.Type) < 0 {
 		return validation.NewErrBadRecordFieldValue("type", fmt.Sprintf("unknown field type: %v: expected one of: %v", v.Type, strings.Join(KnownTypes, ", ")))
 	}
 	if err := v.NamePatterns.Validate(); err != nil {
