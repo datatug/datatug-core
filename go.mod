@@ -15,9 +15,9 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/rivo/tview v0.0.0-20230320095235-84f9c0ff9de8
-	github.com/stretchr/testify v1.7.2
+	github.com/stretchr/testify v1.8.2
 	github.com/strongo/random v0.0.1
-	github.com/strongo/slice v0.0.3
+	github.com/strongo/slice v0.1.0
 	github.com/strongo/validation v0.0.1
 	gopkg.in/yaml.v3 v3.0.1
 )
