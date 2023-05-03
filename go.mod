@@ -17,7 +17,7 @@ require (
 	github.com/rivo/tview v0.0.0-20230406072732-e22ce9588bb4
 	github.com/stretchr/testify v1.8.2
 	github.com/strongo/random v0.0.1
-	github.com/strongo/slice v0.1.2
+	github.com/strongo/slice v0.1.3
 	github.com/strongo/validation v0.0.1
 	gopkg.in/yaml.v3 v3.0.1
 )
