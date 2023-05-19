@@ -18,7 +18,7 @@ require (
 	github.com/stretchr/testify v1.8.3
 	github.com/strongo/random v0.0.1
 	github.com/strongo/slice v0.1.3
-	github.com/strongo/validation v0.0.1
+	github.com/strongo/validation v0.0.5
 	gopkg.in/yaml.v3 v3.0.1
 )
 
