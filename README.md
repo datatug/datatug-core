@@ -104,6 +104,7 @@ and [`good first issue`](https://github.com/datatug/datatug/labels/good%20first%
 
 ## TODO integrations
 - [Dasel](https://github.com/TomWright/dasel) - Select, put and delete data from JSON, TOML, YAML, XML and CSV files with a single tool. Supports conversion between formats and can be used as a Go package.
+- [DbMate](https://github.com/amacneil/dbmate) - A lightweight, framework-agnostic database migration tool.
 
 ## Licensing
 
