@@ -102,6 +102,9 @@ Contributors wanted. For a start check [issues](https://github.com/datatug/datat
 tagged with [`help wanted`](https://github.com/datatug/datatug/labels/help%20wanted)
 and [`good first issue`](https://github.com/datatug/datatug/labels/good%20first%20issue).
 
+## TODO integrations
+- [Dasel](https://github.com/TomWright/dasel) - Select, put and delete data from JSON, TOML, YAML, XML and CSV files with a single tool. Supports conversion between formats and can be used as a Go package.
+
 ## Licensing
 
 Free & open source under [MIT license](./LICENSE).
