@@ -20,6 +20,7 @@ func AddDbServer(ctx context.Context, ref dto.ProjectRef, projDbServer models.Pr
 }
 
 // UpdateDbServer adds db server to project
+//
 //goland:noinspection GoUnusedExportedFunction
 func UpdateDbServer(ctx context.Context, ref dto.ProjectRef, projDbServer models.ProjDbServer) error {
 	store, err := storage.GetStore(ctx, ref.StoreID)

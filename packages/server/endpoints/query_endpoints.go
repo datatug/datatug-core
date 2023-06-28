@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-//var getQueries = api.GetQueries
+// var getQueries = api.GetQueries
 var getQuery = api.GetQuery
 
 //// GetQueries returns list of project queries

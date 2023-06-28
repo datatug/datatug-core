@@ -35,8 +35,9 @@ type tableToCompare struct {
 	dbTables   []*models.Table
 }
 
-//goland:noinspection GoUnusedExportedFunction
 // CompareDatabases compares databases
+//
+//goland:noinspection GoUnusedExportedFunction
 func CompareDatabases(dbsToCompare DatabasesToCompare) (dbDifferences models.DatabaseDifferences, err error) {
 	return dbDifferences, compareSchemas(dbsToCompare, &dbDifferences)
 }
