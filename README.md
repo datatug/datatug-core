@@ -87,6 +87,23 @@ http://datatug.app/download
 - https://github.com/denisenkom/go-mssqldb - Go language driver to connect to MS SQL Server
 - https://gihub.com/strongo/validation - helpers for requests & models validations
 
+## Sample Databases
+
+### By Database Platform
+- SQLite
+  - [Chinook Database](https://github.com/lerocha/chinook-database)
+  - [Northwind](https://github.com/jpwhite3/northwind-SQLite3)
+- MS SQL Server
+  - [Northwind](https://github.com/Microsoft/sql-server-samples/tree/master/samples/databases/northwind-pubs)
+- Oracle
+  - [Northwind](https://github.com/dshifflet/NorthwindOracle_DDL)
+
+### Northwind Database
+  - [SQLite](https://github.com/jpwhite3/northwind-SQLite3)
+  - [MS SQL Server](https://github.com/Microsoft/sql-server-samples/tree/master/samples/databases/northwind-pubs)
+  - [Oracle](https://github.com/dshifflet/NorthwindOracle_DDL)
+
+
 ## Plans for improvements
 
 - https://github.com/rivo/tview - show tables & query text
