@@ -37,6 +37,12 @@ type serveCommand struct {
 
 // Execute executes serve command
 func (v *serveCommand) Execute(_ []string) (err error) {
+	var config ConfigFile
+	config, err = getConfig()
+	if err != nil {
+		return err
+	}
+
 	pathsByID := make(map[string]string)
 	if v.ProjectDir != "" {
 		if strings.Contains(v.ProjectDir, ";") {
@@ -48,23 +54,23 @@ func (v *serveCommand) Execute(_ []string) (err error) {
 		}
 		pathsByID[projectFile.ID] = v.ProjectDir
 	} else {
-		var config ConfigFile
-		config, err = getConfig()
-		if err != nil {
-			return err
-		}
 		pathsByID = getProjPathsByID(config)
 	}
 
-	if v.Host == "" {
-		v.Host = "localhost"
-	}
+	serverConfig := getServerConfig(config)
 
+	if v.Host == "" {
+		v.Host = serverConfig.Host
+	}
+	if v.Port == 0 {
+		v.Port = serverConfig.Port
+	}
 	if v.ClientURL == "" {
 		if v.Local {
-			v.ClientURL = "http://localhost:4200" // consider choosing some unique default port
+			//goland:noinspection HttpUrlsUsage
+			v.ClientURL = fmt.Sprintf("http://%s:%d", v.Host, v.Port) // consider choosing some unique default port
 		} else {
-			v.ClientURL = fmt.Sprintf("https://datatug.app/pwa/repo/localhost:%v", v.Port)
+			v.ClientURL = fmt.Sprintf("https://datatug.app/pwa/repo/%s:%d", v.Host, v.Port)
 		}
 	}
 

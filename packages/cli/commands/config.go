@@ -11,8 +11,23 @@ import (
 
 // ConfigFile hold DataTug executable configuration for commands like `serve`
 type ConfigFile struct {
-	Path     string                   `yaml:"-"`
-	Projects map[string]ProjectConfig `yaml:"projects"`
+	Path     string                   `yaml:"-"` // TODO: Document intended use
+	Projects map[string]ProjectConfig `yaml:"projects,omitempty"`
+	Client   *ClientConfig            `yaml:"client,omitempty"`
+	Server   *ServerConfig            `yaml:"server,omitempty"`
+}
+
+type UrlConfig struct {
+	Host string `yaml:"host,omitempty"`
+	Port int    `yaml:"port,omitempty"`
+}
+
+type ClientConfig struct {
+	UrlConfig `yaml:",inline"`
+}
+
+type ServerConfig struct {
+	UrlConfig `yaml:",inline"`
 }
 
 // ProjectConfig hold project configuration, specifically path to project directory
@@ -20,6 +35,12 @@ type ProjectConfig struct {
 	Title string `yaml:"title,omitempty"`
 	Path  string `yaml:"path"`
 }
+
+const (
+	DefaultHost       = "localhost"
+	DefaultClientPort = 4200
+	DefaultServerPort = 8989
+)
 
 func getConfig() (config ConfigFile, err error) {
 	var f *os.File
@@ -48,6 +69,24 @@ func getConfig() (config ConfigFile, err error) {
 	return
 }
 
+func getServerConfig(config ConfigFile) ServerConfig {
+	if config.Server == nil {
+		config.Server = &ServerConfig{
+			UrlConfig: UrlConfig{
+				Host: DefaultHost,
+				Port: DefaultServerPort,
+			},
+		}
+	}
+	if config.Server.Host == "" {
+		config.Server.Host = DefaultHost
+	}
+	if config.Server.Port == 0 {
+		config.Server.Port = DefaultServerPort
+	}
+	return *config.Server
+}
+
 type ConfigFormat string
 
 const (
@@ -65,4 +104,17 @@ func printConfig(config ConfigFile, format ConfigFormat, w io.Writer) (err error
 		return fmt.Errorf("unsupported format: %v", format)
 	}
 	return encoder.Encode(config)
+}
+
+func printConfigSection(section interface{}, format ConfigFormat, w io.Writer) (err error) {
+	var encoder interface {
+		Encode(v interface{}) error
+	}
+	switch format {
+	case "yaml":
+		encoder = yaml.NewEncoder(w)
+	default:
+		return fmt.Errorf("unsupported format: %v", format)
+	}
+	return encoder.Encode(section)
 }
