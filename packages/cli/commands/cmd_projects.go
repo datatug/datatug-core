@@ -1,12 +1,9 @@
 package commands
 
 import (
-	"context"
 	"fmt"
-	"github.com/datatug/datatug/packages/storage"
-	"github.com/datatug/datatug/packages/storage/filestore"
 	"log"
-	"os"
+	"strings"
 )
 
 func init() {
@@ -29,6 +26,9 @@ func init() {
 }
 
 type projectsCommand struct {
+	//Format []string `short:"f" long:"format" description:"Output format, default CSV"`
+	All  []bool   `short:"a" long:"all" description:"Output all fields"`
+	List []string `short:"f" long:"fields" description:"Comma separate list of fields to output, default is 'id'. Possible values: id, path, title"`
 }
 
 func getProjPathsByID(config ConfigFile) (pathsByID map[string]string) {
@@ -44,30 +44,33 @@ func (v *projectsCommand) Execute(_ []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get config: %w", err)
 	}
-	if err = printConfig(config, os.Stdout); err != nil {
-		return err
+	if len(v.List) == 0 {
+		if len(v.All) == 1 {
+			v.List = []string{"id", "path", "title"}
+		} else {
+			v.List = []string{"id"}
+		}
 	}
-	pathsByID := getProjPathsByID(config)
-	if storage.Current, err = filestore.NewStore("file_system", pathsByID); err != nil {
-		return err
+	fields := make([]string, 0, len(v.List))
+	for _, field := range v.List {
+		fields = append(fields, strings.Split(field, ",")...)
 	}
-	var dal storage.Store
-	if dal, err = storage.NewDatatugStore(""); err != nil {
-		return err
+
+	for id, project := range config.Projects {
+		line := make([]string, 0, len(v.List))
+		for _, field := range fields {
+			switch field {
+			case "id":
+				line = append(line, id)
+			case "path":
+				line = append(line, project.Path)
+			case "title":
+				line = append(line, project.Title)
+			default:
+				return fmt.Errorf("unsupported field: %v", field)
+			}
+		}
+		fmt.Println(strings.Join(line, ","))
 	}
-	projects, err := dal.GetProjects(context.Background())
-	if err != nil {
-		fmt.Println("Failed to load projects: ", err)
-	}
-	for _, p := range projects {
-		fmt.Printf("ID=%v, Name: %v\n", p.ID, p.Title)
-	}
-	//for _, p := range config.Stores {
-	//	if p.Name == "" {
-	//		fmt.Println(p.Path)
-	//	} else {
-	//		fmt.Println(p.Path, ":", p.Name)
-	//	}
-	//}
 	return nil
 }

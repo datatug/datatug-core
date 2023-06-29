@@ -48,10 +48,21 @@ func getConfig() (config ConfigFile, err error) {
 	return
 }
 
-func printConfig(config ConfigFile, w io.Writer) (err error) {
-	encoder := yaml.NewEncoder(w)
-	if err = encoder.Encode(config); err != nil {
-		return
+type ConfigFormat string
+
+const (
+	ConfigFormatYaml ConfigFormat = "yaml"
+)
+
+func printConfig(config ConfigFile, format ConfigFormat, w io.Writer) (err error) {
+	var encoder interface {
+		Encode(v interface{}) error
 	}
-	return
+	switch format {
+	case "yaml":
+		encoder = yaml.NewEncoder(w)
+	default:
+		return fmt.Errorf("unsupported format: %v", format)
+	}
+	return encoder.Encode(config)
 }
