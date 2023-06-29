@@ -36,6 +36,7 @@ type ServerConfig struct {
 
 // ProjectConfig hold project configuration, specifically path to project directory
 type ProjectConfig struct {
+	ID    string `yaml:"-"`
 	Title string `yaml:"title,omitempty"`
 	Path  string `yaml:"path"`
 }
@@ -63,6 +64,10 @@ func GetSettings() (settings Settings, err error) {
 	decoder := yaml.NewDecoder(f)
 	if err = decoder.Decode(&settings); err != nil {
 		return
+	}
+	for id, project := range settings.Projects {
+		project.ID = id
+		settings.Projects[id] = project
 	}
 	setDefault(&settings)
 	return
