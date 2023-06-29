@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"github.com/datatug/datatug/packages/cli/config"
 	"log"
 	"os"
 )
@@ -21,73 +22,17 @@ func init() {
 	}
 }
 
+// configCommand prints whole DataTug config
 type configCommand struct {
 }
 
 func (v *configCommand) Execute(_ []string) error {
-	config, err := getConfig()
+	settings, err := config.GetSettings()
 	if err != nil {
 		return fmt.Errorf("failed to get config: %w", err)
 	}
-	if err = printConfig(config, ConfigFormatYaml, os.Stdout); err != nil {
+	if err = config.PrintSettings(settings, config.FormatYaml, os.Stdout); err != nil {
 		return err
 	}
 	return nil
-}
-
-type urlConfigCommand struct {
-	Host string `short:"h" long:"host" description:"Host name"`
-	Port int    `short:"o" long:"port" description:"Port number"`
-}
-
-func (v *urlConfigCommand) execute(urlConfig *UrlConfig) (changed bool) {
-	if v.Host != "" {
-		urlConfig.Host = v.Host
-		changed = true
-	}
-	if v.Port != 0 {
-		urlConfig.Port = v.Port
-		changed = true
-	}
-	return changed
-}
-
-type configServerCommand struct {
-	urlConfigCommand
-}
-
-func (v *configServerCommand) Execute(_ []string) error {
-	config, err := getConfig()
-	if err != nil {
-		return fmt.Errorf("failed to get config: %w", err)
-	}
-	if config.Server == nil {
-		config.Server = &ServerConfig{}
-	}
-	if changed := v.execute(&config.Server.UrlConfig); changed {
-		if err = saveConfig(config); err != nil {
-			return fmt.Errorf("failed to save config: %w", err)
-		}
-	}
-	return printConfigSection(config, ConfigFormatYaml, os.Stdout)
-}
-
-type configClientCommand struct {
-	urlConfigCommand
-}
-
-func (v *configClientCommand) Execute(_ []string) error {
-	config, err := getConfig()
-	if err != nil {
-		return fmt.Errorf("failed to get config: %w", err)
-	}
-	if config.Client == nil {
-		config.Client = &ClientConfig{}
-	}
-	if changed := v.execute(&config.Client.UrlConfig); changed {
-		if err = saveConfig(config); err != nil {
-			return fmt.Errorf("failed to save config: %w", err)
-		}
-	}
-	return printConfigSection(config, ConfigFormatYaml, os.Stdout)
 }

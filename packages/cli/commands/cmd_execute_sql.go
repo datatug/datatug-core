@@ -17,16 +17,16 @@ import (
 )
 
 func init() {
-	_, err := Parser.AddCommand("execute",
+	_, err := Parser.AddCommand("updateUrlConfig",
 		"Executes query or a command",
-		"The `execute` command executes command or query. Like an SQL query or an SQL stored procedure.",
+		"The `updateUrlConfig` command executes command or query. Like an SQL query or an SQL stored procedure.",
 		&executeSQLCommand{})
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-// executeSQLCommand defines parameters for execute SQL command
+// executeSQLCommand defines parameters for updateUrlConfig SQL command
 type executeSQLCommand struct {
 	Driver       string `short:"D" long:"driver" required:"true"`
 	Host         string `short:"h" long:"host" required:"true" default:"localhost"`
@@ -92,7 +92,7 @@ func (v *executeSQLCommand) Execute(args []string) error {
 
 	var rows *sql.Rows
 	if rows, err = db.Query(v.CommandText); err != nil {
-		log.Printf("Failed to execute %v: %v", v.CommandText, err)
+		log.Printf("Failed to updateUrlConfig %v: %v", v.CommandText, err)
 		return err
 	}
 	defer func() {

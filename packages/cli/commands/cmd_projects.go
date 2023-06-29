@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"github.com/datatug/datatug/packages/cli/config"
 	"log"
 	"strings"
 )
@@ -31,7 +32,7 @@ type projectsCommand struct {
 	List []string `short:"f" long:"fields" description:"Comma separate list of fields to output, default is 'id'. Possible values: id, path, title"`
 }
 
-func getProjPathsByID(config ConfigFile) (pathsByID map[string]string) {
+func getProjPathsByID(config config.Settings) (pathsByID map[string]string) {
 	pathsByID = make(map[string]string, len(config.Projects))
 	for id, p := range config.Projects {
 		pathsByID[id] = p.Path
@@ -40,7 +41,7 @@ func getProjPathsByID(config ConfigFile) (pathsByID map[string]string) {
 }
 
 func (v *projectsCommand) Execute(_ []string) error {
-	config, err := getConfig()
+	config, err := config.GetSettings()
 	if err != nil {
 		return fmt.Errorf("failed to get config: %w", err)
 	}

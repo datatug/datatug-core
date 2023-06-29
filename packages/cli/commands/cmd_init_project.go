@@ -62,7 +62,7 @@ func (v *initProjectCommand) Execute(_ []string) (err error) {
 	//	}
 	//}
 	//
-	//connString := execute.NewConnectionString(v.Host, v.User, v.Password, v.Database, port)
+	//connString := updateUrlConfig.NewConnectionString(v.Host, v.User, v.Password, v.Database, port)
 	//
 	//var db *sql.DB
 	//

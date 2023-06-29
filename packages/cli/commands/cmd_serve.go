@@ -3,6 +3,7 @@ package commands
 import (
 	"errors"
 	"fmt"
+	config2 "github.com/datatug/datatug/packages/cli/config"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/server"
 	"github.com/datatug/datatug/packages/storage/filestore"
@@ -37,8 +38,8 @@ type serveCommand struct {
 
 // Execute executes serve command
 func (v *serveCommand) Execute(_ []string) (err error) {
-	var config ConfigFile
-	config, err = getConfig()
+	var config config2.Settings
+	config, err = config2.GetSettings()
 	if err != nil {
 		return err
 	}
@@ -57,7 +58,7 @@ func (v *serveCommand) Execute(_ []string) (err error) {
 		pathsByID = getProjPathsByID(config)
 	}
 
-	serverConfig := getServerConfig(config)
+	serverConfig := config.Server
 
 	if v.Host == "" {
 		v.Host = serverConfig.Host

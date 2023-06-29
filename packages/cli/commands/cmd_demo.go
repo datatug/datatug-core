@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/datatug/datatug/packages/api"
+	config2 "github.com/datatug/datatug/packages/cli/config"
 	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
@@ -257,7 +258,7 @@ func (c demoCommand) createOrUpdateDemoProject(demoProjectPath string, demoDbFil
 
 func (c demoCommand) addDemoProjectToDatatugConfig(datatugUserDir, demoProjectPath string) error {
 	log.Printf("Adding demo project to DataTug config into %v...", datatugUserDir)
-	config, err := getConfig()
+	config, err := config2.GetSettings()
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return fmt.Errorf("failed to read datatug config: %w", err)
@@ -271,7 +272,7 @@ func (c demoCommand) addDemoProjectToDatatugConfig(datatugUserDir, demoProjectPa
 	if !ok {
 		demoProjConfig.Path = demoProjectPath
 		if config.Projects == nil {
-			config.Projects = make(map[string]ProjectConfig, 1)
+			config.Projects = make(map[string]config2.ProjectConfig, 1)
 		}
 		config.Projects[demoProjectAlias] = demoProjConfig
 		if err = saveConfig(config); err != nil {

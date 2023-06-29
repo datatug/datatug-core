@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "embed"
+	"fmt"
 	"github.com/datatug/datatug/packages/cli/commands"
 	_ "github.com/datatug/datatug/packages/cli/console"
 	_ "github.com/denisenkom/go-mssqldb"
@@ -19,6 +20,7 @@ func main() {
 			}
 			os.Exit(1)
 		default:
+			_, _ = fmt.Fprintf(os.Stderr, "failed to execute command: %s", err)
 			os.Exit(1)
 		}
 	}
