@@ -13,36 +13,36 @@ func NewProjectScreen(app *tview.Application, project config.ProjectConfig) tvie
 	screen := new(homeScreen)
 
 	menu := tview.NewList().
-		AddItem("Queries", "", 'q', nil).
-		AddItem("Environments", "", 'e', nil)
+		AddItem("Dashboards", "", 'D', nil).
+		AddItem("Environments", "", 'E', nil).
+		AddItem("Queries", "", 'Q', nil).
+		AddItem("Web UI", "", 'W', nil).
+		AddItem("Back", "", '<', nil)
 
 	menu.SetBorderPadding(0, 0, 1, 1)
 
 	//sideBar := NewProjectsMenu()
 
-	header := NewHeaderPanel(project.ID)
+	header := newHeaderPanel(app, project.ID)
 
 	footer := NewFooterPanel()
 
 	grid := tview.NewGrid().
 		SetRows(1, 0, 1).
-		SetColumns(20, 0).
+		SetColumns(20, 0, 20).
 		SetBorders(true).
 		AddItem(header, 0, 0, 1, 3, 0, 0, false).
 		AddItem(footer, 2, 0, 1, 3, 0, 0, false)
 
-	projects, err := NewProjectsList(app)
-	if err != nil {
-		panic(err)
-	}
+	main := tview.NewTextView().SetTextAlign(tview.AlignCenter).SetText("Main content")
 
 	// Layout for screens narrower than 100 cells (menu and sidebar are hidden).
 	grid.AddItem(menu, 0, 0, 0, 0, 0, 0, false).
-		AddItem(projects, 1, 0, 1, 3, 0, 0, false)
+		AddItem(main, 1, 0, 1, 3, 0, 0, false)
 
 	// Layout for screens wider than 100 cells.
 	grid.AddItem(menu, 1, 0, 1, 1, 0, 100, false).
-		AddItem(projects, 1, 1, 1, 1, 0, 100, false)
+		AddItem(main, 1, 1, 1, 1, 0, 100, false)
 
 	screen.Primitive = grid
 	return screen

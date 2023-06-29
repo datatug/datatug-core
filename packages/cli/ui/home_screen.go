@@ -8,14 +8,14 @@ func NewHomeScreen(app *tview.Application) tview.Primitive {
 	screen := new(homeScreen)
 
 	menu := tview.NewList().
-		AddItem("Projects", "", 'p', nil).
-		AddItem("Settings", "", 's', nil)
+		AddItem("Projects", "", 'P', nil).
+		AddItem("Settings", "", 'S', nil)
 
 	menu.SetBorderPadding(0, 0, 1, 1)
 
 	sideBar := NewProjectsMenu()
 
-	header := NewHeaderPanel("")
+	header := newHeaderPanel(app, "")
 
 	footer := NewFooterPanel()
 
