@@ -6,11 +6,11 @@ import (
 )
 
 type projectScreen struct {
-	*tview.Grid
+	tview.Primitive
 }
 
 func NewProjectScreen(app *tview.Application, project config.ProjectConfig) tview.Primitive {
-	screen := new(homeScreen)
+	screen := new(projectScreen)
 
 	menu := tview.NewList().
 		AddItem("Dashboards", "", 'D', nil).
