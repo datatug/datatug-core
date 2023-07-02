@@ -1,18 +1,21 @@
 package ui
 
-import "github.com/rivo/tview"
+import (
+	"github.com/datatug/datatug/packages/cli/tapp"
+	"github.com/rivo/tview"
+)
 
-func NewProjectsMenu() (menu tview.Primitive) {
-	list := tview.NewList().
+func newProjectsMenu(tui *tapp.TUI) *projectsMenu {
+	list := tview.NewList().SetWrapAround(false).
 		AddItem("Add", "", 'A', nil).
 		AddItem("Delete", "", 'D', nil)
-	list.SetBorderPadding(0, 0, 1, 1)
-	menu = &projectsMenu{
-		Primitive: list,
+	defaultListStyle(list)
+	menu := &projectsMenu{
+		PanelBase: tapp.NewPanelBase(tui, list, list.Box),
 	}
 	return menu
 }
 
 type projectsMenu struct {
-	tview.Primitive
+	tapp.PanelBase
 }

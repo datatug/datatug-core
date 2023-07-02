@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/datatug/datatug/packages/cli/tapp"
 	"github.com/datatug/datatug/packages/cli/ui"
 	"github.com/rivo/tview"
 )
@@ -18,8 +19,8 @@ type uiCommand struct {
 func (v *uiCommand) Execute(_ []string) error {
 
 	app := tview.NewApplication().EnableMouse(true)
-	homeScreen := ui.NewHomeScreen(app)
+	tui := tapp.NewTUI(app)
+	_ = ui.NewHomeScreen(tui)
 
-	return app.SetRoot(homeScreen, true).
-		Run()
+	return app.Run()
 }

@@ -1,56 +1,65 @@
 package ui
 
 import (
-	"github.com/datatug/datatug/packages/cli/config"
 	"github.com/datatug/datatug/packages/cli/tapp"
 	"github.com/rivo/tview"
 )
 
-type projectScreen struct {
-	tapp.ScreenBase
-}
+func newProjectsScreen(tui *tapp.TUI) tapp.Screen {
 
-func NewProjectScreen(tui *tapp.TUI, project config.ProjectConfig) tapp.Screen {
-
-	menu := newProjectMenu(tui)
-
+	header := newHeaderPanel(tui, "")
+	menu := newHomeMenu(tui, projectsRootScreen)
 	sideBar := newProjectsMenu(tui)
-
-	header := newHeaderPanel(tui, project.ID)
-
 	footer := NewFooterPanel()
 
 	grid := tview.NewGrid().
 		SetRows(1, 0, 1).
 		SetColumns(20, 0, 20).
+		SetBorders(false).
 		AddItem(header, 0, 0, 1, 3, 0, 0, false).
-		AddItem(footer, 2, 0, 1, 3, 0, 0, false).
-		AddItem(sideBar, 1, 0, 1, 1, 0, 0, false)
+		AddItem(footer, 2, 0, 1, 3, 0, 0, false)
 
-	main := newProjectPanel(tui, project)
+	projectsPanel, err := newProjectsPanel(tui)
+	if err != nil {
+		panic(err)
+	}
 
 	// Layout for screens narrower than 100 cells (menu and sidebar are hidden).
 	grid.
 		AddItem(menu, 0, 0, 0, 0, 0, 0, false).
-		AddItem(main, 1, 0, 1, 3, 0, 0, false).
+		AddItem(projectsPanel, 1, 0, 1, 3, 0, 0, false).
 		AddItem(sideBar, 0, 0, 0, 0, 0, 0, false)
 
 	// Layout for screens wider than 100 cells.
-	grid.AddItem(menu, 1, 0, 1, 1, 0, 100, false).
-		AddItem(main, 1, 1, 1, 1, 0, 100, false).
+	grid.
+		AddItem(menu, 1, 0, 1, 1, 0, 100, false).
+		AddItem(projectsPanel, 1, 1, 1, 1, 0, 100, false).
 		AddItem(sideBar, 1, 2, 1, 1, 0, 100, false)
 
 	grid.SetFocusFunc(func() {
 		menu.TakeFocus()
 	})
 
-	_ = tapp.NewRow(tui.App, menu, main, sideBar)
+	_ = tapp.NewRow(tui.App,
+		menu,
+		projectsPanel,
+		sideBar,
+	)
 
-	screen := &projectScreen{
+	screen := &projectsScreen{
 		ScreenBase: tapp.NewScreenBase(tui, grid, tapp.FullScreen()),
 	}
+
+	tui.SetRootScreen(screen)
 
 	screen.TakeFocus()
 
 	return screen
+}
+
+var _ tapp.Screen = (*projectsScreen)(nil)
+
+type projectsScreen struct {
+	tapp.ScreenBase
+	row *tapp.Row
 }
