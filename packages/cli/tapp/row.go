@@ -11,13 +11,18 @@ func NewRow(app *tview.Application, cells ...Cell) *Row {
 		cells: cells,
 	}
 	for _, cell := range cells {
-		cell.Box().Focus(func(p tview.Primitive) {
+		box := cell.Box()
+		box.SetFocusFunc(func() {
+			box.SetBorderAttributes(tcell.AttrNone)
 			for i, c := range cells {
-				if c.Box() == cell.Box() {
+				if c.Box() == box {
 					row.activeCell = i
 					break
 				}
 			}
+		})
+		box.SetBlurFunc(func() {
+			box.SetBorderAttributes(tcell.AttrDim)
 		})
 	}
 	row.setKeyboardCapture()
@@ -25,7 +30,8 @@ func NewRow(app *tview.Application, cells ...Cell) *Row {
 }
 
 type Cell interface {
-	Box() tview.Primitive
+	tview.Primitive
+	Box() *tview.Box
 	TakeFocus()
 }
 

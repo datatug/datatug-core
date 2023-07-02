@@ -2,27 +2,21 @@ package ui
 
 import (
 	"github.com/datatug/datatug/packages/cli/tapp"
-	"github.com/rivo/tview"
 )
 
 func newProjectsScreen(tui *tapp.TUI) tapp.Screen {
 
 	header := newHeaderPanel(tui, "")
-	menu := newHomeMenu(tui, projectsRootScreen)
-	sideBar := newProjectsMenu(tui)
-	footer := NewFooterPanel()
 
-	grid := tview.NewGrid().
-		SetRows(1, 0, 1).
-		SetColumns(20, 0, 20).
-		SetBorders(false).
-		AddItem(header, 0, 0, 1, 3, 0, 0, false).
-		AddItem(footer, 2, 0, 1, 3, 0, 0, false)
+	grid := layoutGrid(header)
 
 	projectsPanel, err := newProjectsPanel(tui)
 	if err != nil {
 		panic(err)
 	}
+
+	menu := newHomeMenu(tui, projectsRootScreen)
+	sideBar := newProjectsMenu(tui)
 
 	// Layout for screens narrower than 100 cells (menu and sidebar are hidden).
 	grid.

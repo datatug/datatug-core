@@ -1,7 +1,6 @@
 package tapp
 
 import (
-	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -15,10 +14,11 @@ var _ Cell = (*PanelBase)(nil)
 type PanelBase struct {
 	tui *TUI
 	tview.Primitive
+	box *tview.Box
 }
 
-func (p PanelBase) Box() tview.Primitive {
-	return p.Primitive
+func (p PanelBase) Box() *tview.Box {
+	return p.box
 }
 
 func (p PanelBase) TakeFocus() {
@@ -35,11 +35,13 @@ func NewPanelBase(tui *TUI, primitive tview.Primitive, box *tview.Box) PanelBase
 	if box == nil {
 		panic("box is nil")
 	}
-	box.SetFocusFunc(func() {
-		box.SetBorderAttributes(tcell.AttrNone)
-	})
-	box.SetBlurFunc(func() {
-		box.SetBorderAttributes(tcell.AttrDim)
-	})
-	return PanelBase{tui: tui, Primitive: primitive}
+	//box.SetFocusFunc(func() {
+	//	//box.SetBorderAttributes(tcell.Attr)
+	//	box.SetBorderColor(tcell.ColorRed)
+	//})
+	//box.SetBlurFunc(func() {
+	//	box.SetBorderColor(tcell.ColorCornflowerBlue)
+	//	//box.SetBorderAttributes(tcell.AttrDim)
+	//})
+	return PanelBase{tui: tui, Primitive: primitive, box: box}
 }
