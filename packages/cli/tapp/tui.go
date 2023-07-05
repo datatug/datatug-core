@@ -22,7 +22,7 @@ func (tui *TUI) StackDepth() int {
 
 func (tui *TUI) SetRootScreen(screen Screen) {
 	tui.stack = []Screen{screen}
-	tui.App.SetRoot(screen.Window(), screen.Options().FullScreen())
+	tui.App.SetRoot(screen, screen.Options().FullScreen())
 	if err := screen.Activate(); err != nil {
 		panic(fmt.Errorf("failed to activate screen: %w", err))
 	}
@@ -30,7 +30,7 @@ func (tui *TUI) SetRootScreen(screen Screen) {
 
 func (tui *TUI) PushScreen(screen Screen) {
 	tui.stack = append(tui.stack, screen)
-	tui.App.SetRoot(screen.Window(), screen.Options().FullScreen())
+	tui.App.SetRoot(screen, screen.Options().FullScreen())
 }
 
 func (tui *TUI) PopScreen() {
@@ -39,8 +39,7 @@ func (tui *TUI) PopScreen() {
 		tui.stack = tui.stack[:len(tui.stack)-1]
 
 		currentScreen = tui.stack[len(tui.stack)-1]
-		window := currentScreen.Window()
 		options := currentScreen.Options()
-		tui.App.SetRoot(window, options.fullScreen)
+		tui.App.SetRoot(currentScreen, options.fullScreen)
 	}
 }

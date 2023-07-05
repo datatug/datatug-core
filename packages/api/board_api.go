@@ -15,7 +15,7 @@ func CreateBoard(ctx context.Context, ref dto.ProjectRef, board models.Board) (*
 	if err != nil {
 		return nil, err
 	}
-	return store.Project(ref.ProjectID).Boards().CreateBoard(ctx, board)
+	return store.GetProjectStore(ref.ProjectID).Boards().CreateBoard(ctx, board)
 }
 
 // GetBoard returns board by ID
@@ -25,7 +25,7 @@ func GetBoard(ctx context.Context, ref dto.ProjectItemRef) (*models.Board, error
 		return nil, err
 	}
 	//goland:noinspection GoNilness
-	return store.Project(ref.ProjectID).Boards().GetBoard(ctx, ref.ID)
+	return store.GetProjectStore(ref.ProjectID).Boards().GetBoard(ctx, ref.ID)
 }
 
 // DeleteBoard deletes board
@@ -35,7 +35,7 @@ func DeleteBoard(ctx context.Context, ref dto.ProjectItemRef) error {
 		return err
 	}
 	//goland:noinspection GoNilness
-	return store.Project(ref.ProjectID).Boards().DeleteBoard(ctx, ref.ID)
+	return store.GetProjectStore(ref.ProjectID).Boards().DeleteBoard(ctx, ref.ID)
 }
 
 // SaveBoard saves board
@@ -45,5 +45,5 @@ func SaveBoard(ctx context.Context, ref dto.ProjectRef, board models.Board) (*mo
 		return nil, err
 	}
 	//goland:noinspection GoNilness
-	return store.Project(ref.ProjectID).Boards().SaveBoard(ctx, board)
+	return store.GetProjectStore(ref.ProjectID).Boards().SaveBoard(ctx, board)
 }

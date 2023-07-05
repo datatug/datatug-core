@@ -17,7 +17,7 @@ func (v *datasetDefCommand) Execute([]string) error {
 	}
 	ctx := context.Background()
 	// TODO: Implement "dataset def" command
-	dataset, err := v.store.Project(v.projectID).Recordsets().Recordset(v.Dataset).LoadRecordsetDefinition(ctx)
+	dataset, err := v.store.GetProjectStore(v.projectID).Recordsets().Recordset(v.Dataset).LoadRecordsetDefinition(ctx)
 	if err != nil {
 		return err
 	}

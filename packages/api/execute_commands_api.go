@@ -24,7 +24,7 @@ func ExecuteCommands(storeID string, request execute.Request) (response execute.
 		if db, cached := dbs[key]; cached {
 			return db, err
 		}
-		envServerStore := dal.Project(request.Project).Environments().Environment(envID).Servers().Server(dbID)
+		envServerStore := dal.GetProjectStore(request.Project).Environments().Environment(envID).Servers().Server(dbID)
 		if envDb, err = envServerStore.Catalogs().Catalog(dbID).LoadEnvironmentCatalog(); err != nil {
 			return
 		}
@@ -33,7 +33,7 @@ func ExecuteCommands(storeID string, request execute.Request) (response execute.
 	}
 
 	var getCatalog = func(server models.ServerReference, catalogID string) (*models.DbCatalogSummary, error) {
-		serverStore := dal.Project(request.Project).DbServers().DbServer(server)
+		serverStore := dal.GetProjectStore(request.Project).DbServers().DbServer(server)
 		return serverStore.Catalogs().DbCatalog(catalogID).LoadDbCatalogSummary(context.Background())
 	}
 

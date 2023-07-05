@@ -10,10 +10,18 @@ import (
 
 // Settings hold DataTug executable configuration for commands like `serve`
 type Settings struct {
-	Path     string                   `yaml:"-"` // TODO: Document intended use
-	Projects map[string]ProjectConfig `yaml:"projects,omitempty"`
-	Client   *ClientConfig            `yaml:"client,omitempty"`
-	Server   *ServerConfig            `yaml:"server,omitempty"`
+	Projects []*ProjectConfig `yaml:"projects,omitempty"` // Intentionally do not use map
+	Client   *ClientConfig    `yaml:"client,omitempty"`
+	Server   *ServerConfig    `yaml:"server,omitempty"`
+}
+
+func (v Settings) GetProjectConfig(projectID string) *ProjectConfig {
+	for _, p := range v.Projects {
+		if p.ID == projectID {
+			return p
+		}
+	}
+	return nil
 }
 
 // UrlConfig holds host name and port
@@ -34,26 +42,35 @@ type ServerConfig struct {
 	UrlConfig `yaml:",inline"`
 }
 
+type StoreType string
+
+const FileStoreUrlPrefix = "file:"
+
 // ProjectConfig hold project configuration, specifically path to project directory
 type ProjectConfig struct {
 	ID    string `yaml:"-"`
+	Url   string `yaml:"url"`
 	Title string `yaml:"title,omitempty"`
-	Path  string `yaml:"path"`
+}
+
+func (v ProjectConfig) Validate() error {
+	return nil
+}
+
+const ConfigFileName = ".datatug.yaml"
+
+func GetConfigFilePath() string {
+	configFilePath, err := homedir.Dir()
+	if err != nil {
+		panic(fmt.Errorf("failed to get user's home dir: %w", err))
+	}
+	return path.Join(configFilePath, ConfigFileName)
 }
 
 func GetSettings() (settings Settings, err error) {
+	configFilePath := GetConfigFilePath()
 	var f *os.File
-	var homeDir string
-	if homeDir, err = homedir.Dir(); err != nil {
-		err = fmt.Errorf("Failed to get user's home dir: %w", err)
-		return
-	}
-
-	settings.Path = ".datatug.yaml"
-	if homeDir != "" {
-		settings.Path = path.Join(homeDir, settings.Path)
-	}
-	if f, err = os.Open(settings.Path); err != nil {
+	if f, err = os.Open(configFilePath); err != nil {
 		return
 	}
 	defer func() {
@@ -64,10 +81,6 @@ func GetSettings() (settings Settings, err error) {
 	decoder := yaml.NewDecoder(f)
 	if err = decoder.Decode(&settings); err != nil {
 		return
-	}
-	for id, project := range settings.Projects {
-		project.ID = id
-		settings.Projects[id] = project
 	}
 	setDefault(&settings)
 	return

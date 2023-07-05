@@ -19,8 +19,7 @@ func newHomeMenu(tui *tapp.TUI, active rootScreen) (menu *homeMenu) {
 			tui.SetRootScreen(screen)
 		}
 	}
-
-	list := tview.NewList().SetWrapAround(false).
+	list := menuList().
 		AddItem("Projects", "", 'P', newRootScreen(newProjectsScreen)).
 		AddItem("Settings", "", 'S', newRootScreen(NewSettingsScreen))
 	list.SetCurrentItem(int(active))

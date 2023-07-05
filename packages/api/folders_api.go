@@ -18,7 +18,7 @@ func CreateFolder(ctx context.Context, request dto.CreateFolder) (folder *models
 		return nil, err
 	}
 	//goland:noinspection GoNilness
-	project := store.Project(request.ProjectID)
+	project := store.GetProjectStore(request.ProjectID)
 	createFolderRequest := storage.CreateFolderRequest{
 		Name: request.Name,
 		Path: request.Path,
@@ -37,6 +37,6 @@ func DeleteFolder(ctx context.Context, ref dto.ProjectItemRef) error {
 		return err
 	}
 	//goland:noinspection GoNilness
-	project := store.Project(ref.ProjectID)
+	project := store.GetProjectStore(ref.ProjectID)
 	return project.Folders().DeleteFolder(ctx, ref.ID)
 }

@@ -34,8 +34,8 @@ type projectsCommand struct {
 
 func getProjPathsByID(config config.Settings) (pathsByID map[string]string) {
 	pathsByID = make(map[string]string, len(config.Projects))
-	for id, p := range config.Projects {
-		pathsByID[id] = p.Path
+	for _, p := range config.Projects {
+		pathsByID[p.ID] = p.Url
 	}
 	return
 }
@@ -57,14 +57,14 @@ func (v *projectsCommand) Execute(_ []string) error {
 		fields = append(fields, strings.Split(field, ",")...)
 	}
 
-	for id, project := range config.Projects {
+	for _, project := range config.Projects {
 		line := make([]string, 0, len(v.List))
 		for _, field := range fields {
 			switch field {
 			case "id":
-				line = append(line, id)
-			case "path":
-				line = append(line, project.Path)
+				line = append(line, project.ID)
+			case "url":
+				line = append(line, project.Url)
 			case "title":
 				line = append(line, project.Title)
 			default:

@@ -14,7 +14,7 @@ var _ tapp.Cell = (*projectsPanel)(nil)
 
 type projectsPanel struct {
 	tapp.PanelBase
-	projects        []config.ProjectConfig
+	projects        []*config.ProjectConfig
 	selectProjectID string
 	list            *tview.List
 }
@@ -32,26 +32,23 @@ func newProjectsPanel(tui *tapp.TUI) (*projectsPanel, error) {
 	}
 
 	openProject := func(projectConfig config.ProjectConfig) {
-		projectScreen := NewProjectScreen(tui, projectConfig)
+		projectScreen := newProjectScreen(tui, projectConfig)
 		tui.PushScreen(projectScreen)
 	}
 
-	panel.projects = make([]config.ProjectConfig, 0, len(settings.Projects))
+	panel.projects = settings.Projects
 
-	for _, p := range settings.Projects { // Map to slice
-		panel.projects = append(panel.projects, p)
-	}
 	sort.Slice(panel.projects, func(i, j int) bool {
 		return panel.projects[i].ID < panel.projects[j].ID
 	})
 
-	projectSelected := func(p config.ProjectConfig) {
+	projectSelected := func(p *config.ProjectConfig) {
 		panel.selectProjectID = p.ID
-		openProject(p)
+		openProject(*p)
 	}
 	for i, p := range panel.projects {
 		project := p
-		list.AddItem(project.ID, project.Path, rune(strconv.Itoa(i + 1)[0]), func() {
+		list.AddItem(project.ID, project.Url, rune(strconv.Itoa(i + 1)[0]), func() {
 			projectSelected(project)
 		})
 	}

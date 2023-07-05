@@ -9,13 +9,13 @@ import (
 )
 
 type projectDirCommand struct {
-	ProjectDir string `short:"d" long:"directory"  required:"false" description:"Project directory"`
+	ProjectDir string `short:"d" long:"directory"  required:"false" description:"GetProjectStore directory"`
 }
 
 // ProjectBaseCommand defines parameters for show project command
 type projectBaseCommand struct {
 	projectDirCommand
-	ProjectName string `short:"p" long:"project"  required:"false" description:"Project name"`
+	ProjectName string `short:"p" long:"project"  required:"false" description:"GetProjectStore name"`
 	projectID   string
 	store       storage.Store
 }
@@ -40,11 +40,11 @@ func (v *projectBaseCommand) initProjectCommand(o projectCommandOptions) error {
 	}
 	if v.ProjectName != "" {
 		v.projectID = strings.ToLower(v.ProjectName)
-		project, ok := config.Projects[v.projectID]
-		if !ok {
+		project := config.GetProjectConfig(v.projectID)
+		if project == nil {
 			return ErrUnknownProjectName
 		}
-		v.ProjectDir = project.Path
+		v.ProjectDir = project.Url
 	}
 	if v.ProjectDir != "" && v.projectID == "" {
 		v.store, v.projectID = filestore.NewSingleProjectStore(v.ProjectDir, v.projectID)

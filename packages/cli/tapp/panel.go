@@ -5,6 +5,8 @@ import (
 )
 
 type Panel interface {
+	tview.Primitive
+	Box() *tview.Box
 	TakeFocus()
 }
 
@@ -35,13 +37,5 @@ func NewPanelBase(tui *TUI, primitive tview.Primitive, box *tview.Box) PanelBase
 	if box == nil {
 		panic("box is nil")
 	}
-	//box.SetFocusFunc(func() {
-	//	//box.SetBorderAttributes(tcell.Attr)
-	//	box.SetBorderColor(tcell.ColorRed)
-	//})
-	//box.SetBlurFunc(func() {
-	//	box.SetBorderColor(tcell.ColorCornflowerBlue)
-	//	//box.SetBorderAttributes(tcell.AttrDim)
-	//})
 	return PanelBase{tui: tui, Primitive: primitive, box: box}
 }

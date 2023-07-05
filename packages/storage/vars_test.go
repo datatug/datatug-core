@@ -11,7 +11,7 @@ func TestCurrentIsNil(t *testing.T) {
 }
 
 func TestContextWithDatatugStore(t *testing.T) {
-	store := NoOpStore{}
+	store := NewNoOpStore()
 	ctx := ContextWithDatatugStore(context.Background(), store)
 	assert.NotNil(t, ctx)
 	storeFromContext, err := StoreFromContext(ctx)

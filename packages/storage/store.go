@@ -7,8 +7,11 @@ import (
 )
 
 // Store defines interface for loading & saving DataTug projects
+// Each store can keep multiple projects.
+// Projects can be stored locally on file system or on server on some database.
 type Store interface {
-	Project(id string) ProjectStore
+	GetProjectStore(projectID string) ProjectStore
+
 	// CreateProject creates a new DataTug project
 	CreateProject(ctx context.Context, request dto.CreateProjectRequest) (summary *models.ProjectSummary, err error)
 	DeleteProject(ctx context.Context, id string) error
@@ -17,23 +20,31 @@ type Store interface {
 	GetProjects(ctx context.Context) (projectBriefs []models.ProjectBrief, err error)
 }
 
-var _ Store = (*NoOpStore)(nil)
-
-type NoOpStore struct {
+// NewNoOpStore creates a DataTug store that panics in all methods
+func NewNoOpStore() Store {
+	return noOpStore{}
 }
 
-func (n NoOpStore) CreateProject(ctx context.Context, request dto.CreateProjectRequest) (summary *models.ProjectSummary, err error) {
+// noOpStore panics in all methods
+// At the moment is used in some unit tests.
+type noOpStore struct {
+}
+
+// CreateProject - noOpStore panics in all methods
+func (n noOpStore) CreateProject(ctx context.Context, request dto.CreateProjectRequest) (summary *models.ProjectSummary, err error) {
 	panic("implement me")
 }
 
-func (n NoOpStore) GetProjects(ctx context.Context) (projectBriefs []models.ProjectBrief, err error) {
+func (n noOpStore) GetProjects(ctx context.Context) (projectBriefs []models.ProjectBrief, err error) {
 	panic("implement me")
 }
 
-func (n NoOpStore) Project(id string) ProjectStore {
+// GetProjectStore - noOpStore panics in all methods
+func (n noOpStore) GetProjectStore(id string) ProjectStore {
 	panic("implement me")
 }
 
-func (n NoOpStore) DeleteProject(ctx context.Context, id string) error {
+// DeleteProject - noOpStore panics in all methods
+func (n noOpStore) DeleteProject(ctx context.Context, id string) error {
 	panic("implement me")
 }

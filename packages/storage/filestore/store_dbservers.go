@@ -34,7 +34,7 @@ func (store fsDbServersStore) dbServer(dbServer models.ServerReference) storage.
 
 func (store fsDbServersStore) saveDbServers(ctx context.Context, dbServers models.ProjDbServers, project models.DatatugProject) (err error) {
 	if len(dbServers) == 0 {
-		log.Println("Project have no DB servers to save.")
+		log.Println("GetProjectStore have no DB servers to save.")
 		return nil
 	}
 	log.Printf("Saving %v DB servers...\n", len(project.DbServers))

@@ -21,3 +21,7 @@ func layoutGrid(header *headerPanel) *tview.Grid {
 
 	return grid
 }
+
+func menuList() *tview.List {
+	return tview.NewList().SetWrapAround(false)
+}

@@ -10,7 +10,7 @@ type ProjectStoreRef interface {
 }
 
 type ProjectStore interface {
-	ID() string
+	ProjectID() string
 	Folders() FoldersStore
 	Queries() QueriesStore
 	Boards() BoardsStore

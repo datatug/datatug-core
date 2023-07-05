@@ -40,7 +40,7 @@ func (v *renderCommand) Execute(_ []string) error {
 	}
 
 	store, _ := filestore.NewSingleProjectStore(storage.SingleProjectID, v.ProjectDir)
-	projectStore := store.Project(storage.SingleProjectID)
+	projectStore := store.GetProjectStore(storage.SingleProjectID)
 	datatugProject, err := projectStore.LoadProject(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to load project by ID=%v: %w", v.projectID, err)

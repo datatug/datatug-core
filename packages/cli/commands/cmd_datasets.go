@@ -27,7 +27,7 @@ func (v *datasetsCommand) Execute([]string) error {
 		return err
 	}
 	ctx := context.Background()
-	datasets, err := v.store.Project(v.projectID).Recordsets().LoadRecordsetDefinitions(ctx)
+	datasets, err := v.store.GetProjectStore(v.projectID).Recordsets().LoadRecordsetDefinitions(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to load datasets from [%v]: %w", v.ProjectDir, err)
 	}

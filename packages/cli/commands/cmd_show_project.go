@@ -31,7 +31,7 @@ func (v *showProjectCommand) Execute(_ []string) error {
 	if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err
 	}
-	project, err := v.store.Project(v.projectID).LoadProject(context.Background())
+	project, err := v.store.GetProjectStore(v.projectID).LoadProject(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to load project from [%v]: %w", v.ProjectDir, err)
 	}
@@ -40,7 +40,7 @@ func (v *showProjectCommand) Execute(_ []string) error {
 		return err
 	}
 	w := os.Stdout
-	_, _ = fmt.Fprintln(w, "Project: ", path.Join(wd, v.ProjectDir))
+	_, _ = fmt.Fprintln(w, "GetProjectStore: ", path.Join(wd, v.ProjectDir))
 	for _, env := range project.Environments {
 		_, _ = fmt.Fprintln(w, "\t🌎 Environment: ", env.ID)
 		for _, dbServer := range env.DbServers {

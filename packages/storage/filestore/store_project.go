@@ -24,7 +24,7 @@ func (ps fsProjectStoreRef) Project() storage.ProjectStore {
 	return ps.fsProjectStore
 }
 
-func (store fsProjectStore) ID() string {
+func (store fsProjectStore) ProjectID() string {
 	return store.projectID
 }
 

@@ -122,7 +122,7 @@ func (v *initProjectCommand) Execute(_ []string) (err error) {
 	if dal, err = storage.NewDatatugStore(""); err != nil {
 		return err
 	}
-	if err = dal.Project(projectID).SaveProject(context.Background(), datatugProject); err != nil {
+	if err = dal.GetProjectStore(projectID).SaveProject(context.Background(), datatugProject); err != nil {
 		return err
 	}
 	return err

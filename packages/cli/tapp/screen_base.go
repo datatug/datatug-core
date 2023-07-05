@@ -2,20 +2,20 @@ package tapp
 
 import "github.com/rivo/tview"
 
-var _ Screen = (*ScreenBase)(nil)
-
-func NewScreenBase(tui *TUI, window tview.Primitive, options ScreenOptions) ScreenBase {
-	return ScreenBase{Tui: tui, options: options, window: window}
+func NewScreenBase(tui *TUI, primitive tview.Primitive, options ScreenOptions) ScreenBase {
+	return ScreenBase{Tui: tui, options: options, Primitive: primitive}
 }
+
+var _ Screen = (*ScreenBase)(nil)
 
 type ScreenBase struct {
 	Tui     *TUI
 	options ScreenOptions
-	window  tview.Primitive
+	tview.Primitive
 }
 
 func (screen *ScreenBase) TakeFocus() {
-	screen.Tui.App.SetFocus(screen.window)
+	screen.Tui.App.SetFocus(screen.Primitive)
 }
 
 func (screen *ScreenBase) Options() ScreenOptions {
@@ -23,11 +23,11 @@ func (screen *ScreenBase) Options() ScreenOptions {
 }
 
 func (screen *ScreenBase) Window() tview.Primitive {
-	return screen.window
+	return screen.Primitive
 }
 
 func (screen *ScreenBase) Activate() error {
-	screen.Tui.App.SetFocus(screen.window)
+	screen.Tui.App.SetFocus(screen.Primitive)
 	return nil
 }
 

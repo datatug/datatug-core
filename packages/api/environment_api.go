@@ -21,6 +21,6 @@ func GetEnvironmentSummary(ctx context.Context, ref dto.ProjectItemRef) (*models
 		return nil, err
 	}
 	//goland:noinspection GoNilness
-	project := store.Project(ref.ProjectID)
+	project := store.GetProjectStore(ref.ProjectID)
 	return project.Environments().Environment(ref.ID).LoadEnvironmentSummary()
 }

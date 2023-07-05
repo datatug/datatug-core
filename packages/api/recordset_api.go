@@ -19,7 +19,7 @@ func GetRecordsetsSummary(ctx context.Context, ref dto2.ProjectRef) (*dto2.ProjR
 	if err != nil {
 		return nil, err
 	}
-	resordsetsStore := store.Project(ref.ProjectID).Recordsets()
+	resordsetsStore := store.GetProjectStore(ref.ProjectID).Recordsets()
 	datasetDefinitions, err := resordsetsStore.LoadRecordsetDefinitions(ctx)
 	if err != nil {
 		return nil, err
@@ -82,7 +82,7 @@ func GetDatasetDefinition(ctx context.Context, ref dto2.ProjectItemRef) (dataset
 	if err != nil {
 		return nil, err
 	}
-	recorsetStore := store.Project(ref.ProjectID).Recordsets().Recordset(ref.ID)
+	recorsetStore := store.GetProjectStore(ref.ProjectID).Recordsets().Recordset(ref.ID)
 	return recorsetStore.LoadRecordsetDefinition(ctx)
 }
 
@@ -92,7 +92,7 @@ func GetRecordset(ctx context.Context, ref dto2.ProjectItemRef) (recordset *mode
 	if err != nil {
 		return nil, err
 	}
-	recorsetStore := store.Project(ref.ProjectID).Recordsets().Recordset(ref.ID)
+	recorsetStore := store.GetProjectStore(ref.ProjectID).Recordsets().Recordset(ref.ID)
 	return recorsetStore.LoadRecordsetData(ctx, "")
 }
 

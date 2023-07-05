@@ -30,7 +30,7 @@ func GetEntity(ctx context.Context, ref dto.ProjectItemRef) (entity *models.Enti
 		return nil, err
 	}
 	//goland:noinspection GoNilness
-	project := store.Project(ref.ProjectID)
+	project := store.GetProjectStore(ref.ProjectID)
 	return project.Entities().Entity(ref.ID).LoadEntity(ctx)
 }
 
@@ -44,7 +44,7 @@ func GetAllEntities(ctx context.Context, ref dto.ProjectRef) (entity models.Enti
 		return nil, err
 	}
 	//goland:noinspection GoNilness
-	project := store.Project(ref.ProjectID)
+	project := store.GetProjectStore(ref.ProjectID)
 	return project.Entities().LoadEntities(ctx)
 }
 
@@ -58,7 +58,7 @@ func DeleteEntity(ctx context.Context, ref dto.ProjectItemRef) error {
 		return err
 	}
 	//goland:noinspection GoNilness
-	project := store.Project(ref.ProjectID)
+	project := store.GetProjectStore(ref.ProjectID)
 	return project.Entities().Entity(ref.ID).DeleteEntity(ctx)
 }
 
@@ -82,6 +82,6 @@ func SaveEntity(ctx context.Context, ref dto.ProjectRef, entity *models.Entity) 
 		return err
 	}
 	//goland:noinspection GoNilness
-	project := store.Project(ref.ProjectID)
+	project := store.GetProjectStore(ref.ProjectID)
 	return project.Entities().Entity(entity.ID).SaveEntity(ctx, entity)
 }

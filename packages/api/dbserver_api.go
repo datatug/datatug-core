@@ -15,7 +15,7 @@ func AddDbServer(ctx context.Context, ref dto.ProjectRef, projDbServer models.Pr
 		return err
 	}
 	//goland:noinspection GoNilness
-	dbServerStore := store.Project(ref.ProjectID).DbServers().DbServer(projDbServer.Server)
+	dbServerStore := store.GetProjectStore(ref.ProjectID).DbServers().DbServer(projDbServer.Server)
 	return dbServerStore.SaveDbServer(ctx, projDbServer, models.DatatugProject{})
 }
 
@@ -28,7 +28,7 @@ func UpdateDbServer(ctx context.Context, ref dto.ProjectRef, projDbServer models
 		return err
 	}
 	//goland:noinspection GoNilness
-	dbServerStore := store.Project(ref.ProjectID).DbServers().DbServer(projDbServer.Server)
+	dbServerStore := store.GetProjectStore(ref.ProjectID).DbServers().DbServer(projDbServer.Server)
 	return dbServerStore.SaveDbServer(ctx, projDbServer, models.DatatugProject{})
 }
 
@@ -39,7 +39,7 @@ func DeleteDbServer(ctx context.Context, ref dto.ProjectRef, dbServer models.Ser
 		return err
 	}
 	//goland:noinspection GoNilness
-	return store.Project(ref.ProjectID).DbServers().DbServer(dbServer).DeleteDbServer(ctx, dbServer)
+	return store.GetProjectStore(ref.ProjectID).DbServers().DbServer(dbServer).DeleteDbServer(ctx, dbServer)
 }
 
 // GetDbServerSummary returns summary on DB server
@@ -53,5 +53,5 @@ func GetDbServerSummary(ctx context.Context, ref dto.ProjectRef, dbServer models
 		return nil, err
 	}
 	//goland:noinspection GoNilness
-	return store.Project(ref.ProjectID).DbServers().DbServer(dbServer).LoadDbServerSummary(ctx, dbServer)
+	return store.GetProjectStore(ref.ProjectID).DbServers().DbServer(dbServer).LoadDbServerSummary(ctx, dbServer)
 }

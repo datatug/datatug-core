@@ -25,7 +25,7 @@ func executeCommandsHandler(w http.ResponseWriter, r *http.Request) {
 	//case "GET":
 	//	q := r.URL.ExecuteSingle()
 	//	executeRequest.ID = q.Get("id")
-	//	executeRequest.Project = q.Get("p")
+	//	executeRequest.GetProjectStore = q.Get("p")
 	//	env := q.Get("env")
 	//	db := q.Get("db")
 	//	executeRequest.Commands = append(executeRequest.Commands,

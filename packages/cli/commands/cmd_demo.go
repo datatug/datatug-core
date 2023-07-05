@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/datatug/datatug/packages/api"
-	config2 "github.com/datatug/datatug/packages/cli/config"
+	"github.com/datatug/datatug/packages/cli/config"
 	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
@@ -151,6 +151,7 @@ func (c demoCommand) getRecordsCountWorker(objName, filePath string, i int, resu
 		if err != nil {
 			return fmt.Errorf("failed to open demo SQLite db: %w", err)
 		}
+		//goland:noinspection SqlDialectInspection,SqlNoDataSourceInspection
 		rows, err := db.Query("SELECT COUNT(1) FROM " + objName)
 		if err != nil {
 			return fmt.Errorf("failed to retrieve how many records in [%v]: %w", objName, err)
@@ -257,26 +258,23 @@ func (c demoCommand) createOrUpdateDemoProject(demoProjectPath string, demoDbFil
 }
 
 func (c demoCommand) addDemoProjectToDatatugConfig(datatugUserDir, demoProjectPath string) error {
-	log.Printf("Adding demo project to DataTug config into %v...", datatugUserDir)
-	config, err := config2.GetSettings()
+	log.Printf("Adding demo project to DataTug settings into %v...", datatugUserDir)
+	settings, err := config.GetSettings()
 	if err != nil {
 		if !os.IsNotExist(err) {
-			return fmt.Errorf("failed to read datatug config: %w", err)
+			return fmt.Errorf("failed to read datatug settings: %w", err)
 		}
 	}
-	demoProjConfig, ok := config.Projects[demoProjectAlias]
-	if ok && demoProjConfig.Path != demoProjectPath {
+	demoProjConfig := settings.GetProjectConfig(demoProjectAlias)
+	if demoProjConfig != nil && demoProjConfig.Url != demoProjectPath {
 		return fmt.Errorf("demo project expected to be located at %v but is pointing to unexpected path: %v",
-			demoProjectPath, demoProjConfig.Path)
+			demoProjectPath, demoProjConfig.Url)
 	}
-	if !ok {
-		demoProjConfig.Path = demoProjectPath
-		if config.Projects == nil {
-			config.Projects = make(map[string]config2.ProjectConfig, 1)
-		}
-		config.Projects[demoProjectAlias] = demoProjConfig
-		if err = saveConfig(config); err != nil {
-			return fmt.Errorf("failed to save config: %w", err)
+	if demoProjConfig != nil {
+		demoProjConfig.Url = demoProjectPath
+		settings.Projects = append(settings.Projects, demoProjConfig)
+		if err = saveConfig(settings); err != nil {
+			return fmt.Errorf("failed to save settings: %w", err)
 		}
 	}
 	return nil
@@ -333,7 +331,7 @@ func (c demoCommand) updateDemoProject(demoProjectPath string, demoDbFiles []dem
 		return err
 	}
 	ctx := context.Background()
-	if err = dal.Project(project.ID).SaveProject(ctx, *project); err != nil {
+	if err = dal.GetProjectStore(project.ID).SaveProject(ctx, *project); err != nil {
 		return fmt.Errorf("faield to save project: %w", err)
 	}
 	return nil

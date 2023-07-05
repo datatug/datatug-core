@@ -16,7 +16,7 @@ func (store fsProjectStore) SaveProject(ctx context.Context, project models.Data
 	if err = project.Validate(); err != nil {
 		return fmt.Errorf("project validation failed: %w", err)
 	}
-	log.Println("Project is valid")
+	log.Println("GetProjectStore is valid")
 	if err = os.MkdirAll(path.Join(store.projectPath, DatatugFolder), 0777); err != nil {
 		return fmt.Errorf("failed to create datatug folder: %w", err)
 	}

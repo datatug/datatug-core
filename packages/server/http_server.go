@@ -15,25 +15,25 @@ import (
 var agentHost string
 var agentPort int
 
-type httpServer struct {
+type HttpServer struct {
 	s *http.Server
 }
 
-func NewHttpServer() httpServer {
-	return httpServer{}
+func NewHttpServer() HttpServer {
+	return HttpServer{}
 }
 
-func (s httpServer) Shutdown(ctx context.Context) error {
+func (s HttpServer) Shutdown(ctx context.Context) error {
 	return s.s.Shutdown(ctx)
 }
 
 // ServeHTTP starts HTTP server
-func (s httpServer) ServeHTTP(pathsByID map[string]string, host string, port int) error {
+func (s HttpServer) ServeHTTP(pathsByID map[string]string, host string, port int) error {
 	storage.NewDatatugStore = func(id string) (v storage.Store, err error) {
-		//if v, err = filestore.NewStore(pathsByID); err != nil {
-		//	err = fmt.Errorf("failed to create filestore for storage id=%v: %w", id, err)
-		//	return
-		//}
+		if v, err = filestore.NewStore("files", pathsByID); err != nil {
+			err = fmt.Errorf("failed to create filestore for storage id=%v: %w", id, err)
+			return
+		}
 		panic("implement me")
 	}
 
@@ -91,7 +91,7 @@ func root(writer http.ResponseWriter, _ *http.Request) {
 
 	<h2>API endpoints</h2>
 	<ul>
-		<li><a href=/project>Project</a></li>
+		<li><a href=/project>GetProjectStore</a></li>
 	</ul>
 
 	<h2>Test endpoints</h2>

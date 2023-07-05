@@ -29,13 +29,13 @@ func (v *validateCommand) Execute([]string) (err error) {
 	}
 
 	var project *models.DatatugProject
-	if project, err = v.store.Project(v.projectID).LoadProject(context.Background()); err != nil {
+	if project, err = v.store.GetProjectStore(v.projectID).LoadProject(context.Background()); err != nil {
 		return fmt.Errorf("failed to load project from [%v]: %w", v.ProjectDir, err)
 	}
 	fmt.Println("Validating loaded project...")
 	if err := project.Validate(); err != nil {
 		return err
 	}
-	fmt.Println("Project is valid.")
+	fmt.Println("GetProjectStore is valid.")
 	return nil
 }

@@ -35,7 +35,7 @@ func GetProjectSummary(ctx context.Context, ref dto.ProjectRef) (*models.Project
 		return nil, err
 	}
 	//goland:noinspection GoNilness
-	project := store.Project(ref.ProjectID)
+	project := store.GetProjectStore(ref.ProjectID)
 	projectSummary, err := project.LoadProjectSummary(ctx)
 	return &projectSummary, err
 }
@@ -62,6 +62,6 @@ func GetProjectFull(ctx context.Context, ref dto.ProjectRef) (*models.DatatugPro
 		return nil, err
 	}
 	//goland:noinspection GoNilness
-	project := store.Project(ref.ProjectID)
+	project := store.GetProjectStore(ref.ProjectID)
 	return project.LoadProject(ctx)
 }

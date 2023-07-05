@@ -15,7 +15,7 @@ import (
 //		return nil, err
 //	}
 //	//goland:noinspection GoNilness
-//	project := store.Project(ref.ProjectID)
+//	project := store.GetProjectStore(ref.ProjectID)
 //	return project.Queries().LoadQueries(ctx, folder)
 //}
 
@@ -29,7 +29,7 @@ func CreateQuery(ctx context.Context, request dto.CreateQuery) (*models.QueryDef
 		return nil, err
 	}
 	//goland:noinspection GoNilness
-	project := store.Project(request.ProjectID)
+	project := store.GetProjectStore(request.ProjectID)
 	return project.Queries().CreateQuery(ctx, request.Query)
 }
 
@@ -43,7 +43,7 @@ func UpdateQuery(ctx context.Context, request dto.UpdateQuery) (*models.QueryDef
 		return nil, err
 	}
 	//goland:noinspection GoNilness
-	project := store.Project(request.ProjectID)
+	project := store.GetProjectStore(request.ProjectID)
 	return project.Queries().UpdateQuery(ctx, request.Query)
 }
 
@@ -57,7 +57,7 @@ func DeleteQuery(ctx context.Context, ref dto.ProjectItemRef) error {
 		return err
 	}
 	//goland:noinspection GoNilness
-	project := store.Project(ref.ProjectID)
+	project := store.GetProjectStore(ref.ProjectID)
 	return project.Queries().DeleteQuery(ctx, ref.ID)
 }
 
@@ -71,6 +71,6 @@ func GetQuery(ctx context.Context, ref dto.ProjectItemRef) (query *models.QueryD
 		return nil, err
 	}
 	//goland:noinspection GoNilness
-	project := store.Project(ref.ProjectID)
+	project := store.GetProjectStore(ref.ProjectID)
 	return project.Queries().GetQuery(ctx, ref.ID)
 }

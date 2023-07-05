@@ -3,9 +3,9 @@ package tapp
 import "github.com/rivo/tview"
 
 type Screen interface {
-	Panel
+	tview.Primitive
 	Options() ScreenOptions
-	Window() tview.Primitive
+	//Window() tview.Primitive
 	Activate() error
 	Close() error
 }
