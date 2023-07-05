@@ -75,7 +75,7 @@ func (store fsDbServersStore) saveDbServersJSON(dbServersDirPath string, dbServe
 }
 
 func (store fsDbServersStore) saveDbServersReadme(dbServers models.ProjDbServers) error {
-	return nil
+	panic(fmt.Sprintf("not implemented saving of dbServers=%v", dbServers))
 }
 
 // SaveDbServer saves ServerReference

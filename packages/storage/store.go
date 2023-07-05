@@ -31,20 +31,20 @@ type noOpStore struct {
 }
 
 // CreateProject - noOpStore panics in all methods
-func (n noOpStore) CreateProject(ctx context.Context, request dto.CreateProjectRequest) (summary *models.ProjectSummary, err error) {
+func (n noOpStore) CreateProject(_ context.Context, _ dto.CreateProjectRequest) (summary *models.ProjectSummary, err error) {
 	panic("implement me")
 }
 
-func (n noOpStore) GetProjects(ctx context.Context) (projectBriefs []models.ProjectBrief, err error) {
+func (n noOpStore) GetProjects(_ context.Context) (projectBriefs []models.ProjectBrief, err error) {
 	panic("implement me")
 }
 
 // GetProjectStore - noOpStore panics in all methods
 func (n noOpStore) GetProjectStore(id string) ProjectStore {
-	panic("implement me")
+	panic("implement me, id=" + id)
 }
 
 // DeleteProject - noOpStore panics in all methods
-func (n noOpStore) DeleteProject(ctx context.Context, id string) error {
-	panic("implement me")
+func (n noOpStore) DeleteProject(_ context.Context, id string) error {
+	panic("implement me, id=" + id)
 }

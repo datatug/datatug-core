@@ -41,9 +41,9 @@ func getProjPathsByID(config config.Settings) (pathsByID map[string]string) {
 }
 
 func (v *projectsCommand) Execute(_ []string) error {
-	config, err := config.GetSettings()
+	settings, err := config.GetSettings()
 	if err != nil {
-		return fmt.Errorf("failed to get config: %w", err)
+		return fmt.Errorf("failed to get settings: %w", err)
 	}
 	if len(v.List) == 0 {
 		if len(v.All) == 1 {
@@ -57,7 +57,7 @@ func (v *projectsCommand) Execute(_ []string) error {
 		fields = append(fields, strings.Split(field, ",")...)
 	}
 
-	for _, project := range config.Projects {
+	for _, project := range settings.Projects {
 		line := make([]string, 0, len(v.List))
 		for _, field := range fields {
 			switch field {

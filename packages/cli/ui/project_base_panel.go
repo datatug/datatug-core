@@ -11,7 +11,7 @@ type projectBasePanel struct {
 	tapp.PanelBase
 }
 
-func newProjectBasePanel(tui *tapp.TUI, project config.ProjectConfig, primitive tview.Primitive, box *tview.Box) projectBasePanel {
+func newProjectBasePanel(project config.ProjectConfig, primitive tview.Primitive, box *tview.Box) projectBasePanel {
 	return projectBasePanel{
 		project:   project,
 		PanelBase: tapp.NewPanelBase(nil, primitive, box),

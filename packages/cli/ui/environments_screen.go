@@ -11,9 +11,11 @@ type environmentsScreen struct {
 
 func newEnvironmentsScreen(tui *tapp.TUI, project config.ProjectConfig) tapp.Screen {
 
-	main := newEnvironmentsPanel(tui, project)
+	main := newEnvironmentsPanel(project)
+
+	sidebar := newProjectsMenu(tui)
 
 	return &environmentsScreen{
-		ScreenBase: newProjectRootScreenBase(tui, project, ProjectScreenEnvironments, main),
+		ScreenBase: newProjectRootScreenBase(tui, project, ProjectScreenEnvironments, main, sidebar),
 	}
 }

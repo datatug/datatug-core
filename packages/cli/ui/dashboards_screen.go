@@ -10,9 +10,11 @@ type dashboardsScreen struct {
 }
 
 func newDashboardsScreen(tui *tapp.TUI, project config.ProjectConfig) tapp.Screen {
-	main := newDashboardsPanel(tui, project)
+	main := newDashboardsPanel(project)
+
+	sidebar := newDashboardsSidebar(tui)
 
 	return &dashboardsScreen{
-		ScreenBase: newProjectRootScreenBase(tui, project, ProjectScreenDashboards, main),
+		ScreenBase: newProjectRootScreenBase(tui, project, ProjectScreenDashboards, main, sidebar),
 	}
 }

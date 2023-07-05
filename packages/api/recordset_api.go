@@ -97,9 +97,9 @@ func GetRecordset(ctx context.Context, ref dto2.ProjectItemRef) (recordset *mode
 }
 
 // AddRecords adds record
-func AddRecords(projectID, datasetID, recordsetID string, _ []map[string]interface{}) error {
-	return errNotImplementedYet
-}
+//func AddRecords(projectID, datasetID, recordsetID string, _ []map[string]interface{}) error {
+//	panic(fmt.Errorf("not implemented yet: %s, %s, %s", projectID, datasetID, recordsetID))
+//}
 
 // RecordsetRequestParams is a set of common request parameters
 type RecordsetRequestParams struct {
