@@ -55,5 +55,5 @@ var _ tapp.Screen = (*projectsScreen)(nil)
 
 type projectsScreen struct {
 	tapp.ScreenBase
-	row *tapp.Row
+	//row *tapp.Row
 }

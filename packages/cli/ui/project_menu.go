@@ -30,10 +30,8 @@ func newProjectMenu(tui *tapp.TUI, project config.ProjectConfig, currentScreen P
 	switch currentScreen {
 	case ProjectScreenDashboards:
 		currentItem = 0
-		break
 	case ProjectScreenEnvironments:
 		currentItem = 1
-		break
 	}
 	if currentItem >= 0 {
 		list.SetCurrentItem(currentItem)

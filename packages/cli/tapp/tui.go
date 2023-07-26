@@ -37,8 +37,6 @@ func (tui *TUI) PopScreen() {
 	for len(tui.stack) > 1 {
 		currentScreen := tui.stack[len(tui.stack)-1]
 		tui.stack = tui.stack[:len(tui.stack)-1]
-
-		currentScreen = tui.stack[len(tui.stack)-1]
 		options := currentScreen.Options()
 		tui.App.SetRoot(currentScreen, options.fullScreen)
 	}
