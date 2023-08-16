@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/datatug/datatug/packages/api"
 	"github.com/datatug/datatug/packages/dto"
+	"github.com/sneat-co/sneat-go-core/apicore"
 	"net/http"
 )
 
@@ -26,7 +27,7 @@ var getQuery = api.GetQuery
 // getQueryHandler returns query definition
 func getQueryHandler(w http.ResponseWriter, r *http.Request) {
 	var ref dto.ProjectItemRef
-	getProjectItem(w, r, &ref, func(ctx context.Context) (responseDTO ResponseDTO, err error) {
+	getProjectItem(w, r, &ref, func(ctx context.Context) (responseDTO apicore.ResponseDTO, err error) {
 		return getQuery(ctx, ref)
 	})
 }
@@ -35,7 +36,7 @@ func getQueryHandler(w http.ResponseWriter, r *http.Request) {
 var createQuery = func(w http.ResponseWriter, r *http.Request) {
 	var ref dto.ProjectRef
 	var request dto.CreateQuery
-	saveFunc := func(ctx context.Context) (ResponseDTO, error) {
+	saveFunc := func(ctx context.Context) (apicore.ResponseDTO, error) {
 		return api.CreateQuery(ctx, request)
 	}
 	createProjectItem(w, r, &ref, &request, saveFunc)
@@ -45,7 +46,7 @@ var createQuery = func(w http.ResponseWriter, r *http.Request) {
 func updateQuery(w http.ResponseWriter, r *http.Request) {
 	var ref dto.ProjectItemRef
 	var request dto.UpdateQuery
-	saveFunc := func(ctx context.Context) (ResponseDTO, error) {
+	saveFunc := func(ctx context.Context) (apicore.ResponseDTO, error) {
 		return api.UpdateQuery(ctx, request)
 	}
 	saveProjectItem(w, r, &ref, &request, saveFunc)

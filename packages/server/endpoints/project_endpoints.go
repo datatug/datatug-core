@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/datatug/datatug/packages/api"
 	"github.com/datatug/datatug/packages/dto"
+	"github.com/sneat-co/sneat-go-core/apicore"
 	"net/http"
 )
 
@@ -18,7 +19,7 @@ func (ProjectAgentEndpoints) createProject(w http.ResponseWriter, r *http.Reques
 	request := dto.CreateProjectRequest{
 		StoreID: r.URL.Query().Get("store"),
 	}
-	var worker = func(ctx context.Context) (responseDTO ResponseDTO, err error) {
+	var worker = func(ctx context.Context) (responseDTO apicore.ResponseDTO, err error) {
 		return api.CreateProject(ctx, request)
 	}
 	verifyOptions := VerifyRequest{
@@ -38,7 +39,7 @@ func (ProjectAgentEndpoints) deleteProject(w http.ResponseWriter, r *http.Reques
 // getProjectSummary a handler to return project summary
 func getProjectSummary(w http.ResponseWriter, r *http.Request) {
 	ref := newProjectRef(r.URL.Query())
-	worker := func(ctx context.Context) (response ResponseDTO, err error) {
+	worker := func(ctx context.Context) (response apicore.ResponseDTO, err error) {
 		return api.GetProjectSummary(ctx, ref)
 	}
 	handle(w, r, &ref, VerifyRequest{AuthRequired: true}, http.StatusOK, getContextFromRequest, worker)

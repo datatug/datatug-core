@@ -5,6 +5,7 @@ import (
 	"github.com/datatug/datatug/packages/api"
 	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
+	"github.com/sneat-co/sneat-go-core/apicore"
 	"log"
 	"net/http"
 )
@@ -13,7 +14,7 @@ import (
 func addDbServer(w http.ResponseWriter, r *http.Request) {
 	var ref dto.ProjectRef
 	var projDbServer models.ProjDbServer
-	saveFunc := func(ctx context.Context) (ResponseDTO, error) {
+	saveFunc := func(ctx context.Context) (apicore.ResponseDTO, error) {
 		return projDbServer, api.AddDbServer(ctx, ref, projDbServer)
 	}
 	createProjectItem(w, r, &ref, &projDbServer, saveFunc)

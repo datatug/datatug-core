@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/datatug/datatug/packages/api"
 	"github.com/datatug/datatug/packages/dto"
+	"github.com/sneat-co/sneat-go-core/apicore"
 	"github.com/strongo/validation"
 	"log"
 	"net/http"
@@ -51,7 +52,7 @@ func getRecordsetsSummary(w http.ResponseWriter, r *http.Request) {
 // getRecordsetDefinition returns list of dataset definitions
 func getRecordsetDefinition(w http.ResponseWriter, r *http.Request) {
 	var ref dto.ProjectItemRef
-	getProjectItem(w, r, &ref, func(ctx context.Context) (responseDTO ResponseDTO, err error) {
+	getProjectItem(w, r, &ref, func(ctx context.Context) (responseDTO apicore.ResponseDTO, err error) {
 		return api.GetDatasetDefinition(ctx, ref)
 	})
 }
@@ -59,7 +60,7 @@ func getRecordsetDefinition(w http.ResponseWriter, r *http.Request) {
 // getRecordsetData returns data
 func getRecordsetData(w http.ResponseWriter, r *http.Request) {
 	var ref dto.ProjectItemRef
-	getProjectItem(w, r, &ref, func(ctx context.Context) (responseDTO ResponseDTO, err error) {
+	getProjectItem(w, r, &ref, func(ctx context.Context) (responseDTO apicore.ResponseDTO, err error) {
 		return api.GetRecordset(ctx, ref)
 	})
 }

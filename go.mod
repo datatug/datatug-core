@@ -11,7 +11,7 @@ require (
 	github.com/gosuri/uitable v0.0.4
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/mattn/go-sqlite3 v2.0.3+incompatible
+	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/rivo/tview v0.0.0-20230814110005-ccc2c8119703
@@ -27,7 +27,10 @@ require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230717121422-5aa5874ade95 // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
+	github.com/alexsergivan/transliterator v1.0.0 // indirect
 	github.com/cloudflare/circl v1.3.3 // indirect
+	github.com/crediterra/money v0.2.0 // indirect
+	github.com/dal-go/dalgo v0.2.31 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/fatih/color v1.15.0 // indirect
@@ -46,10 +49,13 @@ require (
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7 // indirect
 	github.com/qri-io/jsonpointer v0.1.1 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/skeema/knownhosts v1.2.0 // indirect
+	github.com/sneat-co/sneat-go-core v0.0.1 // indirect
+	github.com/strongo/decimal v0.0.1 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	golang.org/x/crypto v0.11.0 // indirect
 	golang.org/x/mod v0.9.0 // indirect
