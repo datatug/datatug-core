@@ -14,7 +14,8 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
-	github.com/rivo/tview v0.0.0-20230814110005-ccc2c8119703
+	github.com/rivo/tview v0.0.0-20230907083354-a39fe28ba466
+	github.com/sneat-co/sneat-go-core v0.0.1
 	github.com/stretchr/testify v1.8.4
 	github.com/strongo/random v0.0.1
 	github.com/strongo/slice v0.1.4
@@ -54,7 +55,6 @@ require (
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/skeema/knownhosts v1.2.0 // indirect
-	github.com/sneat-co/sneat-go-core v0.0.1 // indirect
 	github.com/strongo/decimal v0.0.1 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	golang.org/x/crypto v0.11.0 // indirect
