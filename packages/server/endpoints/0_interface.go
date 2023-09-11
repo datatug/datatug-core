@@ -3,6 +3,7 @@ package endpoints
 import (
 	"context"
 	"github.com/sneat-co/sneat-go-core/apicore"
+	"github.com/sneat-co/sneat-go-core/apicore/verify"
 	"log"
 	"net/http"
 )
@@ -49,7 +50,7 @@ type Handler = func(
 	w http.ResponseWriter,
 	r *http.Request,
 	requestDTO apicore.RequestDTO,
-	verifyOptions apicore.VerifyRequestOptions,
+	verifyOptions verify.RequestOptions,
 	successStatusCode int,
 	getContext apicore.ContextProvider,
 	handler apicore.Worker,
@@ -60,7 +61,7 @@ var handle Handler = func(
 	w http.ResponseWriter,
 	r *http.Request,
 	requestDTO apicore.RequestDTO,
-	verifyOptions apicore.VerifyRequestOptions,
+	verifyOptions verify.RequestOptions,
 	successStatusCode int,
 	getContext apicore.ContextProvider,
 	doWork apicore.Worker,

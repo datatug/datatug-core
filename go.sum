@@ -33,6 +33,8 @@ github.com/crediterra/money v0.2.0 h1:0DsJhRKSEP9CIc3LUnMPPcRY8JJpj8E7CWRWPdfe9c
 github.com/crediterra/money v0.2.0/go.mod h1:X9dmXT1lI2mLyV/7V7vrMGkFy9jWJY3JmDUYKydQKkY=
 github.com/dal-go/dalgo v0.2.31 h1:i+22Fn1Y2lYSna8sPJIdaPHAvfVijthXvXIXWe7GOUU=
 github.com/dal-go/dalgo v0.2.31/go.mod h1:741DXTLpQfmvkazyEiivX8OBFylpzS1QErdh/6WquqI=
+github.com/dal-go/dalgo v0.10.0 h1:XtUHTzSExTPlVVR1i3GqfNxH1qnoUBp+DHCif6N1r6U=
+github.com/dal-go/dalgo v0.10.0/go.mod h1:741DXTLpQfmvkazyEiivX8OBFylpzS1QErdh/6WquqI=
 github.com/datatug/sql2csv v0.0.0-20200927071952-a7fb986d1ec2 h1:9iN4YNV3PIGMU7Wh4hU0AjuI/mMwgbVXaV4YqHoE0ZU=
 github.com/datatug/sql2csv v0.0.0-20200927071952-a7fb986d1ec2/go.mod h1:8mhg6DTTobWkm+Xfyts3nwJ7ZmxWMWWboguVH1INkc8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -170,6 +172,8 @@ github.com/skeema/knownhosts v1.2.0 h1:h9r9cf0+u7wSE+M183ZtMGgOJKiL96brpaz5ekfJC
 github.com/skeema/knownhosts v1.2.0/go.mod h1:g4fPeYpque7P0xefxtGzV81ihjC8sX2IqpAoNkjxbMo=
 github.com/sneat-co/sneat-go-core v0.0.1 h1:9kFgq1zNzAEZAjb7QB/bTAGvqXTN2EdgbFeX93iDlBo=
 github.com/sneat-co/sneat-go-core v0.0.1/go.mod h1:6E1uUsMMDJ+1jQHkWFyn34K9enHHxLbNk+UEEnV5zHY=
+github.com/sneat-co/sneat-go-core v0.1.2 h1:4g8oTPBJA+7pqmHxEOCPOjzOBOWaSoElbySVvvxVgHw=
+github.com/sneat-co/sneat-go-core v0.1.2/go.mod h1:TNYgxM+Q3SpTMGjihU3xLjpBaySb1CSvOQtOEevElvI=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=

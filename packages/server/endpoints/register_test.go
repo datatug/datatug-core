@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/julienschmidt/httprouter"
 	"github.com/sneat-co/sneat-go-core/apicore"
+	"github.com/sneat-co/sneat-go-core/apicore/verify"
 	"net/http"
 	"testing"
 )
@@ -20,7 +21,7 @@ func TestRegisterDatatugWriteOnlyHandlers(t *testing.T) {
 
 	t.Run("should_pass", func(t *testing.T) {
 		requestHandler := func(w http.ResponseWriter, r *http.Request, requestDTO apicore.RequestDTO,
-			verifyOptions apicore.VerifyRequestOptions, statusCode int,
+			verifyOptions verify.RequestOptions, statusCode int,
 			getContext apicore.ContextProvider,
 			doWork apicore.Worker,
 		) {
