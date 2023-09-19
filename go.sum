@@ -117,6 +117,8 @@ github.com/skeema/knownhosts v1.2.0 h1:h9r9cf0+u7wSE+M183ZtMGgOJKiL96brpaz5ekfJC
 github.com/skeema/knownhosts v1.2.0/go.mod h1:g4fPeYpque7P0xefxtGzV81ihjC8sX2IqpAoNkjxbMo=
 github.com/sneat-co/sneat-go-core v0.8.3 h1:PKfJIqfx8hV/dosbsg2fusDCisbCTS3GfLYX40KHTGQ=
 github.com/sneat-co/sneat-go-core v0.8.3/go.mod h1:7FPOHtwk97vYGDpPa79tA8Hiz+7KwkTnc4xrfbsX6ws=
+github.com/sneat-co/sneat-go-core v0.9.1 h1:H1qd6lXgZQXYxa53CXXivnamLm6FU1udfv99MjSxRQE=
+github.com/sneat-co/sneat-go-core v0.9.1/go.mod h1:7FPOHtwk97vYGDpPa79tA8Hiz+7KwkTnc4xrfbsX6ws=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
