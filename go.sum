@@ -23,6 +23,8 @@ github.com/cyphar/filepath-securejoin v0.2.4 h1:Ugdm7cg7i6ZK6x3xDF1oEu1nfkyfH53E
 github.com/cyphar/filepath-securejoin v0.2.4/go.mod h1:aPGpWjXOXUn2NCNjFvBE6aRxGGx79pTxQpKOJNYHHl4=
 github.com/dal-go/dalgo v0.10.2 h1:kBVNpH3wRK4uP9eBwMYsL5U5QjvPX8jYcZAgJgaG2tE=
 github.com/dal-go/dalgo v0.10.2/go.mod h1:741DXTLpQfmvkazyEiivX8OBFylpzS1QErdh/6WquqI=
+github.com/dal-go/dalgo v0.12.0 h1:giibzqo6mIkU06b0r4uKb3ZEa2agtj1qnL8RNa6sOBM=
+github.com/dal-go/dalgo v0.12.0/go.mod h1:741DXTLpQfmvkazyEiivX8OBFylpzS1QErdh/6WquqI=
 github.com/datatug/sql2csv v0.0.0-20200927071952-a7fb986d1ec2 h1:9iN4YNV3PIGMU7Wh4hU0AjuI/mMwgbVXaV4YqHoE0ZU=
 github.com/datatug/sql2csv v0.0.0-20200927071952-a7fb986d1ec2/go.mod h1:8mhg6DTTobWkm+Xfyts3nwJ7ZmxWMWWboguVH1INkc8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -121,6 +123,8 @@ github.com/sneat-co/sneat-go-core v0.8.3 h1:PKfJIqfx8hV/dosbsg2fusDCisbCTS3GfLYX
 github.com/sneat-co/sneat-go-core v0.8.3/go.mod h1:7FPOHtwk97vYGDpPa79tA8Hiz+7KwkTnc4xrfbsX6ws=
 github.com/sneat-co/sneat-go-core v0.9.1 h1:H1qd6lXgZQXYxa53CXXivnamLm6FU1udfv99MjSxRQE=
 github.com/sneat-co/sneat-go-core v0.9.1/go.mod h1:7FPOHtwk97vYGDpPa79tA8Hiz+7KwkTnc4xrfbsX6ws=
+github.com/sneat-co/sneat-go-core v0.12.0 h1:mMM4MOhp3lEIddv4+GOAf+aH6iCOQMyX0r/3jhqJrU8=
+github.com/sneat-co/sneat-go-core v0.12.0/go.mod h1:8b9g6HVJdAZN7e01qraR6EwV4XvZ2+wtegc9bdBPRhY=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
