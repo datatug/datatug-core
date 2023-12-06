@@ -7,7 +7,7 @@ toolchain go1.21.4
 require (
 	github.com/datatug/sql2csv v0.0.0-20200927071952-a7fb986d1ec2
 	github.com/denisenkom/go-mssqldb v0.12.3
-	github.com/gdamore/tcell/v2 v2.6.0
+	github.com/gdamore/tcell/v2 v2.6.1-0.20231203215052-2917c3801e73
 	github.com/go-git/go-git/v5 v5.10.1
 	github.com/google/uuid v1.4.0
 	github.com/gosuri/uitable v0.0.4
@@ -16,7 +16,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.18
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
-	github.com/rivo/tview v0.0.0-20231126152417-33a1d271f2b6
+	github.com/rivo/tview v0.0.0-20231206124440-5f078138442e
 	github.com/sneat-co/sneat-go-core v0.19.1
 	github.com/stretchr/testify v1.8.4
 	github.com/strongo/random v0.0.1
