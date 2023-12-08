@@ -7,7 +7,7 @@ toolchain go1.21.4
 require (
 	github.com/datatug/sql2csv v0.0.0-20200927071952-a7fb986d1ec2
 	github.com/denisenkom/go-mssqldb v0.12.3
-	github.com/gdamore/tcell/v2 v2.6.1-0.20231205222912-e3a99dde7509
+	github.com/gdamore/tcell/v2 v2.6.1-0.20231208081952-337e381927d4
 	github.com/go-git/go-git/v5 v5.10.1
 	github.com/google/uuid v1.4.0
 	github.com/gosuri/uitable v0.0.4
