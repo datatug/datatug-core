@@ -7,8 +7,8 @@ toolchain go1.21.4
 require (
 	github.com/datatug/sql2csv v0.0.0-20200927071952-a7fb986d1ec2
 	github.com/denisenkom/go-mssqldb v0.12.3
-	github.com/gdamore/tcell/v2 v2.6.1-0.20231208081952-337e381927d4
-	github.com/go-git/go-git/v5 v5.10.1
+	github.com/gdamore/tcell/v2 v2.7.0
+	github.com/go-git/go-git/v5 v5.11.0
 	github.com/google/uuid v1.4.0
 	github.com/gosuri/uitable v0.0.4
 	github.com/jessevdk/go-flags v1.5.0
@@ -59,9 +59,9 @@ require (
 	github.com/strongo/decimal v0.0.1 // indirect
 	github.com/strongo/strongoapp v0.9.1 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	golang.org/x/crypto v0.15.0 // indirect
+	golang.org/x/crypto v0.16.0 // indirect
 	golang.org/x/mod v0.12.0 // indirect
-	golang.org/x/net v0.18.0 // indirect
+	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/term v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
