@@ -9,7 +9,7 @@ require (
 	github.com/denisenkom/go-mssqldb v0.12.3
 	github.com/gdamore/tcell/v2 v2.7.0
 	github.com/go-git/go-git/v5 v5.11.0
-	github.com/google/uuid v1.4.0
+	github.com/google/uuid v1.5.0
 	github.com/gosuri/uitable v0.0.4
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/julienschmidt/httprouter v1.3.0
@@ -17,7 +17,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/rivo/tview v0.0.0-20231206124440-5f078138442e
-	github.com/sneat-co/sneat-go-core v0.19.1
+	github.com/sneat-co/sneat-go-core v0.20.0
 	github.com/stretchr/testify v1.8.4
 	github.com/strongo/random v0.0.1
 	github.com/strongo/slice v0.1.4
