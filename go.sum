@@ -109,6 +109,8 @@ github.com/qri-io/jsonschema v0.2.1 h1:NNFoKms+kut6ABPf6xiKNM5214jzxAhDBrPHCJ97W
 github.com/qri-io/jsonschema v0.2.1/go.mod h1:g7DPkiOsK1xv6T/Ao5scXRkd+yTFygcANPBaaqW+VrI=
 github.com/rivo/tview v0.0.0-20231206124440-5f078138442e h1:mPy47VW9tkqImnSPgcjnEHJuG3XHDBtXj2hDb1qBrRs=
 github.com/rivo/tview v0.0.0-20231206124440-5f078138442e/go.mod h1:c0SPlNPXkM+/Zgjn/0vD3W0Ds1yxstN7lpquqLDpWCg=
+github.com/rivo/tview v0.0.0-20240101144852-b3bd1aa5e9f2 h1:Q41smlaCKxGtMlRwvZchzy7iDXAk89Wj5wMhlZXkpMI=
+github.com/rivo/tview v0.0.0-20240101144852-b3bd1aa5e9f2/go.mod h1:c0SPlNPXkM+/Zgjn/0vD3W0Ds1yxstN7lpquqLDpWCg=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.4.3/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
 github.com/rivo/uniseg v0.4.4 h1:8TfxU8dW6PdqD27gjM8MVNuicgxIjxpm4K7x4jp8sis=
