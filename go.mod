@@ -7,7 +7,7 @@ toolchain go1.21.4
 require (
 	github.com/datatug/sql2csv v0.0.0-20200927071952-a7fb986d1ec2
 	github.com/denisenkom/go-mssqldb v0.12.3
-	github.com/gdamore/tcell/v2 v2.7.1
+	github.com/gdamore/tcell/v2 v2.7.4
 	github.com/go-git/go-git/v5 v5.11.0
 	github.com/google/uuid v1.6.0
 	github.com/gosuri/uitable v0.0.4
@@ -17,7 +17,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/rivo/tview v0.0.0-20240225120200-5605142ca62e
-	github.com/sneat-co/sneat-go-core v0.23.0
+	github.com/sneat-co/sneat-go-core v0.23.2
 	github.com/stretchr/testify v1.9.0
 	github.com/strongo/random v0.0.1
 	github.com/strongo/slice v0.1.4
@@ -32,7 +32,7 @@ require (
 	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/crediterra/money v0.2.1 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
-	github.com/dal-go/dalgo v0.12.0 // indirect
+	github.com/dal-go/dalgo v0.12.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/fatih/color v1.15.0 // indirect
@@ -55,7 +55,7 @@ require (
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/skeema/knownhosts v1.2.1 // indirect
 	github.com/strongo/decimal v0.0.1 // indirect
-	github.com/strongo/strongoapp v0.15.0 // indirect
+	github.com/strongo/strongoapp v0.17.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	golang.org/x/crypto v0.17.0 // indirect
 	golang.org/x/mod v0.12.0 // indirect
