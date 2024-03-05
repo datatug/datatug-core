@@ -17,7 +17,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/rivo/tview v0.0.0-20240225120200-5605142ca62e
-	github.com/sneat-co/sneat-go-core v0.23.2
+	github.com/sneat-co/sneat-go-core v0.23.3
 	github.com/stretchr/testify v1.9.0
 	github.com/strongo/random v0.0.1
 	github.com/strongo/slice v0.1.4
@@ -55,7 +55,7 @@ require (
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/skeema/knownhosts v1.2.1 // indirect
 	github.com/strongo/decimal v0.0.1 // indirect
-	github.com/strongo/strongoapp v0.17.0 // indirect
+	github.com/strongo/strongoapp v0.17.1 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	golang.org/x/crypto v0.17.0 // indirect
 	golang.org/x/mod v0.12.0 // indirect
