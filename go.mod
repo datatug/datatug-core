@@ -2,7 +2,7 @@ module github.com/datatug/datatug
 
 go 1.21
 
-toolchain go1.22.2
+toolchain go1.22.3
 
 require (
 	github.com/datatug/sql2csv v0.0.0-20200927071952-a7fb986d1ec2
@@ -17,7 +17,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/rivo/tview v0.0.0-20240505185119-ed116790de0f
-	github.com/sneat-co/sneat-go-core v0.23.5
+	github.com/sneat-co/sneat-go-core v0.23.6
 	github.com/stretchr/testify v1.9.0
 	github.com/strongo/random v0.0.1
 	github.com/strongo/slice v0.1.4
@@ -30,7 +30,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
-	github.com/crediterra/money v0.2.1 // indirect
+	github.com/crediterra/money v0.2.2 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/dal-go/dalgo v0.12.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
