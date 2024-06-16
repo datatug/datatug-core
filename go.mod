@@ -11,12 +11,12 @@ require (
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/google/uuid v1.6.0
 	github.com/gosuri/uitable v0.0.4
-	github.com/jessevdk/go-flags v1.5.0
+	github.com/jessevdk/go-flags v1.6.1
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
-	github.com/rivo/tview v0.0.0-20240524063012-037df494fb76
+	github.com/rivo/tview v0.0.0-20240616192244-23476fa0bab2
 	github.com/sneat-co/sneat-go-core v0.24.1
 	github.com/stretchr/testify v1.9.0
 	github.com/strongo/random v0.0.1
@@ -61,7 +61,7 @@ require (
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
+	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/term v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.20.0 // indirect
