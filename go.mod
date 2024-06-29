@@ -1,6 +1,6 @@
 module github.com/datatug/datatug
 
-go 1.21
+go 1.22.3
 
 toolchain go1.22.4
 
@@ -17,7 +17,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/rivo/tview v0.0.0-20240625185742-b0a7293b8130
-	github.com/sneat-co/sneat-go-core v0.24.2
+	github.com/sneat-co/sneat-go-core v0.24.3
 	github.com/stretchr/testify v1.9.0
 	github.com/strongo/random v0.0.1
 	github.com/strongo/slice v0.1.4
@@ -56,6 +56,7 @@ require (
 	github.com/skeema/knownhosts v1.2.2 // indirect
 	github.com/strongo/decimal v0.0.1 // indirect
 	github.com/strongo/log v0.3.0 // indirect
+	github.com/strongo/logus v0.0.0-20240628225821-04cf45b5968f // indirect
 	github.com/strongo/strongoapp v0.18.3 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	golang.org/x/crypto v0.22.0 // indirect
