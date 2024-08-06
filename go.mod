@@ -2,7 +2,7 @@ module github.com/datatug/datatug
 
 go 1.22.3
 
-toolchain go1.22.5
+toolchain go1.22.6
 
 require (
 	github.com/datatug/sql2csv v0.0.0-20200927071952-a7fb986d1ec2
@@ -16,7 +16,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
-	github.com/rivo/tview v0.0.0-20240728114935-65571ae51e71
+	github.com/rivo/tview v0.0.0-20240805111717-08da3ea4576f
 	github.com/sneat-co/sneat-go-core v0.25.0
 	github.com/stretchr/testify v1.9.0
 	github.com/strongo/random v0.0.1
