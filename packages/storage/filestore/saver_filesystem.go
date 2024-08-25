@@ -54,7 +54,7 @@ func saveItems(plural string, count int, getWorker func(i int) func() error) err
 	//log.Printf("Saving %v %v...", count, plural)
 	switch count {
 	case 0:
-		log.Printf("No " + plural)
+		log.Print("No " + plural)
 		return nil
 	case 1:
 		return getWorker(0)()
