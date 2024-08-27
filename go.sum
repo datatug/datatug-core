@@ -127,6 +127,8 @@ github.com/sneat-co/sneat-go-core v0.31.5 h1:PYaxtHBq5EH4rN0aLvyRPTo/R/tXAw4laM5
 github.com/sneat-co/sneat-go-core v0.31.5/go.mod h1:xm5VjTfIJ7jqzlclcn1Boaz3tcxRaVfiMpnhky1fReE=
 github.com/sneat-co/sneat-go-core v0.31.6 h1:1yr3FpAgxZM3X/L//CQCp9mNqd6fhIVQxYvIOcFgwpg=
 github.com/sneat-co/sneat-go-core v0.31.6/go.mod h1:gJrCnfgjMPRuA/dpSet001ALMkFjIZDOSY4Q6RZlhy8=
+github.com/sneat-co/sneat-go-core v0.32.1 h1:MjgWui+LrqmyuGCRAWVwNM7dyKdl/SAV1KJvrws7TR4=
+github.com/sneat-co/sneat-go-core v0.32.1/go.mod h1:gJrCnfgjMPRuA/dpSet001ALMkFjIZDOSY4Q6RZlhy8=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
