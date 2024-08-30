@@ -15,7 +15,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/rivo/tview v0.0.0-20240818110301-fd649dbf1223
-	github.com/sneat-co/sneat-go-core v0.32.2
+	github.com/sneat-co/sneat-go-core v0.32.3
 	github.com/stretchr/testify v1.9.0
 	github.com/strongo/random v0.0.1
 	github.com/strongo/slice v0.2.0
