@@ -15,7 +15,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/rivo/tview v0.0.0-20240921122403-a64fc48d7654
-	github.com/sneat-co/sneat-go-core v0.34.2
+	github.com/sneat-co/sneat-go-core v0.37.0
 	github.com/stretchr/testify v1.9.0
 	github.com/strongo/random v0.0.1
 	github.com/strongo/slice v0.3.0
@@ -30,7 +30,7 @@ require (
 	github.com/cloudflare/circl v1.3.9 // indirect
 	github.com/crediterra/money v0.3.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.3.1 // indirect
-	github.com/dal-go/dalgo v0.13.2 // indirect
+	github.com/dal-go/dalgo v0.14.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/fatih/color v1.17.0 // indirect
