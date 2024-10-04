@@ -11,7 +11,7 @@ require (
 	github.com/gosuri/uitable v0.0.4
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/mattn/go-sqlite3 v1.14.23
+	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/rivo/tview v0.0.0-20240921122403-a64fc48d7654
