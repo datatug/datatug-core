@@ -14,8 +14,8 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
-	github.com/rivo/tview v0.0.0-20240921122403-a64fc48d7654
-	github.com/sneat-co/sneat-go-core v0.37.1
+	github.com/rivo/tview v0.0.0-20241016194538-c5e4fb24af13
+	github.com/sneat-co/sneat-go-core v0.37.2
 	github.com/stretchr/testify v1.9.0
 	github.com/strongo/random v0.0.1
 	github.com/strongo/slice v0.3.0
