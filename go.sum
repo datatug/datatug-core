@@ -174,6 +174,8 @@ github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81P
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
+github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=
+github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/strongo/decimal v0.1.1 h1:k7HY/0NmG6Ne5YPV7XybII+AT7O4AShl6HZpLiNZsb4=
 github.com/strongo/decimal v0.1.1/go.mod h1:uKFgetJbR2uT026stdbK54ELXTH9h0vZOPPOp7DAODk=
 github.com/strongo/logus v0.2.0 h1:IbLupLW9WMIwjefJF+u9/Ajlaw6ysFuEeKQxOFX5tOE=
