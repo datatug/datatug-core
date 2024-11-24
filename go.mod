@@ -16,7 +16,7 @@ require (
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/rivo/tview v0.0.0-20241103174730-c76f7879f592
 	github.com/sneat-co/sneat-go-core v0.37.2
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/strongo/random v0.0.1
 	github.com/strongo/slice v0.3.0
 	github.com/strongo/validation v0.0.7
