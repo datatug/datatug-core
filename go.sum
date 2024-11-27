@@ -171,6 +171,8 @@ github.com/sneat-co/sneat-go-core v0.37.2 h1:U+oCjqMlyzh8J++ytN/q6gSIYvgmJhMJGg2
 github.com/sneat-co/sneat-go-core v0.37.2/go.mod h1:DfF3OeaHDpDL+R77jIzzoKpixA0dOibAC+RlH/VOS8Y=
 github.com/sneat-co/sneat-go-core v0.37.3 h1:4q4vL9ityDND75bTDlVVtaxErjHLezzRleK+CMkHEwY=
 github.com/sneat-co/sneat-go-core v0.37.3/go.mod h1:CRVpf0NgtUzA9B/8jBokgiwwx9r4XplU5Q/kN3HayO4=
+github.com/sneat-co/sneat-go-core v0.37.4 h1:DihMq1MtBUQ23gvO21dNmWzYVo/ygoNxXGbtF3ed7Tw=
+github.com/sneat-co/sneat-go-core v0.37.4/go.mod h1:e3fJ3mVQv9jBnn3+rUR5vc1TNLbsWMmRDhCOcbl9Yts=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
@@ -210,6 +212,8 @@ github.com/strongo/strongoapp v0.25.2 h1:a6VUj/05eaJ8hWxdHsGRPncz5Ezq+w3cQgNmwqR
 github.com/strongo/strongoapp v0.25.2/go.mod h1:DVwHFNNiC88gnW8iy3ggRrnAnI4oVTYyIdLeXPSNuLs=
 github.com/strongo/strongoapp v0.25.3 h1:d43WZy0jPvDZtjT5NX5FIFYnAdppVsbbNqbOkJdd4bY=
 github.com/strongo/strongoapp v0.25.3/go.mod h1:70xzRnEbJX8jm5wqqzFTtVxTbLvB0D4jNEYjQnGweOI=
+github.com/strongo/strongoapp v0.25.4 h1:AD9GrtuHXS4A6Hvv3yjPdSnOwxMt7gopMvukt/egFPk=
+github.com/strongo/strongoapp v0.25.4/go.mod h1:0ZHjfOhfg1za8ouzLoMoID7Qn3fg5IMDdjDt69xUAYI=
 github.com/strongo/validation v0.0.6 h1:RskXD45ILagVW3jmuKUiq7WshE4kmoQEiUbgfigqHzw=
 github.com/strongo/validation v0.0.6/go.mod h1:V4Nu8b8CPsLNwYLKmMHN2ghkoabOpiOW8NNcUczuCWE=
 github.com/strongo/validation v0.0.7 h1:gs6YkwPsYtVsepQaQOB+ZF+T0Gu5+nk4ZMND8F85e+U=
