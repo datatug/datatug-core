@@ -15,7 +15,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/rivo/tview v0.0.0-20241227133733-17b7edb88c57
-	github.com/sneat-co/sneat-go-core v0.41.0
+	github.com/sneat-co/sneat-go-core v0.41.1
 	github.com/stretchr/testify v1.10.0
 	github.com/strongo/random v0.0.1
 	github.com/strongo/slice v0.3.1
@@ -30,7 +30,7 @@ require (
 	github.com/cloudflare/circl v1.3.9 // indirect
 	github.com/crediterra/money v0.3.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.3.6 // indirect
-	github.com/dal-go/dalgo v0.14.1 // indirect
+	github.com/dal-go/dalgo v0.14.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/fatih/color v1.17.0 // indirect
@@ -53,8 +53,8 @@ require (
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 // indirect
 	github.com/skeema/knownhosts v1.3.0 // indirect
 	github.com/strongo/decimal v0.1.1 // indirect
-	github.com/strongo/logus v0.2.0 // indirect
-	github.com/strongo/strongoapp v0.25.4 // indirect
+	github.com/strongo/logus v0.2.1 // indirect
+	github.com/strongo/strongoapp v0.25.5 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
