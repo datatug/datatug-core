@@ -42,6 +42,8 @@ github.com/dal-go/dalgo v0.14.2 h1:e7T9D2Hiv9ryMWTdJd9OmnM2ilfsX3dxQOU6wbskDqc=
 github.com/dal-go/dalgo v0.14.2/go.mod h1:BoMNGwDE9FdjynV7xCn5f/GdVJxvfePwjsMldn+BhqA=
 github.com/dal-go/dalgo v0.16.1 h1:cr1CefLIEH/Q1jIJuygv5sh02CDKKAqHXDNPOsUUSwE=
 github.com/dal-go/dalgo v0.16.1/go.mod h1:BoMNGwDE9FdjynV7xCn5f/GdVJxvfePwjsMldn+BhqA=
+github.com/dal-go/dalgo v0.18.0 h1:GAl+WiRg7J2Y3SWaKI12+PgKebA6Z2dZGXyZ3NPktI4=
+github.com/dal-go/dalgo v0.18.0/go.mod h1:BoMNGwDE9FdjynV7xCn5f/GdVJxvfePwjsMldn+BhqA=
 github.com/datatug/sql2csv v0.0.0-20200927071952-a7fb986d1ec2 h1:9iN4YNV3PIGMU7Wh4hU0AjuI/mMwgbVXaV4YqHoE0ZU=
 github.com/datatug/sql2csv v0.0.0-20200927071952-a7fb986d1ec2/go.mod h1:8mhg6DTTobWkm+Xfyts3nwJ7ZmxWMWWboguVH1INkc8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -219,6 +221,8 @@ github.com/sneat-co/sneat-go-core v0.45.5 h1:iil0JHEct7FzGmGhLWJhdZfooLWI18MmPGR
 github.com/sneat-co/sneat-go-core v0.45.5/go.mod h1:7rXfMblhPwQP85Oorj0IFPMtyXUdpGP34a/E6Gjy6fc=
 github.com/sneat-co/sneat-go-core v0.45.6 h1:7hkVn6q8APO/3jPBDWQHEZtN7E8M1VXBFVe0Va4asCQ=
 github.com/sneat-co/sneat-go-core v0.45.6/go.mod h1:7rXfMblhPwQP85Oorj0IFPMtyXUdpGP34a/E6Gjy6fc=
+github.com/sneat-co/sneat-go-core v0.45.7 h1:OgrDU2EQOMnzx2XvGdcNm6ebRBpdBGkQxS0pze4JdEg=
+github.com/sneat-co/sneat-go-core v0.45.7/go.mod h1:iXc66lNdppQ59P88T3x97hMdfRdebSiVbBLQQAAhfcI=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
@@ -268,6 +272,8 @@ github.com/strongo/strongoapp v0.25.8 h1:H1LszWEGJjeD6tYkXwDYOaLIrc8TLOepsdKxiNP
 github.com/strongo/strongoapp v0.25.8/go.mod h1:jCdLBw1iXnG0mMu9RxET2lIfriBO4Q1qdNEbX8sAAkE=
 github.com/strongo/strongoapp v0.26.1 h1:epeqRbW2ynTY0F+3eATO/1XYlhKLyXaHCElvi+5PJIs=
 github.com/strongo/strongoapp v0.26.1/go.mod h1:N7kE2B74xwn0F7FWMwpy6piD+E9iVG6cSV/o1L/8Cfk=
+github.com/strongo/strongoapp v0.26.2 h1:ynxBIYrL1sl+56fNxjgkfQht5rm/ioxe06UQpzSSCcg=
+github.com/strongo/strongoapp v0.26.2/go.mod h1:YFiVxiy78/RQK7ScicbNl6QejWnh8rmDCXbg6qmlqrU=
 github.com/strongo/validation v0.0.6 h1:RskXD45ILagVW3jmuKUiq7WshE4kmoQEiUbgfigqHzw=
 github.com/strongo/validation v0.0.6/go.mod h1:V4Nu8b8CPsLNwYLKmMHN2ghkoabOpiOW8NNcUczuCWE=
 github.com/strongo/validation v0.0.7 h1:gs6YkwPsYtVsepQaQOB+ZF+T0Gu5+nk4ZMND8F85e+U=
