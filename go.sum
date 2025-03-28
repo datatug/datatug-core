@@ -113,6 +113,8 @@ github.com/rivo/tview v0.0.0-20241227133733-17b7edb88c57 h1:LmsF7Fk5jyEDhJk0fYIq
 github.com/rivo/tview v0.0.0-20241227133733-17b7edb88c57/go.mod h1:02iFIz7K/A9jGCvrizLPvoqr4cEIx7q54RH5Qudkrss=
 github.com/rivo/tview v0.0.0-20250322200051-73a5bd7d6839 h1:/v0ptNHBQaQCxlvS4QLxLKKGfsSA9hcZcNgqVgmPRro=
 github.com/rivo/tview v0.0.0-20250322200051-73a5bd7d6839/go.mod h1:02iFIz7K/A9jGCvrizLPvoqr4cEIx7q54RH5Qudkrss=
+github.com/rivo/tview v0.0.0-20250325173046-7b72abf45814 h1:pJIO3sp+rkDbJTeqqpe2Oihq3hegiM5ASvsd6S0pvjg=
+github.com/rivo/tview v0.0.0-20250325173046-7b72abf45814/go.mod h1:02iFIz7K/A9jGCvrizLPvoqr4cEIx7q54RH5Qudkrss=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.4.3/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
@@ -131,6 +133,8 @@ github.com/sneat-co/sneat-go-core v0.50.3 h1:0cUgceC0c3ONmCCP5awwNzIkZiqm22OiZOl
 github.com/sneat-co/sneat-go-core v0.50.3/go.mod h1:tWZVQfd/wl01ogDkhfjKY6hPK8uo/ihv2jlnjuYVlhY=
 github.com/sneat-co/sneat-go-core v0.50.4 h1:Nw9lhF7ahDafFHgx5pcaT3iCun0yZxBCutYETMQjqrs=
 github.com/sneat-co/sneat-go-core v0.50.4/go.mod h1:BLOtvBRlSh2MwU8lteaAHdHfNiVC2qEjSdBqv749AiE=
+github.com/sneat-co/sneat-go-core v0.50.6 h1:QsNyiOL6T5zsdy16nfUY25OXeW8JuE8ha4glH/ze7sw=
+github.com/sneat-co/sneat-go-core v0.50.6/go.mod h1:47pmj+jgUcN4jRpQUZTC9pQ2cL7HEbwCqoq2vQHr8Y8=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
@@ -148,6 +152,8 @@ github.com/strongo/slice v0.3.1 h1:VWkyYBgcVJn6Hs7wYhL9Vxwgb7V3zQAUFTBV9wo5lc4=
 github.com/strongo/slice v0.3.1/go.mod h1:B5ODKCkl0rp2oiG0UBqkN1cCOrSCU2cUuhqCM1sC8r4=
 github.com/strongo/strongoapp v0.26.6 h1:NuanIYlDVS/1yho4BqrkbfHtHG1aDYhhKAodL1zGNC8=
 github.com/strongo/strongoapp v0.26.6/go.mod h1:tXScXwuO0aywBKrFc/50ychTQAbbZgDJSWnNnk+h/bo=
+github.com/strongo/strongoapp v0.27.0 h1:nC9rzSSC4e8kyIH57ODLCGInIqLSyTdZe/eSE6xIYmk=
+github.com/strongo/strongoapp v0.27.0/go.mod h1:NpH0QJ0P8VOJpo7mk5leT1f32PKpfbUM39Faz80bloM=
 github.com/strongo/validation v0.0.7 h1:gs6YkwPsYtVsepQaQOB+ZF+T0Gu5+nk4ZMND8F85e+U=
 github.com/strongo/validation v0.0.7/go.mod h1:YUwoPEItLJd/Bc9X1OCUm03ofhvm3kwZvuihU7/jz58=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
