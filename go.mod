@@ -11,11 +11,11 @@ require (
 	github.com/gosuri/uitable v0.0.4
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/mattn/go-sqlite3 v1.14.24
+	github.com/mattn/go-sqlite3 v1.14.27
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
-	github.com/rivo/tview v0.0.0-20250325173046-7b72abf45814
-	github.com/sneat-co/sneat-go-core v0.50.6
+	github.com/rivo/tview v0.0.0-20250330220935-949945f8d922
+	github.com/sneat-co/sneat-go-core v0.50.7
 	github.com/stretchr/testify v1.10.0
 	github.com/strongo/random v0.0.1
 	github.com/strongo/slice v0.3.1
