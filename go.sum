@@ -93,6 +93,8 @@ github.com/mattn/go-runewidth v0.0.16 h1:E5ScNMtiwvlvB5paMFdw9p4kSQzbXFikJ5SQO6T
 github.com/mattn/go-runewidth v0.0.16/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=
 github.com/mattn/go-sqlite3 v1.14.24 h1:tpSp2G2KyMnnQu99ngJ47EIkWVmliIizyZBfPrBWDRM=
 github.com/mattn/go-sqlite3 v1.14.24/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
+github.com/mattn/go-sqlite3 v1.14.27 h1:drZCnuvf37yPfs95E5jd9s3XhdVWLal+6BOK6qrv6IU=
+github.com/mattn/go-sqlite3 v1.14.27/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
 github.com/mitchellh/go-homedir v1.1.0 h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG+4E0Y=
 github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/modocache/gover v0.0.0-20171022184752-b58185e213c5/go.mod h1:caMODM3PzxT8aQXRPkAt8xlV/e7d7w8GM5g0fa5F0D8=
@@ -115,6 +117,8 @@ github.com/rivo/tview v0.0.0-20250322200051-73a5bd7d6839 h1:/v0ptNHBQaQCxlvS4QLx
 github.com/rivo/tview v0.0.0-20250322200051-73a5bd7d6839/go.mod h1:02iFIz7K/A9jGCvrizLPvoqr4cEIx7q54RH5Qudkrss=
 github.com/rivo/tview v0.0.0-20250325173046-7b72abf45814 h1:pJIO3sp+rkDbJTeqqpe2Oihq3hegiM5ASvsd6S0pvjg=
 github.com/rivo/tview v0.0.0-20250325173046-7b72abf45814/go.mod h1:02iFIz7K/A9jGCvrizLPvoqr4cEIx7q54RH5Qudkrss=
+github.com/rivo/tview v0.0.0-20250330220935-949945f8d922 h1:SMyqkaRfpE8ZQUSRTZKO3uN84xov++OGa+e3NCksaQw=
+github.com/rivo/tview v0.0.0-20250330220935-949945f8d922/go.mod h1:02iFIz7K/A9jGCvrizLPvoqr4cEIx7q54RH5Qudkrss=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.4.3/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
@@ -135,6 +139,8 @@ github.com/sneat-co/sneat-go-core v0.50.4 h1:Nw9lhF7ahDafFHgx5pcaT3iCun0yZxBCutY
 github.com/sneat-co/sneat-go-core v0.50.4/go.mod h1:BLOtvBRlSh2MwU8lteaAHdHfNiVC2qEjSdBqv749AiE=
 github.com/sneat-co/sneat-go-core v0.50.6 h1:QsNyiOL6T5zsdy16nfUY25OXeW8JuE8ha4glH/ze7sw=
 github.com/sneat-co/sneat-go-core v0.50.6/go.mod h1:47pmj+jgUcN4jRpQUZTC9pQ2cL7HEbwCqoq2vQHr8Y8=
+github.com/sneat-co/sneat-go-core v0.50.7 h1:F4nGnORvRmgY+hJsYLRULxBEVVdZcw/uxYXVBehhrik=
+github.com/sneat-co/sneat-go-core v0.50.7/go.mod h1:47pmj+jgUcN4jRpQUZTC9pQ2cL7HEbwCqoq2vQHr8Y8=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
