@@ -61,7 +61,7 @@ func (store fsProjectStore) LoadProject(ctx context.Context) (project *models.Da
 	return project, err
 }
 
-func loadDbDrivers(ctx context.Context, projPath string) (dbServers models.ProjDbServers, err error) {
+func loadDbDrivers(_ context.Context, projPath string) (dbServers models.ProjDbServers, err error) {
 	dbServersPath := path.Join(projPath, DatatugFolder, ServersFolder, DbFolder)
 	if err = loadDir(nil, dbServersPath, processDirs, func(files []os.FileInfo) {
 		dbServers = make(models.ProjDbServers, 0, len(files))
@@ -134,7 +134,7 @@ func loadDbServer(driverDirPath, driver, serverName string) (dbServer *models.Pr
 
 // LoadProjectSummary loads project summary
 func (store fsProjectStore) LoadProjectSummary(context.Context) (projectSummary models.ProjectSummary, err error) {
-	projectSummary.ProjectFile.ID = store.projectID
+	projectSummary.ID = store.projectID
 	if projectSummary.ProjectFile, err = LoadProjectFile(store.projectPath); err != nil {
 		return projectSummary, fmt.Errorf("failed to load project file: %w", err)
 	}

@@ -214,6 +214,10 @@ type TableModel struct {
 	ByEnv   StateByEnv `json:"byEnv,omitempty"`
 }
 
+func (v *TableModel) String() string {
+	return fmt.Sprintf("table{%v.%v}", v.Schema, v.Name)
+}
+
 // Validate returns error if not valid
 func (v *TableModel) Validate() error {
 	if err := v.TableKey.Validate(); err != nil {

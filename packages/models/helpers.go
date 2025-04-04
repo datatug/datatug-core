@@ -10,7 +10,7 @@ func ValidateName(name string) error {
 	if strings.TrimSpace(name) == "" {
 		return validation.NewErrRecordIsMissingRequiredField("name")
 	}
-	if strings.Replace(strings.TrimSpace(name), " ", "", -1) != name {
+	if strings.ReplaceAll(strings.TrimSpace(name), " ", "") != name {
 		return validation.NewErrBadRecordFieldValue("name", "name can't contain whitespace characters")
 	}
 	return nil

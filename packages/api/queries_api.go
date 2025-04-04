@@ -21,7 +21,7 @@ import (
 
 // CreateQuery creates a new query
 func CreateQuery(ctx context.Context, request dto.CreateQuery) (*models.QueryDefWithFolderPath, error) {
-	if err := request.ProjectRef.Validate(); err != nil {
+	if err := request.Validate(); err != nil {
 		return nil, err
 	}
 	store, err := storage.GetStore(ctx, request.StoreID)

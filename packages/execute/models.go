@@ -67,13 +67,13 @@ func (v RequestCommand) Validate() error {
 		return err
 	}
 	if v.DB != "" {
-		if v.ServerReference.Host != "" {
+		if v.Host != "" {
 			return validation.NewBadRequestError(errors.New("both 'db' & 'host' were provided"))
 		}
-		if v.ServerReference.Driver != "" {
+		if v.Driver != "" {
 			return validation.NewBadRequestError(errors.New("both 'db' & 'driver' were provided"))
 		}
-		if v.ServerReference.Port != 0 {
+		if v.Port != 0 {
 			return validation.NewBadRequestError(errors.New("both 'db' & 'port' were provided"))
 		}
 	}

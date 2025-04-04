@@ -135,8 +135,8 @@ func (e Executor) executeCommand(command RequestCommand) (recordset models.Recor
 		connParams, err = dbconnection.NewConnectionString(
 			dbServer.Driver,
 			dbServer.Host,
-			command.Credentials.Username,
-			command.Credentials.Password,
+			command.Username,
+			command.Password,
 			command.DB,
 			options...,
 		)
@@ -171,7 +171,7 @@ func (e Executor) executeCommand(command RequestCommand) (recordset models.Recor
 		k := "@" + p.ID
 		j := strings.Index(queryText, k)
 		if j >= 0 {
-			queryText = strings.Replace(queryText, k, ":"+strconv.Itoa(i+1), -1)
+			queryText = strings.ReplaceAll(queryText, k, ":"+strconv.Itoa(i+1))
 		}
 		args = append(args, p.Value)
 	}
@@ -185,7 +185,7 @@ func (e Executor) executeCommand(command RequestCommand) (recordset models.Recor
 						continue
 					}
 					args = append(args, nil)
-					queryText = strings.Replace(queryText, p, fmt.Sprintf(":%v", len(args)), -1)
+					queryText = strings.ReplaceAll(queryText, p, fmt.Sprintf(":%v", len(args)))
 				}
 				return e.executeQuery(db, dbServer.Driver, queryText, args)
 			}

@@ -77,7 +77,7 @@ func (s HttpServer) ServeHTTP(pathsByID map[string]string, host string, port int
 }
 
 func root(writer http.ResponseWriter, _ *http.Request) {
-	_, _ = writer.Write([]byte(fmt.Sprintf(`
+	_, _ = fmt.Fprintf(writer, `
 <html>
 <head>
 	<title>DataTug Agent</title>
@@ -107,5 +107,5 @@ func root(writer http.ResponseWriter, _ *http.Request) {
 </footer>
 </body>
 </html>
-`, filestore.GetProjectPath(storage.SingleProjectID))))
+`, filestore.GetProjectPath(storage.SingleProjectID))
 }
