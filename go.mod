@@ -2,7 +2,7 @@ module github.com/datatug/datatug
 
 go 1.24.3
 
-toolchain go1.24.5
+toolchain go1.24.6
 
 require (
 	github.com/datatug/sql2csv v0.0.0-20200927071952-a7fb986d1ec2
@@ -13,7 +13,7 @@ require (
 	github.com/gosuri/uitable v0.0.4
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/mattn/go-sqlite3 v1.14.29
+	github.com/mattn/go-sqlite3 v1.14.30
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/rivo/tview v0.0.0-20250625164341-a4a78f1e05cb
