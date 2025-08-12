@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/datatug/datatug/packages/cli/commands"
+	"github.com/datatug/datatug/apps/datatugcli/commands"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
