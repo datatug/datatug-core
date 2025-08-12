@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"github.com/datatug/datatug/apps/datatug/config"
+	"github.com/datatug/datatug/packages/appconfig"
 	"github.com/rivo/tview"
 )
 
@@ -9,7 +9,7 @@ type dashboardsPanel struct {
 	projectBasePanel
 }
 
-func newDashboardsPanel(project config.ProjectConfig) *dashboardsPanel {
+func newDashboardsPanel(project appconfig.ProjectConfig) *dashboardsPanel {
 
 	content := tview.NewTextView().SetTextAlign(tview.AlignCenter).SetText("List of dashboards here")
 

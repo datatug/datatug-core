@@ -1,14 +1,14 @@
 package ui
 
 import (
-	"github.com/datatug/datatug/apps/datatug/config"
 	tapp2 "github.com/datatug/datatug/apps/datatug/tapp"
+	"github.com/datatug/datatug/packages/appconfig"
 	"github.com/rivo/tview"
 )
 
 func newProjectRootScreenBase(
 	tui *tapp2.TUI,
-	project config.ProjectConfig,
+	project appconfig.ProjectConfig,
 	screen ProjectScreenID,
 	main tapp2.Panel,
 	sidebar tapp2.Panel,
@@ -24,7 +24,7 @@ func newProjectRootScreenBase(
 
 func projectScreenGreed(
 	tui *tapp2.TUI,
-	project config.ProjectConfig,
+	project appconfig.ProjectConfig,
 	screenID ProjectScreenID,
 	main tapp2.Panel,
 	sidebar tapp2.Panel,

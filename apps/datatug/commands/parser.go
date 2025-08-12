@@ -1,14 +1,16 @@
 package commands
 
 import (
+	"github.com/datatug/datatug/apps/firestoreviewer"
+	"github.com/datatug/datatug/packages/cli"
 	"github.com/jessevdk/go-flags"
 )
 
-func newParser() Parser {
+func newParser() cli.Parser {
 	return flags.NewParser(nil, flags.Default)
 }
 
-func GetParser() Parser {
+func GetParser() cli.Parser {
 	var p = newParser()
 	initCommandArgs(p)
 	configCommandArgs(p)
@@ -25,10 +27,6 @@ func GetParser() Parser {
 	uiCommandArgs(p)
 	testCommandArgs(p)
 	consoleCommandArgs(p)
+	firestoreviewer.AddFirestoreCommand(p)
 	return p
-}
-
-type Parser interface {
-	Parse() ([]string, error)
-	AddCommand(command string, shortDescription string, longDescription string, data interface{}) (*flags.Command, error)
 }

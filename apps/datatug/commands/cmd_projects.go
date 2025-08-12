@@ -2,21 +2,22 @@ package commands
 
 import (
 	"fmt"
-	"github.com/datatug/datatug/apps/datatug/config"
+	"github.com/datatug/datatug/packages/appconfig"
+	"github.com/datatug/datatug/packages/cli"
 	"log"
 	"strings"
 )
 
-func projectsCommandArgs(p Parser) {
-	projectsCommand, err := p.AddCommand("projects",
+func projectsCommandArgs(p cli.Parser) {
+	cmd, err := p.AddCommand("projects",
 		"List registered projects",
 		"",
 		&projectsCommand{})
 	if err != nil {
 		log.Fatal(err)
 	}
-	projectsCommand.SubcommandsOptional = true
-	_, err = projectsCommand.AddCommand("add",
+	cmd.SubcommandsOptional = true
+	_, err = cmd.AddCommand("add",
 		"Adds a <name>=<path> to list of known projects",
 		"",
 		&addProjectCommand{},
@@ -32,7 +33,7 @@ type projectsCommand struct {
 	List []string `short:"f" long:"fields" description:"Comma separate list of fields to output, default is 'id'. Possible values: id, path, title"`
 }
 
-func getProjPathsByID(config config.Settings) (pathsByID map[string]string) {
+func getProjPathsByID(config appconfig.Settings) (pathsByID map[string]string) {
 	pathsByID = make(map[string]string, len(config.Projects))
 	for _, p := range config.Projects {
 		pathsByID[p.ID] = p.Url
@@ -41,7 +42,7 @@ func getProjPathsByID(config config.Settings) (pathsByID map[string]string) {
 }
 
 func (v *projectsCommand) Execute(_ []string) error {
-	settings, err := config.GetSettings()
+	settings, err := appconfig.GetSettings()
 	if err != nil {
 		return fmt.Errorf("failed to get settings: %w", err)
 	}

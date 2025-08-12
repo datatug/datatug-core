@@ -2,7 +2,7 @@ package commands
 
 import (
 	"fmt"
-	config3 "github.com/datatug/datatug/apps/datatug/config"
+	config2 "github.com/datatug/datatug/packages/appconfig"
 	"os"
 )
 
@@ -11,7 +11,7 @@ type configServerCommand struct {
 }
 
 func (v *configServerCommand) Execute(_ []string) error {
-	config, err := config3.GetSettings()
+	config, err := config2.GetSettings()
 	if err != nil {
 		return fmt.Errorf("failed to get config: %w", err)
 	}
@@ -20,5 +20,5 @@ func (v *configServerCommand) Execute(_ []string) error {
 			return fmt.Errorf("failed to save config: %w", err)
 		}
 	}
-	return config3.PrintSection(config.Server, config3.FormatYaml, os.Stdout)
+	return config2.PrintSection(config.Server, config2.FormatYaml, os.Stdout)
 }

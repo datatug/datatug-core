@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"github.com/datatug/datatug/apps/datatug/config"
 	tapp2 "github.com/datatug/datatug/apps/datatug/tapp"
+	"github.com/datatug/datatug/packages/appconfig"
 	"github.com/rivo/tview"
 	"gopkg.in/yaml.v3"
 )
@@ -24,7 +24,7 @@ func NewSettingsScreen(tui *tapp2.TUI) tapp2.Screen {
 		AddItem(header, 0, 0, 1, 3, 0, 0, false).
 		AddItem(footer, 2, 0, 1, 3, 0, 0, false)
 
-	setting, _ := config.GetSettings()
+	setting, _ := appconfig.GetSettings()
 
 	content, _ := yaml.Marshal(setting)
 

@@ -2,7 +2,7 @@ package commands
 
 import (
 	"errors"
-	config2 "github.com/datatug/datatug/apps/datatug/config"
+	config2 "github.com/datatug/datatug/packages/appconfig"
 	"github.com/datatug/datatug/packages/storage"
 	"github.com/datatug/datatug/packages/storage/filestore"
 	"strings"

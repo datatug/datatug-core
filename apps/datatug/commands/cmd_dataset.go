@@ -2,10 +2,11 @@ package commands
 
 import (
 	"fmt"
+	"github.com/datatug/datatug/packages/cli"
 	"log"
 )
 
-func datasetCommandArgs(p Parser) {
+func datasetCommandArgs(p cli.Parser) {
 	datasetCmd, err := p.AddCommand("dataset",
 		"Recordset commands: def, data",
 		"Recordset commands: def, data",

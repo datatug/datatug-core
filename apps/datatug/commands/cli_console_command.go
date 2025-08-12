@@ -2,11 +2,12 @@ package commands
 
 import (
 	"fmt"
+	"github.com/datatug/datatug/packages/cli"
 	"log"
 	"os"
 )
 
-func consoleCommandArgs(p Parser) {
+func consoleCommandArgs(p cli.Parser) {
 	_, err := p.AddCommand("console",
 		"Starts interactive console",
 		"Starts interactive console with autocomplete",

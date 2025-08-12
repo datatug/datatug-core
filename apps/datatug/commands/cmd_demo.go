@@ -4,8 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/datatug/datatug/apps/datatug/config"
 	"github.com/datatug/datatug/packages/api"
+	"github.com/datatug/datatug/packages/appconfig"
+	"github.com/datatug/datatug/packages/cli"
 	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
@@ -33,7 +34,7 @@ const (
 	demoProjectDir             = "demo-project"
 )
 
-func demoCommandArgs(p Parser) {
+func demoCommandArgs(p cli.Parser) {
 	_, err := p.AddCommand("demo",
 		"Installs & runs demo",
 		"Adds demo DB & creates or update demo DataTug project",
@@ -259,7 +260,7 @@ func (c demoCommand) createOrUpdateDemoProject(demoProjectPath string, demoDbFil
 
 func (c demoCommand) addDemoProjectToDatatugConfig(datatugUserDir, demoProjectPath string) error {
 	log.Printf("Adding demo project to DataTug settings into %v...", datatugUserDir)
-	settings, err := config.GetSettings()
+	settings, err := appconfig.GetSettings()
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return fmt.Errorf("failed to read datatug settings: %w", err)

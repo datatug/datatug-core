@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"fmt"
+	"github.com/datatug/datatug/packages/cli"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/gosuri/uitable"
 	"log"
@@ -11,7 +12,7 @@ import (
 	"strings"
 )
 
-func showCommandArgs(p Parser) {
+func showCommandArgs(p cli.Parser) {
 	_, err := p.AddCommand("show",
 		"Displays project data",
 		"Outputs project data in human readable format",

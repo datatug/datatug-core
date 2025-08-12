@@ -3,13 +3,14 @@ package commands
 import (
 	"context"
 	"fmt"
+	"github.com/datatug/datatug/packages/cli"
 	"github.com/datatug/datatug/packages/storage"
 	"github.com/datatug/datatug/packages/storage/filestore"
 	"log"
 	"os"
 )
 
-func renderCommandArgs(p Parser) {
+func renderCommandArgs(p cli.Parser) {
 	_, err := p.AddCommand("render",
 		"Renders readme.md files",
 		"Updates readme.md files - this is useful for updating them without scan",

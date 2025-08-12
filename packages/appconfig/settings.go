@@ -1,4 +1,4 @@
-package config
+package appconfig
 
 import (
 	"fmt"
@@ -11,8 +11,11 @@ import (
 // Settings hold DataTug executable configuration for commands like `serve`
 type Settings struct {
 	Projects []*ProjectConfig `yaml:"projects,omitempty"` // Intentionally do not use map
-	Client   *ClientConfig    `yaml:"client,omitempty"`
-	Server   *ServerConfig    `yaml:"server,omitempty"`
+
+	Client *ClientConfig `yaml:"client,omitempty"`
+	Server *ServerConfig `yaml:"server,omitempty"`
+
+	Credentials map[string][]AuthCredential
 }
 
 func (v Settings) GetProjectConfig(projectID string) *ProjectConfig {

@@ -11,16 +11,25 @@ app to scan databases & execute SQL requests.
 
 It can be run with your user account credentials (*e.g. trusted connection*) or under some service account.
 
+## Family of DataTug apps
+
+The `datatug` app has a lot of modules. Some ot that modules can be run as standalone CLI apps:
+
+- [`fsv`](apps/firestoreviewer) - A Firestore Viewer, similar to running `datatug firestore`
+
 ## Would you steal my data?
 
 No, we won't.
 
-The project is **free and open source** codes available at https://github.com/datatug/datatug. You are welcome to check - we do not look into your data.
+The project is **free and open source** codes available at https://github.com/datatug/datatug. You are welcome to
+check - we do not look into your data.
 
 You can easily get executable of the agent from source codes using next command:
+
 ```
 go install github.com/datatug/datatug
 ```
+
 Note: _[Go language](https://golang.org/) should be [pre-installed](https://golang.org/dl/)_
 
 ## Where metadata are stored?
@@ -31,11 +40,13 @@ understand & easy to compare JSON files.
 We recommend to check-in the project to some source versioning control system like GIT.
 
 You can run commands for different projects by passing path to DataTugProject folder. E.g.:
+
 ```
 > datatug show --project ~/my-datatug-projects/DemoProject
 ```
 
-Paths to the DataTug project files, and their names are stored in `~/datatug.yaml` in the root of your user's home directory.
+Paths to the DataTug project files, and their names are stored in `~/datatug.yaml` in the root of your user's home
+directory.
 This allows you to address a DataTug project in a console using a short alias. Like this:
 
 ```
@@ -51,10 +62,13 @@ If current directory is a DataTug project folder you don't need to specify proje
 ## How to get DataTug agent CLI?
 
 Get from source codes by running:
+
 ```
 > go install github.com/datatug/datatug
 ```
+
 If it passes you are good to go:
+
 ```
 > datatug --help
 ```
@@ -90,19 +104,20 @@ http://datatug.app/download
 ## Sample Databases
 
 ### By Database Platform
+
 - SQLite
-  - [Chinook Database](https://github.com/lerocha/chinook-database)
-  - [Northwind](https://github.com/jpwhite3/northwind-SQLite3)
+    - [Chinook Database](https://github.com/lerocha/chinook-database)
+    - [Northwind](https://github.com/jpwhite3/northwind-SQLite3)
 - MS SQL Server
-  - [Northwind](https://github.com/Microsoft/sql-server-samples/tree/master/samples/databases/northwind-pubs)
+    - [Northwind](https://github.com/Microsoft/sql-server-samples/tree/master/samples/databases/northwind-pubs)
 - Oracle
-  - [Northwind](https://github.com/dshifflet/NorthwindOracle_DDL)
+    - [Northwind](https://github.com/dshifflet/NorthwindOracle_DDL)
 
 ### Northwind Database
-  - [SQLite](https://github.com/jpwhite3/northwind-SQLite3)
-  - [MS SQL Server](https://github.com/Microsoft/sql-server-samples/tree/master/samples/databases/northwind-pubs)
-  - [Oracle](https://github.com/dshifflet/NorthwindOracle_DDL)
 
+- [SQLite](https://github.com/jpwhite3/northwind-SQLite3)
+- [MS SQL Server](https://github.com/Microsoft/sql-server-samples/tree/master/samples/databases/northwind-pubs)
+- [Oracle](https://github.com/dshifflet/NorthwindOracle_DDL)
 
 ## Plans for improvements
 
@@ -120,7 +135,9 @@ tagged with [`help wanted`](https://github.com/datatug/datatug/labels/help%20wan
 and [`good first issue`](https://github.com/datatug/datatug/labels/good%20first%20issue).
 
 ## TODO integrations
-- [Dasel](https://github.com/TomWright/dasel) - Select, put and delete data from JSON, TOML, YAML, XML and CSV files with a single tool. Supports conversion between formats and can be used as a Go package.
+
+- [Dasel](https://github.com/TomWright/dasel) - Select, put and delete data from JSON, TOML, YAML, XML and CSV files
+  with a single tool. Supports conversion between formats and can be used as a Go package.
 - [DbMate](https://github.com/amacneil/dbmate) - A lightweight, framework-agnostic database migration tool.
 
 ## Licensing

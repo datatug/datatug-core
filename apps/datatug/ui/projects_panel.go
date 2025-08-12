@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"github.com/datatug/datatug/apps/datatug/config"
 	tapp2 "github.com/datatug/datatug/apps/datatug/tapp"
+	"github.com/datatug/datatug/packages/appconfig"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"sort"
@@ -14,7 +14,7 @@ var _ tapp2.Cell = (*projectsPanel)(nil)
 
 type projectsPanel struct {
 	tapp2.PanelBase
-	projects        []*config.ProjectConfig
+	projects        []*appconfig.ProjectConfig
 	selectProjectID string
 	list            *tview.List
 }
@@ -26,12 +26,12 @@ func newProjectsPanel(tui *tapp2.TUI) (*projectsPanel, error) {
 		list:      list,
 	}
 
-	settings, err := config.GetSettings()
+	settings, err := appconfig.GetSettings()
 	if err != nil {
 		return nil, err
 	}
 
-	openProject := func(projectConfig config.ProjectConfig) {
+	openProject := func(projectConfig appconfig.ProjectConfig) {
 		projectScreen := newProjectScreen(tui, projectConfig)
 		tui.PushScreen(projectScreen)
 	}
@@ -42,7 +42,7 @@ func newProjectsPanel(tui *tapp2.TUI) (*projectsPanel, error) {
 		return panel.projects[i].ID < panel.projects[j].ID
 	})
 
-	projectSelected := func(p *config.ProjectConfig) {
+	projectSelected := func(p *appconfig.ProjectConfig) {
 		panel.selectProjectID = p.ID
 		openProject(*p)
 	}

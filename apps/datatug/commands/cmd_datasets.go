@@ -3,10 +3,11 @@ package commands
 import (
 	"context"
 	"fmt"
+	"github.com/datatug/datatug/packages/cli"
 	"log"
 )
 
-func datasetsCommandArgs(p Parser) {
+func datasetsCommandArgs(p cli.Parser) {
 	_, err := p.AddCommand("datasets",
 		"Lists datasets if no sub-command provided",
 		"Lists datasets if no sub-command provided",

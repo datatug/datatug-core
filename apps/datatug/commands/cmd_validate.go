@@ -3,11 +3,12 @@ package commands
 import (
 	"context"
 	"fmt"
+	"github.com/datatug/datatug/packages/cli"
 	"github.com/datatug/datatug/packages/models"
 	"log"
 )
 
-func testCommandArgs(p Parser) {
+func testCommandArgs(p cli.Parser) {
 	_, err := p.AddCommand("test",
 		"Runs validation scripts",
 		"The `test` command executes validation scripts.",

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/datatug/datatug/packages/cli"
 	"github.com/datatug/datatug/packages/dbconnection"
 	"github.com/datatug/sql2csv"
 	"github.com/google/uuid"
@@ -16,7 +17,7 @@ import (
 	"strings"
 )
 
-func updateUrlConfigCommandArgs(p Parser) {
+func updateUrlConfigCommandArgs(p cli.Parser) {
 	_, err := p.AddCommand("updateUrlConfig",
 		"Executes query or a command",
 		"The `updateUrlConfig` command executes command or query. Like an SQL query or an SQL stored procedure.",

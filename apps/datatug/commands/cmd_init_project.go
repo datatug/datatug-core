@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"fmt"
+	"github.com/datatug/datatug/packages/cli"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
 	"github.com/datatug/datatug/packages/storage/filestore"
@@ -14,7 +15,7 @@ import (
 	"time"
 )
 
-func initCommandArgs(p Parser) {
+func initCommandArgs(p cli.Parser) {
 	_, err := p.AddCommand("init",
 		"Creates a new datatug project",
 		"Creates a new datatug project in specified directory using a connection to some database",

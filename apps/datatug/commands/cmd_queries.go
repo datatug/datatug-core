@@ -1,10 +1,11 @@
 package commands
 
 import (
+	"github.com/datatug/datatug/packages/cli"
 	"log"
 )
 
-func queriesCommandArgs(p Parser) {
+func queriesCommandArgs(p cli.Parser) {
 	_, err := p.AddCommand("queries",
 		"Lists queries if no sub-command provided",
 		"Lists queries if no sub-command provided",

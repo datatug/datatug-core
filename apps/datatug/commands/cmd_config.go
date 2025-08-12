@@ -2,7 +2,8 @@ package commands
 
 import (
 	"fmt"
-	config2 "github.com/datatug/datatug/apps/datatug/config"
+	"github.com/datatug/datatug/packages/appconfig"
+	"github.com/datatug/datatug/packages/cli"
 	"log"
 	"os"
 )
@@ -12,17 +13,17 @@ type configCommand struct {
 }
 
 func (v *configCommand) Execute(_ []string) error {
-	settings, err := config2.GetSettings()
+	settings, err := appconfig.GetSettings()
 	if err != nil {
 		return fmt.Errorf("failed to get config: %w", err)
 	}
-	if err = config2.PrintSettings(settings, config2.FormatYaml, os.Stdout); err != nil {
+	if err = appconfig.PrintSettings(settings, appconfig.FormatYaml, os.Stdout); err != nil {
 		return err
 	}
 	return nil
 }
 
-func configCommandArgs(p Parser) {
+func configCommandArgs(p cli.Parser) {
 	if configCmd, err := p.AddCommand("config", "Prints config", "", &configCommand{}); err != nil {
 		log.Fatal(err)
 	} else {

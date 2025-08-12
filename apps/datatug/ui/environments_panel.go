@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"github.com/datatug/datatug/apps/datatug/config"
+	"github.com/datatug/datatug/packages/appconfig"
 	"github.com/rivo/tview"
 )
 
@@ -9,7 +9,7 @@ type environmentsPanel struct {
 	projectBasePanel
 }
 
-func newEnvironmentsPanel(project config.ProjectConfig) *environmentsPanel {
+func newEnvironmentsPanel(project appconfig.ProjectConfig) *environmentsPanel {
 
 	content := tview.NewTextView().SetTextAlign(tview.AlignCenter).SetText("List of environments here")
 

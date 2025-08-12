@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/datatug/datatug/apps/datatug/config"
+	"github.com/datatug/datatug/packages/appconfig"
 )
 
 // urlConfigCommand is embedded into configServerCommand and configClientCommand
@@ -11,7 +11,7 @@ type urlConfigCommand struct {
 	Port  int    `short:"o" long:"port" description:"Port number"`
 }
 
-func (v *urlConfigCommand) updateUrlConfig(urlConfig *config.UrlConfig) (changed bool) {
+func (v *urlConfigCommand) updateUrlConfig(urlConfig *appconfig.UrlConfig) (changed bool) {
 	if v.Reset {
 		urlConfig.Host = ""
 		urlConfig.Port = 0

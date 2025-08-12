@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"github.com/datatug/datatug/apps/datatug/config"
 	tapp2 "github.com/datatug/datatug/apps/datatug/tapp"
+	"github.com/datatug/datatug/packages/appconfig"
 	"github.com/rivo/tview"
 )
 
@@ -13,7 +13,7 @@ const (
 	ProjectScreenEnvironments = "environments"
 )
 
-func newProjectMenu(tui *tapp2.TUI, project config.ProjectConfig, currentScreen ProjectScreenID) *projectMenu {
+func newProjectMenu(tui *tapp2.TUI, project appconfig.ProjectConfig, currentScreen ProjectScreenID) *projectMenu {
 	list := tview.NewList().
 		//AddItem("Databases", "", 'D', nil).
 		AddItem("Dashboards", "", 'B', func() {

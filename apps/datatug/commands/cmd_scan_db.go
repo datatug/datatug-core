@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/api"
+	"github.com/datatug/datatug/packages/cli"
 	"github.com/datatug/datatug/packages/dbconnection"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
@@ -14,7 +15,7 @@ import (
 	"strconv"
 )
 
-func scanCommandArgs(p Parser) {
+func scanCommandArgs(p cli.Parser) {
 	_, err := p.AddCommand("scan",
 		"Adds or updates DB metadata",
 		"Adds or updates DB metadata from a specific server in a specific environment",

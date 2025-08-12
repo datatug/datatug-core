@@ -3,7 +3,8 @@ package commands
 import (
 	"errors"
 	"fmt"
-	config2 "github.com/datatug/datatug/apps/datatug/config"
+	config2 "github.com/datatug/datatug/packages/appconfig"
+	"github.com/datatug/datatug/packages/cli"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/server"
 	"github.com/datatug/datatug/packages/storage/filestore"
@@ -16,7 +17,7 @@ import (
 // ServeCommand executes serve command
 //var ServeCommand *flags.Command
 
-func serveCommandArgs(p Parser) {
+func serveCommandArgs(p cli.Parser) {
 	var err error
 	_, err = p.AddCommand("serve",
 		"Serves HTTP server to provide API for UI",

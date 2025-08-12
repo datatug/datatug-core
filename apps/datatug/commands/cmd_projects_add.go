@@ -3,7 +3,7 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"github.com/datatug/datatug/apps/datatug/config"
+	"github.com/datatug/datatug/packages/appconfig"
 	"gopkg.in/yaml.v3"
 	"os"
 	"strings"
@@ -16,19 +16,19 @@ type addProjectCommand struct {
 // Execute executes "projects add" command
 func (v *addProjectCommand) Execute(_ []string) error {
 	_, _ = fmt.Println("Reading settings file...")
-	settings, err := config.GetSettings()
+	settings, err := appconfig.GetSettings()
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("failed to read settings file: %v", err)
 	}
 	projectID := strings.ToLower(v.ProjectName)
 	project := settings.GetProjectConfig(projectID)
 	if project != nil { // GetProjectStore with requested name already added to settings
-		if project.Url == config.FileStoreUrlPrefix+v.ProjectDir { // Attempt to add the same project with same path
+		if project.Url == appconfig.FileStoreUrlPrefix+v.ProjectDir { // Attempt to add the same project with same path
 			return nil // No problem, just do nothing.
 		}
 		return fmt.Errorf("project with name [%v] already added to settings with path: %v", projectID, project.Url)
 	}
-	projectConfig := config.ProjectConfig{ID: projectID, Url: config.FileStoreUrlPrefix + v.ProjectDir}
+	projectConfig := appconfig.ProjectConfig{ID: projectID, Url: appconfig.FileStoreUrlPrefix + v.ProjectDir}
 
 	settings.Projects = append(settings.Projects, &projectConfig)
 
@@ -39,7 +39,7 @@ func (v *addProjectCommand) Execute(_ []string) error {
 	return nil
 }
 
-func saveConfig(config config.Settings) error {
+func saveConfig(config appconfig.Settings) error {
 	configFilePath := "~/.datatug.yaml"
 	f, err := os.Create(configFilePath)
 	if err != nil {
