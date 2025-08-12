@@ -11,9 +11,13 @@ import (
 	"os"
 )
 
+type parser interface {
+	Parse() ([]string, error)
+}
+
 func main() {
-	parser := commands.GetParser()
-	if _, err := parser.Parse(); err != nil {
+	var p = getParser()
+	if _, err := p.Parse(); err != nil {
 		var flagsErr *flags.Error
 		switch {
 		case errors.As(err, &flagsErr):
@@ -26,4 +30,8 @@ func main() {
 			os.Exit(1)
 		}
 	}
+}
+
+var getParser = func() parser {
+	return commands.GetParser()
 }
