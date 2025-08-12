@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
 	"github.com/datatug/datatug/packages/cli/commands"
 	_ "github.com/datatug/datatug/packages/cli/console"
@@ -13,9 +14,10 @@ import (
 
 func main() {
 	if _, err := commands.Parser.Parse(); err != nil {
-		switch flagsErr := err.(type) {
-		case *flags.Error:
-			if flagsErr.Type == flags.ErrHelp {
+		var flagsErr *flags.Error
+		switch {
+		case errors.As(err, &flagsErr):
+			if errors.Is(flagsErr.Type, flags.ErrHelp) {
 				os.Exit(0)
 			}
 			os.Exit(1)
