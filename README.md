@@ -155,4 +155,4 @@ and [`good first issue`](https://github.com/datatug/datatug/labels/good%20first%
 
 ## Licensing
 
-Free & open source under [MIT license](./LICENSE).
+The `datatug` and other DataTug CLIs is free to use and source codes are open source under [MIT license](./LICENSE).
