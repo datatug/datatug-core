@@ -50,7 +50,7 @@ directory.
 This allows you to address a DataTug project in a console using a short alias. Like this:
 
 ```
-> datatug show --project DemoProject
+> datatug show -p DemoProject
 ```
 
 If current directory is a DataTug project folder you don't need to specify project name or path.
@@ -82,13 +82,13 @@ Check the [CLI](./packages/cli) section on how to run DataTug agent.
 At the moment we any DB supported by [DALgo](https://github.com/dal-go/dalgo). Like:
 
 - [dalgo2firestore](https://github.com/dal-go/dalgo2firestore)
-- [dalgo2sql](https://github.com/dal-go/dalgo2sql) 
+- [dalgo2sql](https://github.com/dal-go/dalgo2sql)
 
 ### Supported `sql` Databases:
 
 Datatug can work with `sql` DBs if a relevant driver has been linked into `datatug`
 
-- **SQLite** - via  [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3 ) 
+- **SQLite** - via  [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3 )
 - **Microsoft SQL Server** - via [go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
 We are open for pull requests to support other `sql` DBs.
