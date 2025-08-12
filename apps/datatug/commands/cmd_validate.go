@@ -3,18 +3,19 @@ package commands
 import (
 	"context"
 	"fmt"
-	"github.com/datatug/datatug/packages/cli"
 	"github.com/datatug/datatug/packages/models"
-	"log"
+	cliv3 "github.com/urfave/cli/v3"
 )
 
-func testCommandArgs(p cli.Parser) {
-	_, err := p.AddCommand("test",
-		"Runs validation scripts",
-		"The `test` command executes validation scripts.",
-		&validateCommand{})
-	if err != nil {
-		log.Fatal(err)
+func testCommandArgs() *cliv3.Command {
+	return &cliv3.Command{
+		Name:        "test",
+		Usage:       "Runs validation scripts",
+		Description: "The `test` command executes validation scripts.",
+		Action: func(ctx context.Context, c *cliv3.Command) error {
+			v := &validateCommand{}
+			return v.Execute(nil)
+		},
 	}
 }
 

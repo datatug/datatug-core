@@ -3,17 +3,18 @@ package commands
 import (
 	"context"
 	"fmt"
-	"github.com/datatug/datatug/packages/cli"
-	"log"
+	cliv3 "github.com/urfave/cli/v3"
 )
 
-func datasetsCommandArgs(p cli.Parser) {
-	_, err := p.AddCommand("datasets",
-		"Lists datasets if no sub-command provided",
-		"Lists datasets if no sub-command provided",
-		&datasetsCommand{})
-	if err != nil {
-		log.Fatal(err)
+func datasetsCommandArgs() *cliv3.Command {
+	return &cliv3.Command{
+		Name:        "datasets",
+		Usage:       "Lists datasets if no sub-command provided",
+		Description: "Lists datasets if no sub-command provided",
+		Action: func(ctx context.Context, c *cliv3.Command) error {
+			v := &datasetsCommand{}
+			return v.Execute(nil)
+		},
 	}
 }
 

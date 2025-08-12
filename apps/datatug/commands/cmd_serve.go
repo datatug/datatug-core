@@ -1,14 +1,14 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	config2 "github.com/datatug/datatug/packages/appconfig"
-	"github.com/datatug/datatug/packages/cli"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/server"
 	"github.com/datatug/datatug/packages/storage/filestore"
-	"log"
+	cliv3 "github.com/urfave/cli/v3"
 	"os/exec"
 	runtime "runtime"
 	"strings"
@@ -17,14 +17,15 @@ import (
 // ServeCommand executes serve command
 //var ServeCommand *flags.Command
 
-func serveCommandArgs(p cli.Parser) {
-	var err error
-	_, err = p.AddCommand("serve",
-		"Serves HTTP server to provide API for UI",
-		"Serves HTTP server to provide API for UI. Default port is 8989",
-		&serveCommand{})
-	if err != nil {
-		log.Fatal(err)
+func serveCommandArgs() *cliv3.Command {
+	return &cliv3.Command{
+		Name:        "serve",
+		Usage:       "Serves HTTP server to provide API for UI",
+		Description: "Serves HTTP server to provide API for UI. Default port is 8989",
+		Action: func(ctx context.Context, c *cliv3.Command) error {
+			v := &serveCommand{}
+			return v.Execute(nil)
+		},
 	}
 }
 

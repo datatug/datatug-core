@@ -2,31 +2,28 @@ package commands
 
 import (
 	"github.com/datatug/datatug/apps/firestoreviewer"
-	"github.com/datatug/datatug/packages/cli"
-	"github.com/jessevdk/go-flags"
+	cliv3 "github.com/urfave/cli/v3"
 )
 
-func newParser() cli.Parser {
-	return flags.NewParser(nil, flags.Default)
-}
-
-func GetParser() cli.Parser {
-	var p = newParser()
-	initCommandArgs(p)
-	configCommandArgs(p)
-	datasetCommandArgs(p)
-	datasetsCommandArgs(p)
-	demoCommandArgs(p)
-	updateUrlConfigCommandArgs(p)
-	projectsCommandArgs(p)
-	queriesCommandArgs(p)
-	renderCommandArgs(p)
-	scanCommandArgs(p)
-	serveCommandArgs(p)
-	showCommandArgs(p)
-	uiCommandArgs(p)
-	testCommandArgs(p)
-	consoleCommandArgs(p)
-	firestoreviewer.AddFirestoreCommand(p)
-	return p
+func GetCommand() *cliv3.Command {
+	return &cliv3.Command{
+		Commands: []*cliv3.Command{
+			initCommand(),
+			configCommandArgs(),
+			datasetCommandArgs(),
+			datasetsCommandArgs(),
+			demoCommandArgs(),
+			updateUrlConfigCommandArgs(),
+			projectsCommandArgs(),
+			queriesCommandArgs(),
+			renderCommandArgs(),
+			scanCommandArgs(),
+			serveCommandArgs(),
+			showCommandArgs(),
+			uiCommandArgs(),
+			testCommandArgs(),
+			consoleCommandArgs(),
+			firestoreviewer.FirestoreCommand(),
+		},
+	}
 }

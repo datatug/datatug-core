@@ -3,20 +3,22 @@ package commands
 import (
 	"context"
 	"fmt"
-	"github.com/datatug/datatug/packages/cli"
 	"github.com/datatug/datatug/packages/storage"
 	"github.com/datatug/datatug/packages/storage/filestore"
+	cliv3 "github.com/urfave/cli/v3"
 	"log"
 	"os"
 )
 
-func renderCommandArgs(p cli.Parser) {
-	_, err := p.AddCommand("render",
-		"Renders readme.md files",
-		"Updates readme.md files - this is useful for updating them without scan",
-		&renderCommand{})
-	if err != nil {
-		log.Fatal(err)
+func renderCommandArgs() *cliv3.Command {
+	return &cliv3.Command{
+		Name:        "render",
+		Usage:       "Renders readme.md files",
+		Description: "Updates readme.md files - this is useful for updating them without scan",
+		Action: func(ctx context.Context, c *cliv3.Command) error {
+			v := &renderCommand{}
+			return v.Execute(nil)
+		},
 	}
 }
 

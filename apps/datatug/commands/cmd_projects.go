@@ -1,29 +1,22 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/appconfig"
-	"github.com/datatug/datatug/packages/cli"
-	"log"
+	cliv3 "github.com/urfave/cli/v3"
 	"strings"
 )
 
-func projectsCommandArgs(p cli.Parser) {
-	cmd, err := p.AddCommand("projects",
-		"List registered projects",
-		"",
-		&projectsCommand{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	cmd.SubcommandsOptional = true
-	_, err = cmd.AddCommand("add",
-		"Adds a <name>=<path> to list of known projects",
-		"",
-		&addProjectCommand{},
-	)
-	if err != nil {
-		log.Fatal(err)
+func projectsCommandArgs() *cliv3.Command {
+	return &cliv3.Command{
+		Name:        "projects",
+		Usage:       "List registered projects",
+		Description: "",
+		Action: func(ctx context.Context, c *cliv3.Command) error {
+			v := &projectsCommand{}
+			return v.Execute(nil)
+		},
 	}
 }
 

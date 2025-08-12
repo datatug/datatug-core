@@ -3,11 +3,10 @@ package commands
 import (
 	"context"
 	"fmt"
-	"github.com/datatug/datatug/packages/cli"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
 	"github.com/datatug/datatug/packages/storage/filestore"
-	"github.com/strongo/random"
+	cliv3 "github.com/urfave/cli/v3"
 	"log"
 	"os"
 	"os/user"
@@ -15,36 +14,30 @@ import (
 	"time"
 )
 
-func initCommandArgs(p cli.Parser) {
-	_, err := p.AddCommand("init",
-		"Creates a new datatug project",
-		"Creates a new datatug project in specified directory using a connection to some database",
-		&initProjectCommand{})
-	if err != nil {
-		log.Fatal(err)
+var projectIdArg = &cliv3.StringArg{Name: "project"}
+var projectPathArg = &cliv3.StringArg{Name: "projectPath"}
+
+func initCommand() *cliv3.Command {
+	return &cliv3.Command{
+		Name:        "init",
+		Usage:       "Creates a new datatug project",
+		Description: "Creates a new datatug project in specified directory using a connection to some database",
+		Action:      initCommandAction,
+		Arguments: []cliv3.Argument{
+			projectIdArg,
+			projectPathArg,
+		},
 	}
 }
 
-// initProjectCommand defines parameters for a command to init a new DataTug project
-type initProjectCommand struct {
-	projectBaseCommand
-	//Driver      string `short:"d" long:"driver" required:"true"`
-	//Host        string `short:"s" long:"server" required:"true" default:"localhost"`
-	//User        string `short:"u" long:"user"`
-	//Port        string `long:"port"`
-	//Password    string `short:"p" long:"password"`
-	//Database    string `long:"db"`
-	//Environment string `long:"env" required:"true" description:"Specify environment the DB belongs to. E.g.: LOCAL, DEV, SIT, UAT, PERF, PROD"`
-}
-
-// Execute executes init project command
-func (v *initProjectCommand) Execute(_ []string) (err error) {
+func initCommandAction(ctx context.Context, c *cliv3.Command) (err error) {
 	log.Println("Initiating project...")
 
-	if err = os.MkdirAll(v.ProjectDir, 0777); err != nil {
+	projectDir := c.Arguments[1].Get().(string)
+	if err = os.MkdirAll(projectDir, 0777); err != nil {
 		return err
 	}
-	dataTugDirPath := path.Join(v.ProjectDir, "datatug")
+	dataTugDirPath := path.Join(projectDir, "datatug")
 	var fileInfo os.FileInfo
 	if fileInfo, err = os.Stat(dataTugDirPath); err != nil {
 		if !os.IsNotExist(err) {
@@ -82,9 +75,9 @@ func (v *initProjectCommand) Execute(_ []string) (err error) {
 	//	return fmt.Errorf("failed to get database metadata: %w", err)
 	//}
 
-	projectID := random.ID(9)
+	projectID := projectIdArg.Get().(string)
 
-	storage.Current, projectID = filestore.NewSingleProjectStore(v.ProjectDir, projectID)
+	storage.Current, projectID = filestore.NewSingleProjectStore(projectDir, projectID)
 	datatugProject := models.DatatugProject{
 		ProjectItem: models.ProjectItem{
 			ProjItemBrief: models.ProjItemBrief{ID: projectID},

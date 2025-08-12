@@ -1,33 +1,20 @@
 package commands
 
 import (
-	"fmt"
-	"github.com/datatug/datatug/packages/cli"
-	"log"
+	"context"
+	cliv3 "github.com/urfave/cli/v3"
 )
 
-func datasetCommandArgs(p cli.Parser) {
-	datasetCmd, err := p.AddCommand("dataset",
-		"Recordset commands: def, data",
-		"Recordset commands: def, data",
-		&datasetCommand{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	datasetCmd.Aliases = []string{"ds"}
-	datasetCmd.SubcommandsOptional = true
-	if _, err = datasetCmd.AddCommand("def",
-		"Shows dataset definition",
-		"Shows dataset definition",
-		&datasetDefCommand{}); err != nil {
-		log.Fatal(fmt.Errorf("failed to add 'dataset def' command"))
-	}
-
-	if _, err = datasetCmd.AddCommand("data",
-		"Shows dataset data",
-		"Shows dataset data",
-		&datasetDataCommand{}); err != nil {
-		log.Fatal(fmt.Errorf("failed to add 'dataset data' command"))
+func datasetCommandArgs() *cliv3.Command {
+	return &cliv3.Command{
+		Name:        "dataset",
+		Usage:       "Recordset commands: def, data",
+		Description: "Recordset commands: def, data",
+		Aliases:     []string{"ds"},
+		Action: func(ctx context.Context, c *cliv3.Command) error {
+			v := &datasetCommand{}
+			return v.Execute(nil)
+		},
 	}
 }
 

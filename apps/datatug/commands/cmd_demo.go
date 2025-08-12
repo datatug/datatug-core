@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"github.com/datatug/datatug/packages/api"
 	"github.com/datatug/datatug/packages/appconfig"
-	"github.com/datatug/datatug/packages/cli"
 	"github.com/datatug/datatug/packages/dto"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/parallel"
 	"github.com/datatug/datatug/packages/storage"
 	"github.com/datatug/datatug/packages/storage/filestore"
 	"github.com/go-git/go-git/v5"
+	cliv3 "github.com/urfave/cli/v3"
 	"io"
 	"log"
 	"net/http"
@@ -34,13 +34,15 @@ const (
 	demoProjectDir             = "demo-project"
 )
 
-func demoCommandArgs(p cli.Parser) {
-	_, err := p.AddCommand("demo",
-		"Installs & runs demo",
-		"Adds demo DB & creates or update demo DataTug project",
-		&demoCommand{})
-	if err != nil {
-		log.Fatal(err)
+func demoCommandArgs() *cliv3.Command {
+	return &cliv3.Command{
+		Name:        "demo",
+		Usage:       "Installs & runs demo",
+		Description: "Adds demo DB & creates or update demo DataTug project",
+		Action: func(ctx context.Context, c *cliv3.Command) error {
+			v := &demoCommand{}
+			return v.Execute(nil)
+		},
 	}
 }
 

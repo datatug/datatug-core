@@ -4,24 +4,26 @@ import (
 	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/api"
-	"github.com/datatug/datatug/packages/cli"
 	"github.com/datatug/datatug/packages/dbconnection"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
 	"github.com/datatug/datatug/packages/storage/filestore"
 	"github.com/mitchellh/go-homedir"
+	cliv3 "github.com/urfave/cli/v3"
 	"log"
 	"os"
 	"strconv"
 )
 
-func scanCommandArgs(p cli.Parser) {
-	_, err := p.AddCommand("scan",
-		"Adds or updates DB metadata",
-		"Adds or updates DB metadata from a specific server in a specific environment",
-		&scanDbCommand{})
-	if err != nil {
-		log.Fatal(err)
+func scanCommandArgs() *cliv3.Command {
+	return &cliv3.Command{
+		Name:        "scan",
+		Usage:       "Adds or updates DB metadata",
+		Description: "Adds or updates DB metadata from a specific server in a specific environment",
+		Action: func(ctx context.Context, c *cliv3.Command) error {
+			v := &scanDbCommand{}
+			return v.Execute(nil)
+		},
 	}
 }
 

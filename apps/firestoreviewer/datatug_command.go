@@ -1,18 +1,19 @@
 package firestoreviewer
 
 import (
-	"github.com/datatug/datatug/packages/cli"
+	"context"
+	"github.com/urfave/cli/v3"
 )
 
-func AddFirestoreCommand(p cli.Parser) {
-	_, _ = p.AddCommand("firestore", "runs Firestore Viewer", "runs Firestore Viewer",
-		&firestoreCommand{})
-}
-
-type firestoreCommand struct {
-}
-
-func (v *firestoreCommand) Execute(_ []string) error {
-	Run()
-	return nil
+func FirestoreCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "firestore",
+		Aliases:     []string{"fs"},
+		Usage:       "View and edit data in Firestore databases",
+		Description: "Firestore Viewer allows you to view & edit Firestore databases.",
+		Action: func(ctx context.Context, command *cli.Command) error {
+			Run()
+			return nil
+		},
+	}
 }

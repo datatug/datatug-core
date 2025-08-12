@@ -1,19 +1,21 @@
 package commands
 
 import (
+	"context"
 	"fmt"
-	"github.com/datatug/datatug/packages/cli"
-	"log"
+	cliv3 "github.com/urfave/cli/v3"
 	"os"
 )
 
-func consoleCommandArgs(p cli.Parser) {
-	_, err := p.AddCommand("console",
-		"Starts interactive console",
-		"Starts interactive console with autocomplete",
-		&command{})
-	if err != nil {
-		log.Fatal(err)
+func consoleCommandArgs() *cliv3.Command {
+	return &cliv3.Command{
+		Name:        "console",
+		Usage:       "Starts interactive console",
+		Description: "Starts interactive console with autocomplete",
+		Action: func(ctx context.Context, c *cliv3.Command) error {
+			v := &command{}
+			return v.Execute(nil)
+		},
 	}
 }
 

@@ -1,17 +1,19 @@
 package commands
 
 import (
-	"github.com/datatug/datatug/packages/cli"
-	"log"
+	"context"
+	cliv3 "github.com/urfave/cli/v3"
 )
 
-func queriesCommandArgs(p cli.Parser) {
-	_, err := p.AddCommand("queries",
-		"Lists queries if no sub-command provided",
-		"Lists queries if no sub-command provided",
-		&queriesCommand{})
-	if err != nil {
-		log.Fatal(err)
+func queriesCommandArgs() *cliv3.Command {
+	return &cliv3.Command{
+		Name:        "queries",
+		Usage:       "Lists queries if no sub-command provided",
+		Description: "Lists queries if no sub-command provided",
+		Action: func(ctx context.Context, c *cliv3.Command) error {
+			v := &queriesCommand{}
+			return v.Execute(nil)
+		},
 	}
 }
 

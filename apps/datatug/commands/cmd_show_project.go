@@ -3,22 +3,23 @@ package commands
 import (
 	"context"
 	"fmt"
-	"github.com/datatug/datatug/packages/cli"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/gosuri/uitable"
-	"log"
+	cliv3 "github.com/urfave/cli/v3"
 	"os"
 	"path"
 	"strings"
 )
 
-func showCommandArgs(p cli.Parser) {
-	_, err := p.AddCommand("show",
-		"Displays project data",
-		"Outputs project data in human readable format",
-		&showProjectCommand{})
-	if err != nil {
-		log.Fatal(err)
+func showCommandArgs() *cliv3.Command {
+	return &cliv3.Command{
+		Name:        "show",
+		Usage:       "Displays project data",
+		Description: "Outputs project data in human readable format",
+		Action: func(ctx context.Context, c *cliv3.Command) error {
+			v := &showProjectCommand{}
+			return v.Execute(nil)
+		},
 	}
 }
 

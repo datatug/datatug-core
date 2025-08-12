@@ -1,27 +1,20 @@
 package main
 
 import (
+	"context"
+	cliv3 "github.com/urfave/cli/v3"
 	"testing"
 )
 
-type fakeParser struct {
-}
-
-func (p fakeParser) Parse() ([]string, error) {
-	return []string{}, nil
-}
-
 func TestMainFunc(t *testing.T) {
-	t.Run("getParser_no_error", func(t *testing.T) {
-		getParser = func() parser {
-			return fakeParser{}
+	t.Run("getCommand_no_error", func(t *testing.T) {
+		getCommand = func() *cliv3.Command {
+			return &cliv3.Command{Action: func(ctx context.Context, c *cliv3.Command) error { return nil }}
 		}
 		main()
 	})
-	t.Run("getParser_nil", func(t *testing.T) {
-		getParser = func() parser {
-			return nil
-		}
+	t.Run("getCommand_nil", func(t *testing.T) {
+		getCommand = func() *cliv3.Command { return nil }
 		defer func() {
 			if r := recover(); r == nil {
 				t.Fatal("expected panic")

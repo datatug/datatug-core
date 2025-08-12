@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestParserIsNotNil(t *testing.T) {
-	p := GetParser()
-	assert.NotNil(t, p)
+func TestCommandIsNotNil(t *testing.T) {
+	cmd := GetCommand()
+	assert.NotNil(t, cmd)
 }

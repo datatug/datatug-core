@@ -1,10 +1,10 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/appconfig"
-	"github.com/datatug/datatug/packages/cli"
-	"log"
+	cliv3 "github.com/urfave/cli/v3"
 	"os"
 )
 
@@ -23,17 +23,14 @@ func (v *configCommand) Execute(_ []string) error {
 	return nil
 }
 
-func configCommandArgs(p cli.Parser) {
-	if configCmd, err := p.AddCommand("config", "Prints config", "", &configCommand{}); err != nil {
-		log.Fatal(err)
-	} else {
-		configCmd.SubcommandsOptional = true
-
-		if _, err = configCmd.AddCommand("server", "Configures server", "", &configServerCommand{}); err != nil {
-			log.Fatal(err)
-		}
-		if _, err = configCmd.AddCommand("client", "Configures client", "", &configClientCommand{}); err != nil {
-			log.Fatal(err)
-		}
+func configCommandArgs() *cliv3.Command {
+	return &cliv3.Command{
+		Name:        "config",
+		Usage:       "Prints config",
+		Description: "",
+		Action: func(ctx context.Context, c *cliv3.Command) error {
+			cmd := &configCommand{}
+			return cmd.Execute(nil)
+		},
 	}
 }
