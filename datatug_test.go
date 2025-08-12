@@ -7,5 +7,5 @@ import (
 )
 
 func TestPackage(t *testing.T) {
-	assert.NotNil(t, commands.Parser)
+	assert.NotNil(t, commands.GetParser())
 }

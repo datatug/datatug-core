@@ -16,8 +16,8 @@ import (
 	"strings"
 )
 
-func init() {
-	_, err := Parser.AddCommand("updateUrlConfig",
+func updateUrlConfigCommandArgs(p Parser) {
+	_, err := p.AddCommand("updateUrlConfig",
 		"Executes query or a command",
 		"The `updateUrlConfig` command executes command or query. Like an SQL query or an SQL stored procedure.",
 		&executeSQLCommand{})

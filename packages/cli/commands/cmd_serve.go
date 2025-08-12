@@ -16,9 +16,9 @@ import (
 // ServeCommand executes serve command
 //var ServeCommand *flags.Command
 
-func init() {
+func serveCommandArgs(p Parser) {
 	var err error
-	_, err = Parser.AddCommand("serve",
+	_, err = p.AddCommand("serve",
 		"Serves HTTP server to provide API for UI",
 		"Serves HTTP server to provide API for UI. Default port is 8989",
 		&serveCommand{})

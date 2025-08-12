@@ -14,8 +14,8 @@ import (
 	"strconv"
 )
 
-func init() {
-	_, err := Parser.AddCommand("scan",
+func scanCommandArgs(p Parser) {
+	_, err := p.AddCommand("scan",
 		"Adds or updates DB metadata",
 		"Adds or updates DB metadata from a specific server in a specific environment",
 		&scanDbCommand{})

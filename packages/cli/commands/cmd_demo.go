@@ -33,8 +33,8 @@ const (
 	demoProjectDir             = "demo-project"
 )
 
-func init() {
-	_, err := Parser.AddCommand("demo",
+func demoCommandArgs(p Parser) {
+	_, err := p.AddCommand("demo",
 		"Installs & runs demo",
 		"Adds demo DB & creates or update demo DataTug project",
 		&demoCommand{})
@@ -378,7 +378,7 @@ func (c demoCommand) updateDemoProjectCatalog(projDbServer *models.ProjDbServer,
 func (c demoCommand) updateDemoProjectDbModel(project *models.DatatugProject, catalogID string, demoDb demoDbFile) error {
 	dbModel := project.DbModels.GetDbModelByID(demoDb.model)
 	if dbModel == nil {
-		dbModel := new(models.DbModel)
+		dbModel = new(models.DbModel)
 		dbModel.ID = demoDb.model
 		project.DbModels = append(project.DbModels, dbModel)
 		dbModel.Environments = make([]*models.DbModelEnv, 0) // weird lint requires it twice

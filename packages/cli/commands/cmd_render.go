@@ -9,8 +9,8 @@ import (
 	"os"
 )
 
-func init() {
-	_, err := Parser.AddCommand("render",
+func renderCommandArgs(p Parser) {
+	_, err := p.AddCommand("render",
 		"Renders readme.md files",
 		"Updates readme.md files - this is useful for updating them without scan",
 		&renderCommand{})

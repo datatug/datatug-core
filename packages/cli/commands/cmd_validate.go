@@ -7,8 +7,8 @@ import (
 	"log"
 )
 
-func init() {
-	_, err := Parser.AddCommand("test",
+func testCommandArgs(p Parser) {
+	_, err := p.AddCommand("test",
 		"Runs validation scripts",
 		"The `test` command executes validation scripts.",
 		&validateCommand{})

@@ -13,7 +13,8 @@ import (
 )
 
 func main() {
-	if _, err := commands.Parser.Parse(); err != nil {
+	parser := commands.GetParser()
+	if _, err := parser.Parse(); err != nil {
 		var flagsErr *flags.Error
 		switch {
 		case errors.As(err, &flagsErr):

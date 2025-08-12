@@ -6,8 +6,8 @@ import (
 	"log"
 )
 
-func init() {
-	_, err := Parser.AddCommand("datasets",
+func datasetsCommandArgs(p Parser) {
+	_, err := p.AddCommand("datasets",
 		"Lists datasets if no sub-command provided",
 		"Lists datasets if no sub-command provided",
 		&datasetsCommand{})

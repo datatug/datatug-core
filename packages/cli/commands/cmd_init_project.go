@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-func init() {
-	_, err := Parser.AddCommand("init",
+func initCommandArgs(p Parser) {
+	_, err := p.AddCommand("init",
 		"Creates a new datatug project",
 		"Creates a new datatug project in specified directory using a connection to some database",
 		&initProjectCommand{})

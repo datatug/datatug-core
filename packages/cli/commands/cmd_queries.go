@@ -4,8 +4,8 @@ import (
 	"log"
 )
 
-func init() {
-	_, err := Parser.AddCommand("queries",
+func queriesCommandArgs(p Parser) {
+	_, err := p.AddCommand("queries",
 		"Lists queries if no sub-command provided",
 		"Lists queries if no sub-command provided",
 		&queriesCommand{})

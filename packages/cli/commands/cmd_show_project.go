@@ -11,8 +11,8 @@ import (
 	"strings"
 )
 
-func init() {
-	_, err := Parser.AddCommand("show",
+func showCommandArgs(p Parser) {
+	_, err := p.AddCommand("show",
 		"Displays project data",
 		"Outputs project data in human readable format",
 		&showProjectCommand{})

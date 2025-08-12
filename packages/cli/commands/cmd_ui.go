@@ -6,8 +6,8 @@ import (
 	"github.com/rivo/tview"
 )
 
-func init() {
-	_, err := Parser.AddCommand("ui", "Starts UI", "", &uiCommand{})
+func uiCommandArgs(p Parser) {
+	_, err := p.AddCommand("ui", "Starts UI", "", &uiCommand{})
 	if err != nil {
 		panic(err)
 	}

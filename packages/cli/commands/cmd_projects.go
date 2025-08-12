@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-func init() {
-	projectsCommand, err := Parser.AddCommand("projects",
+func projectsCommandArgs(p Parser) {
+	projectsCommand, err := p.AddCommand("projects",
 		"List registered projects",
 		"",
 		&projectsCommand{})

@@ -7,21 +7,6 @@ import (
 	"os"
 )
 
-func init() {
-	configCmd, err := Parser.AddCommand("config", "Prints config", "", &configCommand{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	configCmd.SubcommandsOptional = true
-
-	if _, err = configCmd.AddCommand("server", "Configures server", "", &configServerCommand{}); err != nil {
-		log.Fatal(err)
-	}
-	if _, err = configCmd.AddCommand("client", "Configures client", "", &configClientCommand{}); err != nil {
-		log.Fatal(err)
-	}
-}
-
 // configCommand prints whole DataTug config
 type configCommand struct {
 }
@@ -35,4 +20,19 @@ func (v *configCommand) Execute(_ []string) error {
 		return err
 	}
 	return nil
+}
+
+func configCommandArgs(p Parser) {
+	if configCmd, err := p.AddCommand("config", "Prints config", "", &configCommand{}); err != nil {
+		log.Fatal(err)
+	} else {
+		configCmd.SubcommandsOptional = true
+
+		if _, err = configCmd.AddCommand("server", "Configures server", "", &configServerCommand{}); err != nil {
+			log.Fatal(err)
+		}
+		if _, err = configCmd.AddCommand("client", "Configures client", "", &configClientCommand{}); err != nil {
+			log.Fatal(err)
+		}
+	}
 }
