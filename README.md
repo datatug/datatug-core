@@ -81,13 +81,15 @@ Check the [CLI](./packages/cli) section on how to run DataTug agent.
 
 At the moment we any DB supported by [DALgo](https://github.com/dal-go/dalgo). Like:
 
-- [Firestore](https://github.com/dal-go/dalgo2firestore)
-- Accessible through `sql` and has relevant driver linked into `datatug`
+- [dalgo2firestore](https://github.com/dal-go/dalgo2firestore)
+- [dalgo2sql](https://github.com/dal-go/dalgo2sql) 
 
-### Supported `sql` Database:
+### Supported `sql` Databases:
 
-- SQLite
-- Microsoft SQL Server - via [go-mssqldb](https://github.com/denisenkom/go-mssqldb)
+Datatug can work with `sql` DBs if a relevant driver has been linked into `datatug`
+
+- **SQLite** - via  [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3 ) 
+- **Microsoft SQL Server** - via [go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
 We are open for pull requests to support other `sql` DBs.
 
