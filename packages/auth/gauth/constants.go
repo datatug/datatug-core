@@ -1,4 +1,4 @@
-package fbauth
+package gauth
 
 // ServiceAccountsUpdatedMsg is emitted by fbauth UIs to notify parent models that
 // the list of service accounts has changed.

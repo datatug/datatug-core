@@ -1,8 +1,9 @@
-package fbauth
+package gauth
 
 import (
 	"context"
 	"fmt"
+	"github.com/strongo/logus"
 	"github.com/zalando/go-keyring"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -40,7 +41,7 @@ func getGoogleCloudClient(ctx context.Context) (client *http.Client, err error) 
 
 	var token *oauth2.Token
 	if refreshToken != "" {
-		fmt.Println("Found refresh token in keychain, exchanging for access token...")
+		logus.Infof(ctx, "Found refresh token in keychain, exchanging for access token...")
 
 		started := time.Now()
 
@@ -49,9 +50,9 @@ func getGoogleCloudClient(ctx context.Context) (client *http.Client, err error) 
 		token, err = ts.Token()
 
 		if err != nil {
-			log.Println("Failed to refresh access token:", err)
+			logus.Debugf(ctx, "Failed to refresh access token: %v", err)
 		} else {
-			fmt.Println("Exchanged refresh token for access token in", time.Since(started))
+			logus.Debugf(ctx, "Exchanged refresh token for access token in %v", time.Since(started))
 		}
 	}
 

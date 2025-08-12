@@ -1,4 +1,4 @@
-package fbauth
+package gauth
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-func GetProjects(ctx context.Context) (projects []*cloudresourcemanager.Project, err error) {
+func GetGCloudProjects(ctx context.Context) (projects []*cloudresourcemanager.Project, err error) {
 	var client *http.Client
 	client, err = getGoogleCloudClient(ctx)
 	if err != nil {

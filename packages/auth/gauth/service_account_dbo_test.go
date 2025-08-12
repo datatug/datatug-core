@@ -1,23 +1,22 @@
-package fbauth_test
+package gauth_test
 
 import (
+	"github.com/datatug/datatug/packages/auth/gauth"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/datatug/datatug/apps/firestoreviewer/fbauth"
 )
 
 func TestServiceAccountValidate(t *testing.T) {
 	cases := []struct {
 		name    string
-		acc     fbauth.ServiceAccountDbo
+		acc     gauth.ServiceAccountDbo
 		wantErr bool
 	}{
-		{"empty both", fbauth.ServiceAccountDbo{}, true},
-		{"empty name", fbauth.ServiceAccountDbo{Name: "", Path: "/tmp/a.json"}, true},
-		{"empty path", fbauth.ServiceAccountDbo{Name: "acc", Path: ""}, true},
-		{"ok", fbauth.ServiceAccountDbo{Name: "acc ", Path: "/tmp/a.json "}, false},
+		{"empty both", gauth.ServiceAccountDbo{}, true},
+		{"empty name", gauth.ServiceAccountDbo{Name: "", Path: "/tmp/a.json"}, true},
+		{"empty path", gauth.ServiceAccountDbo{Name: "acc", Path: ""}, true},
+		{"ok", gauth.ServiceAccountDbo{Name: "acc ", Path: "/tmp/a.json "}, false},
 	}
 	for _, c := range cases {
 		c := c
@@ -30,7 +29,7 @@ func TestServiceAccountValidate(t *testing.T) {
 }
 
 func TestFileStore_DefaultPath(t *testing.T) {
-	p, err := fbauth.DefaultFilepath()
+	p, err := gauth.DefaultFilepath()
 	if err != nil {
 		t.Fatalf("DefaultFilepath() err: %v", err)
 	}
@@ -42,7 +41,7 @@ func TestFileStore_DefaultPath(t *testing.T) {
 func TestFileStore_LoadSave(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "sa.json")
-	store := fbauth.FileStore{Filepath: p}
+	store := gauth.FileStore{Filepath: p}
 
 	// Load empty (non-existent) -> empty list
 	list, err := store.Load()
@@ -54,7 +53,7 @@ func TestFileStore_LoadSave(t *testing.T) {
 	}
 
 	// Save one
-	accs := []fbauth.ServiceAccountDbo{{Name: "a", Path: "/x/y/z.json"}}
+	accs := []gauth.ServiceAccountDbo{{Name: "a", Path: "/x/y/z.json"}}
 	if err := store.Save(accs); err != nil {
 		t.Fatalf("Save() err: %v", err)
 	}

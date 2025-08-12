@@ -40,5 +40,5 @@ func main() {
 }
 
 var getCommand = func() *cliv3.Command {
-	return commands.GetCommand()
+	return commands.DatatugCommand()
 }

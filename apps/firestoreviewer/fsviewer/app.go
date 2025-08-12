@@ -2,20 +2,21 @@ package fsviewer
 
 import (
 	"fmt"
-	"github.com/datatug/datatug/apps/firestoreviewer/fbauth"
-	"log"
-
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/datatug/datatug/apps"
+	"github.com/datatug/datatug/packages/auth/gauth"
 	"github.com/pkg/browser"
+	"log"
 )
 
 // App is the root Bubble Tea model for the Firestore Viewer.
 // It presents a top menu and navigates to sub-models for Service Accounts, etc.
 
 type App struct {
-	activeService *fbauth.ServiceAccountDbo
+	apps.BaseAppModel
+	activeService *gauth.ServiceAccountDbo
 	saCount       int
 
 	mode  appMode
@@ -33,11 +34,11 @@ const (
 
 // NewApp constructs a new app and loads initial state.
 func NewApp() (*App, error) {
-	path, err := fbauth.DefaultFilepath()
+	path, err := gauth.DefaultFilepath()
 	if err != nil {
 		return nil, err
 	}
-	store := fbauth.FileStore{Filepath: path}
+	store := gauth.FileStore{Filepath: path}
 	accs, err := store.Load()
 	if err != nil {
 		return nil, err
@@ -85,7 +86,7 @@ func (a *App) Init() tea.Cmd { return nil }
 func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Global messages from children
 	switch m := msg.(type) {
-	case fbauth.ServiceAccountsUpdatedMsg:
+	case gauth.ServiceAccountsUpdatedMsg:
 		a.saCount = len(m)
 		// refresh top menu label when in main menu
 		a.menu.SetItems(a.topMenuItems())
@@ -95,16 +96,16 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case modeMainMenu:
 		return a.updateMainMenu(msg)
 	case modeServiceAccounts, modeServiceAccountMenu:
-		if a.child != nil {
-			m, cmd := a.child.Update(msg)
-			a.child = m
+		if current := a.NavStack.Current(); current != nil {
+			m, cmd := current.Update(msg)
+			a.NavStack.SetRoot(m)
 			// listen for messages from child
 			switch mm := msg.(type) {
 			case tea.KeyMsg:
 				if mm.Type == tea.KeyEsc {
 					// Back to main menu
 					a.mode = modeMainMenu
-					a.child = nil
+					a.NavStack.SetRoot(nil)
 					// Refresh top menu counts
 					a.menu.SetItems(a.topMenuItems())
 				}
@@ -131,23 +132,23 @@ func (a *App) updateMainMenu(msg tea.Msg) (tea.Model, tea.Cmd) {
 				switch it.ID {
 				case "service_accounts":
 					// open service accounts child UI (create store and load accounts on demand)
-					path, err := fbauth.DefaultFilepath()
+					path, err := gauth.DefaultFilepath()
 					if err != nil {
 						log.Println("default filepath:", err)
 						break
 					}
-					store := fbauth.FileStore{Filepath: path}
+					store := gauth.FileStore{Filepath: path}
 					accs, err := store.Load()
 					if err != nil {
 						log.Println("load service accounts:", err)
 						break
 					}
-					child, err := fbauth.NewServiceAccountsUI(store, accs)
+					child, err := gauth.NewServiceAccountsUI(store, accs)
 					if err != nil {
 						log.Println("init service accounts UI:", err)
 						break
 					}
-					a.child = child
+					a.NavStack.Push(child)
 					a.mode = modeServiceAccounts
 					return a, nil
 				case "collections":
@@ -173,8 +174,8 @@ func (a *App) View() string {
 	case modeMainMenu:
 		return a.menu.View()
 	default:
-		if a.child != nil {
-			return a.child.View()
+		if current := a.NavStack.Current(); current != nil {
+			return current.View()
 		}
 		return ""
 	}

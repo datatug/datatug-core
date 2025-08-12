@@ -1,4 +1,4 @@
-package fbauth
+package gauth
 
 // Store is an interface for persisting service accounts list and state.
 // It allows different backends (file, memory, etc.).

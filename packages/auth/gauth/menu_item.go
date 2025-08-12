@@ -1,4 +1,4 @@
-package fbauth
+package gauth
 
 import "github.com/charmbracelet/bubbles/list"
 

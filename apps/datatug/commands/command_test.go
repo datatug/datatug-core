@@ -6,6 +6,6 @@ import (
 )
 
 func TestCommandIsNotNil(t *testing.T) {
-	cmd := GetCommand()
+	cmd := DatatugCommand()
 	assert.NotNil(t, cmd)
 }
