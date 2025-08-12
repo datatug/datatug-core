@@ -4,7 +4,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"github.com/datatug/datatug/apps/datatugcli/commands"
+	"github.com/datatug/datatug/apps/datatug/commands"
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/jessevdk/go-flags"
 	_ "github.com/mattn/go-sqlite3"

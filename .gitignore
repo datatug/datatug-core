@@ -19,5 +19,5 @@
 example/datatug
 example/test
 datatug.yaml
-datatug
+./datatug
 **/*.sqlite
