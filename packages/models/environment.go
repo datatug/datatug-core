@@ -66,7 +66,7 @@ type ProjDbModelNumbers struct {
 	Views   int `json:"views"`
 }
 
-// ProjEnvNumbers hold soem numbers for environment
+// ProjEnvNumbers hold some numbers for environment
 type ProjEnvNumbers struct {
 	DbServers int `json:"dbServer"`
 	Databases int `json:"databases"`

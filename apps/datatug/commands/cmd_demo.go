@@ -219,7 +219,7 @@ func (c demoCommand) downloadChinookSQLiteFile(dbFilePaths ...string) error {
 	// Write the body to file
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
-		return fmt.Errorf("failed to write reponse body into file: %w", err)
+		return fmt.Errorf("failed to write response body into file: %w", err)
 	}
 	return err
 }

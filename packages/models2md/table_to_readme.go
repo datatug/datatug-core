@@ -45,7 +45,7 @@ FROM %v.%v
 
 			fkRefTable := dbServer.Catalogs.GetTable(catalog, fk.RefTable.Schema, fk.RefTable.Name)
 			if fkRefTable == nil {
-				return nil, fmt.Errorf("table %v.%v is referencing via %v to unkown table %v.%v", table.Schema, table.Name, fk.Name, fk.RefTable.Schema, fk.RefTable.Name)
+				return nil, fmt.Errorf("table %v.%v is referencing via %v to unknown table %v.%v", table.Schema, table.Name, fk.Name, fk.RefTable.Schema, fk.RefTable.Name)
 			}
 			for i, fkCol := range fk.Columns {
 				if i > 0 {

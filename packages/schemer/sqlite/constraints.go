@@ -15,7 +15,7 @@ var _ schemer.ConstraintsProvider = (*constraintsProvider)(nil)
 type constraintsProvider struct {
 }
 
-func (v constraintsProvider) GetConstraints(c context.Context, db *sql.DB, catalog, schema, table string) (schemer.ConstraintsReader, error) {
+func (v constraintsProvider) GetConstraints(_ context.Context, db *sql.DB, catalog, schema, table string) (schemer.ConstraintsReader, error) {
 	if err := verifyTableParams(catalog, schema, table); err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (s constraintsReader) NextConstraint() (constraint *schemer.Constraint, err
 		&constraint.DeleteRule,
 		&constraint.MatchOption,
 	); err != nil {
-		err = fmt.Errorf("failed to scan constaints record: %w", err)
+		err = fmt.Errorf("failed to scan constraints record: %w", err)
 		return
 	}
 	constraint.Name = fmt.Sprintf("FK_%v2%v", s.table, constraint.RefTableName)

@@ -14,6 +14,7 @@ type constraintsProvider struct {
 }
 
 func (v constraintsProvider) GetConstraints(c context.Context, db *sql.DB, catalog, schema, table string) (schemer.ConstraintsReader, error) {
+	_, _, _, _ = c, catalog, schema, table
 	rows, err := db.Query(constraintsSQL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve constraints: %w", err)
@@ -47,7 +48,7 @@ func (s constraintsReader) NextConstraint() (constraint *schemer.Constraint, err
 	if !s.rows.Next() {
 		err = s.rows.Err()
 		if err != nil {
-			err = fmt.Errorf("failed to retrive constaint record: %w", err)
+			err = fmt.Errorf("failed to retrive constraints record: %w", err)
 		}
 		return
 	}
@@ -61,7 +62,7 @@ func (s constraintsReader) NextConstraint() (constraint *schemer.Constraint, err
 		&constraint.MatchOption, &constraint.UpdateRule, &constraint.DeleteRule,
 		&constraint.RefTableCatalog, &constraint.RefTableSchema, &constraint.RefTableName, &constraint.RefColName,
 	); err != nil {
-		err = fmt.Errorf("failed to scan constaints record: %w", err)
+		err = fmt.Errorf("failed to scan constraints record: %w", err)
 		return
 	}
 	return

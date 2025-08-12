@@ -136,7 +136,7 @@ ORDER BY tc.TABLE_SCHEMA, tc.TABLE_NAME, tc.CONSTRAINT_TYPE, kcu.CONSTRAINT_NAME
 			&matchOption, &updateRule, &deleteRule,
 			&refTableCatalog, &refTableSchema, &refTableName, &refColName,
 		); err != nil {
-			return fmt.Errorf("failed to scan constaints record: %w", err)
+			return fmt.Errorf("failed to scan constraints record: %w", err)
 		}
 		if table := tablesFinder.SequentialFind(catalog, tSchema, tName); table != nil {
 			switch constraintType {

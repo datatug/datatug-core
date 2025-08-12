@@ -59,7 +59,7 @@ func UpdateDbSchema(ctx context.Context, projectLoader ProjectLoader, projectID,
 			if models.ProjectDoesNotExist(projSummaryErr) {
 				return nil
 			}
-			return fmt.Errorf("failed to load project sumary: %w", err)
+			return fmt.Errorf("failed to load project summary: %w", err)
 		}
 		return nil
 	}
@@ -88,7 +88,7 @@ func UpdateDbSchema(ctx context.Context, projectLoader ProjectLoader, projectID,
 		}
 	}
 
-	if dbModelID != "" {
+	if dbCatalog.DbModel != "" {
 		dbCatalog.DbModel = dbModelID
 	} else if dbCatalog.DbModel == "" {
 		dbCatalog.DbModel = dbCatalog.ID
