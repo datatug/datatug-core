@@ -130,11 +130,6 @@ http://datatug.app/download
 - [MS SQL Server](https://github.com/Microsoft/sql-server-samples/tree/master/samples/databases/northwind-pubs)
 - [Oracle](https://github.com/dshifflet/NorthwindOracle_DDL)
 
-## Plans for improvements
-
-- https://github.com/rivo/tview - show tables & query text
-- Dashboard: consider either https://github.com/gizak/termui or https://github.com/mum4k/termdash
-
 ## CI/CD
 
 There is a [continuous integration build](docs/CI-CD.md).
@@ -150,8 +145,10 @@ Contributors wanted. For a start check [issues](https://github.com/datatug/datat
 tagged with [`help wanted`](https://github.com/datatug/datatug/labels/help%20wanted)
 and [`good first issue`](https://github.com/datatug/datatug/labels/good%20first%20issue).
 
-## TODO integrations
+## Plans for improvements & TODO integrations
 
+- https://github.com/rivo/tview - show tables & query text
+- Dashboard: consider either https://github.com/gizak/termui or https://github.com/mum4k/termdash
 - [Dasel](https://github.com/TomWright/dasel) - Select, put and delete data from JSON, TOML, YAML, XML and CSV files
   with a single tool. Supports conversion between formats and can be used as a Go package.
 - [DbMate](https://github.com/amacneil/dbmate) - A lightweight, framework-agnostic database migration tool.
