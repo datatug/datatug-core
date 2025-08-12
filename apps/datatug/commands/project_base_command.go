@@ -12,7 +12,7 @@ type projectDirCommand struct {
 	ProjectDir string `short:"d" long:"directory"  required:"false" description:"GetProjectStore directory"`
 }
 
-// ProjectBaseCommand defines parameters for show project command
+// ProjectBaseCommand defines parameters for show project consoleCommand
 type projectBaseCommand struct {
 	projectDirCommand
 	ProjectName string `short:"p" long:"project"  required:"false" description:"GetProjectStore name"`

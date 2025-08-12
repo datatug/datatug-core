@@ -10,25 +10,8 @@ import (
 	"os"
 )
 
-func renderCommandArgs() *cliv3.Command {
-	return &cliv3.Command{
-		Name:        "render",
-		Usage:       "Renders readme.md files",
-		Description: "Updates readme.md files - this is useful for updating them without scan",
-		Action: func(ctx context.Context, c *cliv3.Command) error {
-			v := &renderCommand{}
-			return v.Execute(nil)
-		},
-	}
-}
-
-// scanDbCommand defines parameters for scan command
-type renderCommand struct {
-	projectBaseCommand
-}
-
-// Execute executes scan command
-func (v *renderCommand) Execute(_ []string) error {
+func renderCommandAction(_ context.Context, _ *cliv3.Command) error {
+	v := &renderCommand{}
 	if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err
 	}
@@ -56,4 +39,18 @@ func (v *renderCommand) Execute(_ []string) error {
 	}
 
 	return err
+}
+
+func renderCommandArgs() *cliv3.Command {
+	return &cliv3.Command{
+		Name:        "render",
+		Usage:       "Renders readme.md files",
+		Description: "Updates readme.md files - this is useful for updating them without scan",
+		Action:      renderCommandAction,
+	}
+}
+
+// scanDbCommand defines parameters for scan consoleCommand
+type renderCommand struct {
+	projectBaseCommand
 }

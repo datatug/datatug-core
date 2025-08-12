@@ -12,10 +12,6 @@ import (
 	"strings"
 )
 
-type parser interface {
-	Parse() ([]string, error)
-}
-
 func main() {
 	cmd := getCommand()
 	args := os.Args

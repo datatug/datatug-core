@@ -64,7 +64,7 @@ func initCommandAction(ctx context.Context, c *cliv3.Command) (err error) {
 	//	log.Fatal("Error creating DB connection: " + err.Error())
 	//}
 	//
-	//// Close the database connection pool after command executes
+	//// Close the database connection pool after consoleCommand executes
 	//defer func() { _ = db.Close() }()
 	//
 	//server := models.ServerReference{Driver: v.Driver, Host: v.Host, Port: port}

@@ -21,16 +21,13 @@ import (
 func updateUrlConfigCommandArgs() *cliv3.Command {
 	return &cliv3.Command{
 		Name:        "updateUrlConfig",
-		Usage:       "Executes query or a command",
-		Description: "The `updateUrlConfig` command executes command or query. Like an SQL query or an SQL stored procedure.",
-		Action: func(ctx context.Context, c *cliv3.Command) error {
-			v := &executeSQLCommand{}
-			return v.Execute(nil)
-		},
+		Usage:       "Executes query or a consoleCommand",
+		Description: "The `updateUrlConfig` consoleCommand executes consoleCommand or query. Like an SQL query or an SQL stored procedure.",
+		Action:      updateUrlConfigCommandAction,
 	}
 }
 
-// executeSQLCommand defines parameters for updateUrlConfig SQL command
+// executeSQLCommand defines parameters for updateUrlConfig SQL consoleCommand
 type executeSQLCommand struct {
 	Driver       string `short:"D" long:"driver" required:"true"`
 	Host         string `short:"h" long:"host" required:"true" default:"localhost"`
@@ -41,19 +38,19 @@ type executeSQLCommand struct {
 	Project      string `short:"p" long:"project"`
 	Schema       string `short:"s" long:"schema"`
 	Query        string `short:"q" long:"query"`
-	CommandText  string `short:"t" long:"command-text" required:"true"`
+	CommandText  string `short:"t" long:"consoleCommand-text" required:"true"`
 	OutputPath   string `short:"o" long:"output-path"`
 	OutputFormat string `short:"f" long:"output-format" choice:"csv" default:"csv"`
 }
 
 func (v executeSQLCommand) Validate() error {
 	if v.Query != "" && v.CommandText != "" {
-		return validation.NewBadRequestError(errors.New("either 'query' or 'command-text' arguments should be specified but not both at the same time"))
+		return validation.NewBadRequestError(errors.New("either 'query' or 'consoleCommand-text' arguments should be specified but not both at the same time"))
 	}
 	return nil
 }
 
-// Execute - executes SQL command
+// Execute - executes SQL consoleCommand
 func (v *executeSQLCommand) Execute(args []string) error {
 	fmt.Printf("Validating (%+v): %v\n", v, args)
 	var err error
@@ -82,7 +79,7 @@ func (v *executeSQLCommand) Execute(args []string) error {
 	if db, err = sql.Open(v.Driver, connString.String()); err != nil {
 		log.Fatal("Error creating connection pool: " + err.Error())
 	}
-	// Close the database connection pool after command executes
+	// Close the database connection pool after consoleCommand executes
 	defer func() {
 		if err := db.Close(); err != nil {
 			log.Printf("Failed to close DB: %v", err)
@@ -211,4 +208,85 @@ func (handler writerHandler) Process(columnTypes []*sql.ColumnType, rows *sql.Ro
 	}
 
 	return err
+}
+
+func updateUrlConfigCommandAction(_ context.Context, _ *cliv3.Command) error {
+	v := &executeSQLCommand{}
+	fmt.Printf("Validating (%+v): %v\n", v, nil)
+	var err error
+
+	var options []string
+
+	if v.Port != "" {
+		options = append(options, "port="+v.Port)
+	}
+
+	if v.Mode != "" {
+		options = append(options, "mode="+v.Mode)
+	}
+
+	connString, err := dbconnection.NewConnectionString(v.Driver, v.Host, v.User, v.Password, v.Schema, options...)
+	if err != nil {
+		return err
+	}
+
+	var db *sql.DB
+
+	log.Printf("Connecting to: %v\n", regexp.MustCompile("password=.+?(;|$)").ReplaceAllString(connString.String(), "password=******"))
+
+	// Create connection pool
+
+	if db, err = sql.Open(v.Driver, connString.String()); err != nil {
+		log.Fatal("Error creating connection pool: " + err.Error())
+	}
+	// Close the database connection pool after consoleCommand executes
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Failed to close DB: %v", err)
+		}
+	}()
+	log.Println("Connected")
+
+	if strings.HasPrefix(v.CommandText, "*=") {
+		v.CommandText = "SELECT * FROM " + strings.TrimLeft(v.CommandText, "*=")
+	}
+
+	var rows *sql.Rows
+	if rows, err = db.Query(v.CommandText); err != nil {
+		log.Printf("Failed to updateUrlConfig %v: %v", v.CommandText, err)
+		return err
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("Failed to close rows reader: %v", err)
+		}
+	}()
+
+	var columnTypes []*sql.ColumnType
+	if columnTypes, err = rows.ColumnTypes(); err != nil {
+		return err
+	}
+	colNames := make([]interface{}, len(columnTypes))
+	colSpec := make([]string, len(columnTypes))
+	colTypeNames := make([]string, len(columnTypes))
+	for i, colType := range columnTypes {
+		colNames[i] = colType.Name()
+		colTypeNames[i] = colType.DatabaseTypeName()
+		colSpec[i] = fmt.Sprintf("%v: %v", colNames[i], colTypeNames[i])
+	}
+	log.Printf(`
+----------
+%v
+----------
+--	GetColumns:
+--		%v
+`, v.CommandText, strings.Join(colSpec, "\n--\t\t"))
+
+	var handler rowsHandler
+	if v.OutputPath != "" {
+		handler = csvHandler{path: v.OutputPath}
+	} else {
+		handler = writerHandler{os.Stdout}
+	}
+	return handler.Process(columnTypes, rows)
 }

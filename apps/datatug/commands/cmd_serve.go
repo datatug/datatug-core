@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	config2 "github.com/datatug/datatug/packages/appconfig"
-	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/server"
 	"github.com/datatug/datatug/packages/storage/filestore"
 	cliv3 "github.com/urfave/cli/v3"
@@ -14,34 +13,13 @@ import (
 	"strings"
 )
 
-// ServeCommand executes serve command
+// ServeCommand executes serve consoleCommand
 //var ServeCommand *flags.Command
 
-func serveCommandArgs() *cliv3.Command {
-	return &cliv3.Command{
-		Name:        "serve",
-		Usage:       "Serves HTTP server to provide API for UI",
-		Description: "Serves HTTP server to provide API for UI. Default port is 8989",
-		Action: func(ctx context.Context, c *cliv3.Command) error {
-			v := &serveCommand{}
-			return v.Execute(nil)
-		},
-	}
-}
-
-// serveCommand defines parameters for serve command
-type serveCommand struct {
-	projectBaseCommand
-	Host      string `short:"h" long:"host" default:"localhost"`
-	Port      int    `short:"o" long:"port" default:"8989"`
-	Local     bool   `long:"local" description:"opens UI on default localhost:4200"`
-	ClientURL string `long:"client-url" description:"Default is https://datatug.app/pwa/agent/localhost:8989"`
-}
-
-// Execute executes serve command
-func (v *serveCommand) Execute(_ []string) (err error) {
+func serveCommandAction(_ context.Context, _ *cliv3.Command) error {
+	v := &serveCommand{}
 	var config config2.Settings
-	config, err = config2.GetSettings()
+	config, err := config2.GetSettings()
 	if err != nil {
 		return err
 	}
@@ -49,10 +27,10 @@ func (v *serveCommand) Execute(_ []string) (err error) {
 	pathsByID := make(map[string]string)
 	if v.ProjectDir != "" {
 		if strings.Contains(v.ProjectDir, ";") {
-			return errors.New("serving multiple specified throw a command line argument is not supported yet")
+			return errors.New("serving multiple specified throw a consoleCommand line argument is not supported yet")
 		}
-		var projectFile models.ProjectFile
-		if projectFile, err = filestore.LoadProjectFile(v.ProjectDir); err != nil {
+		projectFile, err := filestore.LoadProjectFile(v.ProjectDir)
+		if err != nil {
 			return fmt.Errorf("failed to load project file: %w", err)
 		}
 		pathsByID[projectFile.ID] = v.ProjectDir
@@ -92,6 +70,24 @@ func (v *serveCommand) Execute(_ []string) (err error) {
 	httpServer := server.NewHttpServer()
 	// TODO: implement graceful shutdown
 	return httpServer.ServeHTTP(pathsByID, v.Host, v.Port)
+}
+
+func serveCommandArgs() *cliv3.Command {
+	return &cliv3.Command{
+		Name:        "serve",
+		Usage:       "Serves HTTP server to provide API for UI",
+		Description: "Serves HTTP server to provide API for UI. Default port is 8989",
+		Action:      serveCommandAction,
+	}
+}
+
+// serveCommand defines parameters for serve consoleCommand
+type serveCommand struct {
+	projectBaseCommand
+	Host      string `short:"h" long:"host" default:"localhost"`
+	Port      int    `short:"o" long:"port" default:"8989"`
+	Local     bool   `long:"local" description:"opens UI on default localhost:4200"`
+	ClientURL string `long:"client-url" description:"Default is https://datatug.app/pwa/agent/localhost:8989"`
 }
 
 func openBrowser(url string) error {

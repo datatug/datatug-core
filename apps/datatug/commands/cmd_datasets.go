@@ -6,25 +6,8 @@ import (
 	cliv3 "github.com/urfave/cli/v3"
 )
 
-func datasetsCommandArgs() *cliv3.Command {
-	return &cliv3.Command{
-		Name:        "datasets",
-		Usage:       "Lists datasets if no sub-command provided",
-		Description: "Lists datasets if no sub-command provided",
-		Action: func(ctx context.Context, c *cliv3.Command) error {
-			v := &datasetsCommand{}
-			return v.Execute(nil)
-		},
-	}
-}
-
-// datasetsCommand defines parameters for test command
-type datasetsCommand struct {
-	projectBaseCommand
-}
-
-// Execute executes test command
-func (v *datasetsCommand) Execute([]string) error {
+func datasetsCommandAction(_ context.Context, _ *cliv3.Command) error {
+	v := &datasetsCommand{}
 	if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err
 	}
@@ -37,4 +20,18 @@ func (v *datasetsCommand) Execute([]string) error {
 		_, _ = fmt.Println(dataset.ID)
 	}
 	return nil
+}
+
+func datasetsCommandArgs() *cliv3.Command {
+	return &cliv3.Command{
+		Name:        "datasets",
+		Usage:       "Lists datasets if no sub-consoleCommand provided",
+		Description: "Lists datasets if no sub-consoleCommand provided",
+		Action:      datasetsCommandAction,
+	}
+}
+
+// datasetsCommand defines parameters for test consoleCommand
+type datasetsCommand struct {
+	projectBaseCommand
 }

@@ -8,11 +8,7 @@ import (
 	"os"
 )
 
-// configCommand prints whole DataTug config
-type configCommand struct {
-}
-
-func (v *configCommand) Execute(_ []string) error {
+func configCommandAction(_ context.Context, _ *cliv3.Command) error {
 	settings, err := appconfig.GetSettings()
 	if err != nil {
 		return fmt.Errorf("failed to get config: %w", err)
@@ -23,14 +19,11 @@ func (v *configCommand) Execute(_ []string) error {
 	return nil
 }
 
-func configCommandArgs() *cliv3.Command {
+func configCommand() *cliv3.Command {
 	return &cliv3.Command{
 		Name:        "config",
 		Usage:       "Prints config",
 		Description: "",
-		Action: func(ctx context.Context, c *cliv3.Command) error {
-			cmd := &configCommand{}
-			return cmd.Execute(nil)
-		},
+		Action:      configCommandAction,
 	}
 }

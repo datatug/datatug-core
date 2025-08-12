@@ -6,6 +6,6 @@ import (
 )
 
 func TestCommand_Execute(t *testing.T) {
-	cmd := command{}
+	cmd := consoleCommand{}
 	assert.Nil(t, cmd.Execute(nil))
 }

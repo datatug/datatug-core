@@ -15,33 +15,9 @@ import (
 	"strconv"
 )
 
-func scanCommandArgs() *cliv3.Command {
-	return &cliv3.Command{
-		Name:        "scan",
-		Usage:       "Adds or updates DB metadata",
-		Description: "Adds or updates DB metadata from a specific server in a specific environment",
-		Action: func(ctx context.Context, c *cliv3.Command) error {
-			v := &scanDbCommand{}
-			return v.Execute(nil)
-		},
-	}
-}
-
-// scanDbCommand defines parameters for scan command
-type scanDbCommand struct {
-	projectBaseCommand
-	Driver      string `short:"D" long:"driver" description:"Supported values: sqlserver."`
-	Host        string `short:"s" long:"server" description:"Network server name."`
-	Port        int    `long:"port" description:"ServerReference network port, if not specified default is used."`
-	User        string `short:"U" long:"user" description:"User name to login to DB."`
-	Password    string `short:"P" long:"password" description:"Password to login to DB."`
-	Database    string `long:"db" required:"true" description:"Name of database to be scanned."`
-	DbModel     string `long:"dbmodel" required:"false" description:"Name of DB model, is required for newly scanned databases."`
-	Environment string `long:"env" required:"true" description:"Specify environment the DB belongs to. E.g.: LOCAL, DEV, SIT, UAT, PERF, PROD."`
-}
-
-// Execute executes scan command
-func (v *scanDbCommand) Execute(_ []string) (err error) {
+func scanCommandAction(_ context.Context, _ *cliv3.Command) error {
+	v := &scanDbCommand{}
+	var err error
 	if err = v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err
 	}
@@ -105,20 +81,43 @@ func (v *scanDbCommand) Execute(_ []string) (err error) {
 
 	var datatugProject *models.DatatugProject
 	projectStore := v.store.GetProjectStore(v.projectID)
-	if datatugProject, err = api.UpdateDbSchema(context.Background(), projectStore, v.projectID, v.Environment, v.Driver, v.DbModel, connParams); err != nil {
+	datatugProject, err = api.UpdateDbSchema(context.Background(), projectStore, v.projectID, v.Environment, v.Driver, v.DbModel, connParams)
+	if err != nil {
 		return err
 	}
 
 	log.Println("Saving project", datatugProject.ID, "...")
 	storage.Current, _ = filestore.NewSingleProjectStore(v.ProjectDir, v.projectID)
 	var dal storage.Store
-	if dal, err = storage.NewDatatugStore(""); err != nil {
+	dal, err = storage.NewDatatugStore("")
+	if err != nil {
 		return err
 	}
 	if err = dal.GetProjectStore(datatugProject.ID).SaveProject(context.Background(), *datatugProject); err != nil {
-		err = fmt.Errorf("failed to save datatug project [%v]: %w", v.projectID, err)
-		return err
+		return fmt.Errorf("failed to save datatug project [%v]: %w", v.projectID, err)
 	}
 
-	return err
+	return nil
+}
+
+func scanCommandArgs() *cliv3.Command {
+	return &cliv3.Command{
+		Name:        "scan",
+		Usage:       "Adds or updates DB metadata",
+		Description: "Adds or updates DB metadata from a specific server in a specific environment",
+		Action:      scanCommandAction,
+	}
+}
+
+// scanDbCommand defines parameters for scan consoleCommand
+type scanDbCommand struct {
+	projectBaseCommand
+	Driver      string `short:"D" long:"driver" description:"Supported values: sqlserver."`
+	Host        string `short:"s" long:"server" description:"Network server name."`
+	Port        int    `long:"port" description:"ServerReference network port, if not specified default is used."`
+	User        string `short:"U" long:"user" description:"User name to login to DB."`
+	Password    string `short:"P" long:"password" description:"Password to login to DB."`
+	Database    string `long:"db" required:"true" description:"Name of database to be scanned."`
+	DbModel     string `long:"dbmodel" required:"false" description:"Name of DB model, is required for newly scanned databases."`
+	Environment string `long:"env" required:"true" description:"Specify environment the DB belongs to. E.g.: LOCAL, DEV, SIT, UAT, PERF, PROD."`
 }

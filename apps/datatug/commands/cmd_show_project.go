@@ -23,12 +23,12 @@ func showCommandArgs() *cliv3.Command {
 	}
 }
 
-// showProjectCommand defines parameters for show project command
+// showProjectCommand defines parameters for show project consoleCommand
 type showProjectCommand struct {
 	projectBaseCommand
 }
 
-// Execute executes show project command
+// Execute executes show project consoleCommand
 func (v *showProjectCommand) Execute(_ []string) error {
 	if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err

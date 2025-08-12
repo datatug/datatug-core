@@ -5,13 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
+	cliv3 "github.com/urfave/cli/v3"
 	"gopkg.in/yaml.v3"
 	"os"
 	"strconv"
 	"strings"
 )
 
-// datasetCommand defines parameters for test command
+// datasetDataCommand holds flags for the dataset data consoleCommand
+// Kept as a struct for flag binding, but without an Execute method.
 type datasetDataCommand struct {
 	datasetBaseCommand
 	File   string `long:"file" required:"true"`
@@ -19,12 +21,11 @@ type datasetDataCommand struct {
 	Indent string `long:"indent" description:"Pass a digit to specify number of spaces (default=1). Special value: 'TAB'."`
 }
 
-// Execute executes test command
-func (v *datasetDataCommand) Execute([]string) error {
+func datasetDataCommandAction(_ context.Context, _ *cliv3.Command) error {
+	v := &datasetDataCommand{}
 	if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err
 	}
-	// TODO: Implement "datasets show" command
 	ctx := context.Background()
 	recordset, err := v.store.GetProjectStore(v.projectID).Recordsets().Recordset(v.Dataset).LoadRecordsetData(ctx, v.File)
 	if err != nil {
@@ -75,6 +76,15 @@ func (v *datasetDataCommand) Execute([]string) error {
 		return fmt.Errorf("unknown or unsopported format (expected JSON, YAML, GRID): %v", v.Format)
 	}
 	return writeRows(*recordset, encoder)
+}
+
+func datasetDataCommandArgs() *cliv3.Command {
+	return &cliv3.Command{
+		Name:        "dataset-data",
+		Usage:       "Outputs dataset data in YAML/JSON or GRID",
+		Description: "Displays dataset data. Use --format yaml|json|grid and --indent for formatting.",
+		Action:      datasetDataCommandAction,
+	}
 }
 
 // Encoder defines interface to encode

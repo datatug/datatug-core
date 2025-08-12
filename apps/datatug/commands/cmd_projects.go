@@ -8,33 +8,8 @@ import (
 	"strings"
 )
 
-func projectsCommandArgs() *cliv3.Command {
-	return &cliv3.Command{
-		Name:        "projects",
-		Usage:       "List registered projects",
-		Description: "",
-		Action: func(ctx context.Context, c *cliv3.Command) error {
-			v := &projectsCommand{}
-			return v.Execute(nil)
-		},
-	}
-}
-
-type projectsCommand struct {
-	//Format []string `short:"f" long:"format" description:"Output format, default CSV"`
-	All  []bool   `short:"a" long:"all" description:"Output all fields"`
-	List []string `short:"f" long:"fields" description:"Comma separate list of fields to output, default is 'id'. Possible values: id, path, title"`
-}
-
-func getProjPathsByID(config appconfig.Settings) (pathsByID map[string]string) {
-	pathsByID = make(map[string]string, len(config.Projects))
-	for _, p := range config.Projects {
-		pathsByID[p.ID] = p.Url
-	}
-	return
-}
-
-func (v *projectsCommand) Execute(_ []string) error {
+func projectsCommandAction(_ context.Context, _ *cliv3.Command) error {
+	v := &projectsCommand{}
 	settings, err := appconfig.GetSettings()
 	if err != nil {
 		return fmt.Errorf("failed to get settings: %w", err)
@@ -68,4 +43,27 @@ func (v *projectsCommand) Execute(_ []string) error {
 		fmt.Println(strings.Join(line, ","))
 	}
 	return nil
+}
+
+func projectsCommandArgs() *cliv3.Command {
+	return &cliv3.Command{
+		Name:        "projects",
+		Usage:       "List registered projects",
+		Description: "",
+		Action:      projectsCommandAction,
+	}
+}
+
+type projectsCommand struct {
+	//Format []string `short:"f" long:"format" description:"Output format, default CSV"`
+	All  []bool   `short:"a" long:"all" description:"Output all fields"`
+	List []string `short:"f" long:"fields" description:"Comma separate list of fields to output, default is 'id'. Possible values: id, path, title"`
+}
+
+func getProjPathsByID(config appconfig.Settings) (pathsByID map[string]string) {
+	pathsByID = make(map[string]string, len(config.Projects))
+	for _, p := range config.Projects {
+		pathsByID[p.ID] = p.Url
+	}
+	return
 }

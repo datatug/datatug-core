@@ -6,10 +6,12 @@ import (
 	"os"
 )
 
+//nolint:unused // kept for backward-compatible CLI structure
 type configClientCommand struct {
 	urlConfigCommand
 }
 
+//nolint:unused // legacy consoleCommand entrypoint retained for reference
 func (v *configClientCommand) Execute(_ []string) error {
 	settings, err := appconfig.GetSettings()
 	if err != nil {

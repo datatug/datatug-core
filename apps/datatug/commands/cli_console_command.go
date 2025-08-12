@@ -13,18 +13,18 @@ func consoleCommandArgs() *cliv3.Command {
 		Usage:       "Starts interactive console",
 		Description: "Starts interactive console with autocomplete",
 		Action: func(ctx context.Context, c *cliv3.Command) error {
-			v := &command{}
+			v := &consoleCommand{}
 			return v.Execute(nil)
 		},
 	}
 }
 
-// command defines parameters for console command
-type command struct {
+// consoleCommand defines parameters for console consoleCommand
+type consoleCommand struct {
 }
 
-// Execute executes serve command
-func (v *command) Execute(_ []string) (err error) {
+// Execute executes serve consoleCommand
+func (v *consoleCommand) Execute(_ []string) (err error) {
 	if err = os.Setenv("GO_FLAGS_COMPLETION", "1"); err != nil {
 		return err
 	}

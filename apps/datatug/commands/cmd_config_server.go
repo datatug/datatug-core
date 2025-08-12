@@ -6,10 +6,12 @@ import (
 	"os"
 )
 
+//nolint:unused // kept for backward-compatible CLI structure
 type configServerCommand struct {
 	urlConfigCommand
 }
 
+//nolint:unused // legacy consoleCommand entrypoint retained for reference
 func (v *configServerCommand) Execute(_ []string) error {
 	config, err := config2.GetSettings()
 	if err != nil {

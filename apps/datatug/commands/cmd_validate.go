@@ -11,7 +11,7 @@ func testCommandArgs() *cliv3.Command {
 	return &cliv3.Command{
 		Name:        "test",
 		Usage:       "Runs validation scripts",
-		Description: "The `test` command executes validation scripts.",
+		Description: "The `test` consoleCommand executes validation scripts.",
 		Action: func(ctx context.Context, c *cliv3.Command) error {
 			v := &validateCommand{}
 			return v.Execute(nil)
@@ -19,12 +19,12 @@ func testCommandArgs() *cliv3.Command {
 	}
 }
 
-// validateCommand defines parameters for test command
+// validateCommand defines parameters for test consoleCommand
 type validateCommand struct {
 	projectBaseCommand
 }
 
-// Execute executes test command
+// Execute executes test consoleCommand
 func (v *validateCommand) Execute([]string) (err error) {
 	if err = v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err
