@@ -1,4 +1,4 @@
-# DataTug agent
+# DataTug CLI - a command line data browser & editor
 
 Open source codes in Go language under [MIT license](./LICENSE).
 
