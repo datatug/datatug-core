@@ -53,7 +53,7 @@ This allows you to address a DataTug project in a console using a short alias. L
 > datatug show -p DemoProject
 ```
 
-If current directory is a DataTug project folder you don't need to specify project name or path.
+If the current directory is a DataTug project folder you don't need to specify project name or path.
 
 ```
 > datatug show
