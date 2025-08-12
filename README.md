@@ -32,7 +32,7 @@ go install github.com/datatug/datatug
 
 Note: _[Go language](https://golang.org/) should be [pre-installed](https://golang.org/dl/)_
 
-## Where metadata are stored?
+## Where are metadata stored?
 
 When DataTug agent scans or compare your database it stores meta information in a datatug project as set of simple to
 understand & easy to compare JSON files.
@@ -87,7 +87,10 @@ We are open for pull requests to support other DBs.
 
 ## Project structure
 
-- [./datatug.go](datatug.go) - entry point
+- [./main.go](main.go) - main entry point for `datatug` CLI
+- [apps](apps) - contains mini-apps like Firestore Viewer
+    - [datatug](apps/datatug) - defines `datatug` CLI commands & modules
+    - [firestoreviewer](apps/firestoreviewer) - the `fsv` CLI utility for managing Firestore databases
 - [packages](packages) - source codes
 - [docs](docs) - documentation
 - [.github/workflows](.github/workflows) - continuous integration
