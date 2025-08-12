@@ -43,7 +43,7 @@ func DatatugCommand() *cliv3.Command {
 
 func datatugCommandAction(_ context.Context, _ *cliv3.Command) error {
 
-	datatugApp := uimodels.DatatugMainMenu()
+	datatugApp := uimodels.DatatugAppModel()
 	p := tea.NewProgram(datatugApp, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		// Ensure the error is printed to console explicitly
