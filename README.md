@@ -127,9 +127,14 @@ http://datatug.app/download
 - https://github.com/rivo/tview - show tables & query text
 - Dashboard: consider either https://github.com/gizak/termui or https://github.com/mum4k/termdash
 
-# CI/CD
+## CI/CD
 
 There is a [continuous integration build](docs/CI-CD.md).
+
+## Open Source Libraries we use
+
+- [DALgo](https://github.com/dal-go/dalgo) - Database Abstraction Layer for Go
+- [Bubble Tea](https://github.com/charmbracelet/bubbletea) - A Go framework for TUI apps
 
 ## Contribution
 
