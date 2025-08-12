@@ -6,7 +6,7 @@ Open source codes in Go language under [MIT license](./LICENSE).
 [![Test & Build](https://github.com/datatug/datatug/actions/workflows/golangci.yml/badge.svg)](https://github.com/datatug/datatug/actions/workflows/golangci.yml)
 [![Build, Test, Vet, Lint](https://github.com/datatug/datatug/actions/workflows/golangci.yml/badge.svg)](https://github.com/datatug/datatug/actions/workflows/ci.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/datatug/datatug)](https://goreportcard.com/report/github.com/datatug/datatug)
-[![Coverage Status](https://coveralls.io/repos/github/datatug/datatug/badge.svg?branch=main&kill-cache=2)](https://coveralls.io/github/datatug/datatug?branch=main)
+[//]: # ([![Coverage Status]&#40;https://coveralls.io/repos/github/datatug/datatug/badge.svg?branch=main&kill-cache=2&#41;]&#40;https://coveralls.io/github/datatug/datatug?branch=main&#41;)
 [![Version](https://img.shields.io/github/v/tag/datatug/datatug?filter=v*.*.*&logo=Go)](https://github.com/datatug/datatug/tags)
 [![GoDoc](https://godoc.org/github.com/datatug/datatug?status.svg)](https://godoc.org/github.com/datatug/datatug)
 [![Sourcegraph](https://sourcegraph.com/github.com/datatug/datatug/-/badge.svg)](https://sourcegraph.com/github.com/datatug/datatug?badge)
