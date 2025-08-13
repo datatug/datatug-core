@@ -5,6 +5,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/datatug/datatug/apps"
 	"strings"
 )
 
@@ -65,7 +66,7 @@ func (m *datatugMainMenu) Update(msg tea.Msg) (model tea.Model, cmd tea.Cmd) {
 			}
 		default:
 			switch s := strings.ToLower(mm.String()); s {
-			case "q":
+			case apps.QuitHotKey:
 				return m, tea.Quit
 			case "p", "v", "a", "s":
 				if i := getMenuItemIndexByHotkey(m.list, strings.ToUpper(s)); i >= 0 {

@@ -9,6 +9,7 @@ import (
 	"github.com/datatug/datatug/packages/auth/gauth"
 	"github.com/pkg/browser"
 	"log"
+	"strings"
 )
 
 // App is the root Bubble Tea model for the Firestore Viewer.
@@ -118,16 +119,14 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (a *App) updateMainMenu(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
+	switch mm := msg.(type) {
 	case tea.WindowSizeMsg:
 		// grow list to window
-		a.menu.SetSize(msg.Width, msg.Height)
+		a.menu.SetSize(mm.Width, mm.Height)
 	case tea.KeyMsg:
 		// In main menu allow q/Q to quit the program explicitly (we disabled list's default quit bindings)
-		if msg.String() == "q" || msg.String() == "Q" {
-			return a, tea.Quit
-		}
-		if msg.Type == tea.KeyEnter {
+		switch mm.Type {
+		case tea.KeyEnter:
 			if it, ok := a.menu.SelectedItem().(menuItem); ok {
 				switch it.ID {
 				case "service_accounts":
@@ -160,6 +159,11 @@ func (a *App) updateMainMenu(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return nil
 					}
 				}
+			}
+		default:
+			switch s := strings.ToLower(mm.String()); s {
+			case apps.QuitHotKey:
+				return a, tea.Quit
 			}
 		}
 	}
