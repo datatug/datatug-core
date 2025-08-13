@@ -52,9 +52,13 @@ func newViewersModel(parent tea.Model) *viewersModel {
 		),
 	}
 	m := &viewersModel{
-		list:   list.New(items, list.NewDefaultDelegate(), 30, 20),
+		list:   list.New(items, list.NewDefaultDelegate(), 20, 20),
 		parent: parent,
 	}
+
+	m.list.SetShowTitle(false)
+	m.list.DisableQuitKeybindings()
+
 	//m.list.ShowTitle()Ï
 	//m.list.Title = "DataTug > Viewers"
 	return m

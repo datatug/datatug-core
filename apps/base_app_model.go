@@ -20,7 +20,18 @@ func (m BaseAppModel) Init() tea.Cmd {
 func (m BaseAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch mm := msg.(type) {
 	case tea.WindowSizeMsg:
-		mm.Width = mm.Width / 2 // we have 2 Panels
+		// Distribute the width across panels and propagate size to each panel
+		wEach := 0
+		if n := len(m.Panels); n > 0 {
+			wEach = mm.Width / n
+		}
+		for i, p := range m.Panels {
+			adj := tea.WindowSizeMsg{Width: wEach, Height: mm.Height}
+			if updated, _ := p.Update(adj); updated != nil {
+				m.Panels[i] = updated.(panel.Panel)
+			}
+		}
+		return m, nil
 	case tea.KeyMsg:
 		switch mm.Type {
 		case tea.KeyTab:

@@ -33,7 +33,7 @@ func newDatatugMainMenu() tea.Model {
 			bubbles.WithHotkey('Q'),
 		),
 	}
-	l := list.New(items, list.NewDefaultDelegate(), 60, 18)
+	l := list.New(items, list.NewDefaultDelegate(), 20, 20)
 
 	mainMenu := &datatugMainMenu{
 		list: l,
@@ -72,7 +72,8 @@ func (m *datatugMainMenu) Update(msg tea.Msg) (model tea.Model, cmd tea.Cmd) {
 	switch mm := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.list.SetSize(mm.Width, mm.Height)
-		return m, nil
+		m.list, cmd = m.list.Update(msg)
+		return
 	case tea.KeyMsg:
 		switch mm.Type {
 		case tea.KeyEnter:

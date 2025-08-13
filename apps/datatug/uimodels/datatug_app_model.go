@@ -16,7 +16,7 @@ func DatatugAppModel() tea.Model {
 	app := &datatugAppModel{}
 	app.Panels = []panel.Panel{
 		panel.New(newDatatugMainMenu(), "DataTug"),
-		panel.New(newViewersModel(nil), "Viewers"),
+		panel.New(newViewersModel(nil), "Viewers 2"),
 	}
 	return app
 }

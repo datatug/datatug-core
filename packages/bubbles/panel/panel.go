@@ -45,9 +45,9 @@ func (p *panelModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	current := p.Current()
 	switch mm := msg.(type) {
 	case tea.WindowSizeMsg:
-		if inner, ok := current.(bubbles.Resizer); ok {
-			inner.SetSize(mm.Width-2, mm.Height-2)
-		}
+		// Adjust the size for the border and pass adjusted msg further
+		adj := tea.WindowSizeMsg{Width: mm.Width - 2, Height: mm.Height - 2}
+		msg = adj
 	}
 	if current == nil {
 		return p, nil
@@ -79,6 +79,10 @@ func (p *panelModel) View() string {
 		return "Panel has no models to render"
 	}
 	content := current.View()
+	// Ensure non-empty content so the border renders even on initial frames
+	if content == "" {
+		content = " "
+	}
 	if p.isFocused {
 		return p.focusedStyle.Render(content)
 	} else {
