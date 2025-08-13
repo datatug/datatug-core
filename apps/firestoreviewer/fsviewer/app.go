@@ -9,7 +9,6 @@ import (
 	"github.com/datatug/datatug/packages/auth/gauth"
 	"github.com/pkg/browser"
 	"log"
-	"strings"
 )
 
 // App is the root Bubble Tea model for the Firestore Viewer.
@@ -160,16 +159,18 @@ func (a *App) updateMainMenu(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			}
-		default:
-			switch s := strings.ToLower(mm.String()); s {
-			case apps.QuitHotKey:
-				return a, tea.Quit
-			}
 		}
 	}
-	var cmd tea.Cmd
-	a.menu, cmd = a.menu.Update(msg)
-	return a, cmd
+
+	var menuCmd tea.Cmd
+	a.menu, menuCmd = a.menu.Update(msg)
+	if menuCmd != nil {
+		return a, menuCmd
+	}
+
+	baseModel, baseCmd := a.BaseAppModel.Update(msg)
+	a.BaseAppModel = baseModel.(apps.BaseAppModel)
+	return a, baseCmd
 }
 
 // View implements tea.Model.

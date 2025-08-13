@@ -19,8 +19,9 @@ type Panel interface {
 func New(inner tea.Model, title string) Panel {
 	p := &panelModel{
 		title:        title,
-		focusedStyle: lipgloss.NewStyle().Border(lipgloss.ThickBorder()),
-		blurStyle:    lipgloss.NewStyle().Border(lipgloss.NormalBorder()),
+		focusedStyle: lipgloss.NewStyle().Border(lipgloss.NormalBorder()),
+		// Set blur panel border color to dim grey
+		blurStyle: lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("#696969")),
 	}
 	p.Push(inner)
 	return p
@@ -29,6 +30,7 @@ func New(inner tea.Model, title string) Panel {
 type panelModel struct {
 	title     string
 	isFocused bool
+	size      tea.WindowSizeMsg
 	bubbles.Stack[tea.Model]
 	focusedStyle lipgloss.Style
 	blurStyle    lipgloss.Style
@@ -47,8 +49,8 @@ func (p *panelModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch mm := msg.(type) {
 	case tea.WindowSizeMsg:
 		// Adjust the size for the border and pass adjusted msg further
-		adj := tea.WindowSizeMsg{Width: mm.Width - 2, Height: mm.Height - 2}
-		msg = adj
+		p.size = tea.WindowSizeMsg{Width: mm.Width - 2, Height: mm.Height - 2}
+		msg = p.size
 	}
 	if current == nil {
 		return p, nil
@@ -69,6 +71,7 @@ func (p *panelModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		msg = cmd()
 		if model, ok := msg.(bubbles.PushModel); ok {
 			p.Push(model)
+			model.Update(p.size)
 		}
 	}
 	return p, cmd
@@ -138,6 +141,8 @@ func (p *panelModel) View() string {
 						}
 					}
 					lines[0] = left + string(titleRunes) + fill + right
+					// Apply the same border color to the reconstructed top line so it matches the border
+					lines[0] = lipgloss.NewStyle().Foreground(style.GetBorderTopForeground()).Render(lines[0])
 				}
 			}
 			framed = strings.Join(lines, "\n")

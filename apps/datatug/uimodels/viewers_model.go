@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/datatug/datatug/apps"
 	"github.com/datatug/datatug/packages/bubbles"
-	"strings"
 )
 
 type viewersModel struct {
@@ -22,12 +20,6 @@ func (v *viewersModel) Update(msg tea.Msg) (model tea.Model, cmd tea.Cmd) {
 	switch mm := msg.(type) {
 	case tea.WindowSizeMsg:
 		v.list.SetSize(mm.Width, mm.Height)
-		return v, nil
-	case tea.KeyMsg:
-		switch s := strings.ToLower(mm.String()); s {
-		case apps.QuitHotKey:
-			return v, tea.Quit
-		}
 	}
 	var err error
 	if v.list, cmd = v.list.Update(msg); err != nil {

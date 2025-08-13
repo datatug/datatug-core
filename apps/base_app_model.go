@@ -20,14 +20,14 @@ func (m BaseAppModel) Init() tea.Cmd {
 func (m BaseAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch mm := msg.(type) {
 	case tea.WindowSizeMsg:
-		// Distribute the width across panels and propagate size to each panel
-		wEach := 0
-		if n := len(m.Panels); n > 0 {
-			wEach = mm.Width / n
+		if len(m.Panels) == 0 {
+			return m, nil
 		}
+		// Distribute the width across panels and propagate size to each panel
+		panelWidth := mm.Width / len(m.Panels)
 		commands := make([]tea.Cmd, 0, len(m.Panels))
 		for i, p := range m.Panels {
-			adj := tea.WindowSizeMsg{Width: wEach, Height: mm.Height}
+			adj := tea.WindowSizeMsg{Width: panelWidth, Height: mm.Height}
 			updated, updateCmd := p.Update(adj)
 			if updated != nil {
 				m.Panels[i] = updated.(panel.Panel)
