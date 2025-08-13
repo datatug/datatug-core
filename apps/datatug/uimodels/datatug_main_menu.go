@@ -12,7 +12,7 @@ import (
 func newDatatugMainMenu() tea.Model {
 	items := []list.Item{
 		bubbles.NewMenuItem(
-			"Sign in [S]",
+			"Sign in",
 			"Authenticate for enabling collaboration and ability to save projects to DataTug cloud",
 			bubbles.WithHotkey('S'),
 		),

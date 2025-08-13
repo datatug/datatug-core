@@ -25,13 +25,21 @@ func (m BaseAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if n := len(m.Panels); n > 0 {
 			wEach = mm.Width / n
 		}
+		commands := make([]tea.Cmd, 0, len(m.Panels))
 		for i, p := range m.Panels {
 			adj := tea.WindowSizeMsg{Width: wEach, Height: mm.Height}
-			if updated, _ := p.Update(adj); updated != nil {
+			updated, updateCmd := p.Update(adj)
+			if updated != nil {
 				m.Panels[i] = updated.(panel.Panel)
 			}
+			if updateCmd != nil {
+				commands = append(commands, updateCmd)
+			}
 		}
-		return m, nil
+		if len(commands) == 0 {
+			return m, nil
+		}
+		return m, tea.Batch(commands...)
 	case tea.KeyMsg:
 		switch mm.Type {
 		case tea.KeyTab:
