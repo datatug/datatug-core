@@ -97,23 +97,23 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case modeMainMenu:
 		return a.updateMainMenu(msg)
 	case modeServiceAccounts, modeServiceAccountMenu:
-		if current := a.NavStack.Current(); current != nil {
-			m, cmd := current.Update(msg)
-			a.NavStack.SetRoot(m)
-			// listen for messages from child
-			switch mm := msg.(type) {
-			case tea.KeyMsg:
-				if mm.Type == tea.KeyEsc {
-					// Back to main menu
-					a.mode = modeMainMenu
-					a.NavStack.SetRoot(nil)
-					// Refresh top menu counts
-					a.menu.SetItems(a.topMenuItems())
-				}
-			}
-			// Handle custom messages emitted by child
-			return a, cmd
-		}
+		//if current := a.Left; current != nil {
+		//	m, cmd := current.Update(msg)
+		//	a.Panels[0].SetRoot(m)
+		//	// listen for messages from child
+		//	switch mm := msg.(type) {
+		//	case tea.KeyMsg:
+		//		if mm.Type == tea.KeyEsc {
+		//			// Back to main menu
+		//			a.mode = modeMainMenu
+		//			a.Left.SetRoot(nil)
+		//			// Refresh top menu counts
+		//			a.menu.SetItems(a.topMenuItems())
+		//		}
+		//	}
+		//	// Handle custom messages emitted by child
+		//	return a, cmd
+		//}
 	}
 	return a, nil
 }
@@ -147,7 +147,7 @@ func (a *App) updateMainMenu(msg tea.Msg) (tea.Model, tea.Cmd) {
 						log.Println("init service accounts UI:", err)
 						break
 					}
-					a.NavStack.Push(child)
+					a.Panels[0].Push(child)
 					a.mode = modeServiceAccounts
 					return a, nil
 				case "collections":
@@ -178,8 +178,8 @@ func (a *App) View() string {
 	case modeMainMenu:
 		return a.menu.View()
 	default:
-		if current := a.NavStack.Current(); current != nil {
-			return current.View()
+		if a.Panels[0] != nil {
+			return a.Panels[0].View()
 		}
 		return ""
 	}

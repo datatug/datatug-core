@@ -5,7 +5,6 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/datatug/datatug/apps"
 	"github.com/datatug/datatug/packages/bubbles"
 	"strings"
 )
@@ -42,7 +41,8 @@ func newDatatugMainMenu() tea.Model {
 	// Configure the list on the model field (not the local copy),
 	// because list.New returns a struct by value.
 	//mainMenu.list.Styles.Title = lipgloss.NewStyle()
-	mainMenu.list.Title = "Datatug — Main Menu"
+	//mainMenu.list.Title = "Datatug — Main Menu"
+	mainMenu.list.SetShowTitle(false)
 	mainMenu.list.SetShowStatusBar(false)
 	mainMenu.list.SetFilteringEnabled(true)
 	mainMenu.list.SetShowHelp(true)
@@ -71,8 +71,7 @@ func getMenuItemIndexByHotkey(l list.Model, hotKey string) int {
 func (m *datatugMainMenu) Update(msg tea.Msg) (model tea.Model, cmd tea.Cmd) {
 	switch mm := msg.(type) {
 	case tea.WindowSizeMsg:
-		width := mm.Width / 2
-		m.list.SetSize(width, mm.Height)
+		m.list.SetSize(mm.Width, mm.Height)
 		return m, nil
 	case tea.KeyMsg:
 		switch mm.Type {
@@ -83,14 +82,14 @@ func (m *datatugMainMenu) Update(msg tea.Msg) (model tea.Model, cmd tea.Cmd) {
 					case "Exit [Q]":
 						return m, tea.Quit
 					case "Viewers [V]":
-						return newViewersModel(m), nil
+						return m, func() tea.Msg {
+							return bubbles.PushModel(newViewersModel(m))
+						}
 					}
 				}
 			}
 		default:
 			switch s := strings.ToLower(mm.String()); s {
-			case apps.QuitHotKey:
-				return m, tea.Quit
 			case "p", "v", "a", "s":
 				if i := getMenuItemIndexByHotkey(m.list, strings.ToUpper(s)); i >= 0 {
 					m.list.Select(i)

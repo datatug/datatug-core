@@ -3,7 +3,7 @@ package commands
 import (
 	"context"
 	"github.com/datatug/datatug/apps/datatug/tapp"
-	"github.com/datatug/datatug/apps/datatug/ui"
+	"github.com/datatug/datatug/apps/datatug/tviewui"
 	"github.com/rivo/tview"
 	"github.com/urfave/cli/v3"
 )

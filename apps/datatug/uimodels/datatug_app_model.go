@@ -3,6 +3,7 @@ package uimodels
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/datatug/datatug/apps"
+	"github.com/datatug/datatug/packages/bubbles/panel"
 )
 
 var _ tea.Model = (*datatugAppModel)(nil)
@@ -13,6 +14,9 @@ type datatugAppModel struct {
 
 func DatatugAppModel() tea.Model {
 	app := &datatugAppModel{}
-	app.NavStack.SetRoot(newDatatugMainMenu())
+	app.Panels = []panel.Panel{
+		panel.New(newDatatugMainMenu(), "DataTug"),
+		panel.New(newViewersModel(nil), "Viewers"),
+	}
 	return app
 }

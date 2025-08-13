@@ -1,4 +1,8 @@
-package apps
+package bubbles
+
+import tea "github.com/charmbracelet/bubbletea"
+
+type PushModel tea.Model
 
 type Stack[T any] struct {
 	items []T
