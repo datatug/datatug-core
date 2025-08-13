@@ -4,6 +4,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/datatug/datatug/packages/bubbles"
+	"strings"
 )
 
 type Panel interface {
@@ -83,11 +84,67 @@ func (p *panelModel) View() string {
 	if content == "" {
 		content = " "
 	}
+	// Choose style depending on focus
+	style := p.blurStyle
 	if p.isFocused {
-		return p.focusedStyle.Render(content)
-	} else {
-		return p.blurStyle.Render(content)
+		style = p.focusedStyle
 	}
+
+	framed := style.Render(content)
+
+	// If there's a title, render it into the top border line
+	if p.title != "" {
+		b := style.GetBorderStyle()
+		// If no border style, just return framed as is
+		if (b != lipgloss.Border{}) {
+			lines := strings.Split(framed, "\n")
+			if len(lines) > 0 {
+				topLine := lines[0]
+				// Determine border pieces with fallbacks to space
+				left := b.TopLeft
+				right := b.TopRight
+				h := b.Top
+				if left == "" {
+					left = " "
+				}
+				if right == "" {
+					right = " "
+				}
+				if h == "" {
+					h = " "
+				}
+
+				// Visible width of the top line in runes
+				// Note: borders here do not use ANSI colors in our usage, so len is acceptable
+				lineWidth := len([]rune(topLine))
+				innerWidth := lineWidth - len([]rune(left)) - len([]rune(right))
+				if innerWidth > 0 {
+					titleText := " " + p.title + " "
+					titleRunes := []rune(titleText)
+					if len(titleRunes) > innerWidth {
+						// Truncate to fit
+						titleRunes = titleRunes[:innerWidth]
+					}
+					fillCount := innerWidth - len(titleRunes)
+					fill := ""
+					if fillCount > 0 {
+						fillRunes := []rune(h)
+						if len(fillRunes) == 0 {
+							fillRunes = []rune(" ")
+						}
+						// Repeat h until fillCount is met
+						for i := 0; i < fillCount; i++ {
+							fill += string(fillRunes[i%len(fillRunes)])
+						}
+					}
+					lines[0] = left + string(titleRunes) + fill + right
+				}
+			}
+			framed = strings.Join(lines, "\n")
+		}
+	}
+
+	return framed
 }
 
 func (p *panelModel) Focus() {
