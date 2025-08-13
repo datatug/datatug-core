@@ -48,9 +48,12 @@ func projectsCommandAction(_ context.Context, _ *cli.Command) error {
 func projectsCommandArgs() *cli.Command {
 	return &cli.Command{
 		Name:        "projects",
-		Usage:       "List registered projects",
+		Usage:       "List & manage DataTug projects",
 		Description: "",
 		Action:      projectsCommandAction,
+		Commands: []*cli.Command{
+			projectsAddCommandArgs(),
+		},
 	}
 }
 

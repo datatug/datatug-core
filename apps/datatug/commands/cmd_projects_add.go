@@ -22,7 +22,7 @@ func addProjectCommandAction(_ context.Context, _ *cli.Command) error {
 
 func projectsAddCommandArgs() *cli.Command {
 	return &cli.Command{
-		Name:        "projects-add",
+		Name:        "add",
 		Usage:       "Adds a project to the local settings",
 		Description: "Adds a project by name and directory to the settings file",
 		Action:      addProjectCommandAction,

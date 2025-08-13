@@ -20,15 +20,16 @@ require (
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/rivo/tview v0.0.0-20250625164341-a4a78f1e05cb
-	github.com/sneat-co/sneat-go-core v0.54.0
+	github.com/sneat-co/sneat-go-core v0.54.1
 	github.com/stretchr/testify v1.10.0
+	github.com/strongo/logus v0.2.1
 	github.com/strongo/random v0.0.1
 	github.com/strongo/slice v0.3.1
 	github.com/strongo/validation v0.0.7
 	github.com/urfave/cli/v3 v3.4.1
 	github.com/zalando/go-keyring v0.2.6
 	golang.org/x/oauth2 v0.30.0
-	google.golang.org/api v0.246.0
+	google.golang.org/api v0.247.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -88,7 +89,6 @@ require (
 	github.com/skeema/knownhosts v1.3.1 // indirect
 	github.com/strongo/analytics v0.2.2 // indirect
 	github.com/strongo/decimal v0.1.1 // indirect
-	github.com/strongo/logus v0.2.1 // indirect
 	github.com/strongo/strongoapp v0.31.8 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect

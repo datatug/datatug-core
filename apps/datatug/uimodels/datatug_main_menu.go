@@ -6,27 +6,49 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/datatug/datatug/apps"
+	"github.com/datatug/datatug/packages/bubbles"
 	"strings"
 )
 
-var _ list.Item = (*menuItem)(nil)
+func newDatatugMainMenu() tea.Model {
+	items := []list.Item{
+		bubbles.NewMenuItem(
+			"Sign in [S]",
+			"Authenticate for enabling collaboration and ability to save projects to DataTug cloud",
+			bubbles.WithHotkey('S'),
+		),
+		bubbles.NewMenuItem("Projects",
+			"You can store projects: locally, GitHub repo, DataTug cloud",
+			bubbles.WithHotkey('P'),
+		),
+		bubbles.NewMenuItem("Viewers",
+			"Utils for browsing & editing various data sources, like: Firestore, SQL db, etc.",
+			bubbles.WithHotkey('V'),
+		),
+		bubbles.NewMenuItem("About",
+			"Learn about this application",
+			bubbles.WithHotkey('A'),
+		),
+		bubbles.NewMenuItem("Exit",
+			"Quit the app",
+			bubbles.WithHotkey('Q'),
+		),
+	}
+	l := list.New(items, list.NewDefaultDelegate(), 60, 18)
 
-type menuItem struct {
-	title       string
-	description string
-	hotKey      rune
-}
-
-func (m menuItem) FilterValue() string {
-	return m.title
-}
-
-func (m menuItem) Title() string {
-	return m.title
-}
-
-func (m menuItem) Description() string {
-	return m.description
+	mainMenu := &datatugMainMenu{
+		list: l,
+	}
+	// Configure the list on the model field (not the local copy),
+	// because list.New returns a struct by value.
+	//mainMenu.list.Styles.Title = lipgloss.NewStyle()
+	mainMenu.list.Title = "Datatug — Main Menu"
+	mainMenu.list.SetShowStatusBar(false)
+	mainMenu.list.SetFilteringEnabled(true)
+	mainMenu.list.SetShowHelp(true)
+	mainMenu.list.DisableQuitKeybindings() // prevent Esc/q from quitting the program
+	mainMenu.list.Styles.Title = lipgloss.NewStyle().Bold(true)
+	return mainMenu
 }
 
 type datatugMainMenu struct {
@@ -39,7 +61,7 @@ func (m *datatugMainMenu) Init() tea.Cmd {
 
 func getMenuItemIndexByHotkey(l list.Model, hotKey string) int {
 	for i, item := range l.Items() {
-		if strings.HasSuffix(item.(menuItem).title, fmt.Sprintf("[%s]", hotKey)) {
+		if strings.HasSuffix(item.(list.DefaultItem).Title(), fmt.Sprintf("[%s]", hotKey)) {
 			return i
 		}
 	}
@@ -49,13 +71,14 @@ func getMenuItemIndexByHotkey(l list.Model, hotKey string) int {
 func (m *datatugMainMenu) Update(msg tea.Msg) (model tea.Model, cmd tea.Cmd) {
 	switch mm := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.list.SetSize(mm.Width, mm.Height)
+		width := mm.Width / 2
+		m.list.SetSize(width, mm.Height)
 		return m, nil
 	case tea.KeyMsg:
 		switch mm.Type {
 		case tea.KeyEnter:
 			if it := m.list.SelectedItem(); it != nil {
-				if mi, ok := it.(menuItem); ok {
+				if mi, ok := it.(list.DefaultItem); ok {
 					switch mi.Title() {
 					case "Exit [Q]":
 						return m, tea.Quit
@@ -120,11 +143,11 @@ func (m *datatugMainMenu) View() string {
 //func (d menuListDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 //func (d menuListDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
 //	mi := listItem.(menuItem)
-//	if mi.hotKey == 0 {
+//	if mi.hotkey == 0 {
 //		defaultMenuListDelegate.Render(w, m, index, listItem)
 //		return
 //	}
-//	hotIndex := strings.Index(mi.title, string(mi.hotKey))
+//	hotIndex := strings.Index(mi.title, string(mi.hotkey))
 //
 //	if hotIndex == -1 {
 //		defaultMenuListDelegate.Render(w, m, index, listItem)
@@ -154,48 +177,3 @@ func (m *datatugMainMenu) View() string {
 //		_, _ = fmt.Fprintf(w, normalStyle.Render(mi.title[hotIndex+1:]))
 //	}
 //}
-
-func mainMenuModel() tea.Model {
-	items := []list.Item{
-		menuItem{
-			title: "Sign in [S]",
-			//hotKey:      'S',
-			description: "Authenticate for enabling collaboration and ability to save projects to DataTug cloud",
-		},
-		menuItem{
-			title:       "Projects [P]",
-			hotKey:      'P',
-			description: "You can store projects locally or at DataTug cloud (or both).",
-		},
-		menuItem{
-			title:       "Viewers [V]",
-			hotKey:      'V',
-			description: "Utils for browsing & editing various data sources, like: Firestore, SQL db, etc.",
-		},
-		menuItem{
-			title:       "About [A]",
-			hotKey:      'A',
-			description: "Learn about this application",
-		},
-		menuItem{
-			title:       "Exit [Q]",
-			hotKey:      'Q',
-			description: "Quit the app",
-		},
-	}
-	l := list.New(items, list.NewDefaultDelegate(), 60, 18)
-
-	mainMenu := &datatugMainMenu{
-		list: l,
-	}
-	// Configure the list on the model field (not the local copy),
-	// because list.New returns a struct by value.
-	mainMenu.list.Title = "Datatug Main Menu"
-	//mainMenu.list.Styles.Title = lipgloss.NewStyle()
-	mainMenu.list.SetShowStatusBar(false)
-	mainMenu.list.SetFilteringEnabled(true)
-	mainMenu.list.SetShowHelp(true)
-	mainMenu.list.DisableQuitKeybindings() // prevent Esc/q from quitting the program
-	mainMenu.list.Styles.Title = lipgloss.NewStyle().Bold(true)
-	return mainMenu
-}

@@ -13,6 +13,6 @@ type datatugAppModel struct {
 
 func DatatugAppModel() tea.Model {
 	app := &datatugAppModel{}
-	app.NavStack.SetRoot(mainMenuModel())
+	app.NavStack.SetRoot(newDatatugMainMenu())
 	return app
 }

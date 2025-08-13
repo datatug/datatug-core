@@ -5,6 +5,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/datatug/datatug/apps"
+	"github.com/datatug/datatug/packages/bubbles"
 	"strings"
 )
 
@@ -45,14 +46,14 @@ func (v viewersModel) View() string {
 
 func newViewersModel(parent tea.Model) *viewersModel {
 	items := []list.Item{
-		menuItem{
-			title:       "Firestore viewer [I]",
-			description: "Browse & edit data in Firestore databases",
-		},
-		menuItem{
-			title:       "Files viewer [F]",
-			description: "Browse local files",
-		},
+		bubbles.NewMenuItem("Firestore viewer",
+			"Browse & edit data in Firestore databases",
+			bubbles.WithHotkey('I'),
+		),
+		bubbles.NewMenuItem("Files viewer",
+			"Browse local files",
+			bubbles.WithHotkey('I'),
+		),
 	}
 	m := &viewersModel{
 		list:   list.New(items, list.NewDefaultDelegate(), 30, 20),

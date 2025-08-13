@@ -29,7 +29,6 @@ func DatatugCommand() *cli.Command {
 			demoCommandArgs(),
 			updateUrlConfigCommandArgs(),
 			projectsCommandArgs(),
-			projectsAddCommandArgs(),
 			queriesCommand(),
 			renderCommandArgs(),
 			scanCommandArgs(),

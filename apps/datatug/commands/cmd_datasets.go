@@ -24,10 +24,9 @@ func datasetsCommandAction(_ context.Context, _ *cli.Command) error {
 
 func datasetsCommandArgs() *cli.Command {
 	return &cli.Command{
-		Name:        "datasets",
-		Usage:       "Lists datasets if no sub-consoleCommand provided",
-		Description: "Lists datasets if no sub-consoleCommand provided",
-		Action:      datasetsCommandAction,
+		Name:   "datasets",
+		Usage:  "List and manage datasets for current DataTug project",
+		Action: datasetsCommandAction,
 	}
 }
 
