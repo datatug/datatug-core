@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gosuri/uitable"
 	"github.com/strongo/validation"
-	cliv3 "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 	"io"
 	"log"
 	"os"
@@ -18,8 +18,8 @@ import (
 	"strings"
 )
 
-func updateUrlConfigCommandArgs() *cliv3.Command {
-	return &cliv3.Command{
+func updateUrlConfigCommandArgs() *cli.Command {
+	return &cli.Command{
 		Name:        "updateUrlConfig",
 		Usage:       "Executes query or a consoleCommand",
 		Description: "The `updateUrlConfig` consoleCommand executes consoleCommand or query. Like an SQL query or an SQL stored procedure.",
@@ -210,7 +210,7 @@ func (handler writerHandler) Process(columnTypes []*sql.ColumnType, rows *sql.Ro
 	return err
 }
 
-func updateUrlConfigCommandAction(_ context.Context, _ *cliv3.Command) error {
+func updateUrlConfigCommandAction(_ context.Context, _ *cli.Command) error {
 	v := &executeSQLCommand{}
 	fmt.Printf("Validating (%+v): %v\n", v, nil)
 	var err error

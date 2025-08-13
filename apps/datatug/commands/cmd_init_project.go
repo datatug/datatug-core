@@ -6,32 +6,32 @@ import (
 	"github.com/datatug/datatug/packages/models"
 	"github.com/datatug/datatug/packages/storage"
 	"github.com/datatug/datatug/packages/storage/filestore"
-	cliv3 "github.com/urfave/cli/v3"
-	"log"
+	"github.com/strongo/logus"
+	"github.com/urfave/cli/v3"
 	"os"
 	"os/user"
 	"path"
 	"time"
 )
 
-var projectIdArg = &cliv3.StringArg{Name: "project"}
-var projectPathArg = &cliv3.StringArg{Name: "projectPath"}
+var projectIdArg = &cli.StringArg{Name: "project"}
+var projectPathArg = &cli.StringArg{Name: "projectPath"}
 
-func initCommand() *cliv3.Command {
-	return &cliv3.Command{
+func initCommand() *cli.Command {
+	return &cli.Command{
 		Name:        "init",
 		Usage:       "Creates a new datatug project",
 		Description: "Creates a new datatug project in specified directory using a connection to some database",
 		Action:      initCommandAction,
-		Arguments: []cliv3.Argument{
+		Arguments: []cli.Argument{
 			projectIdArg,
 			projectPathArg,
 		},
 	}
 }
 
-func initCommandAction(ctx context.Context, c *cliv3.Command) (err error) {
-	log.Println("Initiating project...")
+func initCommandAction(ctx context.Context, c *cli.Command) (err error) {
+	logus.Infof(ctx, "Initiating project...")
 
 	projectDir := c.Arguments[1].Get().(string)
 	if err = os.MkdirAll(projectDir, 0777); err != nil {

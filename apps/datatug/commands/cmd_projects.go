@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/appconfig"
-	cliv3 "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 	"strings"
 )
 
-func projectsCommandAction(_ context.Context, _ *cliv3.Command) error {
+func projectsCommandAction(_ context.Context, _ *cli.Command) error {
 	v := &projectsCommand{}
 	settings, err := appconfig.GetSettings()
 	if err != nil {
@@ -45,8 +45,8 @@ func projectsCommandAction(_ context.Context, _ *cliv3.Command) error {
 	return nil
 }
 
-func projectsCommandArgs() *cliv3.Command {
-	return &cliv3.Command{
+func projectsCommandArgs() *cli.Command {
+	return &cli.Command{
 		Name:        "projects",
 		Usage:       "List registered projects",
 		Description: "",

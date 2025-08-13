@@ -5,15 +5,15 @@ import (
 	"github.com/datatug/datatug/apps/datatug/tapp"
 	"github.com/datatug/datatug/apps/datatug/ui"
 	"github.com/rivo/tview"
-	cliv3 "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 )
 
-func uiCommandArgs() *cliv3.Command {
-	return &cliv3.Command{
+func uiCommandArgs() *cli.Command {
+	return &cli.Command{
 		Name:        "ui",
 		Usage:       "Starts UI",
 		Description: "",
-		Action: func(ctx context.Context, c *cliv3.Command) error {
+		Action: func(ctx context.Context, c *cli.Command) error {
 			v := &uiCommand{}
 			return v.Execute(nil)
 		},

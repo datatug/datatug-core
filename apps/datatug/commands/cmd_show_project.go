@@ -5,18 +5,18 @@ import (
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
 	"github.com/gosuri/uitable"
-	cliv3 "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 	"os"
 	"path"
 	"strings"
 )
 
-func showCommandArgs() *cliv3.Command {
-	return &cliv3.Command{
+func showCommandArgs() *cli.Command {
+	return &cli.Command{
 		Name:        "show",
 		Usage:       "Displays project data",
 		Description: "Outputs project data in human readable format",
-		Action: func(ctx context.Context, c *cliv3.Command) error {
+		Action: func(ctx context.Context, c *cli.Command) error {
 			v := &showProjectCommand{}
 			return v.Execute(nil)
 		},

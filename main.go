@@ -6,7 +6,7 @@ import (
 	"github.com/datatug/datatug/apps/datatug/commands"
 	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/mattn/go-sqlite3"
-	cliv3 "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 	"log"
 	"os"
 	"strings"
@@ -39,6 +39,6 @@ func main() {
 	//}
 }
 
-var getCommand = func() *cliv3.Command {
+var getCommand = func() *cli.Command {
 	return commands.DatatugCommand()
 }

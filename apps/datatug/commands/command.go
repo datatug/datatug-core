@@ -9,15 +9,15 @@ import (
 	"github.com/datatug/datatug/apps/firestoreviewer"
 	"github.com/datatug/datatug/packages/auth"
 	"github.com/datatug/datatug/packages/auth/gcloud"
-	cliv3 "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 	"os"
 )
 
-func DatatugCommand() *cliv3.Command {
-	return &cliv3.Command{
+func DatatugCommand() *cli.Command {
+	return &cli.Command{
 		Action: datatugCommandAction,
-		Flags:  []cliv3.Flag{apps.TUIFlag},
-		Commands: []*cliv3.Command{
+		Flags:  []cli.Flag{apps.TUIFlag},
+		Commands: []*cli.Command{
 			initCommand(),
 			auth.AuthCommand(),
 			gcloud.GoogleCloudCommand(),
@@ -43,10 +43,10 @@ func DatatugCommand() *cliv3.Command {
 	}
 }
 
-func datatugCommandAction(_ context.Context, cmd *cliv3.Command) error {
+func datatugCommandAction(_ context.Context, cmd *cli.Command) error {
 	if !apps.TUIFlag.IsSet() {
 		// Show default help text when TUI is not requested
-		_ = cliv3.ShowRootCommandHelp(cmd)
+		_ = cli.ShowRootCommandHelp(cmd)
 		return nil
 	}
 	datatugApp := uimodels.DatatugAppModel()

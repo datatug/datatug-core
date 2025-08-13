@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/datatug/datatug/packages/appconfig"
-	cliv3 "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 	"gopkg.in/yaml.v3"
 	"os"
 	"strings"
@@ -15,13 +15,13 @@ type addProjectCommand struct {
 	projectBaseCommand
 }
 
-func addProjectCommandAction(_ context.Context, _ *cliv3.Command) error {
+func addProjectCommandAction(_ context.Context, _ *cli.Command) error {
 	v := &addProjectCommand{}
 	return v.Execute(nil)
 }
 
-func projectsAddCommandArgs() *cliv3.Command {
-	return &cliv3.Command{
+func projectsAddCommandArgs() *cli.Command {
+	return &cli.Command{
 		Name:        "projects-add",
 		Usage:       "Adds a project to the local settings",
 		Description: "Adds a project by name and directory to the settings file",

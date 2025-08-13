@@ -4,15 +4,15 @@ import (
 	"context"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
-	cliv3 "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 )
 
-func testCommandArgs() *cliv3.Command {
-	return &cliv3.Command{
+func testCommandArgs() *cli.Command {
+	return &cli.Command{
 		Name:        "test",
 		Usage:       "Runs validation scripts",
 		Description: "The `test` consoleCommand executes validation scripts.",
-		Action: func(ctx context.Context, c *cliv3.Command) error {
+		Action: func(ctx context.Context, c *cli.Command) error {
 			v := &validateCommand{}
 			return v.Execute(nil)
 		},
@@ -25,7 +25,7 @@ type validateCommand struct {
 }
 
 // Execute executes test consoleCommand
-func (v *validateCommand) Execute([]string) (err error) {
+func (v *validateCommand) Execute(_ []string) (err error) {
 	if err = v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err
 	}

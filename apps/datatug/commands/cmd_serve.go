@@ -7,7 +7,7 @@ import (
 	config2 "github.com/datatug/datatug/packages/appconfig"
 	"github.com/datatug/datatug/packages/server"
 	"github.com/datatug/datatug/packages/storage/filestore"
-	cliv3 "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 	"os/exec"
 	runtime "runtime"
 	"strings"
@@ -16,7 +16,7 @@ import (
 // ServeCommand executes serve consoleCommand
 //var ServeCommand *flags.Command
 
-func serveCommandAction(_ context.Context, _ *cliv3.Command) error {
+func serveCommandAction(_ context.Context, _ *cli.Command) error {
 	v := &serveCommand{}
 	var config config2.Settings
 	config, err := config2.GetSettings()
@@ -72,8 +72,8 @@ func serveCommandAction(_ context.Context, _ *cliv3.Command) error {
 	return httpServer.ServeHTTP(pathsByID, v.Host, v.Port)
 }
 
-func serveCommandArgs() *cliv3.Command {
-	return &cliv3.Command{
+func serveCommandArgs() *cli.Command {
+	return &cli.Command{
 		Name:        "serve",
 		Usage:       "Serves HTTP server to provide API for UI",
 		Description: "Serves HTTP server to provide API for UI. Default port is 8989",

@@ -3,10 +3,10 @@ package commands
 import (
 	"context"
 	"fmt"
-	cliv3 "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 )
 
-func datasetsCommandAction(_ context.Context, _ *cliv3.Command) error {
+func datasetsCommandAction(_ context.Context, _ *cli.Command) error {
 	v := &datasetsCommand{}
 	if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err
@@ -22,8 +22,8 @@ func datasetsCommandAction(_ context.Context, _ *cliv3.Command) error {
 	return nil
 }
 
-func datasetsCommandArgs() *cliv3.Command {
-	return &cliv3.Command{
+func datasetsCommandArgs() *cli.Command {
+	return &cli.Command{
 		Name:        "datasets",
 		Usage:       "Lists datasets if no sub-consoleCommand provided",
 		Description: "Lists datasets if no sub-consoleCommand provided",

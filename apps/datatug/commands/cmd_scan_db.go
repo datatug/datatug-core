@@ -9,13 +9,13 @@ import (
 	"github.com/datatug/datatug/packages/storage"
 	"github.com/datatug/datatug/packages/storage/filestore"
 	"github.com/mitchellh/go-homedir"
-	cliv3 "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 	"log"
 	"os"
 	"strconv"
 )
 
-func scanCommandAction(_ context.Context, _ *cliv3.Command) error {
+func scanCommandAction(_ context.Context, _ *cli.Command) error {
 	v := &scanDbCommand{}
 	var err error
 	if err = v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
@@ -100,8 +100,8 @@ func scanCommandAction(_ context.Context, _ *cliv3.Command) error {
 	return nil
 }
 
-func scanCommandArgs() *cliv3.Command {
-	return &cliv3.Command{
+func scanCommandArgs() *cli.Command {
+	return &cli.Command{
 		Name:        "scan",
 		Usage:       "Adds or updates DB metadata",
 		Description: "Adds or updates DB metadata from a specific server in a specific environment",

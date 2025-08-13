@@ -3,16 +3,16 @@ package commands
 import (
 	"context"
 	"fmt"
-	cliv3 "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 	"os"
 )
 
-func consoleCommandArgs() *cliv3.Command {
-	return &cliv3.Command{
+func consoleCommandArgs() *cli.Command {
+	return &cli.Command{
 		Name:        "console",
 		Usage:       "Starts interactive console",
 		Description: "Starts interactive console with autocomplete",
-		Action: func(ctx context.Context, c *cliv3.Command) error {
+		Action: func(ctx context.Context, c *cli.Command) error {
 			v := &consoleCommand{}
 			return v.Execute(nil)
 		},

@@ -2,12 +2,12 @@ package commands
 
 import (
 	"context"
-	cliv3 "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 )
 
 // queriesCommand returns the CLI command for managing queries
-func queriesCommand() *cliv3.Command {
-	return &cliv3.Command{
+func queriesCommand() *cli.Command {
+	return &cli.Command{
 		Name:        "queries",
 		Usage:       "Lists queries if no sub-consoleCommand provided",
 		Description: "Lists queries if no sub-consoleCommand provided",
@@ -15,7 +15,7 @@ func queriesCommand() *cliv3.Command {
 	}
 }
 
-func queriesCommandAction(_ context.Context, _ *cliv3.Command) error {
+func queriesCommandAction(_ context.Context, _ *cli.Command) error {
 	// Future implementation will go here; keeping the previous panic to preserve behavior
 	panic("not implemented")
 }

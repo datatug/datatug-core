@@ -2,10 +2,10 @@ package commands
 
 import (
 	"context"
-	cliv3 "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 )
 
-func datasetCommandAction(_ context.Context, _ *cliv3.Command) error {
+func datasetCommandAction(_ context.Context, _ *cli.Command) error {
 	v := &datasetCommand{}
 	if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err
@@ -14,8 +14,8 @@ func datasetCommandAction(_ context.Context, _ *cliv3.Command) error {
 	return nil
 }
 
-func datasetCommands() *cliv3.Command {
-	return &cliv3.Command{
+func datasetCommands() *cli.Command {
+	return &cli.Command{
 		Name:        "dataset",
 		Usage:       "Recordset commands: def, data",
 		Description: "Recordset commands: def, data",

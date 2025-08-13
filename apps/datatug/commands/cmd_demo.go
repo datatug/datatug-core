@@ -12,7 +12,7 @@ import (
 	"github.com/datatug/datatug/packages/storage"
 	"github.com/datatug/datatug/packages/storage/filestore"
 	"github.com/go-git/go-git/v5"
-	cliv3 "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 	"io"
 	"log"
 	"net/http"
@@ -34,8 +34,8 @@ const (
 	demoProjectDir             = "demo-project"
 )
 
-func demoCommandArgs() *cliv3.Command {
-	return &cliv3.Command{
+func demoCommandArgs() *cli.Command {
+	return &cli.Command{
 		Name:        "demo",
 		Usage:       "Installs & runs demo",
 		Description: "Adds demo DB & creates or update demo DataTug project",
@@ -409,7 +409,7 @@ func (c demoCommand) updateDemoProjectEnvironments(project *models.DatatugProjec
 	return nil
 }
 
-func demoCommandAction(_ context.Context, _ *cliv3.Command) error {
+func demoCommandAction(_ context.Context, _ *cli.Command) error {
 	c := demoCommand{}
 	datatugUserDirPath, err := c.getDatatugUserDirPath()
 	demoProjectPath := path.Join(datatugUserDirPath, demoProjectDir)

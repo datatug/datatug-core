@@ -2,7 +2,7 @@ package commands
 
 import (
 	"context"
-	cliv3 "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 	"gopkg.in/yaml.v3"
 	"os"
 )
@@ -11,7 +11,7 @@ type datasetDefCommand struct {
 	datasetBaseCommand
 }
 
-func datasetDefCommandAction(_ context.Context, _ *cliv3.Command) error {
+func datasetDefCommandAction(_ context.Context, _ *cli.Command) error {
 	v := &datasetDefCommand{}
 	if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err
@@ -27,8 +27,8 @@ func datasetDefCommandAction(_ context.Context, _ *cliv3.Command) error {
 	return encoder.Encode(dataset)
 }
 
-func datasetDefCommandArgs() *cliv3.Command {
-	return &cliv3.Command{
+func datasetDefCommandArgs() *cli.Command {
+	return &cli.Command{
 		Name:        "dataset-def",
 		Usage:       "Outputs dataset definition in YAML",
 		Description: "Displays dataset (recordset) definition in YAML",

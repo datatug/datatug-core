@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"github.com/datatug/datatug/packages/storage"
 	"github.com/datatug/datatug/packages/storage/filestore"
-	cliv3 "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 	"log"
 	"os"
 )
 
-func renderCommandAction(_ context.Context, _ *cliv3.Command) error {
+func renderCommandAction(_ context.Context, _ *cli.Command) error {
 	v := &renderCommand{}
 	if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err
@@ -41,8 +41,8 @@ func renderCommandAction(_ context.Context, _ *cliv3.Command) error {
 	return err
 }
 
-func renderCommandArgs() *cliv3.Command {
-	return &cliv3.Command{
+func renderCommandArgs() *cli.Command {
+	return &cli.Command{
 		Name:        "render",
 		Usage:       "Renders readme.md files",
 		Description: "Updates readme.md files - this is useful for updating them without scan",

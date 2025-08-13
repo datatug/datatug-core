@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/datatug/datatug/packages/models"
-	cliv3 "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 	"gopkg.in/yaml.v3"
 	"os"
 	"strconv"
@@ -21,7 +21,7 @@ type datasetDataCommand struct {
 	Indent string `long:"indent" description:"Pass a digit to specify number of spaces (default=1). Special value: 'TAB'."`
 }
 
-func datasetDataCommandAction(_ context.Context, _ *cliv3.Command) error {
+func datasetDataCommandAction(_ context.Context, _ *cli.Command) error {
 	v := &datasetDataCommand{}
 	if err := v.initProjectCommand(projectCommandOptions{projNameOrDirRequired: true}); err != nil {
 		return err
@@ -78,8 +78,8 @@ func datasetDataCommandAction(_ context.Context, _ *cliv3.Command) error {
 	return writeRows(*recordset, encoder)
 }
 
-func datasetDataCommandArgs() *cliv3.Command {
-	return &cliv3.Command{
+func datasetDataCommandArgs() *cli.Command {
+	return &cli.Command{
 		Name:        "dataset-data",
 		Usage:       "Outputs dataset data in YAML/JSON or GRID",
 		Description: "Displays dataset data. Use --format yaml|json|grid and --indent for formatting.",
