@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/datatug/datatug/apps"
 	"github.com/datatug/datatug/apps/datatug/uimodels"
 	"github.com/datatug/datatug/apps/firestoreviewer"
 	"github.com/datatug/datatug/packages/auth"
@@ -15,6 +16,7 @@ import (
 func DatatugCommand() *cliv3.Command {
 	return &cliv3.Command{
 		Action: datatugCommandAction,
+		Flags:  []cliv3.Flag{apps.TUIFlag},
 		Commands: []*cliv3.Command{
 			initCommand(),
 			auth.AuthCommand(),
@@ -41,12 +43,16 @@ func DatatugCommand() *cliv3.Command {
 	}
 }
 
-func datatugCommandAction(_ context.Context, _ *cliv3.Command) error {
-
+func datatugCommandAction(_ context.Context, cmd *cliv3.Command) error {
+	if !apps.TUIFlag.IsSet() {
+		// Show default help text when TUI is not requested
+		_ = cliv3.ShowRootCommandHelp(cmd)
+		return nil
+	}
 	datatugApp := uimodels.DatatugAppModel()
 	p := tea.NewProgram(datatugApp, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
-		// Ensure the error is printed to console explicitly
+		// Ensure the error is printed to the console explicitly
 		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
