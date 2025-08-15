@@ -1,4 +1,4 @@
-module github.com/datatug/datatug
+module github.com/datatug/datatug-core
 
 go 1.24.3
 
