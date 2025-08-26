@@ -51,7 +51,7 @@ const FileStoreUrlPrefix = "file:"
 
 // ProjectConfig hold project configuration, specifically path to project directory
 type ProjectConfig struct {
-	ID    string `yaml:"-"`
+	ID    string `yaml:"id"`
 	Url   string `yaml:"url"`
 	Title string `yaml:"title,omitempty"`
 }
