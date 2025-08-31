@@ -9,10 +9,10 @@ require (
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
-	github.com/sneat-co/sneat-go-core v0.54.2
-	github.com/stretchr/testify v1.10.0
+	github.com/sneat-co/sneat-go-core v0.54.3
+	github.com/stretchr/testify v1.11.1
 	github.com/strongo/random v0.0.1
-	github.com/strongo/slice v0.3.1
+	github.com/strongo/slice v0.3.2
 	github.com/strongo/validation v0.0.7
 	gopkg.in/yaml.v3 v3.0.1
 )
