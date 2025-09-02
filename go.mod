@@ -12,7 +12,7 @@ require (
 	github.com/sneat-co/sneat-go-core v0.54.3
 	github.com/stretchr/testify v1.11.1
 	github.com/strongo/random v0.0.1
-	github.com/strongo/slice v0.3.2
+	github.com/strongo/slice v0.3.3
 	github.com/strongo/validation v0.0.7
 	gopkg.in/yaml.v3 v3.0.1
 )
