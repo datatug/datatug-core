@@ -2,7 +2,7 @@ module github.com/datatug/datatug-core
 
 go 1.24.3
 
-toolchain go1.25.1
+toolchain go1.25.2
 
 require (
 	github.com/google/uuid v1.6.0
