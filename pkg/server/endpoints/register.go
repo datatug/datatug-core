@@ -2,9 +2,10 @@ package endpoints
 
 import (
 	"context"
-	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 type wrapper = func(f http.HandlerFunc) http.HandlerFunc

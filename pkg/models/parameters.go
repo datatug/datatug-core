@@ -2,8 +2,9 @@ package models
 
 import (
 	"fmt"
-	"github.com/strongo/validation"
 	"reflect"
+
+	"github.com/strongo/validation"
 )
 
 // ParameterDef defines input parameter for a board, widget, etc.

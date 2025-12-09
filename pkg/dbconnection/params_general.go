@@ -2,9 +2,10 @@ package dbconnection
 
 import (
 	"fmt"
-	"github.com/strongo/validation"
 	"strconv"
 	"strings"
+
+	"github.com/strongo/validation"
 )
 
 var _ Params = (*GeneralParams)(nil)

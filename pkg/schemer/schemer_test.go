@@ -1,9 +1,10 @@
 package schemer
 
 import (
+	"testing"
+
 	"github.com/datatug/datatug-core/pkg/models"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestNewInformationSchema(t *testing.T) {

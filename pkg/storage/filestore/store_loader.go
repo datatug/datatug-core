@@ -3,13 +3,14 @@ package filestore
 import (
 	"context"
 	"fmt"
+	"os"
+	"path"
+	"sync"
+
 	"github.com/datatug/datatug-core/pkg/models"
 	"github.com/datatug/datatug-core/pkg/parallel"
 	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/strongo/validation"
-	"os"
-	"path"
-	"sync"
 )
 
 // fileSystemLoader implements storage.Loader interface

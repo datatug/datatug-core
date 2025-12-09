@@ -3,10 +3,11 @@ package endpoints
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/strongo/validation"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/strongo/validation"
 )
 
 func handleError(err error, w http.ResponseWriter, r *http.Request) bool {

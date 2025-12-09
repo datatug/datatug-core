@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
 	"github.com/datatug/datatug-core/pkg/models"
 	"github.com/datatug/datatug-core/pkg/schemer"
 )

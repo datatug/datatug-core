@@ -2,8 +2,9 @@ package appconfig
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"io"
+
+	"gopkg.in/yaml.v3"
 )
 
 func PrintSettings(settings Settings, format Format, w io.Writer) (err error) {

@@ -2,12 +2,13 @@ package endpoints
 
 import (
 	"context"
+	"log"
+	"net/http"
+
 	"github.com/datatug/datatug-core/pkg/api"
 	"github.com/datatug/datatug-core/pkg/dto"
 	"github.com/datatug/datatug-core/pkg/models"
 	"github.com/sneat-co/sneat-go-core/apicore"
-	"log"
-	"net/http"
 )
 
 // addDbServer adds a new DB server to project

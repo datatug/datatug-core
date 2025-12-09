@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
 	"github.com/datatug/datatug-core/pkg/schemer"
 )
 

@@ -2,15 +2,16 @@ package endpoints
 
 import (
 	"fmt"
-	"github.com/datatug/datatug-core/pkg/api"
-	"github.com/datatug/datatug-core/pkg/dto"
-	"github.com/datatug/datatug-core/pkg/models"
-	"github.com/strongo/validation"
 	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/datatug/datatug-core/pkg/api"
+	"github.com/datatug/datatug-core/pkg/dto"
+	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/strongo/validation"
 )
 
 // getServerDatabases returns databases hosted at server

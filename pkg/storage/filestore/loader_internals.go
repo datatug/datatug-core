@@ -3,13 +3,14 @@ package filestore
 import (
 	"context"
 	"fmt"
-	"github.com/datatug/datatug-core/pkg/models"
-	"github.com/datatug/datatug-core/pkg/parallel"
 	"log"
 	"os"
 	"path"
 	"strings"
 	"sync"
+
+	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/parallel"
 )
 
 func loadProjectFile(projPath string, project *models.DatatugProject) (err error) {

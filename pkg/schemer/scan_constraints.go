@@ -4,8 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/datatug/datatug-core/pkg/models"
 	"time"
+
+	"github.com/datatug/datatug-core/pkg/models"
 )
 
 func (s scanner) scanConstraintsInBulk(c context.Context, db *sql.DB, catalog string, tablesFinder sortedTables) error {

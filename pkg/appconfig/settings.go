@@ -2,10 +2,11 @@ package appconfig
 
 import (
 	"fmt"
-	"github.com/mitchellh/go-homedir"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path"
+
+	"github.com/mitchellh/go-homedir"
+	"gopkg.in/yaml.v3"
 )
 
 // Settings hold DataTug executable configuration for commands like `serve`

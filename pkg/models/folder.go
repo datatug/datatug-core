@@ -1,9 +1,10 @@
 package models
 
 import (
-	"github.com/strongo/validation"
 	"strconv"
 	"strings"
+
+	"github.com/strongo/validation"
 )
 
 // Folder keeps info about folder

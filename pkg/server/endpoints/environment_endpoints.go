@@ -2,10 +2,11 @@ package endpoints
 
 import (
 	context "context"
+	"net/http"
+
 	"github.com/datatug/datatug-core/pkg/api"
 	"github.com/datatug/datatug-core/pkg/dto"
 	"github.com/sneat-co/sneat-go-core/apicore"
-	"net/http"
 )
 
 // getEnvironmentSummary returns summary about environment

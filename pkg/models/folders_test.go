@@ -1,8 +1,9 @@
 package models
 
 import (
-	"github.com/datatug/datatug-core/pkg/test"
 	"testing"
+
+	"github.com/datatug/datatug-core/pkg/test"
 )
 
 func TestFolder_Validate(t *testing.T) {

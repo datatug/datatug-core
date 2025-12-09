@@ -2,9 +2,10 @@ package models2md
 
 import (
 	"fmt"
-	"github.com/datatug/datatug-core/pkg/models"
 	"io"
 	"strings"
+
+	"github.com/datatug/datatug-core/pkg/models"
 )
 
 // ProjectSummaryToReadme encodes project summary to markdown file format

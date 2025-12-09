@@ -2,10 +2,11 @@ package endpoints
 
 import (
 	"context"
-	"github.com/datatug/datatug-core/pkg/dto"
-	"github.com/sneat-co/sneat-go-core/apicore"
 	"log"
 	"net/http"
+
+	"github.com/datatug/datatug-core/pkg/dto"
+	"github.com/sneat-co/sneat-go-core/apicore"
 )
 
 func deleteProjItem(del func(ctx context.Context, ref dto.ProjectItemRef) error) func(w http.ResponseWriter, r *http.Request) {

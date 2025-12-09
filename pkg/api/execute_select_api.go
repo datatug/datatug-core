@@ -2,10 +2,11 @@ package api
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/datatug/datatug-core/pkg/execute"
 	"github.com/datatug/datatug-core/pkg/models"
 	"github.com/strongo/validation"
-	"strings"
 )
 
 // SelectRequest holds request data

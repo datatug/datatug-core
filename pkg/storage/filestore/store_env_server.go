@@ -3,12 +3,13 @@ package filestore
 import (
 	"errors"
 	"fmt"
-	"github.com/datatug/datatug-core/pkg/models"
-	"github.com/datatug/datatug-core/pkg/storage"
 	"log"
 	"os"
 	"path"
 	"strings"
+
+	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/storage"
 )
 
 var _ storage.EnvServerStore = (*fsEnvServerStore)(nil)

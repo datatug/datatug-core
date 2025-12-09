@@ -1,10 +1,11 @@
 package filestore
 
 import (
+	"sync"
+
 	"github.com/datatug/datatug-core/pkg/models"
 	"github.com/datatug/datatug-core/pkg/models2md"
 	"github.com/datatug/datatug-core/pkg/storage"
-	"sync"
 )
 
 var _ storage.ProjectStore = (*fsProjectStore)(nil)

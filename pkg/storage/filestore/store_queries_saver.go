@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/datatug/datatug-core/pkg/models"
-	"github.com/strongo/validation"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/strongo/validation"
 )
 
 func getQueryPaths(queryID, queriesDirPath string) (

@@ -1,8 +1,9 @@
 package storage
 
 import (
-	"github.com/datatug/datatug-core/pkg/test"
 	"testing"
+
+	"github.com/datatug/datatug-core/pkg/test"
 )
 
 func TestCreateFolderRequest_Validate(t *testing.T) {

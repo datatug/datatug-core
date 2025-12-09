@@ -2,10 +2,11 @@ package api
 
 import (
 	"context"
+	"log"
+
 	"github.com/datatug/datatug-core/pkg/dto"
 	"github.com/datatug/datatug-core/pkg/models"
 	"github.com/datatug/datatug-core/pkg/storage"
-	"log"
 )
 
 // CreateBoard creates board

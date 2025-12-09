@@ -3,12 +3,13 @@ package filestore
 import (
 	"context"
 	"fmt"
-	"github.com/datatug/datatug-core/pkg/models"
-	"github.com/datatug/datatug-core/pkg/storage"
 	"os"
 	"path"
 	"strings"
 	"sync"
+
+	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/storage"
 )
 
 var _ storage.QueriesStore = (*fsQueriesStore)(nil)

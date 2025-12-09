@@ -2,10 +2,11 @@ package endpoints
 
 import (
 	"context"
-	"github.com/sneat-co/sneat-go-core/apicore"
-	"github.com/sneat-co/sneat-go-core/apicore/verify"
 	"log"
 	"net/http"
+
+	"github.com/sneat-co/sneat-go-core/apicore"
+	"github.com/sneat-co/sneat-go-core/apicore/verify"
 )
 
 // ProjectEndpoints defines project endpoints

@@ -1,9 +1,10 @@
 package filestore
 
 import (
-	"github.com/datatug/datatug-core/pkg/models"
 	"os"
 	"path"
+
+	"github.com/datatug/datatug-core/pkg/models"
 )
 
 func (store fsProjectStore) writeProjectReadme(project models.DatatugProject) error {

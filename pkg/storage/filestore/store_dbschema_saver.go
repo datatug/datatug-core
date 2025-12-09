@@ -2,11 +2,12 @@ package filestore
 
 import (
 	"fmt"
-	"github.com/datatug/datatug-core/pkg/models"
-	"github.com/datatug/datatug-core/pkg/parallel"
 	"log"
 	"os"
 	"path"
+
+	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/parallel"
 )
 
 func (store fsDbCatalogStore) saveDbSchemas(schemas []*models.DbSchema, dbServerSaverCtx saveDbServerObjContext) error {

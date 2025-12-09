@@ -2,9 +2,10 @@ package models
 
 import (
 	"fmt"
-	"github.com/strongo/validation"
 	"strconv"
 	"strings"
+
+	"github.com/strongo/validation"
 )
 
 // AutoID defines a value that indicate system to use automatically generated ID

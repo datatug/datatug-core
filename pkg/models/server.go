@@ -2,9 +2,10 @@ package models
 
 import (
 	"fmt"
-	"github.com/strongo/validation"
 	"strconv"
 	"strings"
+
+	"github.com/strongo/validation"
 )
 
 // ServerReferences defines slice

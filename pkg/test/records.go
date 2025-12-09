@@ -2,8 +2,9 @@ package test
 
 import (
 	"fmt"
-	"github.com/strongo/validation"
 	"testing"
+
+	"github.com/strongo/validation"
 )
 
 type record interface {

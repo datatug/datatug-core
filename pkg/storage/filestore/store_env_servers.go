@@ -1,8 +1,9 @@
 package filestore
 
 import (
-	"github.com/datatug/datatug-core/pkg/storage"
 	"path"
+
+	"github.com/datatug/datatug-core/pkg/storage"
 )
 
 var _ storage.EnvServersStore = (*fsEnvServersStore)(nil)

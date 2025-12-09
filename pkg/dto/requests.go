@@ -1,9 +1,10 @@
 package dto
 
 import (
+	"strings"
+
 	"github.com/datatug/datatug-core/pkg/models"
 	"github.com/strongo/validation"
-	"strings"
 )
 
 // GetServerDatabasesRequest input for /dbserver/databases API

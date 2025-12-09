@@ -3,6 +3,7 @@ package schemer
 import (
 	"context"
 	"database/sql"
+
 	"github.com/datatug/datatug-core/pkg/models"
 )
 

@@ -1,9 +1,10 @@
 package api
 
 import (
+	"testing"
+
 	"github.com/datatug/datatug-core/pkg/dto"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestGetServerDatabasesRequest_Validate(t *testing.T) {

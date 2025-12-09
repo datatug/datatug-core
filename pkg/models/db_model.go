@@ -2,8 +2,9 @@ package models
 
 import (
 	"fmt"
-	"github.com/strongo/validation"
 	"log"
+
+	"github.com/strongo/validation"
 )
 
 // DbModels is a slice of *DbModel

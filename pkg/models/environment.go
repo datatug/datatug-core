@@ -2,9 +2,10 @@ package models
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/strongo/slice"
 	"github.com/strongo/validation"
-	"strings"
 )
 
 // Environments is a slice of pointers to Environment

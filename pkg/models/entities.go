@@ -2,10 +2,11 @@ package models
 
 import (
 	"fmt"
-	"github.com/strongo/slice"
-	"github.com/strongo/validation"
 	"regexp"
 	"strings"
+
+	"github.com/strongo/slice"
+	"github.com/strongo/validation"
 )
 
 // Entities is a slice of *Entity

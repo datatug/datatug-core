@@ -3,9 +3,10 @@ package storage
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/datatug/datatug-core/pkg/models"
 	"github.com/strongo/validation"
-	"strings"
 )
 
 type CreateFolderRequest struct {

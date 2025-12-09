@@ -4,17 +4,18 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"fmt"
-	"github.com/datatug/datatug-core/pkg/dbconnection"
-	"github.com/datatug/datatug-core/pkg/models"
-	"github.com/google/uuid"
-	"github.com/mitchellh/go-homedir"
-	"github.com/strongo/slice"
 	"log"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/datatug/datatug-core/pkg/dbconnection"
+	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/google/uuid"
+	"github.com/mitchellh/go-homedir"
+	"github.com/strongo/slice"
 )
 
 // Executor executes DataTug commands

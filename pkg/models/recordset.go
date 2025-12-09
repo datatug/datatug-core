@@ -3,10 +3,11 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/qri-io/jsonschema"
-	"github.com/strongo/validation"
 	"strings"
 	"time"
+
+	"github.com/qri-io/jsonschema"
+	"github.com/strongo/validation"
 )
 
 // Recordset holds data & stats for recordset returned by executed command

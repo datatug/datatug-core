@@ -2,11 +2,12 @@ package endpoints
 
 import (
 	"context"
+	"net/http"
+	"testing"
+
 	"github.com/julienschmidt/httprouter"
 	"github.com/sneat-co/sneat-go-core/apicore"
 	"github.com/sneat-co/sneat-go-core/apicore/verify"
-	"net/http"
-	"testing"
 )
 
 func TestRegisterDatatugWriteOnlyHandlers(t *testing.T) {

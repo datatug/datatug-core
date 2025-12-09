@@ -3,9 +3,11 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+
 	// required import
 	_ "embed"
 	"fmt"
+
 	"github.com/datatug/datatug-core/pkg/models"
 	"github.com/datatug/datatug-core/pkg/schemer"
 )

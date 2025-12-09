@@ -2,9 +2,10 @@ package models
 
 import (
 	"fmt"
-	"github.com/strongo/validation"
 	"strings"
 	"time"
+
+	"github.com/strongo/validation"
 )
 
 // QueryFolders defines slice

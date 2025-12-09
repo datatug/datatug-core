@@ -1,8 +1,9 @@
 package endpoints
 
 import (
-	"github.com/datatug/datatug-core/pkg/api"
 	"net/http"
+
+	"github.com/datatug/datatug-core/pkg/api"
 )
 
 // getProjects returns list of projects

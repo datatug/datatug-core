@@ -2,9 +2,10 @@ package models
 
 import (
 	"fmt"
-	"github.com/strongo/validation"
 	"regexp"
 	"strconv"
+
+	"github.com/strongo/validation"
 )
 
 // VarSetting record

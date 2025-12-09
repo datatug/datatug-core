@@ -2,9 +2,10 @@ package models
 
 import (
 	"fmt"
-	"github.com/strongo/validation"
 	"sort"
 	"strings"
+
+	"github.com/strongo/validation"
 )
 
 // CatalogObject used in list of objects

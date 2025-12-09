@@ -3,13 +3,14 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/datatug/datatug-core/pkg/server/endpoints"
 	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/datatug/datatug-core/pkg/storage/filestore"
 	"github.com/julienschmidt/httprouter"
-	"log"
-	"net/http"
-	"time"
 )
 
 var agentHost string

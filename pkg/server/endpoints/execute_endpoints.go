@@ -4,14 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
+
 	"github.com/datatug/datatug-core/pkg/api"
 	"github.com/datatug/datatug-core/pkg/execute"
 	"github.com/datatug/datatug-core/pkg/models"
 	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/strongo/validation"
-	"net/http"
-	"strconv"
-	"strings"
 )
 
 // executeCommandsHandler handler for execute command endpoint

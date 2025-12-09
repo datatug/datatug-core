@@ -2,8 +2,9 @@ package models2md
 
 import (
 	"fmt"
-	"github.com/datatug/datatug-core/pkg/models"
 	"io"
+
+	"github.com/datatug/datatug-core/pkg/models"
 )
 
 // NewEncoder creates new encoder

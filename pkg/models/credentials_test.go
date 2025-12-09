@@ -2,9 +2,10 @@ package models
 
 import (
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCredentials_Validate(t *testing.T) {

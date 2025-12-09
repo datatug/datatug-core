@@ -3,9 +3,10 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/strongo/validation"
 	"reflect"
 	"regexp"
+
+	"github.com/strongo/validation"
 )
 
 // Check defines a check

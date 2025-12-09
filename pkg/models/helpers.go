@@ -1,8 +1,9 @@
 package models
 
 import (
-	"github.com/strongo/validation"
 	"strings"
+
+	"github.com/strongo/validation"
 )
 
 // ValidateName validates name

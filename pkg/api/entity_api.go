@@ -3,11 +3,12 @@ package api
 import (
 	"context"
 	"fmt"
+	"log"
+
 	"github.com/datatug/datatug-core/pkg/dto"
 	"github.com/datatug/datatug-core/pkg/models"
 	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/strongo/validation"
-	"log"
 )
 
 func validateEntityInput(projectID, entityID string) (err error) {

@@ -1,9 +1,10 @@
 package models
 
 import (
+	"testing"
+
 	"github.com/datatug/datatug-core/pkg/test"
 	"github.com/strongo/validation"
-	"testing"
 )
 
 func newQueryDef(queryType, text string) QueryDef {

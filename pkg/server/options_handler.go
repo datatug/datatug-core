@@ -2,8 +2,9 @@ package server
 
 import (
 	"fmt"
-	"github.com/datatug/datatug-core/pkg/server/endpoints"
 	"net/http"
+
+	"github.com/datatug/datatug-core/pkg/server/endpoints"
 )
 
 // globalOptionsHandler handles OPTIONS requests

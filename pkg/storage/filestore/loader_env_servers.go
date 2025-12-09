@@ -2,10 +2,11 @@ package filestore
 
 import (
 	"fmt"
-	"github.com/datatug/datatug-core/pkg/models"
 	"os"
 	"path"
 	"sync"
+
+	"github.com/datatug/datatug-core/pkg/models"
 )
 
 func loadEnvServers(dirPath string, env *models.Environment) error {

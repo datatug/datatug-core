@@ -3,10 +3,11 @@ package filestore
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/datatug/datatug-core/pkg/parallel"
 	"log"
 	"os"
 	"path"
+
+	"github.com/datatug/datatug-core/pkg/parallel"
 )
 
 //// fileSystemSaver saves or updates DataTug project

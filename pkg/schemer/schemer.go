@@ -3,10 +3,11 @@ package schemer
 import (
 	"database/sql"
 	"fmt"
-	"github.com/datatug/datatug-core/pkg/models"
-	"github.com/datatug/datatug-core/pkg/parallel"
 	"log"
 	"strings"
+
+	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/parallel"
 )
 
 // InformationSchema provides API to retrieve information about a database

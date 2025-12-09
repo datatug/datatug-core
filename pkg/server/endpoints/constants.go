@@ -1,8 +1,9 @@
 package endpoints
 
 import (
-	"github.com/datatug/datatug-core/pkg/dto"
 	"net/url"
+
+	"github.com/datatug/datatug-core/pkg/dto"
 )
 
 const (

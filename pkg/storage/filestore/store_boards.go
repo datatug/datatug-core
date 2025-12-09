@@ -3,10 +3,11 @@ package filestore
 import (
 	"context"
 	"fmt"
-	"github.com/datatug/datatug-core/pkg/models"
-	"github.com/datatug/datatug-core/pkg/storage"
 	"os"
 	"path"
+
+	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/storage"
 )
 
 var _ storage.BoardsStore = (*fsBoardsStore)(nil)

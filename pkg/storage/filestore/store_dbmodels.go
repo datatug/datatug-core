@@ -2,11 +2,12 @@ package filestore
 
 import (
 	"fmt"
+	"os"
+	"path"
+
 	"github.com/datatug/datatug-core/pkg/models"
 	"github.com/datatug/datatug-core/pkg/parallel"
 	"github.com/datatug/datatug-core/pkg/storage"
-	"os"
-	"path"
 )
 
 var _ storage.DbModelsStore = (*fsDbModelsStore)(nil)

@@ -1,8 +1,9 @@
 package comparator
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCompareDatabases(t *testing.T) {

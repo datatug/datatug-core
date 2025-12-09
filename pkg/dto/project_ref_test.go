@@ -1,8 +1,9 @@
 package dto
 
 import (
-	"github.com/datatug/datatug-core/pkg/test"
 	"testing"
+
+	"github.com/datatug/datatug-core/pkg/test"
 )
 
 func TestProjectRef_Validate(t *testing.T) {

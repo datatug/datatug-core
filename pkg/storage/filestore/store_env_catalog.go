@@ -2,9 +2,10 @@ package filestore
 
 import (
 	"fmt"
+	"path"
+
 	"github.com/datatug/datatug-core/pkg/models"
 	"github.com/datatug/datatug-core/pkg/storage"
-	"path"
 )
 
 var _ storage.EnvDbCatalogStore = (*fsEnvCatalogStore)(nil)

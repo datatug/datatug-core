@@ -2,9 +2,10 @@ package comparator
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/datatug/datatug-core/pkg/models"
 	"github.com/datatug/datatug-core/pkg/parallel"
-	"log"
 )
 
 // DatabasesToCompare defines databases to compare

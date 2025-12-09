@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/datatug/datatug-core/pkg/models"
-	"github.com/datatug/datatug-core/pkg/parallel"
 	"log"
 	"sort"
 	"time"
+
+	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/parallel"
 )
 
 func (s scanner) getTableProps(c context.Context, db *sql.DB, catalog string, table *models.Table) error {

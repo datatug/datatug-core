@@ -3,9 +3,10 @@ package filestore
 import (
 	"context"
 	"fmt"
+	"path"
+
 	"github.com/datatug/datatug-core/pkg/models"
 	"github.com/strongo/validation"
-	"path"
 )
 
 func (store fsEntitiesStore) saveEntities(ctx context.Context, entities models.Entities) (err error) {

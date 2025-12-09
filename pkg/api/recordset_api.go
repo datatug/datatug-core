@@ -3,11 +3,12 @@ package api
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/datatug/datatug-core/pkg/dto"
 	"github.com/datatug/datatug-core/pkg/models"
 	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/strongo/validation"
-	"strings"
 )
 
 // GetRecordsetsSummary returns board by ID

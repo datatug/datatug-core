@@ -2,10 +2,11 @@ package models
 
 import (
 	"fmt"
-	"github.com/strongo/validation"
 	"log"
 	"strconv"
 	"time"
+
+	"github.com/strongo/validation"
 )
 
 // DatatugProject holds info about project

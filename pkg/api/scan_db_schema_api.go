@@ -4,6 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
+	"strings"
+	"time"
+
 	"github.com/datatug/datatug-core/pkg/dbconnection"
 	"github.com/datatug/datatug-core/pkg/models"
 	"github.com/datatug/datatug-core/pkg/parallel"
@@ -13,9 +17,6 @@ import (
 	"github.com/strongo/random"
 	"github.com/strongo/slice"
 	"github.com/strongo/validation"
-	"log"
-	"strings"
-	"time"
 )
 
 // ProjectLoader defines an interface to load project info

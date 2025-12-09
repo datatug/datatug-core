@@ -2,10 +2,11 @@ package models2md
 
 import (
 	"fmt"
-	"github.com/datatug/datatug-core/pkg/models"
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/datatug/datatug-core/pkg/models"
 )
 
 var reUnquoted = regexp.MustCompile(`\w+`)
