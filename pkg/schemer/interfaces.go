@@ -40,7 +40,7 @@ func NewSchemaKey(catalog, schema string) *dal.Key {
 	return dal.NewKeyWithParentAndID(catalogKey, SchemasCollection, schema)
 }
 
-// CollectionsProvider provides tables
+// CollectionsProvider provides Tables
 type CollectionsProvider interface {
 	// GetCollections returns root collections if parentKey is nil or sub-collection if parenKey is provided
 	GetCollections(c context.Context /*db *sql.DB,*/, parentKey *dal.Key) (CollectionsReader, error)

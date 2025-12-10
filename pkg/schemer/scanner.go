@@ -24,9 +24,9 @@ func (s scanner) ScanCatalog(c context.Context, name string) (dbCatalog *models.
 	dbCatalog = new(models.DbCatalog)
 	dbCatalog.ID = name
 	if err = s.scanTables(c, dbCatalog); err != nil {
-		return dbCatalog, fmt.Errorf("failed to get tables & views: %w", err)
+		return dbCatalog, fmt.Errorf("failed to get Tables & views: %w", err)
 	}
-	log.Println("Scanner completed tables scan.")
+	log.Println("Scanner completed Tables scan.")
 	return
 }
 
@@ -41,19 +41,19 @@ func (s scanner) scanTables(c context.Context, catalog *models.DbCatalog) error 
 	if s.schemaProvider.IsBulkProvider() {
 		workers = append(workers,
 			func() error {
-				if err = s.scanColumnsInBulk(c, catalog.ID, SortedTables{tables: tables}); err != nil {
+				if err = s.scanColumnsInBulk(c, catalog.ID, SortedTables{Tables: tables}); err != nil {
 					return fmt.Errorf("failed to retrieve columns metadata: %w", err)
 				}
 				return nil
 			},
 			func() error {
-				if err = s.scanConstraintsInBulk(c, catalog.ID, SortedTables{tables: tables}); err != nil {
+				if err = s.scanConstraintsInBulk(c, catalog.ID, SortedTables{Tables: tables}); err != nil {
 					return fmt.Errorf("failed to retrieve constraints metadata: %w", err)
 				}
 				return nil
 			},
 			func() error {
-				if err = s.scanIndexesInBulk(c, catalog.ID, SortedTables{tables: tables}); err != nil {
+				if err = s.scanIndexesInBulk(c, catalog.ID, SortedTables{Tables: tables}); err != nil {
 					return fmt.Errorf("failed to retrieve indexes metadata: %w", err)
 				}
 				return nil

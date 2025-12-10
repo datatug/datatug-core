@@ -7,7 +7,7 @@ import (
 )
 
 type SortedTables struct {
-	tables []*models.CollectionInfo
+	Tables []*models.CollectionInfo
 	i      int
 }
 
@@ -17,8 +17,8 @@ func (sorted *SortedTables) Reset() {
 
 // SequentialFind will work if calls to it are issued in lexical order
 func (sorted *SortedTables) SequentialFind(catalog, schema, name string) *models.CollectionInfo {
-	for ; sorted.i < len(sorted.tables); sorted.i++ {
-		t := sorted.tables[sorted.i]
+	for ; sorted.i < len(sorted.Tables); sorted.i++ {
+		t := sorted.Tables[sorted.i]
 		if t.Name == name && t.Schema == schema && t.Catalog == catalog {
 			return t
 		}

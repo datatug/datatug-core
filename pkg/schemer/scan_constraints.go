@@ -30,7 +30,7 @@ func (s scanner) scanConstraintsInBulk(c context.Context, catalog string, tables
 			return fmt.Errorf("unknown table referenced by constraint [%v]: %v.%v.%v",
 				constraint.Name, catalog, constraint.SchemaName, constraint.TableName)
 		}
-		if err = processConstraint(catalog, table, constraint, tablesFinder.tables); err != nil {
+		if err = processConstraint(catalog, table, constraint, tablesFinder.Tables); err != nil {
 			return fmt.Errorf("failed to process contraint record: %w", err)
 		}
 	}
