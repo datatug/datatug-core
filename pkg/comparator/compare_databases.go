@@ -4,46 +4,46 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/parallel"
 )
 
 // DatabasesToCompare defines databases to compare
 type DatabasesToCompare struct {
-	DbModel      models.DbModel
+	DbModel      datatug.DbModel
 	Environments []EnvToCompare
 }
 
 // EnvToCompare defines env to compare
 type EnvToCompare struct {
 	ID        string
-	Databases models.DbCatalogs
+	Databases datatug.DbCatalogs
 }
 
 type schemaToCompare struct { // should it be rather called `schemaToCompare`?
 	envID       string
 	dbID        string
 	schemaID    string // schema ID
-	schemaModel *models.SchemaModel
-	dbSchemas   []*models.DbSchema
+	schemaModel *datatug.SchemaModel
+	dbSchemas   []*datatug.DbSchema
 }
 
 type tableToCompare struct {
 	envID      string
 	dbID       string
 	tableName  string
-	tableModel *models.TableModel
-	dbTables   []*models.CollectionInfo
+	tableModel *datatug.TableModel
+	dbTables   []*datatug.CollectionInfo
 }
 
 // CompareDatabases compares databases
 //
 //goland:noinspection GoUnusedExportedFunction
-func CompareDatabases(dbsToCompare DatabasesToCompare) (dbDifferences models.DatabaseDifferences, err error) {
+func CompareDatabases(dbsToCompare DatabasesToCompare) (dbDifferences datatug.DatabaseDifferences, err error) {
 	return dbDifferences, compareSchemas(dbsToCompare, &dbDifferences)
 }
 
-func compareSchemas(dbs DatabasesToCompare, dbDifferences *models.DatabaseDifferences) (err error) {
+func compareSchemas(dbs DatabasesToCompare, dbDifferences *datatug.DatabaseDifferences) (err error) {
 	var targets []*schemaToCompare
 
 	for _, env := range dbs.Environments {
@@ -82,15 +82,15 @@ func compareSchemas(dbs DatabasesToCompare, dbDifferences *models.DatabaseDiffer
 	return parallel.Run(workers...)
 }
 
-func compareSchema(target schemaToCompare) (schemaDiff models.SchemaDiff, err error) {
+func compareSchema(target schemaToCompare) (schemaDiff datatug.SchemaDiff, err error) {
 	err = parallel.Run( // TODO(performance): measure if it make sense to run in parallel on typical payload
 		func() (err error) { // compare tables
 			schemaDiff.TablesDiff, err = compareTables(
 				target,
-				func(schemaModel *models.SchemaModel) models.TableModels {
+				func(schemaModel *datatug.SchemaModel) datatug.TableModels {
 					return schemaModel.Tables
 				},
-				func(schema *models.DbSchema) models.Tables {
+				func(schema *datatug.DbSchema) datatug.Tables {
 					return schema.Tables
 				},
 			)
@@ -99,10 +99,10 @@ func compareSchema(target schemaToCompare) (schemaDiff models.SchemaDiff, err er
 		func() (err error) { // compare views
 			schemaDiff.ViewsDiff, err = compareTables(
 				target,
-				func(schemaModel *models.SchemaModel) models.TableModels {
+				func(schemaModel *datatug.SchemaModel) datatug.TableModels {
 					return schemaModel.Views
 				},
-				func(schema *models.DbSchema) models.Tables {
+				func(schema *datatug.DbSchema) datatug.Tables {
 					return schema.Views
 				},
 			)
@@ -112,7 +112,7 @@ func compareSchema(target schemaToCompare) (schemaDiff models.SchemaDiff, err er
 	return
 }
 
-func compareTables(target schemaToCompare, getTableModels func(schemaModel *models.SchemaModel) models.TableModels, getDbTables func(db *models.DbSchema) models.Tables) (tablesDiff models.TablesDiff, err error) {
+func compareTables(target schemaToCompare, getTableModels func(schemaModel *datatug.SchemaModel) datatug.TableModels, getDbTables func(db *datatug.DbSchema) datatug.Tables) (tablesDiff datatug.TablesDiff, err error) {
 	var tablesToCompare []tableToCompare
 	tableModels := getTableModels(target.schemaModel)
 
@@ -132,7 +132,7 @@ func compareTables(target schemaToCompare, getTableModels func(schemaModel *mode
 			})
 		}
 	}
-	tablesDiff = make(models.TablesDiff, len(tablesToCompare))
+	tablesDiff = make(datatug.TablesDiff, len(tablesToCompare))
 	for i, t2c := range tablesToCompare {
 		if tablesDiff[i], err = compareTable(target.schemaID, t2c); err != nil {
 			return
@@ -141,7 +141,7 @@ func compareTables(target schemaToCompare, getTableModels func(schemaModel *mode
 	return
 }
 
-func compareTable(schemaID string, toCompare tableToCompare) (tablesDiff models.TableDiff, err error) {
+func compareTable(schemaID string, toCompare tableToCompare) (tablesDiff datatug.TableDiff, err error) {
 	log.Printf("Comparing %v: %v.%v.%v.", toCompare.envID, toCompare.dbID, schemaID, toCompare.tableName)
 	return
 }

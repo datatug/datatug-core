@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
 )
 
@@ -27,14 +27,14 @@ func newFsQueriesStore(fsProjectStore fsProjectStore) fsQueriesStore {
 	return fsQueriesStore{fsProjectStore: fsProjectStore, queriesPath: path.Join(fsProjectStore.projectPath, DatatugFolder, QueriesFolder)}
 }
 
-func (store fsQueriesStore) LoadQueries(ctx context.Context, folderPath string) (folder *models.QueryFolder, err error) {
+func (store fsQueriesStore) LoadQueries(ctx context.Context, folderPath string) (folder *datatug.QueryFolder, err error) {
 	return store.loadQueriesDir(ctx, path.Join(store.queriesPath, folderPath))
 }
 
-func (store fsQueriesStore) loadQueriesDir(ctx context.Context, dirPath string) (folder *models.QueryFolder, err error) {
+func (store fsQueriesStore) loadQueriesDir(ctx context.Context, dirPath string) (folder *datatug.QueryFolder, err error) {
 	err = loadDir(nil, dirPath, processDirs|processFiles, func(files []os.FileInfo) {
-		folder = new(models.QueryFolder)
-		folder.Items = make(models.QueryDefs, 0, len(files))
+		folder = new(datatug.QueryFolder)
+		folder.Items = make(datatug.QueryDefs, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 		fileName := f.Name()
 		if f.IsDir() {
@@ -53,7 +53,7 @@ func (store fsQueriesStore) loadQueriesDir(ctx context.Context, dirPath string) 
 		if !strings.HasSuffix(strings.ToLower(fileName), ".json") {
 			return nil
 		}
-		var query models.QueryDef
+		var query datatug.QueryDef
 		query.ID = fileName[:len(fileName)-len(".json")]
 		if err = store.loadQuery(dirPath, &query); err != nil {
 			return err
@@ -76,8 +76,8 @@ func (store fsQueriesStore) DeleteQueryFolder(_ context.Context, folderPath stri
 	return nil
 }
 
-func (store fsQueriesStore) GetQuery(_ context.Context, id string) (query *models.QueryDefWithFolderPath, err error) {
-	query = new(models.QueryDefWithFolderPath)
+func (store fsQueriesStore) GetQuery(_ context.Context, id string) (query *datatug.QueryDefWithFolderPath, err error) {
+	query = new(datatug.QueryDefWithFolderPath)
 	query.ID = id
 	if query.FolderPath, err = store.getQueryFolderPath(id); err != nil {
 		return
@@ -87,7 +87,7 @@ func (store fsQueriesStore) GetQuery(_ context.Context, id string) (query *model
 	return
 }
 
-func (store fsQueriesStore) loadQuery(dirPath string, query *models.QueryDef) error {
+func (store fsQueriesStore) loadQuery(dirPath string, query *datatug.QueryDef) error {
 	if strings.HasSuffix(query.ID, ".json") {
 		return fmt.Errorf("queryID can't have .json suffix")
 	}
@@ -124,8 +124,8 @@ func (store fsQueriesStore) getQueryFolderPath(queryID string) (folderPath strin
 	panic("not implemented")
 }
 
-func (store fsQueriesStore) UpdateQuery(_ context.Context, query models.QueryDef) (q *models.QueryDefWithFolderPath, err error) {
-	q = new(models.QueryDefWithFolderPath)
+func (store fsQueriesStore) UpdateQuery(_ context.Context, query datatug.QueryDef) (q *datatug.QueryDefWithFolderPath, err error) {
+	q = new(datatug.QueryDefWithFolderPath)
 	q.QueryDef = query
 	if q.FolderPath, err = store.getQueryFolderPath(query.ID); err != nil {
 		return

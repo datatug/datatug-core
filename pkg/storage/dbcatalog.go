@@ -3,7 +3,7 @@ package storage
 import (
 	"context"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
 type DbCatalogsStore interface {
@@ -13,5 +13,5 @@ type DbCatalogsStore interface {
 
 type DbCatalogStore interface {
 	Catalogs() DbCatalogsStore
-	LoadDbCatalogSummary(ctx context.Context) (catalog *models.DbCatalogSummary, err error)
+	LoadDbCatalogSummary(ctx context.Context) (catalog *datatug.DbCatalogSummary, err error)
 }

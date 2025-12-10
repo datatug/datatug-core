@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/strongo/validation"
 )
 
@@ -54,11 +54,11 @@ func (store fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, nam
 	return
 }
 
-func (store fsQueriesStore) CreateQuery(_ context.Context, query models.QueryDefWithFolderPath) (*models.QueryDefWithFolderPath, error) {
+func (store fsQueriesStore) CreateQuery(_ context.Context, query datatug.QueryDefWithFolderPath) (*datatug.QueryDefWithFolderPath, error) {
 	return &query, store.saveQuery(query.FolderPath, query.QueryDef, true)
 }
 
-func (store fsQueriesStore) saveQuery(folderPath string, query models.QueryDef, isNew bool) (err error) {
+func (store fsQueriesStore) saveQuery(folderPath string, query datatug.QueryDef, isNew bool) (err error) {
 	if err := query.Validate(); err != nil {
 		return fmt.Errorf("invalid query (isNew=%v): %w", isNew, err)
 	}

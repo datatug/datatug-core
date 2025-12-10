@@ -1,6 +1,6 @@
 package storage
 
-import "github.com/datatug/datatug-core/pkg/models"
+import "github.com/datatug/datatug-core/pkg/datatug"
 
 type EnvironmentsStore interface {
 	ProjectStoreRef
@@ -18,10 +18,10 @@ type EnvironmentStore interface {
 	//
 
 	// LoadEnvironmentSummary return summary metadata about environment
-	LoadEnvironmentSummary() (*models.EnvironmentSummary, error)
+	LoadEnvironmentSummary() (*datatug.EnvironmentSummary, error)
 
 	DeleteEnvironment() (err error)
-	SaveEnvironment(environment *models.Environment) (err error)
+	SaveEnvironment(environment *datatug.Environment) (err error)
 
 	// LoadEnvironmentDbSummary returns summary of environment
 	// LoadEnvironmentDbSummary(environmentID, databaseID string) (*models.DbCatalogSummary, error)

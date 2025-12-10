@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/strongo/validation"
 )
 
-func (store fsEntitiesStore) saveEntities(ctx context.Context, entities models.Entities) (err error) {
+func (store fsEntitiesStore) saveEntities(ctx context.Context, entities datatug.Entities) (err error) {
 	return saveItems(EntitiesFolder, len(entities), func(i int) func() error {
 		return func() error {
 			return store.SaveEntity(ctx, entities[i])
@@ -18,14 +18,14 @@ func (store fsEntitiesStore) saveEntities(ctx context.Context, entities models.E
 }
 
 // SaveEntity saves entity
-func (store fsEntitiesStore) SaveEntity(ctx context.Context, entity *models.Entity) (err error) {
+func (store fsEntitiesStore) SaveEntity(ctx context.Context, entity *datatug.Entity) (err error) {
 	if entity == nil {
 		return validation.NewErrRequestIsMissingRequiredField("entity")
 	}
 	if entity.ID == "" {
 		return validation.NewErrBadRequestFieldValue("entity", validation.NewErrRecordIsMissingRequiredField("ID").Error())
 	}
-	updateProjFileWithEntity := func(projFile *models.ProjectFile) error {
+	updateProjFileWithEntity := func(projFile *datatug.ProjectFile) error {
 		for _, item := range projFile.Entities {
 			if item.ID == entity.ID {
 				if item.Title == entity.Title {
@@ -35,8 +35,8 @@ func (store fsEntitiesStore) SaveEntity(ctx context.Context, entity *models.Enti
 				break
 			}
 		}
-		projFile.Entities = append(projFile.Entities, &models.ProjEntityBrief{
-			ProjItemBrief: models.ProjItemBrief{ID: entity.ID, Title: entity.Title},
+		projFile.Entities = append(projFile.Entities, &datatug.ProjEntityBrief{
+			ProjItemBrief: datatug.ProjItemBrief{ID: entity.ID, Title: entity.Title},
 		})
 		return nil
 	}

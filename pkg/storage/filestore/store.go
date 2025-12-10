@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/dto"
-	"github.com/datatug/datatug-core/pkg/models"
 	"github.com/datatug/datatug-core/pkg/storage"
 )
 
@@ -24,7 +24,7 @@ type FsStore struct {
 	//storeSaver       // TODO: To be deleted
 }
 
-func (store FsStore) CreateProject(_ context.Context, _ dto.CreateProjectRequest) (*models.ProjectSummary, error) {
+func (store FsStore) CreateProject(_ context.Context, _ dto.CreateProjectRequest) (*datatug.ProjectSummary, error) {
 	panic("not implemented")
 }
 
@@ -38,11 +38,11 @@ func (store FsStore) DeleteProject(_ context.Context, id string) error {
 }
 
 // GetProjects returns list of projects
-func (store FsStore) GetProjects(context.Context) (projectBriefs []models.ProjectBrief, err error) {
-	projectBriefs = make([]models.ProjectBrief, len(store.pathByID))
+func (store FsStore) GetProjects(context.Context) (projectBriefs []datatug.ProjectBrief, err error) {
+	projectBriefs = make([]datatug.ProjectBrief, len(store.pathByID))
 	var i int
 	for id, path := range store.pathByID {
-		projectBriefs[i] = models.ProjectBrief{}
+		projectBriefs[i] = datatug.ProjectBrief{}
 		projectBriefs[i].ID = id
 		projFile, err := LoadProjectFile(path)
 		if err != nil {

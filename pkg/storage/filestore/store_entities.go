@@ -7,7 +7,7 @@ import (
 	"path"
 	"sync"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
 )
 
@@ -33,18 +33,18 @@ func newFsEntitiesStore(fsProjectStore fsProjectStore) fsEntitiesStore {
 	}
 }
 
-func loadEntities(_ context.Context, projPath string) (entities models.Entities, err error) {
+func loadEntities(_ context.Context, projPath string) (entities datatug.Entities, err error) {
 	entitiesDirPath := path.Join(projPath, DatatugFolder, "entities")
 	if err = loadDir(nil, entitiesDirPath, processDirs,
 		func(files []os.FileInfo) {
-			entities = make(models.Entities, 0, len(files))
+			entities = make(datatug.Entities, 0, len(files))
 		},
 		func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 			if !f.IsDir() {
 				return nil
 			}
 			entityID := f.Name()
-			entity := new(models.Entity)
+			entity := new(datatug.Entity)
 			entity.ID = entityID
 			entityFileName := jsonFileName(entity.ID, entityFileSuffix)
 			entityFilePath := path.Join(entitiesDirPath, entity.ID, entityFileName)
@@ -68,6 +68,6 @@ func loadEntities(_ context.Context, projPath string) (entities models.Entities,
 	return
 }
 
-func (store fsEntitiesStore) LoadEntities(ctx context.Context) (entities models.Entities, err error) {
+func (store fsEntitiesStore) LoadEntities(ctx context.Context) (entities datatug.Entities, err error) {
 	return loadEntities(ctx, store.projectPath)
 }

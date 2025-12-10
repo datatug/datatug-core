@@ -1,14 +1,14 @@
 package filestore
 
 import (
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
-func (store fsProjectStore) loadProjectFile() (v models.ProjectFile, err error) {
+func (store fsProjectStore) loadProjectFile() (v datatug.ProjectFile, err error) {
 	return LoadProjectFile(store.projectPath)
 }
 
-func (store fsProjectStore) updateProjectFileWithBoard(_ models.Board) (err error) {
+func (store fsProjectStore) updateProjectFileWithBoard(_ datatug.Board) (err error) {
 	//	projFile, err := store.loadProjectFile()
 	//	if err != nil {
 	//		return err
@@ -32,7 +32,7 @@ func (store fsProjectStore) updateProjectFileWithBoard(_ models.Board) (err erro
 	return err
 }
 
-func (store fsProjectStore) updateProjectFile(updater func(projFile *models.ProjectFile) error) error {
+func (store fsProjectStore) updateProjectFile(updater func(projFile *datatug.ProjectFile) error) error {
 	store.projFileMutex.Lock()
 	defer func() {
 		store.projFileMutex.Unlock()

@@ -7,12 +7,12 @@ import (
 	"os"
 	"path"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/parallel"
 )
 
 // Save saves project
-func (store fsProjectStore) SaveProject(ctx context.Context, project models.DatatugProject) (err error) {
+func (store fsProjectStore) SaveProject(ctx context.Context, project datatug.Project) (err error) {
 	log.Println("Validating project for saving to: ", store.projectPath)
 	if err = project.Validate(); err != nil {
 		return fmt.Errorf("project validation failed: %w", err)
@@ -90,7 +90,7 @@ func (store fsProjectStore) SaveProject(ctx context.Context, project models.Data
 	return nil
 }
 
-func (store fsProjectStore) putProjectFile(projFile models.ProjectFile) error {
+func (store fsProjectStore) putProjectFile(projFile datatug.ProjectFile) error {
 	if err := projFile.Validate(); err != nil {
 		return fmt.Errorf("invalid project file: %w", err)
 	}
@@ -105,14 +105,14 @@ func (store fsProjectStore) putProjectFile(projFile models.ProjectFile) error {
 //	return fmt.Sprintf("%v-%v.json", prefix, id)
 //}
 
-func (store fsProjectStore) saveProjectFile(project models.DatatugProject) error {
+func (store fsProjectStore) saveProjectFile(project datatug.Project) error {
 	//var existingProject models.ProjectFile
 	//if err := readJSONFile(projDirPath.Join(store.projectPath, DatatugFolder, ProjectSummaryFileName), false, &existingProject); err != nil {
 	//	return err
 	//}
-	projFile := models.ProjectFile{
-		ProjectItem: models.ProjectItem{
-			ProjItemBrief: models.ProjItemBrief{
+	projFile := datatug.ProjectFile{
+		ProjectItem: datatug.ProjectItem{
+			ProjItemBrief: datatug.ProjItemBrief{
 				ID: project.ID,
 			},
 			Access: project.Access,
@@ -137,7 +137,7 @@ func (store fsProjectStore) saveProjectFile(project models.DatatugProject) error
 	//	projFile.ID = existingProject.ID
 	//}
 	for _, env := range project.Environments {
-		envBrief := models.ProjEnvBrief{
+		envBrief := datatug.ProjEnvBrief{
 			ProjectItem: env.ProjectItem,
 			//NumberOf: models.ProjEnvNumbers{
 			//	DbServers: len(env.DbServers),
@@ -149,9 +149,9 @@ func (store fsProjectStore) saveProjectFile(project models.DatatugProject) error
 		projFile.Environments = append(projFile.Environments, &envBrief)
 	}
 	for _, dbModel := range project.DbModels {
-		brief := models.ProjDbModelBrief{
+		brief := datatug.ProjDbModelBrief{
 			ProjectItem: dbModel.ProjectItem,
-			NumberOf: models.ProjDbModelNumbers{
+			NumberOf: datatug.ProjDbModelNumbers{
 				Schemas: len(dbModel.Schemas),
 			},
 		}
@@ -176,7 +176,7 @@ func (store fsProjectStore) saveProjectFile(project models.DatatugProject) error
 //
 //}
 //
-//func (s fileSystemSaver) getDatabasesReadme(project DatatugProject) (content bytes.Buffer, err error) {
+//func (s fileSystemSaver) getDatabasesReadme(project Project) (content bytes.Buffer, err error) {
 //
 //	_, err = w.WriteString("# DatabaseDiffs\n\n")
 //	l, err := f.WriteString("Hello World")
@@ -206,6 +206,6 @@ type saveDbServerObjContext struct {
 	dirPath    string
 	catalog    string
 	plural     string
-	dbServer   models.ProjDbServer
-	repository *models.ProjectRepository
+	dbServer   datatug.ProjDbServer
+	repository *datatug.ProjectRepository
 }

@@ -7,7 +7,7 @@ import (
 	"path"
 	"sync"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/parallel"
 	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/strongo/validation"
@@ -24,8 +24,8 @@ func NewSingleProjectLoader(path string) (loader storage.ProjectStore, projectID
 }
 
 // LoadProject loads project
-func (store fsProjectStore) LoadProject(ctx context.Context) (project *models.DatatugProject, err error) {
-	project = new(models.DatatugProject)
+func (store fsProjectStore) LoadProject(ctx context.Context) (project *datatug.Project, err error) {
+	project = new(datatug.Project)
 	if err = loadProjectFile(store.projectPath, project); err != nil {
 		return nil, err
 	}
@@ -62,10 +62,10 @@ func (store fsProjectStore) LoadProject(ctx context.Context) (project *models.Da
 	return project, err
 }
 
-func loadDbDrivers(_ context.Context, projPath string) (dbServers models.ProjDbServers, err error) {
+func loadDbDrivers(_ context.Context, projPath string) (dbServers datatug.ProjDbServers, err error) {
 	dbServersPath := path.Join(projPath, DatatugFolder, ServersFolder, DbFolder)
 	if err = loadDir(nil, dbServersPath, processDirs, func(files []os.FileInfo) {
-		dbServers = make(models.ProjDbServers, 0, len(files))
+		dbServers = make(datatug.ProjDbServers, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 		dbDriver, err := loadDbDriver(dbServersPath, f.Name())
 		if err != nil {
@@ -81,12 +81,12 @@ func loadDbDrivers(_ context.Context, projPath string) (dbServers models.ProjDbS
 	return dbServers, nil
 }
 
-func loadDbDriver(dbServersPath, driverName string) (dbServers models.ProjDbServers, err error) {
+func loadDbDriver(dbServersPath, driverName string) (dbServers datatug.ProjDbServers, err error) {
 	driverDirPath := path.Join(dbServersPath, driverName)
 	if err = loadDir(nil, driverDirPath, processDirs, func(files []os.FileInfo) {
-		dbServers = make(models.ProjDbServers, 0, len(files))
+		dbServers = make(datatug.ProjDbServers, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
-		var dbServer *models.ProjDbServer
+		var dbServer *datatug.ProjDbServer
 		dbServer, err = loadDbServer(driverDirPath, driverName, f.Name())
 		if err != nil {
 			return
@@ -101,9 +101,9 @@ func loadDbDriver(dbServersPath, driverName string) (dbServers models.ProjDbServ
 	return
 }
 
-func loadDbServer(driverDirPath, driver, serverName string) (dbServer *models.ProjDbServer, err error) {
-	dbServer = new(models.ProjDbServer)
-	if dbServer.Server, err = models.NewDbServer(driver, serverName, "@"); err != nil {
+func loadDbServer(driverDirPath, driver, serverName string) (dbServer *datatug.ProjDbServer, err error) {
+	dbServer = new(datatug.ProjDbServer)
+	if dbServer.Server, err = datatug.NewDbServer(driver, serverName, "@"); err != nil {
 		return
 	}
 	dbServerDirPath := path.Join(driverDirPath, serverName)
@@ -134,7 +134,7 @@ func loadDbServer(driverDirPath, driver, serverName string) (dbServer *models.Pr
 }
 
 // LoadProjectSummary loads project summary
-func (store fsProjectStore) LoadProjectSummary(context.Context) (projectSummary models.ProjectSummary, err error) {
+func (store fsProjectStore) LoadProjectSummary(context.Context) (projectSummary datatug.ProjectSummary, err error) {
 	projectSummary.ID = store.projectID
 	if projectSummary.ProjectFile, err = LoadProjectFile(store.projectPath); err != nil {
 		return projectSummary, fmt.Errorf("failed to load project file: %w", err)
@@ -143,10 +143,10 @@ func (store fsProjectStore) LoadProjectSummary(context.Context) (projectSummary 
 }
 
 // LoadProjectFile loads project file
-func LoadProjectFile(projPath string) (v models.ProjectFile, err error) {
+func LoadProjectFile(projPath string) (v datatug.ProjectFile, err error) {
 	fileName := path.Join(projPath, DatatugFolder, ProjectSummaryFileName)
 	if err = readJSONFile(fileName, true, &v); os.IsNotExist(err) {
-		err = fmt.Errorf("%w: %v", models.ErrProjectDoesNotExist, err)
+		err = fmt.Errorf("%w: %v", datatug.ErrProjectDoesNotExist, err)
 	}
 	return
 }

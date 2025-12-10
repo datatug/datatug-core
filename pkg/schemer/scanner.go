@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/parallel"
 )
 
@@ -20,8 +20,8 @@ type scanner struct {
 	schemaProvider SchemaProvider
 }
 
-func (s scanner) ScanCatalog(c context.Context, name string) (dbCatalog *models.DbCatalog, err error) {
-	dbCatalog = new(models.DbCatalog)
+func (s scanner) ScanCatalog(c context.Context, name string) (dbCatalog *datatug.DbCatalog, err error) {
+	dbCatalog = new(datatug.DbCatalog)
 	dbCatalog.ID = name
 	if err = s.scanTables(c, dbCatalog); err != nil {
 		return dbCatalog, fmt.Errorf("failed to get Tables & views: %w", err)
@@ -30,8 +30,8 @@ func (s scanner) ScanCatalog(c context.Context, name string) (dbCatalog *models.
 	return
 }
 
-func (s scanner) scanTables(c context.Context, catalog *models.DbCatalog) error {
-	var tables []*models.CollectionInfo
+func (s scanner) scanTables(c context.Context, catalog *datatug.DbCatalog) error {
+	var tables []*datatug.CollectionInfo
 	tablesReader, err := s.schemaProvider.GetCollections(c, NewSchemaKey(catalog.ID, ""))
 	if err != nil {
 		return err
@@ -74,7 +74,7 @@ func (s scanner) scanTables(c context.Context, catalog *models.DbCatalog) error 
 		tables = append(tables, t)
 		schema := catalog.Schemas.GetByID(t.Schema)
 		if schema == nil {
-			schema = new(models.DbSchema)
+			schema = new(datatug.DbSchema)
 			schema.ID = t.Schema
 			catalog.Schemas = append(catalog.Schemas, schema)
 		}

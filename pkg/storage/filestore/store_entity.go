@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
 )
 
@@ -77,9 +77,9 @@ func (store fsEntityStore) DeleteEntity(_ context.Context) (err error) {
 	//return nil
 }
 
-func (store fsEntityStore) LoadEntity(_ context.Context) (*models.Entity, error) {
+func (store fsEntityStore) LoadEntity(_ context.Context) (*datatug.Entity, error) {
 	fileName := path.Join(store.entitiesDirPath, store.entityID, jsonFileName(store.entityID, entityFileSuffix))
-	var entity models.Entity
+	var entity datatug.Entity
 	if err := readJSONFile(fileName, true, &entity); err != nil {
 		err = fmt.Errorf("faile to load entity [%v] from project [%v]: %w", store.entityID, store.projectID, err)
 		return nil, err

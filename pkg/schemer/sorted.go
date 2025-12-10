@@ -3,11 +3,11 @@ package schemer
 import (
 	"strings"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
 type SortedTables struct {
-	Tables []*models.CollectionInfo
+	Tables []*datatug.CollectionInfo
 	i      int
 }
 
@@ -16,7 +16,7 @@ func (sorted *SortedTables) Reset() {
 }
 
 // SequentialFind will work if calls to it are issued in lexical order
-func (sorted *SortedTables) SequentialFind(catalog, schema, name string) *models.CollectionInfo {
+func (sorted *SortedTables) SequentialFind(catalog, schema, name string) *datatug.CollectionInfo {
 	for ; sorted.i < len(sorted.Tables); sorted.i++ {
 		t := sorted.Tables[sorted.i]
 		if t.Name == name && t.Schema == schema && t.Catalog == catalog {
@@ -47,7 +47,7 @@ func (sorted *SortedIndexes) SequentialFind(schema, table, name string) *Index {
 }
 
 // FullFind can be called in any order and always do a full table scan
-func FindTable(tables models.Tables, catalog, schema, name string) *models.CollectionInfo {
+func FindTable(tables datatug.Tables, catalog, schema, name string) *datatug.CollectionInfo {
 	normalize := strings.ToLower
 	catalog = normalize(catalog)
 	schema = normalize(schema)

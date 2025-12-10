@@ -3,8 +3,8 @@ package filestore
 import (
 	"sync"
 
-	"github.com/datatug/datatug-core/pkg/models"
-	"github.com/datatug/datatug-core/pkg/models2md"
+	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/datatug2md"
 	"github.com/datatug/datatug-core/pkg/storage"
 )
 
@@ -14,7 +14,7 @@ type fsProjectStore struct {
 	projectID     string
 	projectPath   string
 	projFileMutex *sync.Mutex
-	readmeEncoder models.ReadmeEncoder
+	readmeEncoder datatug.ReadmeEncoder
 }
 
 type fsProjectStoreRef struct {
@@ -64,6 +64,6 @@ func newFsProjectStore(id string, projectPath string) fsProjectStore {
 	return fsProjectStore{
 		projectID:     id,
 		projectPath:   projectPath,
-		readmeEncoder: models2md.NewEncoder(),
+		readmeEncoder: datatug2md.NewEncoder(),
 	}
 }

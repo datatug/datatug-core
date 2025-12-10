@@ -3,14 +3,14 @@ package storage
 import (
 	"context"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
 // QueriesStore provides access to queries
 type QueriesStore interface {
 	ProjectStoreRef
-	CreateQuery(ctx context.Context, query models.QueryDefWithFolderPath) (*models.QueryDefWithFolderPath, error)
-	UpdateQuery(ctx context.Context, query models.QueryDef) (*models.QueryDefWithFolderPath, error)
-	GetQuery(ctx context.Context, id string) (query *models.QueryDefWithFolderPath, err error)
+	CreateQuery(ctx context.Context, query datatug.QueryDefWithFolderPath) (*datatug.QueryDefWithFolderPath, error)
+	UpdateQuery(ctx context.Context, query datatug.QueryDef) (*datatug.QueryDefWithFolderPath, error)
+	GetQuery(ctx context.Context, id string) (query *datatug.QueryDefWithFolderPath, err error)
 	DeleteQuery(ctx context.Context, id string) (err error)
 }

@@ -5,7 +5,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/parallel"
 	"github.com/datatug/datatug-core/pkg/storage"
 )
@@ -54,7 +54,7 @@ func (store fsDbModelStore) DbModels() storage.DbModelsStore {
 	return store.fsDbModelsStore
 }
 
-func (store fsDbModelsStore) saveDbModels(dbModels models.DbModels) (err error) {
+func (store fsDbModelsStore) saveDbModels(dbModels datatug.DbModels) (err error) {
 	return saveItems(DbModelsFolder, len(dbModels), func(i int) func() error {
 		return func() error {
 			dbModel := dbModels[i]
@@ -70,7 +70,7 @@ func (store fsDbModelsStore) saveDbModels(dbModels models.DbModels) (err error) 
 	})
 }
 
-func (store fsDbModelsStore) saveDbModel(dbModel *models.DbModel) (err error) {
+func (store fsDbModelsStore) saveDbModel(dbModel *datatug.DbModel) (err error) {
 	if err = dbModel.Validate(); err != nil {
 		return fmt.Errorf("db models is invalid: %w", err)
 	}
@@ -92,7 +92,7 @@ func (store fsDbModelsStore) saveDbModel(dbModel *models.DbModel) (err error) {
 	)
 }
 
-func (store fsDbModelsStore) saveSchemaModels(dirPath string, schemas []*models.SchemaModel) error {
+func (store fsDbModelsStore) saveSchemaModels(dirPath string, schemas []*datatug.SchemaModel) error {
 	return saveItems("schemaModel", len(schemas), func(i int) func() error {
 		return func() error {
 			schema := schemas[i]
@@ -105,8 +105,8 @@ func (store fsDbModelsStore) saveSchemaModels(dirPath string, schemas []*models.
 	})
 }
 
-func (store fsDbModelsStore) saveSchemaModel(schemaDirPath string, schema models.SchemaModel) error {
-	saveTables := func(plural string, tables []*models.TableModel) func() error {
+func (store fsDbModelsStore) saveSchemaModel(schemaDirPath string, schema datatug.SchemaModel) error {
+	saveTables := func(plural string, tables []*datatug.TableModel) func() error {
 		dirPath := path.Join(schemaDirPath, plural)
 		return func() error {
 			return saveItems(fmt.Sprintf("models of %v for schema [%v]", plural, schema.ID), len(tables), func(i int) func() error {
@@ -122,7 +122,7 @@ func (store fsDbModelsStore) saveSchemaModel(schemaDirPath string, schema models
 	)
 }
 
-func (store fsDbModelsStore) saveTableModel(dirPath string, table models.TableModel) error {
+func (store fsDbModelsStore) saveTableModel(dirPath string, table datatug.TableModel) error {
 	tableDirPath := path.Join(dirPath, table.Name)
 	if err := os.MkdirAll(tableDirPath, 0777); err != nil {
 		return err

@@ -7,11 +7,11 @@ import (
 	"sort"
 	"time"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/parallel"
 )
 
-func (s scanner) getTableProps(c context.Context, catalog string, table *models.CollectionInfo) error {
+func (s scanner) getTableProps(c context.Context, catalog string, table *datatug.CollectionInfo) error {
 	log.Printf("getTableProps() table=%v", table.Name)
 	err := parallel.Run(
 		func() (err error) {
@@ -33,18 +33,18 @@ func (s scanner) getTableProps(c context.Context, catalog string, table *models.
 	return nil
 }
 
-func (s scanner) scanTableCols(c context.Context, catalog string, table *models.CollectionInfo) error {
+func (s scanner) scanTableCols(c context.Context, catalog string, table *datatug.CollectionInfo) error {
 	log.Printf("scanning columns for table %v...", table.Name)
 	columnsReader, err := s.schemaProvider.GetColumns(c, catalog, table.Schema, table.Name)
 	if err != nil {
 		return err
 	}
 	deadline, isDeadlineSet := c.Deadline()
-	pkColumns := make(models.TableColumns, 0, 8)
+	pkColumns := make(datatug.TableColumns, 0, 8)
 	defer func() {
 		if len(pkColumns) > 0 {
 			sort.Sort(pkColumns.ByPrimaryKeyPosition())
-			table.PrimaryKey = &models.UniqueKey{
+			table.PrimaryKey = &datatug.UniqueKey{
 				Name: "PK_" + table.Name,
 			}
 			for _, c := range pkColumns {
@@ -70,7 +70,7 @@ func (s scanner) scanTableCols(c context.Context, catalog string, table *models.
 	}
 }
 
-func (s scanner) scanTableIndexes(c context.Context, catalog string, table *models.CollectionInfo) error {
+func (s scanner) scanTableIndexes(c context.Context, catalog string, table *datatug.CollectionInfo) error {
 	indexesReader, err := s.schemaProvider.GetIndexes(c, catalog, table.Schema, table.Name)
 	if err != nil {
 		return err
@@ -102,7 +102,7 @@ func (s scanner) scanTableIndexes(c context.Context, catalog string, table *mode
 	return nil
 }
 
-func (s scanner) scanIndexColumns(c context.Context, catalog string, table *models.CollectionInfo, index *models.Index) error {
+func (s scanner) scanIndexColumns(c context.Context, catalog string, table *datatug.CollectionInfo, index *datatug.Index) error {
 	indexColumnsReader, err := s.schemaProvider.GetIndexColumns(c, catalog, table.Schema, table.Name, index.Name)
 	if err != nil {
 		return err
@@ -124,7 +124,7 @@ func (s scanner) scanIndexColumns(c context.Context, catalog string, table *mode
 	return nil
 }
 
-func (s scanner) scanTableConstraints(c context.Context, catalog string, table *models.CollectionInfo, tables models.Tables) error {
+func (s scanner) scanTableConstraints(c context.Context, catalog string, table *datatug.CollectionInfo, tables datatug.Tables) error {
 	constraints, err := s.schemaProvider.GetConstraints(c, catalog, table.Schema, table.Name)
 	if err != nil {
 		return err

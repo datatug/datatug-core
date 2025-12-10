@@ -7,7 +7,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/parallel"
 	"github.com/datatug/datatug-core/pkg/storage"
 )
@@ -36,7 +36,7 @@ func (store fsEnvironmentStore) DeleteEnvironment() (err error) {
 	panic("implement me")
 }
 
-func (store fsEnvironmentStore) SaveEnvironment(environment *models.Environment) (err error) {
+func (store fsEnvironmentStore) SaveEnvironment(environment *datatug.Environment) (err error) {
 	panic("implement me")
 }
 
@@ -48,7 +48,7 @@ func newFsEnvironmentStore(id string, fsEnvironmentsStore fsEnvironmentsStore) f
 }
 
 // GetEnvironmentSummary loads environment summary
-func (store fsEnvironmentStore) LoadEnvironmentSummary() (*models.EnvironmentSummary, error) {
+func (store fsEnvironmentStore) LoadEnvironmentSummary() (*datatug.EnvironmentSummary, error) {
 	envSummary, err := loadEnvFile(store.envsDirPath, store.envID)
 	if err != nil {
 		err = fmt.Errorf("failed to load environment [%v] from project [%v]: %w", store.envID, store.projectID, err)
@@ -58,11 +58,11 @@ func (store fsEnvironmentStore) LoadEnvironmentSummary() (*models.EnvironmentSum
 }
 
 // GetEnvironmentDbSummary return DB summary for specific environment
-func (store fsEnvironmentStore) LoadEnvironmentDbSummary(databaseID string) (models.DbCatalogSummary, error) {
+func (store fsEnvironmentStore) LoadEnvironmentDbSummary(databaseID string) (datatug.DbCatalogSummary, error) {
 	panic(fmt.Sprintf("implement me: %v, %v, %v", store.projectID, store.envID, databaseID))
 }
 
-func (store fsEnvironmentStore) saveEnvironment(ctx context.Context, env models.Environment) (err error) {
+func (store fsEnvironmentStore) saveEnvironment(ctx context.Context, env datatug.Environment) (err error) {
 	dirPath := path.Join(store.projectPath, DatatugFolder, EnvironmentsFolder, env.ID)
 	log.Printf("Saving environment [%v]: %v", env.ID, dirPath)
 	if err = os.MkdirAll(dirPath, 0777); err != nil {
@@ -70,7 +70,7 @@ func (store fsEnvironmentStore) saveEnvironment(ctx context.Context, env models.
 	}
 	return parallel.Run(
 		func() error {
-			if err = saveJSONFile(dirPath, jsonFileName(env.ID, environmentFileSuffix), models.EnvironmentFile{ID: env.ID}); err != nil {
+			if err = saveJSONFile(dirPath, jsonFileName(env.ID, environmentFileSuffix), datatug.EnvironmentFile{ID: env.ID}); err != nil {
 				return fmt.Errorf("failed to write environment json to file: %w", err)
 			}
 			return nil

@@ -4,7 +4,7 @@ import (
 	"context"
 	"path"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
 )
 
@@ -30,7 +30,7 @@ func newFsEnvironmentsStore(fsProjectStore fsProjectStore) fsEnvironmentsStore {
 	}
 }
 
-func (store fsEnvironmentsStore) saveEnvironments(ctx context.Context, project models.DatatugProject) (err error) {
+func (store fsEnvironmentsStore) saveEnvironments(ctx context.Context, project datatug.Project) (err error) {
 	return saveItems("environments", len(project.Environments), func(i int) func() error {
 		return func() error {
 			env := *project.Environments[i]

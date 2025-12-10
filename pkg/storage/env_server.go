@@ -1,6 +1,6 @@
 package storage
 
-import "github.com/datatug/datatug-core/pkg/models"
+import "github.com/datatug/datatug-core/pkg/datatug"
 
 type EnvServersStore interface {
 	Server(id string) EnvServerStore
@@ -8,6 +8,6 @@ type EnvServersStore interface {
 
 type EnvServerStore interface {
 	Catalogs() EnvDbCatalogsStore
-	LoadEnvServer() (*models.EnvDbServer, error)
-	SaveEnvServer(envServer *models.EnvDbServer) error
+	LoadEnvServer() (*datatug.EnvDbServer, error)
+	SaveEnvServer(envServer *datatug.EnvDbServer) error
 }

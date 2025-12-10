@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/strongo/validation"
 )
 
 // LoadRecordsetDefinitions returns flat list of recordsets that might be stored in a tree structure directories
-func (loader fileSystemLoader) LoadRecordsetDefinitions(projectID string) (recordsetDefs []*models.RecordsetDefinition, err error) {
+func (loader fileSystemLoader) LoadRecordsetDefinitions(projectID string) (recordsetDefs []*datatug.RecordsetDefinition, err error) {
 	if projectID == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("projectID")
 	}
@@ -25,9 +25,9 @@ func (loader fileSystemLoader) LoadRecordsetDefinitions(projectID string) (recor
 	return loader.loadRecordsetsDir(projectID, "", recordsetsDirPath)
 }
 
-func (loader fileSystemLoader) loadRecordsetsDir(projectID, folder, dirPath string) (recordsetDefs []*models.RecordsetDefinition, err error) {
+func (loader fileSystemLoader) loadRecordsetsDir(projectID, folder, dirPath string) (recordsetDefs []*datatug.RecordsetDefinition, err error) {
 	if err := loadDir(nil, dirPath, processDirs, func(files []os.FileInfo) {
-		recordsetDefs = make([]*models.RecordsetDefinition, 0, len(files))
+		recordsetDefs = make([]*datatug.RecordsetDefinition, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 		recordsetID := f.Name() // directory name
 		dataset, err := loader.loadRecordsetDefinition(dirPath, folder, recordsetID, projectID)
@@ -68,7 +68,7 @@ func (loader fileSystemLoader) loadRecordsetsDir(projectID, folder, dirPath stri
 }
 
 // LoadRecordsetDefinition loads recordset definition
-func (loader fileSystemLoader) LoadRecordsetDefinition(projectID, recordsetID string) (dataset *models.RecordsetDefinition, err error) {
+func (loader fileSystemLoader) LoadRecordsetDefinition(projectID, recordsetID string) (dataset *datatug.RecordsetDefinition, err error) {
 	var recordsetsDirPath string
 	if recordsetsDirPath, err = loader.GetFolderPath(projectID, DataFolder, RecordsetsFolder); err != nil {
 		return
@@ -81,8 +81,8 @@ func (loader fileSystemLoader) LoadRecordsetDefinition(projectID, recordsetID st
 	return loader.loadRecordsetDefinition(dirPath, folder, recordsetID, projectID)
 }
 
-func (loader fileSystemLoader) loadRecordsetDefinition(dirPath, folder, recordsetID, projectID string) (dataset *models.RecordsetDefinition, err error) {
-	dataset = new(models.RecordsetDefinition)
+func (loader fileSystemLoader) loadRecordsetDefinition(dirPath, folder, recordsetID, projectID string) (dataset *datatug.RecordsetDefinition, err error) {
+	dataset = new(datatug.RecordsetDefinition)
 	filePath := path.Join(dirPath, recordsetID, jsonFileName(recordsetID, recordsetFileSuffix))
 	if err = readJSONFile(filePath, true, dataset); err != nil {
 		err = fmt.Errorf("failed to load dataset [%v] from project [%v]: %w", recordsetID, projectID, err)
@@ -97,7 +97,7 @@ func (loader fileSystemLoader) loadRecordsetDefinition(dirPath, folder, recordse
 }
 
 // LoadRecordsetData loads recordset data
-func (loader fileSystemLoader) LoadRecordsetData(projectID, datasetName, fileName string) (*models.Recordset, error) {
+func (loader fileSystemLoader) LoadRecordsetData(projectID, datasetName, fileName string) (*datatug.Recordset, error) {
 	started := time.Now()
 	datasetDef, err := loader.LoadRecordsetDefinition(projectID, datasetName)
 	if err != nil {
@@ -109,15 +109,15 @@ func (loader fileSystemLoader) LoadRecordsetData(projectID, datasetName, fileNam
 		return nil, err
 	}
 	filePath := path.Join(projPath, DatatugFolder, DataFolder, datasetName, fileName)
-	var recordset models.Recordset
+	var recordset datatug.Recordset
 	rows := make([]interface{}, 0)
 	if err := readJSONFile(filePath, true, &rows); err != nil {
 		return nil, err
 	}
 
-	recordset.Columns = make([]models.RecordsetColumn, len(datasetDef.Columns))
+	recordset.Columns = make([]datatug.RecordsetColumn, len(datasetDef.Columns))
 	for i, field := range datasetDef.Columns {
-		recordset.Columns[i] = models.RecordsetColumn{
+		recordset.Columns[i] = datatug.RecordsetColumn{
 			Name:   field.Name,
 			DbType: field.Type,
 			Meta:   field.Meta,

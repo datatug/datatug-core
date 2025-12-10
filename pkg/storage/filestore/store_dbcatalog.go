@@ -8,7 +8,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/parallel"
 	"github.com/datatug/datatug-core/pkg/storage"
 )
@@ -31,11 +31,11 @@ func newFsDbCatalogStore(catalogID string, fsDbCatalogsStore fsDbCatalogsStore) 
 	}
 }
 
-func (store fsDbCatalogStore) LoadDbCatalogSummary(context.Context) (*models.DbCatalogSummary, error) {
+func (store fsDbCatalogStore) LoadDbCatalogSummary(context.Context) (*datatug.DbCatalogSummary, error) {
 	return loadDbCatalogSummary(store.catalogsDirPath, store.catalogID)
 }
 
-func (store fsDbCatalogStore) saveDbCatalogs(dbServer models.ProjDbServer, repository *models.ProjectRepository) (err error) {
+func (store fsDbCatalogStore) saveDbCatalogs(dbServer datatug.ProjDbServer, repository *datatug.ProjectRepository) (err error) {
 	return saveItems("catalogs", len(dbServer.Catalogs), func(i int) func() error {
 		return func() error {
 			dbCatalog := dbServer.Catalogs[i]
@@ -50,7 +50,7 @@ func (store fsDbCatalogStore) saveDbCatalogs(dbServer models.ProjDbServer, repos
 	})
 }
 
-func (store fsDbCatalogStore) saveDbCatalog(dbCatalog *models.DbCatalog, repository *models.ProjectRepository) (err error) {
+func (store fsDbCatalogStore) saveDbCatalog(dbCatalog *datatug.DbCatalog, repository *datatug.ProjectRepository) (err error) {
 	if dbCatalog == nil {
 		return errors.New("dbCatalog is nil")
 	}
@@ -103,7 +103,7 @@ func (store fsDbCatalogStore) saveDbCatalog(dbCatalog *models.DbCatalog, reposit
 	return nil
 }
 
-func (store fsDbCatalogStore) saveDbCatalogJSON(dbCatalog models.DbCatalog, saverCtx saveDbServerObjContext) error {
+func (store fsDbCatalogStore) saveDbCatalogJSON(dbCatalog datatug.DbCatalog, saverCtx saveDbServerObjContext) error {
 	fileName := jsonFileName(dbCatalog.ID, dbCatalogFileSuffix)
 	dbFile := DbCatalogFile{
 		Driver:  saverCtx.dbServer.Server.Driver,
@@ -125,11 +125,11 @@ func (store fsDbCatalogStore) saveDbCatalogJSON(dbCatalog models.DbCatalog, save
 //	})
 //}
 
-func (store fsDbCatalogStore) saveDbCatalogObjects(dbCatalog models.DbCatalog, saverCtx saveDbServerObjContext) error {
-	dbObjects := make(models.CatalogObjects, 0)
+func (store fsDbCatalogStore) saveDbCatalogObjects(dbCatalog datatug.DbCatalog, saverCtx saveDbServerObjContext) error {
+	dbObjects := make(datatug.CatalogObjects, 0)
 	for _, schema := range dbCatalog.Schemas {
 		for _, t := range schema.Tables {
-			dbObjects = append(dbObjects, models.CatalogObject{
+			dbObjects = append(dbObjects, datatug.CatalogObject{
 				Type:         "table",
 				Schema:       t.Schema,
 				Name:         t.Name,
@@ -137,7 +137,7 @@ func (store fsDbCatalogStore) saveDbCatalogObjects(dbCatalog models.DbCatalog, s
 			})
 		}
 		for _, t := range schema.Views {
-			dbObjects = append(dbObjects, models.CatalogObject{
+			dbObjects = append(dbObjects, datatug.CatalogObject{
 				Type:         "view",
 				Schema:       t.Schema,
 				Name:         t.Name,
@@ -156,15 +156,15 @@ func (store fsDbCatalogStore) saveDbCatalogObjects(dbCatalog models.DbCatalog, s
 	return nil
 }
 
-func (store fsDbCatalogStore) saveDbCatalogRefs(dbCatalog models.DbCatalog, saverCtx saveDbServerObjContext) error {
-	dbObjects := make(models.CatalogObjectsWithRefs, 0)
+func (store fsDbCatalogStore) saveDbCatalogRefs(dbCatalog datatug.DbCatalog, saverCtx saveDbServerObjContext) error {
+	dbObjects := make(datatug.CatalogObjectsWithRefs, 0)
 	for _, schema := range dbCatalog.Schemas {
 		for _, t := range schema.Tables {
 			if len(t.ForeignKeys) == 0 && len(t.ReferencedBy) == 0 {
 				continue
 			}
-			dbObjects = append(dbObjects, models.CatalogObjectWithRefs{
-				CatalogObject: models.CatalogObject{
+			dbObjects = append(dbObjects, datatug.CatalogObjectWithRefs{
+				CatalogObject: datatug.CatalogObject{
 					Type:         "table",
 					Schema:       t.Schema,
 					Name:         t.Name,
@@ -179,8 +179,8 @@ func (store fsDbCatalogStore) saveDbCatalogRefs(dbCatalog models.DbCatalog, save
 			if len(t.ForeignKeys) == 0 && len(t.ReferencedBy) == 0 {
 				continue
 			}
-			dbObjects = append(dbObjects, models.CatalogObjectWithRefs{
-				CatalogObject: models.CatalogObject{
+			dbObjects = append(dbObjects, datatug.CatalogObjectWithRefs{
+				CatalogObject: datatug.CatalogObject{
 					Type:         "view",
 					Schema:       t.Schema,
 					Name:         t.Name,

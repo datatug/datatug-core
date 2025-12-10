@@ -6,19 +6,19 @@ import (
 	"path"
 	"sync"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
-func loadEnvServers(dirPath string, env *models.Environment) error {
+func loadEnvServers(dirPath string, env *datatug.Environment) error {
 	return loadDir(nil, dirPath, processFiles, func(files []os.FileInfo) {
-		env.DbServers = make([]*models.EnvDbServer, 0, len(files))
+		env.DbServers = make([]*datatug.EnvDbServer, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 		fileName := f.Name()
 		serverName, suffix := getProjItemIDFromFileName(fileName)
 		if suffix != serverFileSuffix {
 			return nil
 		}
-		servers := make([]*models.EnvDbServer, 0, 1)
+		servers := make([]*datatug.EnvDbServer, 0, 1)
 		if err := readJSONFile(path.Join(dirPath, fileName), false, &servers); err != nil {
 			return err
 		}

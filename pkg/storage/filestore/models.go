@@ -3,58 +3,58 @@ package filestore
 import (
 	"fmt"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/strongo/validation"
 )
 
 // TableFile hold summary on table or view
 type TableFile struct {
-	models.TableProps
-	PrimaryKey   *models.UniqueKey           `json:"primaryKey,omitempty"`
-	ForeignKeys  []*models.ForeignKey        `json:"foreignKeys,omitempty"`
-	ReferencedBy []*models.TableReferencedBy `json:"referencedBy,omitempty"`
-	Columns      []*models.ColumnInfo        `json:"columns,omitempty"`
-	Indexes      []*models.Index             `json:"indexes,omitempty"`
+	datatug.TableProps
+	PrimaryKey   *datatug.UniqueKey           `json:"primaryKey,omitempty"`
+	ForeignKeys  []*datatug.ForeignKey        `json:"foreignKeys,omitempty"`
+	ReferencedBy []*datatug.TableReferencedBy `json:"referencedBy,omitempty"`
+	Columns      []*datatug.ColumnInfo        `json:"columns,omitempty"`
+	Indexes      []*datatug.Index             `json:"indexes,omitempty"`
 }
 
 // TableRefsByFile info to be stored about reference in a JSON file
 type TableRefsByFile struct {
-	models.CollectionKey
-	ReferencedBy []*models.TableReferencedBy `json:"referencedBy"`
+	datatug.CollectionKey
+	ReferencedBy []*datatug.TableReferencedBy `json:"referencedBy"`
 }
 
 // TableForeignKeysFile info to be stored about FK in a JSON file
 type TableForeignKeysFile struct {
-	models.CollectionKey
-	ForeignKeys []*models.ForeignKey `json:"foreignKeys"`
+	datatug.CollectionKey
+	ForeignKeys []*datatug.ForeignKey `json:"foreignKeys"`
 }
 
 // TablePrimaryKeyFile info to be stored about PK in a JSON file
 type TablePrimaryKeyFile struct {
-	models.CollectionKey
-	PrimaryKey *models.UniqueKey `json:"primaryKey"`
+	datatug.CollectionKey
+	PrimaryKey *datatug.UniqueKey `json:"primaryKey"`
 }
 
 // TableColumnsFile info to be stored about column in a JSON file
 type TableColumnsFile struct {
-	models.CollectionKey
-	Columns []*models.ColumnInfo `json:"columns,omitempty"`
+	datatug.CollectionKey
+	Columns []*datatug.ColumnInfo `json:"columns,omitempty"`
 }
 
 // TablePropsFile info to be stored about table in a JSON file
 type TablePropsFile struct {
-	models.CollectionKey
-	models.TableProps
+	datatug.CollectionKey
+	datatug.TableProps
 }
 
 // TableModelFile defines what to storage in table model file
 type TableModelFile struct {
-	models.CollectionKey
+	datatug.CollectionKey
 }
 
 // TableModelColumnsFile info to be stored about column in a JSON file
 type TableModelColumnsFile struct {
-	Columns models.ColumnModels `json:"columns,omitempty"`
+	Columns datatug.ColumnModels `json:"columns,omitempty"`
 }
 
 // Validate returns error if not valid
@@ -69,8 +69,8 @@ func (v TableModelColumnsFile) Validate() error {
 
 // DbModelFile defines what to storage to dbmodel file
 type DbModelFile struct {
-	models.ProjectItem
-	Environments models.DbModelEnvironments `json:"environments,omitempty"`
+	datatug.ProjectItem
+	Environments datatug.DbModelEnvironments `json:"environments,omitempty"`
 }
 
 // Validate returns error if not valid
@@ -86,7 +86,7 @@ func (v DbModelFile) Validate() error {
 
 // ProjDbServerFile stores info about project DB server
 type ProjDbServerFile struct {
-	models.ProjectItem
+	datatug.ProjectItem
 }
 
 // DbCatalogFile defines metadata to be stored in a JSON file in the db folder

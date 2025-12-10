@@ -4,12 +4,12 @@ import (
 	"context"
 
 	"github.com/dal-go/dalgo/dal"
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
 // Scanner defines scanner
 type Scanner interface {
-	ScanCatalog(c context.Context, name string) (database *models.DbCatalog, err error)
+	ScanCatalog(c context.Context, name string) (database *datatug.DbCatalog, err error)
 }
 
 // SchemaProvider provides schema info
@@ -48,7 +48,7 @@ type CollectionsProvider interface {
 
 // CollectionsReader reads collection info
 type CollectionsReader interface {
-	NextCollection() (*models.CollectionInfo, error)
+	NextCollection() (*datatug.CollectionInfo, error)
 }
 
 // ColumnsProvider reads columns info
@@ -65,7 +65,7 @@ type ColumnsReader interface {
 // Column defines column
 type Column struct {
 	TableRef
-	models.ColumnInfo
+	datatug.ColumnInfo
 }
 
 // IndexesProvider provides indexes
@@ -83,7 +83,7 @@ type IndexesReader interface {
 // Index defines index
 type Index struct {
 	TableRef
-	*models.Index
+	*datatug.Index
 }
 
 // IndexColumnsProvider provides index columns
@@ -102,7 +102,7 @@ type IndexColumnsReader interface {
 type IndexColumn struct {
 	TableRef
 	IndexName string
-	*models.IndexColumn
+	*datatug.IndexColumn
 }
 
 // ConstraintsProvider provides constraints
@@ -123,7 +123,7 @@ type Constraint struct {
 	UniqueConstraintCatalog, UniqueConstraintSchema, UniqueConstraintName string // can be null
 	MatchOption, UpdateRule, DeleteRule                                   string // can be null
 	RefTableCatalog, RefTableSchema, RefTableName, RefColName             string // can be null
-	*models.Constraint
+	*datatug.Constraint
 }
 
 // RecordsCountProvider provides count for a recordset

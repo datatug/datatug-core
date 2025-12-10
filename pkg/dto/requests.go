@@ -3,7 +3,7 @@ package dto
 import (
 	"strings"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/strongo/validation"
 )
 
@@ -11,8 +11,8 @@ import (
 type GetServerDatabasesRequest struct {
 	Project     string `json:"proj"`
 	Environment string `json:"env"`
-	models.ServerReference
-	Credentials *models.Credentials `json:"credentials"`
+	datatug.ServerReference
+	Credentials *datatug.Credentials `json:"credentials"`
 }
 
 // Validate returns error if not valid
@@ -53,11 +53,11 @@ func (v CreateProjectRequest) Validate() error {
 
 type CreateQuery struct {
 	ProjectRef
-	Folder string                        `json:"folder"`
-	Query  models.QueryDefWithFolderPath `json:"query"`
+	Folder string                         `json:"folder"`
+	Query  datatug.QueryDefWithFolderPath `json:"query"`
 }
 
 type UpdateQuery struct {
 	ProjectItemRef
-	Query models.QueryDef `json:"query"`
+	Query datatug.QueryDef `json:"query"`
 }

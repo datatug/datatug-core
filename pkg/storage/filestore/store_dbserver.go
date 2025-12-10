@@ -8,7 +8,7 @@ import (
 	"path"
 	"sync"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/strongo/slice"
 )
@@ -16,18 +16,18 @@ import (
 var _ storage.DbServerStore = (*fsDbServerStore)(nil)
 
 type fsDbServerStore struct {
-	dbServer models.ServerReference
+	dbServer datatug.ServerReference
 	fsDbServersStore
 }
 
-func newFsDbServerStore(dbServer models.ServerReference, fsDbServersStore fsDbServersStore) fsDbServerStore {
+func newFsDbServerStore(dbServer datatug.ServerReference, fsDbServersStore fsDbServersStore) fsDbServerStore {
 	return fsDbServerStore{
 		dbServer:         dbServer,
 		fsDbServersStore: fsDbServersStore,
 	}
 }
 
-func (store fsDbServerStore) ID() models.ServerReference {
+func (store fsDbServerStore) ID() datatug.ServerReference {
 	return store.dbServer
 }
 
@@ -36,14 +36,14 @@ func (store fsDbServerStore) Catalogs() storage.DbCatalogsStore {
 }
 
 // GetDbServerSummary returns ProjDbServerSummary
-func (store fsDbServerStore) LoadDbServerSummary(_ context.Context, dbServer models.ServerReference) (summary *models.ProjDbServerSummary, err error) {
+func (store fsDbServerStore) LoadDbServerSummary(_ context.Context, dbServer datatug.ServerReference) (summary *datatug.ProjDbServerSummary, err error) {
 	summary, err = loadDbServerForDbServerSummary(store.projectPath, dbServer)
 	return
 }
 
-func loadDbServerForDbServerSummary(projPath string, dbServer models.ServerReference) (summary *models.ProjDbServerSummary, err error) {
+func loadDbServerForDbServerSummary(projPath string, dbServer datatug.ServerReference) (summary *datatug.ProjDbServerSummary, err error) {
 	dbServerPath := path.Join(projPath, "servers", "db", dbServer.Driver, dbServer.FileName())
-	summary = new(models.ProjDbServerSummary)
+	summary = new(datatug.ProjDbServerSummary)
 	summary.DbServer = dbServer
 	var dbsByEnv map[string][]string
 	if dbsByEnv, err = loadDbServerCatalogNamesByEnvironments(projPath, dbServer); err != nil {
@@ -54,10 +54,10 @@ func loadDbServerForDbServerSummary(projPath string, dbServer models.ServerRefer
 	return
 }
 
-func loadDbCatalogsForDbServerSummary(dbServerPath string, dbsByEnv map[string][]string) (catalogSummaries []*models.DbCatalogSummary, err error) {
+func loadDbCatalogsForDbServerSummary(dbServerPath string, dbsByEnv map[string][]string) (catalogSummaries []*datatug.DbCatalogSummary, err error) {
 	catalogsPath := path.Join(dbServerPath, "catalogs")
 	err = loadDir(nil, catalogsPath, processDirs, func(files []os.FileInfo) {
-		catalogSummaries = make([]*models.DbCatalogSummary, 0, len(files))
+		catalogSummaries = make([]*datatug.DbCatalogSummary, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
 		catalogSummary, err := loadDbCatalogSummary(catalogsPath, f.Name())
 		if err != nil {
@@ -76,10 +76,10 @@ func loadDbCatalogsForDbServerSummary(dbServerPath string, dbsByEnv map[string][
 	return
 }
 
-func loadDbCatalogSummary(catalogsDirPath, dirName string) (*models.DbCatalogSummary, error) {
+func loadDbCatalogSummary(catalogsDirPath, dirName string) (*datatug.DbCatalogSummary, error) {
 	dirPath := path.Join(catalogsDirPath, dirName)
 	jsonFilePath := path.Join(dirPath, jsonFileName(dirName, "db"))
-	var catalogSummary models.DbCatalogSummary
+	var catalogSummary datatug.DbCatalogSummary
 	if err := readJSONFile(jsonFilePath, true, &catalogSummary); err != nil {
 		return nil, fmt.Errorf("failed to read DB catalog summary from JSON file: %w", err)
 	}
@@ -97,7 +97,7 @@ func loadDbCatalogSummary(catalogsDirPath, dirName string) (*models.DbCatalogSum
 //	return
 //}
 
-func loadDbServerCatalogNamesByEnvironments(projPath string, dbServer models.ServerReference) (dbsByEnv map[string][]string, err error) {
+func loadDbServerCatalogNamesByEnvironments(projPath string, dbServer datatug.ServerReference) (dbsByEnv map[string][]string, err error) {
 	envsPath := path.Join(projPath, "environments")
 	err = loadDir(nil, envsPath, processDirs, func(files []os.FileInfo) {
 		dbsByEnv = make(map[string][]string, len(files))
@@ -105,7 +105,7 @@ func loadDbServerCatalogNamesByEnvironments(projPath string, dbServer models.Ser
 		env := f.Name()
 		dbServersPath := path.Join(envsPath, env, "servers", "db")
 		filePath := path.Join(dbServersPath, jsonFileName(dbServer.FileName(), serverFileSuffix))
-		var envDbServer = new(models.EnvDbServer)
+		var envDbServer = new(datatug.EnvDbServer)
 		if err = readJSONFile(filePath, false, envDbServer); err != nil {
 			return err
 		}
@@ -120,7 +120,7 @@ func loadDbServerCatalogNamesByEnvironments(projPath string, dbServer models.Ser
 }
 
 // DeleteDbServer deletes DB server
-func (store fsDbServerStore) DeleteDbServer(_ context.Context, dbServer models.ServerReference) (err error) {
+func (store fsDbServerStore) DeleteDbServer(_ context.Context, dbServer datatug.ServerReference) (err error) {
 	dbServerDirPath := path.Join(store.projectPath, "servers", "db", dbServer.Driver, dbServer.FileName())
 	log.Println("Deleting folder:", dbServerDirPath)
 	if err = os.RemoveAll(dbServerDirPath); err != nil {

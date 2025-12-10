@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/strongo/validation"
 )
 
@@ -36,7 +36,7 @@ func (v CreateFolderRequest) Validate() error {
 }
 
 type FoldersStore interface {
-	CreateFolder(ctx context.Context, request CreateFolderRequest) (folder *models.Folder, err error)
-	GetFolder(ctx context.Context, path string) (folder *models.Folder, err error)
+	CreateFolder(ctx context.Context, request CreateFolderRequest) (folder *datatug.Folder, err error)
+	GetFolder(ctx context.Context, path string) (folder *datatug.Folder, err error)
 	DeleteFolder(ctx context.Context, path string) (err error)
 }

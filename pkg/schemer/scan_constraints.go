@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
 func (s scanner) scanConstraintsInBulk(c context.Context, catalog string, tablesFinder SortedTables) error {
@@ -37,11 +37,11 @@ func (s scanner) scanConstraintsInBulk(c context.Context, catalog string, tables
 	return nil
 }
 
-func processConstraint(catalog string, table *models.CollectionInfo, constraint *Constraint, allTables models.Tables) error {
+func processConstraint(catalog string, table *datatug.CollectionInfo, constraint *Constraint, allTables datatug.Tables) error {
 	switch constraint.Type {
 	case "PRIMARY KEY":
 		if table.PrimaryKey == nil {
-			table.PrimaryKey = &models.UniqueKey{Name: constraint.Name, Columns: []string{constraint.ColumnName}}
+			table.PrimaryKey = &datatug.UniqueKey{Name: constraint.Name, Columns: []string{constraint.ColumnName}}
 		} else {
 			table.PrimaryKey.Columns = append(table.PrimaryKey.Columns, constraint.ColumnName)
 		}
@@ -50,7 +50,7 @@ func processConstraint(catalog string, table *models.CollectionInfo, constraint 
 			i := len(table.UniqueKeys) - 1
 			table.UniqueKeys[i].Columns = append(table.UniqueKeys[i].Columns, constraint.ColumnName)
 		} else {
-			table.UniqueKeys = append(table.UniqueKeys, &models.UniqueKey{Name: constraint.Name, Columns: []string{constraint.ColumnName}})
+			table.UniqueKeys = append(table.UniqueKeys, &datatug.UniqueKey{Name: constraint.Name, Columns: []string{constraint.ColumnName}})
 		}
 	case "FOREIGN KEY":
 		if len(table.ForeignKeys) > 0 && table.ForeignKeys[len(table.ForeignKeys)-1].Name == constraint.Name {
@@ -58,11 +58,11 @@ func processConstraint(catalog string, table *models.CollectionInfo, constraint 
 			table.ForeignKeys[i].Columns = append(table.ForeignKeys[i].Columns, constraint.ColumnName)
 		} else {
 			//refTable := refTableFinder.FindTable(refTableCatalog, refTableSchema, refTableName)
-			fk := models.ForeignKey{
+			fk := datatug.ForeignKey{
 				Name: constraint.Name,
 				Columns: []string{
 					constraint.ColumnName},
-				RefTable: models.CollectionKey{Catalog: constraint.RefTableCatalog, Schema: constraint.RefTableSchema, Name: constraint.RefTableName},
+				RefTable: datatug.CollectionKey{Catalog: constraint.RefTableCatalog, Schema: constraint.RefTableSchema, Name: constraint.RefTableName},
 			}
 			fk.MatchOption = constraint.MatchOption
 			fk.UpdateRule = constraint.UpdateRule
@@ -71,18 +71,18 @@ func processConstraint(catalog string, table *models.CollectionInfo, constraint 
 
 			{ // Update reference table
 				refTable := FindTable(allTables, constraint.RefTableCatalog, constraint.RefTableSchema, constraint.RefTableName)
-				var refByFk *models.RefByForeignKey
+				var refByFk *datatug.RefByForeignKey
 				if refTable == nil {
 					return fmt.Errorf("reference table not found: %v.%v.%v", constraint.RefTableCatalog, constraint.RefTableSchema, constraint.RefTableName)
 				}
-				var refByTable *models.TableReferencedBy
+				var refByTable *datatug.TableReferencedBy
 				for _, refByTable = range refTable.ReferencedBy {
 					if refByTable.Catalog == catalog && refByTable.Schema == constraint.SchemaName && refByTable.Name == constraint.TableName {
 						break
 					}
 				}
 				if refByTable == nil || refByTable.Catalog != catalog || refByTable.Schema != constraint.SchemaName || refByTable.Name != constraint.TableName {
-					refByTable = &models.TableReferencedBy{CollectionKey: table.CollectionKey, ForeignKeys: make([]*models.RefByForeignKey, 0, 1)}
+					refByTable = &datatug.TableReferencedBy{CollectionKey: table.CollectionKey, ForeignKeys: make([]*datatug.RefByForeignKey, 0, 1)}
 					refTable.ReferencedBy = append(refTable.ReferencedBy, refByTable)
 				}
 				for _, fk2 := range refByTable.ForeignKeys {
@@ -91,7 +91,7 @@ func processConstraint(catalog string, table *models.CollectionInfo, constraint 
 						goto fkAddedToRefByTable
 					}
 				}
-				refByFk = &models.RefByForeignKey{
+				refByFk = &datatug.RefByForeignKey{
 					Name:        fk.Name,
 					MatchOption: fk.MatchOption,
 					UpdateRule:  fk.UpdateRule,

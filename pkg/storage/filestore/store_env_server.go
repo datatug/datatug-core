@@ -8,7 +8,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
 )
 
@@ -19,11 +19,11 @@ type fsEnvServerStore struct {
 	fsEnvServersStore
 }
 
-func (store fsEnvServerStore) LoadEnvServer() (*models.EnvDbServer, error) {
+func (store fsEnvServerStore) LoadEnvServer() (*datatug.EnvDbServer, error) {
 	panic("implement me")
 }
 
-func (store fsEnvServerStore) SaveEnvServer(envServer *models.EnvDbServer) error {
+func (store fsEnvServerStore) SaveEnvServer(envServer *datatug.EnvDbServer) error {
 	panic("implement me")
 }
 
@@ -38,12 +38,12 @@ func (store fsEnvServerStore) Catalogs() storage.EnvDbCatalogsStore {
 	return newFsEnvCatalogsStore(store)
 }
 
-func (store fsEnvServersStore) saveEnvServers(servers []*models.EnvDbServer) (err error) {
+func (store fsEnvServersStore) saveEnvServers(servers []*datatug.EnvDbServer) (err error) {
 	log.Printf("saving %v servers for env %v to %v...", len(servers), store.envID, store.envServersPath)
 	if err = os.MkdirAll(store.envServersPath, 0777); err != nil {
 		return fmt.Errorf("failed to create environment servers folder: %w", err)
 	}
-	serversByHost := make(map[string][]*models.EnvDbServer, len(servers))
+	serversByHost := make(map[string][]*datatug.EnvDbServer, len(servers))
 	for i, server := range servers {
 		if strings.TrimSpace(server.Host) == "" {
 			return fmt.Errorf("env DB server has empty host for entry at index %v", i)
@@ -52,7 +52,7 @@ func (store fsEnvServersStore) saveEnvServers(servers []*models.EnvDbServer) (er
 	}
 	type hostWithServer struct {
 		host    string
-		servers []*models.EnvDbServer
+		servers []*datatug.EnvDbServer
 	}
 	hostsWithServers := make([]*hostWithServer, 0, len(serversByHost))
 	for host, servers := range serversByHost {
@@ -68,7 +68,7 @@ func (store fsEnvServersStore) saveEnvServers(servers []*models.EnvDbServer) (er
 	})
 }
 
-func (store fsEnvServersStore) saveEnvServerHost(dirPath, host string, servers models.EnvDbServers) (err error) {
+func (store fsEnvServersStore) saveEnvServerHost(dirPath, host string, servers datatug.EnvDbServers) (err error) {
 	if host == "" {
 		return errors.New("func saveEnvServerHost can not accept empty string for `host` parameter")
 	}

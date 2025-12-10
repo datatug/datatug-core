@@ -9,21 +9,21 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/parallel"
 )
 
-func loadProjectFile(projPath string, project *models.DatatugProject) (err error) {
+func loadProjectFile(projPath string, project *datatug.Project) (err error) {
 	filePath := path.Join(projPath, DatatugFolder, ProjectSummaryFileName)
 	return readJSONFile(filePath, true, project)
 }
 
-func loadEnvironments(_ context.Context, projPath string, project *models.DatatugProject) (err error) {
+func loadEnvironments(_ context.Context, projPath string, project *datatug.Project) (err error) {
 	envsDirPath := path.Join(projPath, DatatugFolder, EnvironmentsFolder)
 	err = loadDir(nil, envsDirPath, processDirs, func(files []os.FileInfo) {
-		project.Environments = make(models.Environments, 0, len(files))
+		project.Environments = make(datatug.Environments, 0, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) (err error) {
-		env := new(models.Environment)
+		env := new(datatug.Environment)
 		env.ID = f.Name()
 		project.Environments = append(project.Environments, env)
 		if err = loadEnvironment(path.Join(envsDirPath, env.ID), env); err != nil {
@@ -89,17 +89,17 @@ func loadDir(
 	return parallel.Run(workers...)
 }
 
-func loadBoards(_ context.Context, projPath string, project *models.DatatugProject) (err error) {
+func loadBoards(_ context.Context, projPath string, project *datatug.Project) (err error) {
 	boardsDirPath := path.Join(projPath, DatatugFolder, "boards")
 	if err = loadDir(nil, boardsDirPath, processFiles,
 		func(files []os.FileInfo) {
-			project.Boards = make(models.Boards, 0, len(files))
+			project.Boards = make(datatug.Boards, 0, len(files))
 		},
 		func(f os.FileInfo, i int, _ *sync.Mutex) error {
 			if f.IsDir() {
 				return nil
 			}
-			board := new(models.Board)
+			board := new(datatug.Board)
 			board.ID = f.Name()
 			var suffix string
 			board.ID, suffix = getProjItemIDFromFileName(f.Name())
@@ -118,17 +118,17 @@ func loadBoards(_ context.Context, projPath string, project *models.DatatugProje
 	return err
 }
 
-func loadDbModels(_ context.Context, projPath string, project *models.DatatugProject) error {
+func loadDbModels(_ context.Context, projPath string, project *datatug.Project) error {
 	dbModelsDirPath := path.Join(projPath, DatatugFolder, "dbmodels")
 	if err := loadDir(nil, dbModelsDirPath, processDirs,
 		func(files []os.FileInfo) {
-			project.DbModels = make(models.DbModels, 0, len(files))
+			project.DbModels = make(datatug.DbModels, 0, len(files))
 		},
 		func(f os.FileInfo, i int, _ *sync.Mutex) (err error) {
 			if !f.IsDir() {
 				return nil
 			}
-			var dbModel *models.DbModel
+			var dbModel *datatug.DbModel
 			if dbModel, err = loadDbModel(dbModelsDirPath, f.Name()); err != nil {
 				return err
 			}
@@ -140,9 +140,9 @@ func loadDbModels(_ context.Context, projPath string, project *models.DatatugPro
 	return nil
 }
 
-func loadDbModel(dbModelsDirPath, id string) (dbModel *models.DbModel, err error) {
+func loadDbModel(dbModelsDirPath, id string) (dbModel *datatug.DbModel, err error) {
 	dbModelDirPath := path.Join(dbModelsDirPath, id)
-	dbModel = &models.DbModel{}
+	dbModel = &datatug.DbModel{}
 	return dbModel, parallel.Run(
 		func() (err error) {
 			fileName := path.Join(dbModelDirPath, jsonFileName(id, dbModelFileSuffix))
@@ -159,10 +159,10 @@ func loadDbModel(dbModelsDirPath, id string) (dbModel *models.DbModel, err error
 		func() (err error) {
 			return loadDir(nil, dbModelDirPath, processDirs,
 				func(files []os.FileInfo) {
-					dbModel.Schemas = make([]*models.SchemaModel, 0, len(files))
+					dbModel.Schemas = make([]*datatug.SchemaModel, 0, len(files))
 				},
 				func(f os.FileInfo, i int, _ *sync.Mutex) (err error) {
-					var schemaModel *models.SchemaModel
+					var schemaModel *datatug.SchemaModel
 					if schemaModel, err = loadSchemaModel(dbModelDirPath, f.Name()); err != nil {
 						return err
 					}
@@ -173,16 +173,16 @@ func loadDbModel(dbModelsDirPath, id string) (dbModel *models.DbModel, err error
 	)
 }
 
-func loadSchemaModel(dbModelDirPath, schemaID string) (schemaModel *models.SchemaModel, err error) {
-	schemaModel = &models.SchemaModel{}
+func loadSchemaModel(dbModelDirPath, schemaID string) (schemaModel *datatug.SchemaModel, err error) {
+	schemaModel = &datatug.SchemaModel{}
 	schemaModel.ID = schemaID
 	schemaDirPath := path.Join(dbModelDirPath, schemaID)
 
-	loadTableModels := func(dir, dbType string) (tables models.TableModels, err error) {
+	loadTableModels := func(dir, dbType string) (tables datatug.TableModels, err error) {
 		dirPath := path.Join(schemaDirPath, dir)
 
 		err = loadDir(nil, dirPath, processDirs, func(files []os.FileInfo) {
-			tables = make(models.TableModels, len(files))
+			tables = make(datatug.TableModels, len(files))
 		}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
 			tables[i], err = loadTableModel(f.Name())
 			tables[i].DbType = dbType
@@ -203,7 +203,7 @@ func loadSchemaModel(dbModelDirPath, schemaID string) (schemaModel *models.Schem
 	return
 }
 
-func loadEnvFile(envDirPath, envID string) (env models.EnvironmentSummary, err error) {
+func loadEnvFile(envDirPath, envID string) (env datatug.EnvironmentSummary, err error) {
 	filePath := path.Join(envDirPath, jsonFileName(envID, environmentFileSuffix))
 	if err = readJSONFile(filePath, true, &env); err != nil {
 		return
@@ -212,7 +212,7 @@ func loadEnvFile(envDirPath, envID string) (env models.EnvironmentSummary, err e
 	return
 }
 
-func loadEnvironment(dirPath string, env *models.Environment) (err error) {
+func loadEnvironment(dirPath string, env *datatug.Environment) (err error) {
 	return parallel.Run(
 		func() error {
 			envSummary, err := loadEnvFile(dirPath, env.ID)
@@ -228,11 +228,11 @@ func loadEnvironment(dirPath string, env *models.Environment) (err error) {
 	)
 }
 
-func loadDbCatalogs(dirPath string, dbServer *models.ProjDbServer) (err error) {
+func loadDbCatalogs(dirPath string, dbServer *datatug.ProjDbServer) (err error) {
 	return loadDir(nil, dirPath, processDirs, func(files []os.FileInfo) {
-		dbServer.Catalogs = make(models.DbCatalogs, 0, len(files))
+		dbServer.Catalogs = make(datatug.DbCatalogs, 0, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
-		dbCatalog := new(models.DbCatalog)
+		dbCatalog := new(datatug.DbCatalog)
 		dbCatalog.ID = f.Name()
 		catalogPath := path.Join(dirPath, dbCatalog.ID)
 		if err = loadDbCatalog(catalogPath, dbCatalog); err != nil {
@@ -243,7 +243,7 @@ func loadDbCatalogs(dirPath string, dbServer *models.ProjDbServer) (err error) {
 	})
 }
 
-func loadDbCatalog(dirPath string, dbCatalog *models.DbCatalog) (err error) {
+func loadDbCatalog(dirPath string, dbCatalog *datatug.DbCatalog) (err error) {
 	log.Printf("Loading DB catalog: %v...\n", dbCatalog.ID)
 	filePath := path.Join(dirPath, jsonFileName(dbCatalog.ID, dbCatalogFileSuffix))
 	if err = readJSONFile(filePath, false, dbCatalog); err != nil {
@@ -255,16 +255,16 @@ func loadDbCatalog(dirPath string, dbCatalog *models.DbCatalog) (err error) {
 
 	schemasDirPath := path.Join(dirPath, SchemasFolder)
 	return loadDir(nil, schemasDirPath, processDirs, func(files []os.FileInfo) {
-		dbCatalog.Schemas = make(models.DbSchemas, len(files))
+		dbCatalog.Schemas = make(datatug.DbSchemas, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
 		dbCatalog.Schemas[i], err = loadSchema(schemasDirPath, f.Name())
 		return err
 	})
 }
 
-func loadSchema(schemasDirPath string, id string) (dbSchema *models.DbSchema, err error) {
+func loadSchema(schemasDirPath string, id string) (dbSchema *datatug.DbSchema, err error) {
 	log.Printf("Loading schema: %v...", id)
-	dbSchema = &models.DbSchema{}
+	dbSchema = &datatug.DbSchema{}
 	dbSchema.ID = id
 	err = parallel.Run(
 		func() (err error) {
@@ -307,14 +307,14 @@ func loadSchema(schemasDirPath string, id string) (dbSchema *models.DbSchema, er
 //	return
 //}
 
-func loadTables(schemasDirPath, schema, folder string) (tables models.Tables, err error) {
+func loadTables(schemasDirPath, schema, folder string) (tables datatug.Tables, err error) {
 	dirPath := path.Join(schemasDirPath, schema, folder)
 	//if dirs, err = getSortedSubDirNames(dirPath); err != nil {
 	//	return err
 	//}
 	err = loadDir(nil, dirPath, processDirs,
 		func(files []os.FileInfo) {
-			tables = make(models.Tables, 0, len(files))
+			tables = make(datatug.Tables, 0, len(files))
 		}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
 			if !f.IsDir() {
 				return nil
@@ -334,12 +334,12 @@ func loadTables(schemasDirPath, schema, folder string) (tables models.Tables, er
 	return
 }
 
-func loadTable(dirPath, schema, tableName string) (table *models.CollectionInfo, err error) {
+func loadTable(dirPath, schema, tableName string) (table *datatug.CollectionInfo, err error) {
 	tableDirPath := path.Join(dirPath, tableName)
 
 	prefix := fmt.Sprintf("%v.%v.", schema, tableName)
 
-	table = new(models.CollectionInfo)
+	table = new(datatug.CollectionInfo)
 	table.Name = tableName
 	table.Schema = schema
 	loadTableFile := func(suffix string, required bool) (err error) {
@@ -374,9 +374,9 @@ func loadTable(dirPath, schema, tableName string) (table *models.CollectionInfo,
 	return
 }
 
-func loadTableModel(name string) (tableModel *models.TableModel, err error) {
-	tableModel = &models.TableModel{
-		CollectionKey: models.CollectionKey{
+func loadTableModel(name string) (tableModel *datatug.TableModel, err error) {
+	tableModel = &datatug.TableModel{
+		CollectionKey: datatug.CollectionKey{
 			Name: name,
 		},
 	}

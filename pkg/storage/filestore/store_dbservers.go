@@ -8,7 +8,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/datatug/datatug-core/pkg/models"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/parallel"
 	"github.com/datatug/datatug-core/pkg/storage"
 )
@@ -25,15 +25,15 @@ func newFsDbServersStore(fsProjectStore fsProjectStore) fsDbServersStore {
 	}
 }
 
-func (store fsDbServersStore) DbServer(id models.ServerReference) storage.DbServerStore {
+func (store fsDbServersStore) DbServer(id datatug.ServerReference) storage.DbServerStore {
 	return store.dbServer(id)
 }
 
-func (store fsDbServersStore) dbServer(dbServer models.ServerReference) storage.DbServerStore {
+func (store fsDbServersStore) dbServer(dbServer datatug.ServerReference) storage.DbServerStore {
 	return newFsDbServerStore(dbServer, store)
 }
 
-func (store fsDbServersStore) saveDbServers(ctx context.Context, dbServers models.ProjDbServers, project models.DatatugProject) (err error) {
+func (store fsDbServersStore) saveDbServers(ctx context.Context, dbServers datatug.ProjDbServers, project datatug.Project) (err error) {
 	if len(dbServers) == 0 {
 		log.Println("GetProjectStore have no DB servers to save.")
 		return nil
@@ -64,8 +64,8 @@ func (store fsDbServersStore) saveDbServers(ctx context.Context, dbServers model
 	return nil
 }
 
-func (store fsDbServersStore) saveDbServersJSON(dbServersDirPath string, dbServers models.ProjDbServers) error {
-	servers := make(models.ServerReferences, len(dbServers))
+func (store fsDbServersStore) saveDbServersJSON(dbServersDirPath string, dbServers datatug.ProjDbServers) error {
+	servers := make(datatug.ServerReferences, len(dbServers))
 	for i, server := range dbServers {
 		servers[i] = server.Server
 	}
@@ -75,12 +75,12 @@ func (store fsDbServersStore) saveDbServersJSON(dbServersDirPath string, dbServe
 	return nil
 }
 
-func (store fsDbServersStore) saveDbServersReadme(dbServers models.ProjDbServers) error {
+func (store fsDbServersStore) saveDbServersReadme(dbServers datatug.ProjDbServers) error {
 	panic(fmt.Sprintf("not implemented saving of dbServers=%v", dbServers))
 }
 
 // SaveDbServer saves ServerReference
-func (store fsDbServerStore) SaveDbServer(_ context.Context, dbServer models.ProjDbServer, project models.DatatugProject) (err error) {
+func (store fsDbServerStore) SaveDbServer(_ context.Context, dbServer datatug.ProjDbServer, project datatug.Project) (err error) {
 	if err = dbServer.Validate(); err != nil {
 		return fmt.Errorf("db server is not valid: %w", err)
 	}
@@ -109,7 +109,7 @@ func (store fsDbServerStore) SaveDbServer(_ context.Context, dbServer models.Pro
 	return nil
 }
 
-func (store fsDbServerStore) saveDbServerReadme(dbServer models.ProjDbServer, dbServerDirPath string, project models.DatatugProject) error {
+func (store fsDbServerStore) saveDbServerReadme(dbServer datatug.ProjDbServer, dbServerDirPath string, project datatug.Project) error {
 	return saveReadme(dbServerDirPath, "DB server", func(w io.Writer) error {
 		if err := store.readmeEncoder.DbServerToReadme(w, project.Repository, dbServer); err != nil {
 			return fmt.Errorf("failed to write README.md for DB server: %w", err)
@@ -118,13 +118,13 @@ func (store fsDbServerStore) saveDbServerReadme(dbServer models.ProjDbServer, db
 	})
 }
 
-func (store fsDbServerStore) saveDbServerJSON(dbServer models.ProjDbServer, dbServerDirPath string, _ models.DatatugProject) error {
+func (store fsDbServerStore) saveDbServerJSON(dbServer datatug.ProjDbServer, dbServerDirPath string, _ datatug.Project) error {
 	log.Println("store.projDirPath:", store.projectPath)
 	log.Println("dbServerDirPath:", dbServerDirPath)
 	if err := os.MkdirAll(dbServerDirPath, 0777); err != nil {
 		return fmt.Errorf("failed to create a directory for DB server files: %w", err)
 	}
-	serverFile := models.ProjDbServerFile{
+	serverFile := datatug.ProjDbServerFile{
 		ServerReference: dbServer.Server,
 	}
 	if len(dbServer.Catalogs) > 0 {

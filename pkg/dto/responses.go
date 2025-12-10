@@ -1,10 +1,10 @@
 package dto
 
-import "github.com/datatug/datatug-core/pkg/models"
+import "github.com/datatug/datatug-core/pkg/datatug"
 
 // ProjRecordsetSummary holds summary info about recordset definition
 type ProjRecordsetSummary struct {
-	models.ProjectItem
+	datatug.ProjectItem
 	Columns    []string                `json:"columns,omitempty"`
 	Recordsets []*ProjRecordsetSummary `json:"recordsets,omitempty"`
 }
