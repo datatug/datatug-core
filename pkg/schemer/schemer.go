@@ -27,7 +27,7 @@ func (s InformationSchema) GetDatabase(name string) (database *models.DbCatalog,
 	database.ID = name
 	var tables []*models.Table
 	if tables, err = s.getTables(name); err != nil {
-		return database, fmt.Errorf("failed to retrive tables metadata: %w", err)
+		return database, fmt.Errorf("failed to retrieve tables metadata: %w", err)
 	}
 	for _, t := range tables {
 		schema := database.Schemas.GetByID(t.Schema)
@@ -50,19 +50,19 @@ func (s InformationSchema) GetDatabase(name string) (database *models.DbCatalog,
 	err = parallel.Run(
 		func() error {
 			if err = s.getColumns(name, sortedTables{tables: tables}); err != nil {
-				return fmt.Errorf("failed to retrive columns metadata: %w", err)
+				return fmt.Errorf("failed to retrieve columns metadata: %w", err)
 			}
 			return nil
 		},
 		func() error {
 			if err = s.getConstraints(name, sortedTables{tables: tables}); err != nil {
-				return fmt.Errorf("failed to retrive constraints metadata: %w", err)
+				return fmt.Errorf("failed to retrieve constraints metadata: %w", err)
 			}
 			return nil
 		},
 		func() error {
 			if err = s.getIndexes(name, sortedTables{tables: tables}); err != nil {
-				return fmt.Errorf("failed to retrive indexes metadata: %w", err)
+				return fmt.Errorf("failed to retrieve indexes metadata: %w", err)
 			}
 			return nil
 		},

@@ -43,19 +43,19 @@ func (s scanner) scanTables(c context.Context, db *sql.DB, catalog *models.DbCat
 		workers = append(workers,
 			func() error {
 				if err = s.scanColumnsInBulk(c, db, catalog.ID, sortedTables{tables: tables}); err != nil {
-					return fmt.Errorf("failed to retrive columns metadata: %w", err)
+					return fmt.Errorf("failed to retrieve columns metadata: %w", err)
 				}
 				return nil
 			},
 			func() error {
 				if err = s.scanConstraintsInBulk(c, db, catalog.ID, sortedTables{tables: tables}); err != nil {
-					return fmt.Errorf("failed to retrive constraints metadata: %w", err)
+					return fmt.Errorf("failed to retrieve constraints metadata: %w", err)
 				}
 				return nil
 			},
 			func() error {
 				if err = s.scanIndexesInBulk(c, db, catalog.ID, sortedTables{tables: tables}); err != nil {
-					return fmt.Errorf("failed to retrive indexes metadata: %w", err)
+					return fmt.Errorf("failed to retrieve indexes metadata: %w", err)
 				}
 				return nil
 			},
