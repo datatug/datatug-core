@@ -43,7 +43,7 @@ func (store fsDbCatalogStore) saveDbSchema(dbSchema *models.DbSchema, dbServerSa
 	return nil
 }
 
-func (store fsDbCatalogStore) saveTables(tables []*models.Table, save saveDbServerObjContext) error {
+func (store fsDbCatalogStore) saveTables(tables []*models.CollectionInfo, save saveDbServerObjContext) error {
 	save.dirPath = path.Join(save.dirPath, save.plural)
 	if len(tables) > 0 {
 		if err := os.MkdirAll(save.dirPath, 0777); err != nil {
@@ -58,7 +58,7 @@ func (store fsDbCatalogStore) saveTables(tables []*models.Table, save saveDbServ
 	})
 }
 
-func (store fsDbCatalogStore) saveTable(table *models.Table, save saveDbServerObjContext) (err error) {
+func (store fsDbCatalogStore) saveTable(table *models.CollectionInfo, save saveDbServerObjContext) (err error) {
 	save.dirPath = path.Join(save.dirPath, table.Name)
 	if err = os.MkdirAll(save.dirPath, 0777); err != nil {
 		return err
@@ -73,7 +73,7 @@ func (store fsDbCatalogStore) saveTable(table *models.Table, save saveDbServerOb
 
 	workers := make([]func() error, 0, 9)
 
-	tableKeyWithoutCatalog := table.TableKey
+	tableKeyWithoutCatalog := table.CollectionKey
 	tableKeyWithoutCatalog.Catalog = ""
 	tableKeyWithoutCatalog.Schema = ""
 
@@ -92,7 +92,7 @@ func (store fsDbCatalogStore) saveTable(table *models.Table, save saveDbServerOb
 	return parallel.Run(workers...)
 }
 
-func (store fsDbCatalogStore) writeTableReadme(table *models.Table, save saveDbServerObjContext) func() error {
+func (store fsDbCatalogStore) writeTableReadme(table *models.CollectionInfo, save saveDbServerObjContext) func() error {
 	return func() error {
 		//log.Printf("Saving readme.md for table %v.%v.%v...\n", catalog, table.Schema, table.Name)
 		file, _ := os.Create(path.Join(save.dirPath, "README.md"))

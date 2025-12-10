@@ -2,15 +2,14 @@ package schemer
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/datatug/datatug-core/pkg/models"
 )
 
-func (s scanner) scanConstraintsInBulk(c context.Context, db *sql.DB, catalog string, tablesFinder sortedTables) error {
-	reader, err := s.schemaProvider.GetConstraints(c, db, catalog, "", "")
+func (s scanner) scanConstraintsInBulk(c context.Context, catalog string, tablesFinder SortedTables) error {
+	reader, err := s.schemaProvider.GetConstraints(c, catalog, "", "")
 	if err != nil {
 		return err
 	}
@@ -38,7 +37,7 @@ func (s scanner) scanConstraintsInBulk(c context.Context, db *sql.DB, catalog st
 	return nil
 }
 
-func processConstraint(catalog string, table *models.Table, constraint *Constraint, allTables models.Tables) error {
+func processConstraint(catalog string, table *models.CollectionInfo, constraint *Constraint, allTables models.Tables) error {
 	switch constraint.Type {
 	case "PRIMARY KEY":
 		if table.PrimaryKey == nil {
@@ -63,24 +62,18 @@ func processConstraint(catalog string, table *models.Table, constraint *Constrai
 				Name: constraint.Name,
 				Columns: []string{
 					constraint.ColumnName},
-				RefTable: models.TableKey{Catalog: constraint.RefTableCatalog.String, Schema: constraint.RefTableSchema.String, Name: constraint.RefTableName.String},
+				RefTable: models.CollectionKey{Catalog: constraint.RefTableCatalog, Schema: constraint.RefTableSchema, Name: constraint.RefTableName},
 			}
-			if constraint.MatchOption.Valid {
-				fk.MatchOption = constraint.MatchOption.String
-			}
-			if constraint.UpdateRule.Valid {
-				fk.UpdateRule = constraint.UpdateRule.String
-			}
-			if constraint.DeleteRule.Valid {
-				fk.DeleteRule = constraint.DeleteRule.String
-			}
+			fk.MatchOption = constraint.MatchOption
+			fk.UpdateRule = constraint.UpdateRule
+			fk.DeleteRule = constraint.DeleteRule
 			table.ForeignKeys = append(table.ForeignKeys, &fk)
 
 			{ // Update reference table
-				refTable := findTable(allTables, constraint.RefTableCatalog.String, constraint.RefTableSchema.String, constraint.RefTableName.String)
+				refTable := FindTable(allTables, constraint.RefTableCatalog, constraint.RefTableSchema, constraint.RefTableName)
 				var refByFk *models.RefByForeignKey
 				if refTable == nil {
-					return fmt.Errorf("reference table not found: %v.%v.%v", constraint.RefTableCatalog.String, constraint.RefTableSchema.String, constraint.RefTableName.String)
+					return fmt.Errorf("reference table not found: %v.%v.%v", constraint.RefTableCatalog, constraint.RefTableSchema, constraint.RefTableName)
 				}
 				var refByTable *models.TableReferencedBy
 				for _, refByTable = range refTable.ReferencedBy {
@@ -89,7 +82,7 @@ func processConstraint(catalog string, table *models.Table, constraint *Constrai
 					}
 				}
 				if refByTable == nil || refByTable.Catalog != catalog || refByTable.Schema != constraint.SchemaName || refByTable.Name != constraint.TableName {
-					refByTable = &models.TableReferencedBy{TableKey: table.TableKey, ForeignKeys: make([]*models.RefByForeignKey, 0, 1)}
+					refByTable = &models.TableReferencedBy{CollectionKey: table.CollectionKey, ForeignKeys: make([]*models.RefByForeignKey, 0, 1)}
 					refTable.ReferencedBy = append(refTable.ReferencedBy, refByTable)
 				}
 				for _, fk2 := range refByTable.ForeignKeys {

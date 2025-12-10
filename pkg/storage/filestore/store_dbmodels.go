@@ -135,7 +135,7 @@ func (store fsDbModelsStore) saveTableModel(dirPath string, table models.TableMo
 		filePrefix = fmt.Sprintf("%v.%v", table.Schema, table.Name)
 	}
 
-	tableKeyWithoutCatalog := table.TableKey
+	tableKeyWithoutCatalog := table.CollectionKey
 	tableKeyWithoutCatalog.Catalog = ""
 	tableKeyWithoutCatalog.Schema = ""
 

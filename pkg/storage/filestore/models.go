@@ -13,43 +13,43 @@ type TableFile struct {
 	PrimaryKey   *models.UniqueKey           `json:"primaryKey,omitempty"`
 	ForeignKeys  []*models.ForeignKey        `json:"foreignKeys,omitempty"`
 	ReferencedBy []*models.TableReferencedBy `json:"referencedBy,omitempty"`
-	Columns      []*models.TableColumn       `json:"columns,omitempty"`
+	Columns      []*models.ColumnInfo        `json:"columns,omitempty"`
 	Indexes      []*models.Index             `json:"indexes,omitempty"`
 }
 
 // TableRefsByFile info to be stored about reference in a JSON file
 type TableRefsByFile struct {
-	models.TableKey
+	models.CollectionKey
 	ReferencedBy []*models.TableReferencedBy `json:"referencedBy"`
 }
 
 // TableForeignKeysFile info to be stored about FK in a JSON file
 type TableForeignKeysFile struct {
-	models.TableKey
+	models.CollectionKey
 	ForeignKeys []*models.ForeignKey `json:"foreignKeys"`
 }
 
 // TablePrimaryKeyFile info to be stored about PK in a JSON file
 type TablePrimaryKeyFile struct {
-	models.TableKey
+	models.CollectionKey
 	PrimaryKey *models.UniqueKey `json:"primaryKey"`
 }
 
 // TableColumnsFile info to be stored about column in a JSON file
 type TableColumnsFile struct {
-	models.TableKey
-	Columns []*models.TableColumn `json:"columns,omitempty"`
+	models.CollectionKey
+	Columns []*models.ColumnInfo `json:"columns,omitempty"`
 }
 
 // TablePropsFile info to be stored about table in a JSON file
 type TablePropsFile struct {
-	models.TableKey
+	models.CollectionKey
 	models.TableProps
 }
 
 // TableModelFile defines what to storage in table model file
 type TableModelFile struct {
-	models.TableKey
+	models.CollectionKey
 }
 
 // TableModelColumnsFile info to be stored about column in a JSON file

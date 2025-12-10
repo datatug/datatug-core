@@ -33,7 +33,7 @@ type tableToCompare struct {
 	dbID       string
 	tableName  string
 	tableModel *models.TableModel
-	dbTables   []*models.Table
+	dbTables   []*models.CollectionInfo
 }
 
 // CompareDatabases compares databases

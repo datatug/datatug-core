@@ -30,10 +30,11 @@ func (encoder) DbServerToReadme(w io.Writer, _ *models.ProjectRepository, dbServ
 func (encoder) DbCatalogToReadme(w io.Writer, _ *models.ProjectRepository, dbServer models.ProjDbServer, catalog models.DbCatalog) error {
 	return writeReadme(w, "dbserver.md", map[string]interface{}{
 		"dbServer": dbServer,
+		"catalog":  catalog,
 	})
 }
 
-func (encoder) TableToReadme(w io.Writer, repository *models.ProjectRepository, catalog string, table *models.Table, dbServer models.ProjDbServer) error {
+func (encoder) TableToReadme(w io.Writer, repository *models.ProjectRepository, catalog string, table *models.CollectionInfo, dbServer models.ProjDbServer) error {
 	data, err := getTableData(repository, catalog, table, dbServer)
 	if err != nil {
 		return fmt.Errorf("failed to get data for table template: %w", err)

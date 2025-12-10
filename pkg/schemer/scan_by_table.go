@@ -2,7 +2,6 @@ package schemer
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"sort"
@@ -12,17 +11,17 @@ import (
 	"github.com/datatug/datatug-core/pkg/parallel"
 )
 
-func (s scanner) getTableProps(c context.Context, db *sql.DB, catalog string, table *models.Table) error {
+func (s scanner) getTableProps(c context.Context, catalog string, table *models.CollectionInfo) error {
 	log.Printf("getTableProps() table=%v", table.Name)
 	err := parallel.Run(
 		func() (err error) {
-			if err = s.scanTableCols(c, db, catalog, table); err != nil {
+			if err = s.scanTableCols(c, catalog, table); err != nil {
 				return fmt.Errorf("failed to get table columns: %w", err)
 			}
 			return nil
 		},
 		func() (err error) {
-			if err = s.scanTableIndexes(c, db, catalog, table); err != nil {
+			if err = s.scanTableIndexes(c, catalog, table); err != nil {
 				return fmt.Errorf("failed to get table indexes: %w", err)
 			}
 			return nil
@@ -34,9 +33,9 @@ func (s scanner) getTableProps(c context.Context, db *sql.DB, catalog string, ta
 	return nil
 }
 
-func (s scanner) scanTableCols(c context.Context, db *sql.DB, catalog string, table *models.Table) error {
+func (s scanner) scanTableCols(c context.Context, catalog string, table *models.CollectionInfo) error {
 	log.Printf("scanning columns for table %v...", table.Name)
-	columnsReader, err := s.schemaProvider.GetColumns(c, db, catalog, table.Schema, table.Name)
+	columnsReader, err := s.schemaProvider.GetColumns(c, catalog, table.Schema, table.Name)
 	if err != nil {
 		return err
 	}
@@ -64,15 +63,15 @@ func (s scanner) scanTableCols(c context.Context, db *sql.DB, catalog string, ta
 		if column.Name == "" {
 			return nil
 		}
-		table.Columns = append(table.Columns, &column.TableColumn)
+		table.Columns = append(table.Columns, &column.ColumnInfo)
 		if column.PrimaryKeyPosition > 0 {
-			pkColumns = append(pkColumns, &column.TableColumn)
+			pkColumns = append(pkColumns, &column.ColumnInfo)
 		}
 	}
 }
 
-func (s scanner) scanTableIndexes(c context.Context, db *sql.DB, catalog string, table *models.Table) error {
-	indexesReader, err := s.schemaProvider.GetIndexes(c, db, catalog, table.Schema, table.Name)
+func (s scanner) scanTableIndexes(c context.Context, catalog string, table *models.CollectionInfo) error {
+	indexesReader, err := s.schemaProvider.GetIndexes(c, catalog, table.Schema, table.Name)
 	if err != nil {
 		return err
 	}
@@ -91,7 +90,7 @@ func (s scanner) scanTableIndexes(c context.Context, db *sql.DB, catalog string,
 		}
 		table.Indexes = append(table.Indexes, index.Index)
 		workers = append(workers, func() error {
-			if err := s.scanIndexColumns(c, db, catalog, table, index.Index); err != nil {
+			if err := s.scanIndexColumns(c, catalog, table, index.Index); err != nil {
 				return fmt.Errorf("failed to get columns of index [%v]: %w", index.Name, err)
 			}
 			return nil
@@ -103,8 +102,8 @@ func (s scanner) scanTableIndexes(c context.Context, db *sql.DB, catalog string,
 	return nil
 }
 
-func (s scanner) scanIndexColumns(c context.Context, db *sql.DB, catalog string, table *models.Table, index *models.Index) error {
-	indexColumnsReader, err := s.schemaProvider.GetIndexColumns(c, db, catalog, table.Schema, table.Name, index.Name)
+func (s scanner) scanIndexColumns(c context.Context, catalog string, table *models.CollectionInfo, index *models.Index) error {
+	indexColumnsReader, err := s.schemaProvider.GetIndexColumns(c, catalog, table.Schema, table.Name, index.Name)
 	if err != nil {
 		return err
 	}
@@ -125,8 +124,8 @@ func (s scanner) scanIndexColumns(c context.Context, db *sql.DB, catalog string,
 	return nil
 }
 
-func (s scanner) scanTableConstraints(c context.Context, db *sql.DB, catalog string, table *models.Table, tables models.Tables) error {
-	constraints, err := s.schemaProvider.GetConstraints(c, db, catalog, table.Schema, table.Name)
+func (s scanner) scanTableConstraints(c context.Context, catalog string, table *models.CollectionInfo, tables models.Tables) error {
+	constraints, err := s.schemaProvider.GetConstraints(c, catalog, table.Schema, table.Name)
 	if err != nil {
 		return err
 	}

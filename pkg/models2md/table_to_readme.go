@@ -14,7 +14,7 @@ var reUnquoted = regexp.MustCompile(`\w+`)
 var reUpperCase = regexp.MustCompile("[A-Z]")
 
 // TableToReadme encodes table summary to markdown file format
-func getTableData(repository *models.ProjectRepository, catalog string, table *models.Table, dbServer models.ProjDbServer) (data map[string]interface{}, err error) {
+func getTableData(repository *models.ProjectRepository, catalog string, table *models.CollectionInfo, dbServer models.ProjDbServer) (data map[string]interface{}, err error) {
 
 	recordsCount := ""
 	if table.RecordsCount != nil {
@@ -97,8 +97,8 @@ FROM %v.%v
 		walker := refByWalker{
 			catalog:   catalog,
 			dbServer:  dbServer,
-			processed: make(map[string]*models.Table),
-			process: func(parent *models.Table, refBy *models.TableReferencedBy, level, index int) error {
+			processed: make(map[string]*models.CollectionInfo),
+			process: func(parent *models.CollectionInfo, refBy *models.TableReferencedBy, level, index int) error {
 				line, err := writeRefByToMarkDownListTree(repoID, projectID, dbServer.ID, catalog, parent, refBy, level, index)
 				if err != nil {
 					return err
@@ -240,15 +240,15 @@ FROM %v.%v
 type refByWalker struct {
 	catalog   string
 	dbServer  models.ProjDbServer
-	processed map[string]*models.Table
-	process   func(parent *models.Table, refBy *models.TableReferencedBy, level, index int) error
+	processed map[string]*models.CollectionInfo
+	process   func(parent *models.CollectionInfo, refBy *models.TableReferencedBy, level, index int) error
 }
 
 func (refByWalker) getTableID(schema, name string) string {
 	return fmt.Sprintf("[%v].[%v]", schema, name)
 }
 
-func (walker *refByWalker) walkReferencedBy(table *models.Table, level int) error {
+func (walker *refByWalker) walkReferencedBy(table *models.CollectionInfo, level int) error {
 	level++
 	walker.processed[walker.getTableID(table.Schema, table.Name)] = table
 	for i, refBy := range table.ReferencedBy {
@@ -273,7 +273,7 @@ func (walker *refByWalker) walkReferencedBy(table *models.Table, level int) erro
 	return nil
 }
 
-func writeRefByToMarkDownListTree(repoID, projectID, server, catalog string, parent *models.Table, refBy *models.TableReferencedBy, level, index int) (string, error) {
+func writeRefByToMarkDownListTree(repoID, projectID, server, catalog string, parent *models.CollectionInfo, refBy *models.TableReferencedBy, level, index int) (string, error) {
 	joinSQL := strings.TrimSpace(fmt.Sprintf(`
 USE %v
 SELECT

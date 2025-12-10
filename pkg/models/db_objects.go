@@ -101,8 +101,8 @@ func (v DbSchemas) GetByID(id string) *DbSchema {
 // DbSchema represents a schema in a database
 type DbSchema struct {
 	ProjectItem
-	Tables []*Table `json:"tables"`
-	Views  []*Table `json:"views"`
+	Tables []*CollectionInfo `json:"tables"`
+	Views  []*CollectionInfo `json:"views"`
 }
 
 // Validate returns error if not valid
@@ -127,7 +127,7 @@ func (v DbSchema) Validate() error {
 type DbCatalogs []*DbCatalog
 
 // GetTable returns table
-func (v DbCatalogs) GetTable(catalog, schema, name string) *Table {
+func (v DbCatalogs) GetTable(catalog, schema, name string) *CollectionInfo {
 	for _, c := range v {
 		if c.ID == catalog {
 			for _, s := range c.Schemas {
@@ -164,8 +164,8 @@ func (v DbCatalogs) GetDbByID(id string) *DbCatalog {
 	return nil
 }
 
-// TableKeys is a []TableKey
-type TableKeys []TableKey
+// TableKeys is a []CollectionKey
+type TableKeys []CollectionKey
 
 // Validate returns error if not valid
 func (v TableKeys) Validate() error {
@@ -177,34 +177,9 @@ func (v TableKeys) Validate() error {
 	return nil
 }
 
-// TableKey defines a key that identifies a table or a view
-type TableKey struct {
-	Name    string `json:"name"`
-	Schema  string `json:"schema,omitempty"`
-	Catalog string `json:"catalog,omitempty"`
-}
-
-func (v TableKey) String() string {
-	if v.Schema == "" && v.Catalog == "" {
-		return v.Name
-	}
-	if v.Catalog == "" {
-		return fmt.Sprintf("%v.%v", v.Schema, v.Name)
-	}
-	return fmt.Sprintf("%v.%v.%v", v.Catalog, v.Schema, v.Name)
-}
-
-// Validate returns error if not valid
-func (v TableKey) Validate() error {
-	if v.Name == "" {
-		return validation.NewErrRecordIsMissingRequiredField("name")
-	}
-	return nil
-}
-
 // TableProps holds properties of a table
 type TableProps struct {
-	DbType     string       `json:"dbType,omitempty"` // e.g. "BASE TABLE", "VIEW", etc.
+	DbType     string       `json:"dbType,omitempty"` // e.g. "BASE TABLE", "VIEW", "Collection", etc.
 	UniqueKeys []*UniqueKey `json:"uniqueKeys,omitempty"`
 }
 
@@ -332,12 +307,12 @@ func (v ForeignKeys) Validate() error {
 
 // ForeignKey holds metadata about foreign key
 type ForeignKey struct {
-	Name        string   `json:"name"`
-	Columns     []string `json:"columns"`
-	RefTable    TableKey `json:"refTable"`
-	MatchOption string   `json:"matchOption,omitempty"` // Document what this?
-	UpdateRule  string   `json:"updateRule,omitempty"`  // Document what this?
-	DeleteRule  string   `json:"deleteRule,omitempty"`  // Document what this?
+	Name        string        `json:"name"`
+	Columns     []string      `json:"columns"`
+	RefTable    CollectionKey `json:"refTable"`
+	MatchOption string        `json:"matchOption,omitempty"` // Document what this?
+	UpdateRule  string        `json:"updateRule,omitempty"`  // Document what this?
+	DeleteRule  string        `json:"deleteRule,omitempty"`  // Document what this?
 }
 
 // Validate returns error if not valid
@@ -360,8 +335,8 @@ type RefByForeignKey struct {
 	DeleteRule  string   `json:"deleteRule,omitempty"`
 }
 
-// Tables is a slice of *Table
-type Tables []*Table
+// Tables is a slice of *CollectionInfo
+type Tables []*CollectionInfo
 
 // Constraint defines constraint
 type Constraint struct {
@@ -380,17 +355,17 @@ func (v Constraint) Validate() error {
 	return nil
 }
 
-// GetByKey return 9a *Table by key or nil if not found
-func (v Tables) GetByKey(k TableKey) *Table {
+// GetByKey return 9a *CollectionInfo by key or nil if not found
+func (v Tables) GetByKey(k CollectionKey) *CollectionInfo {
 	for _, t := range v {
-		if t.TableKey == k {
+		if t.CollectionKey == k {
 			return t
 		}
 	}
 	return nil
 }
 
-// RecordsetBaseDef is used by: Table, RecordsetDefinition
+// RecordsetBaseDef is used by: CollectionInfo, RecordsetDefinition
 type RecordsetBaseDef struct {
 	PrimaryKey    *UniqueKey  `json:"primaryKey,omitempty"`
 	ForeignKeys   ForeignKeys `json:"foreignKeys,omitempty"`
@@ -398,10 +373,10 @@ type RecordsetBaseDef struct {
 	ActiveIssues  *Issues     `json:"issues,omitempty"`
 }
 
-// Table holds metadata about a table or view
-type Table struct {
+// CollectionInfo holds metadata about a collection or a table or a view
+type CollectionInfo struct {
 	RecordsetBaseDef
-	TableKey
+	CollectionKey
 	TableProps
 	SQL          string             `json:"sql,omitempty"`
 	Columns      TableColumns       `json:"columns,omitempty"`
@@ -411,8 +386,8 @@ type Table struct {
 }
 
 // Validate returns error if not valid
-func (v Table) Validate() error {
-	if err := v.TableKey.Validate(); err != nil {
+func (v CollectionInfo) Validate() error {
+	if err := v.CollectionKey.Validate(); err != nil {
 		return err
 	}
 	if err := v.TableProps.Validate(); err != nil {
@@ -441,7 +416,7 @@ func (v TableReferencedBys) Validate() error {
 
 // TableReferencedBy holds metadata about table/view that reference a table/view
 type TableReferencedBy struct {
-	TableKey
+	CollectionKey
 	ForeignKeys []*RefByForeignKey `json:"foreignKeys"`
 }
 
@@ -513,13 +488,11 @@ func (v tableColsSorter) Less(i, j int) bool {
 
 // Swap swaps items
 func (v tableColsSorter) Swap(i, j int) {
-	c := v.Columns[i]
-	v.Columns[i] = v.Columns[j]
-	v.Columns[j] = c
+	v.Columns[i], v.Columns[j] = v.Columns[j], v.Columns[i]
 }
 
 // TableColumns defines slice
-type TableColumns []*TableColumn
+type TableColumns []*ColumnInfo
 
 // Validate returns error if not valid
 func (v TableColumns) Validate() error {
@@ -531,24 +504,24 @@ func (v TableColumns) Validate() error {
 	return nil
 }
 
-// TableColumn holds col metadata
-type TableColumn struct {
+// ColumnInfo holds column metadata
+type ColumnInfo struct {
 	DbColumnProps
 	//ChangeType ChangeType `json:"-"` // Document what it is and why needed
-	//ByEnv       map[string]TableColumn `json:"byEnv,omitempty"`
+	//ByEnv       map[string]ColumnInfo `json:"byEnv,omitempty"`
 	Constraints []string `json:"constraints,omitempty"`
 }
 
-// ColumnModel defines column as we expect it to be
+// ColumnModel defines a column as we expect it to be
 type ColumnModel struct {
-	TableColumn
+	ColumnInfo
 	ByEnv  StateByEnv `json:"byEnv,omitempty"`
 	Checks Checks     `json:"checks,omitempty"`
 }
 
 // Validate returns error if not valid
 func (v *ColumnModel) Validate() error {
-	if err := v.TableColumn.Validate(); err != nil {
+	if err := v.ColumnInfo.Validate(); err != nil {
 		return err
 	}
 	if err := v.ByEnv.Validate(); err != nil {
@@ -604,7 +577,7 @@ func (v CharacterSet) Validate() error {
 }
 
 // Validate returns error if not valid
-func (v TableColumn) Validate() error {
+func (v ColumnInfo) Validate() error {
 	if err := v.DbColumnProps.Validate(); err != nil {
 		if v.Name == "" {
 			return err

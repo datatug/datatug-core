@@ -89,7 +89,7 @@ func loadDir(
 	return parallel.Run(workers...)
 }
 
-func loadBoards(ctx context.Context, projPath string, project *models.DatatugProject) (err error) {
+func loadBoards(_ context.Context, projPath string, project *models.DatatugProject) (err error) {
 	boardsDirPath := path.Join(projPath, DatatugFolder, "boards")
 	if err = loadDir(nil, boardsDirPath, processFiles,
 		func(files []os.FileInfo) {
@@ -118,7 +118,7 @@ func loadBoards(ctx context.Context, projPath string, project *models.DatatugPro
 	return err
 }
 
-func loadDbModels(ctx context.Context, projPath string, project *models.DatatugProject) error {
+func loadDbModels(_ context.Context, projPath string, project *models.DatatugProject) error {
 	dbModelsDirPath := path.Join(projPath, DatatugFolder, "dbmodels")
 	if err := loadDir(nil, dbModelsDirPath, processDirs,
 		func(files []os.FileInfo) {
@@ -334,12 +334,12 @@ func loadTables(schemasDirPath, schema, folder string) (tables models.Tables, er
 	return
 }
 
-func loadTable(dirPath, schema, tableName string) (table *models.Table, err error) {
+func loadTable(dirPath, schema, tableName string) (table *models.CollectionInfo, err error) {
 	tableDirPath := path.Join(dirPath, tableName)
 
 	prefix := fmt.Sprintf("%v.%v.", schema, tableName)
 
-	table = new(models.Table)
+	table = new(models.CollectionInfo)
 	table.Name = tableName
 	table.Schema = schema
 	loadTableFile := func(suffix string, required bool) (err error) {
@@ -376,7 +376,7 @@ func loadTable(dirPath, schema, tableName string) (table *models.Table, err erro
 
 func loadTableModel(name string) (tableModel *models.TableModel, err error) {
 	tableModel = &models.TableModel{
-		TableKey: models.TableKey{
+		CollectionKey: models.CollectionKey{
 			Name: name,
 		},
 	}

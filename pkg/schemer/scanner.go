@@ -2,7 +2,6 @@ package schemer
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"strings"
@@ -21,19 +20,19 @@ type scanner struct {
 	schemaProvider SchemaProvider
 }
 
-func (s scanner) ScanCatalog(c context.Context, db *sql.DB, name string) (dbCatalog *models.DbCatalog, err error) {
+func (s scanner) ScanCatalog(c context.Context, name string) (dbCatalog *models.DbCatalog, err error) {
 	dbCatalog = new(models.DbCatalog)
 	dbCatalog.ID = name
-	if err = s.scanTables(c, db, dbCatalog); err != nil {
+	if err = s.scanTables(c, dbCatalog); err != nil {
 		return dbCatalog, fmt.Errorf("failed to get tables & views: %w", err)
 	}
 	log.Println("Scanner completed tables scan.")
 	return
 }
 
-func (s scanner) scanTables(c context.Context, db *sql.DB, catalog *models.DbCatalog) error {
-	var tables []*models.Table
-	tablesReader, err := s.schemaProvider.GetTables(c, db, catalog.ID, "")
+func (s scanner) scanTables(c context.Context, catalog *models.DbCatalog) error {
+	var tables []*models.CollectionInfo
+	tablesReader, err := s.schemaProvider.GetCollections(c, NewSchemaKey(catalog.ID, ""))
 	if err != nil {
 		return err
 	}
@@ -42,19 +41,19 @@ func (s scanner) scanTables(c context.Context, db *sql.DB, catalog *models.DbCat
 	if s.schemaProvider.IsBulkProvider() {
 		workers = append(workers,
 			func() error {
-				if err = s.scanColumnsInBulk(c, db, catalog.ID, sortedTables{tables: tables}); err != nil {
+				if err = s.scanColumnsInBulk(c, catalog.ID, SortedTables{tables: tables}); err != nil {
 					return fmt.Errorf("failed to retrieve columns metadata: %w", err)
 				}
 				return nil
 			},
 			func() error {
-				if err = s.scanConstraintsInBulk(c, db, catalog.ID, sortedTables{tables: tables}); err != nil {
+				if err = s.scanConstraintsInBulk(c, catalog.ID, SortedTables{tables: tables}); err != nil {
 					return fmt.Errorf("failed to retrieve constraints metadata: %w", err)
 				}
 				return nil
 			},
 			func() error {
-				if err = s.scanIndexesInBulk(c, db, catalog.ID, sortedTables{tables: tables}); err != nil {
+				if err = s.scanIndexesInBulk(c, catalog.ID, SortedTables{tables: tables}); err != nil {
 					return fmt.Errorf("failed to retrieve indexes metadata: %w", err)
 				}
 				return nil
@@ -65,7 +64,7 @@ func (s scanner) scanTables(c context.Context, db *sql.DB, catalog *models.DbCat
 		if isDeadlineSet && time.Now().After(deadline) {
 			return fmt.Errorf("exceeded deadline")
 		}
-		t, err := tablesReader.NextTable()
+		t, err := tablesReader.NextCollection()
 		if err != nil {
 			return err
 		}
@@ -83,7 +82,7 @@ func (s scanner) scanTables(c context.Context, db *sql.DB, catalog *models.DbCat
 		case "BASE TABLE":
 			schema.Tables = append(schema.Tables, t)
 			workers = append(workers, func() (err error) {
-				t.RecordsCount, err = s.schemaProvider.RecordsCount(c, db, catalog.ID, t.Schema, t.Name)
+				t.RecordsCount, err = s.schemaProvider.RecordsCount(c, catalog.ID, t.Schema, t.Name)
 				if err != nil {
 					log.Printf("failed to retiever records count for %v.%v.%v: %v", catalog.ID, t.Schema, t.Name, err)
 					//return fmt.Errorf()
@@ -97,14 +96,14 @@ func (s scanner) scanTables(c context.Context, db *sql.DB, catalog *models.DbCat
 		}
 		if !s.schemaProvider.IsBulkProvider() {
 			workers = append(workers, func() error {
-				return s.getTableProps(c, db, catalog.ID, t)
+				return s.getTableProps(c, catalog.ID, t)
 			})
 		}
 	}
 	err = parallel.Run(workers...)
 	if !s.schemaProvider.IsBulkProvider() {
 		for _, table := range tables {
-			if err = s.scanTableConstraints(c, db, catalog.ID, table, tables); err != nil {
+			if err = s.scanTableConstraints(c, catalog.ID, table, tables); err != nil {
 				return err
 			}
 		}
@@ -112,8 +111,8 @@ func (s scanner) scanTables(c context.Context, db *sql.DB, catalog *models.DbCat
 	return err
 }
 
-func (s scanner) scanColumnsInBulk(c context.Context, db *sql.DB, catalog string, tablesFinder sortedTables) error {
-	columnsReader, err := s.schemaProvider.GetColumns(c, db, catalog, "", "")
+func (s scanner) scanColumnsInBulk(c context.Context, catalog string, tablesFinder SortedTables) error {
+	columnsReader, err := s.schemaProvider.GetColumns(c, catalog, "", "")
 	if err != nil {
 		return err
 	}
@@ -130,7 +129,7 @@ func (s scanner) scanColumnsInBulk(c context.Context, db *sql.DB, catalog string
 			return nil
 		}
 		if table := tablesFinder.SequentialFind(catalog, column.SchemaName, column.TableName); table != nil {
-			table.Columns = append(table.Columns, &column.TableColumn)
+			table.Columns = append(table.Columns, &column.ColumnInfo)
 		} else {
 			return fmt.Errorf("unknown table referenced by column [%v]: %v.%v.%v",
 				column.Name, catalog, column.SchemaName, column.TableName)
@@ -138,8 +137,8 @@ func (s scanner) scanColumnsInBulk(c context.Context, db *sql.DB, catalog string
 	}
 }
 
-func (s scanner) scanIndexesInBulk(c context.Context, db *sql.DB, catalog string, tablesFinder sortedTables) error {
-	reader, err := s.schemaProvider.GetIndexes(c, db, catalog, "", "")
+func (s scanner) scanIndexesInBulk(c context.Context, catalog string, tablesFinder SortedTables) error {
+	reader, err := s.schemaProvider.GetIndexes(c, catalog, "", "")
 	if err != nil {
 		return err
 	}
@@ -167,14 +166,14 @@ func (s scanner) scanIndexesInBulk(c context.Context, db *sql.DB, catalog string
 		}
 		table.Indexes = append(table.Indexes, index.Index)
 	}
-	if err = s.scanIndexColumnsInBulk(c, db, catalog, sortedIndexes{indexes: indexes}); err != nil {
+	if err = s.scanIndexColumnsInBulk(c, catalog, SortedIndexes{indexes: indexes}); err != nil {
 		return fmt.Errorf("failed to retrieve index columns: %v", err)
 	}
 	return nil
 }
 
-func (s scanner) scanIndexColumnsInBulk(c context.Context, db *sql.DB, catalog string, indexFinder sortedIndexes) error {
-	reader, err := s.schemaProvider.GetIndexColumns(c, db, catalog, "", "", "")
+func (s scanner) scanIndexColumnsInBulk(c context.Context, catalog string, indexFinder SortedIndexes) error {
+	reader, err := s.schemaProvider.GetIndexColumns(c, catalog, "", "", "")
 	if err != nil {
 		return err
 	}
