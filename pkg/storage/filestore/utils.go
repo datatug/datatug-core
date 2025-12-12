@@ -5,6 +5,8 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 // Decoder decodes
@@ -37,4 +39,32 @@ func readFile(filePath string, required bool, o interface{}, newDecoder func(r i
 		return err
 	}
 	return err
+}
+
+func DirExists(path string) (bool, error) {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err // some other error
+	}
+	return info.IsDir(), nil
+}
+
+// expandHome expands leading ~ to the user's home directory.
+func ExpandHome(p string) string {
+	if p == "" {
+		return p
+	}
+	if strings.HasPrefix(p, "~/") || p == "~" {
+		home, err := os.UserHomeDir()
+		if err == nil {
+			if p == "~" {
+				return home
+			}
+			return filepath.Join(home, strings.TrimPrefix(p, "~/"))
+		}
+	}
+	return p
 }

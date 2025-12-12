@@ -31,7 +31,8 @@ func (store fsProjectStore) LoadProject(ctx context.Context) (project *datatug.P
 	}
 	if err = parallel.Run(
 		func() error {
-			return loadEnvironments(ctx, store.projectPath, project)
+			project.Environments, err = loadEnvironments(store.projectPath)
+			return err
 		},
 		func() error {
 			entities, err := loadEntities(ctx, store.projectPath)

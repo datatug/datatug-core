@@ -15,26 +15,28 @@ import (
 
 func loadProjectFile(projPath string, project *datatug.Project) (err error) {
 	filePath := path.Join(projPath, DatatugFolder, ProjectSummaryFileName)
-	return readJSONFile(filePath, true, project)
+	if err = readJSONFile(filePath, true, project); err != nil {
+		err = fmt.Errorf("failed to load project file %s: %w", filePath, err)
+	}
+	return
 }
 
-func loadEnvironments(_ context.Context, projPath string, project *datatug.Project) (err error) {
+func loadEnvironments(projPath string) (environments datatug.Environments, err error) {
 	envsDirPath := path.Join(projPath, DatatugFolder, EnvironmentsFolder)
-	err = loadDir(nil, envsDirPath, processDirs, func(files []os.FileInfo) {
-		project.Environments = make(datatug.Environments, 0, len(files))
-	}, func(f os.FileInfo, i int, _ *sync.Mutex) (err error) {
-		env := new(datatug.Environment)
-		env.ID = f.Name()
-		project.Environments = append(project.Environments, env)
-		if err = loadEnvironment(path.Join(envsDirPath, env.ID), env); err != nil {
-			return err
-		}
-		return
-	})
-	if err != nil {
-		return err
-	}
-	return err
+	err = loadDir(nil, envsDirPath, processDirs,
+		func(files []os.FileInfo) {
+			environments = make(datatug.Environments, 0, len(files))
+		},
+		func(f os.FileInfo, i int, _ *sync.Mutex) (err error) {
+			env := new(datatug.Environment)
+			env.ID = f.Name()
+			environments = append(environments, env)
+			if err = loadEnvironment(path.Join(envsDirPath, env.ID), env); err != nil {
+				return err
+			}
+			return
+		})
+	return
 }
 
 type process uint8

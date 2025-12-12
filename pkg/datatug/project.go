@@ -1,6 +1,7 @@
 package datatug
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
@@ -9,58 +10,86 @@ import (
 	"github.com/strongo/validation"
 )
 
-// Project holds info about project
+func NewProject(id string, loader ProjectLoader) (p *Project) {
+	p = new(Project)
+	p.ID = id
+	p.loader = loader
+	return
+}
+
+// Project holds info about a project
 type Project struct {
 	ProjectItem
-	Created       *ProjectCreated     `json:"created,omitempty" firestore:"created,omitempty"`
-	Boards        Boards              `json:"boards,omitempty" firestore:"boards,omitempty"`
-	Queries       *QueryFolder        `json:"queries,omitempty" firestore:"queries,omitempty"`
-	Entities      Entities            `json:"entities,omitempty" firestore:"entities,omitempty"`
-	Environments  Environments        `json:"environments,omitempty" firestore:"environments,omitempty"`
-	DbModels      DbModels            `json:"dbModels,omitempty" firestore:"dbModels,omitempty"`
-	DbServers     ProjDbServers       `json:"dbServers,omitempty" firestore:"dbServers,omitempty"`
+	loader   ProjectLoader
+	Created  *ProjectCreated `json:"created,omitempty" firestore:"created,omitempty"`
+	Boards   Boards          `json:"boards,omitempty" firestore:"boards,omitempty"`
+	Queries  *QueryFolder    `json:"queries,omitempty" firestore:"queries,omitempty"`
+	Entities Entities        `json:"entities,omitempty" firestore:"entities,omitempty"`
+
+	// Use GetEnvironments to get the latest
+	Environments Environments `json:"environments,omitempty" firestore:"environments,omitempty"`
+
+	DbModels DbModels `json:"dbModels,omitempty" firestore:"dbModels,omitempty"`
+
+	// Use GetDbServers to get the latest
+	DbServers ProjDbServers `json:"dbServers,omitempty" firestore:"dbServers,omitempty"`
+
 	DbDifferences DatabaseDifferences `json:"dbDifferences,omitempty" firestore:"dbDifferences,omitempty"`
 	Actions       Actions             `json:"actions,omitempty" firestore:"actions,omitempty"`
 	Repository    *ProjectRepository  `json:"repository,omitempty" firestore:"repository,omitempty"`
 }
 
+func (p Project) GetEnvironments(ctx context.Context) (envs Environments, err error) {
+	if p.Environments == nil {
+		p.Environments, err = p.loader.LoadEnvironments(ctx)
+	}
+	return p.Environments, err
+}
+
+func (p Project) GetDbServers(ctx context.Context) (dbServers ProjDbServers, err error) {
+	if p.DbServers == nil {
+		p.DbServers, err = p.loader.LoadDbServers(ctx)
+	}
+	return p.DbServers, err
+}
+
 // Validate returns error if not valid
-func (v Project) Validate() error {
-	switch v.Access {
+func (p Project) Validate() error {
+	switch p.Access {
 	case "private", "protected", "public":
 	case "":
 		return validation.NewErrRecordIsMissingRequiredField("access")
 	default:
 		return validation.NewErrBadRecordFieldValue("access", "unknown value")
 	}
-	//if strings.TrimSpace(v.Name) == "" {
+	//if strings.TrimSpace(p.Name) == "" {
 	//	return validation.NewErrRecordIsMissingRequiredField("title")
 	//}
-	if l := len(v.Title); l > 100 {
+	if l := len(p.Title); l > 100 {
 		return validation.NewErrBadRecordFieldValue("title", "too long title (max 100): "+strconv.Itoa(l))
 	}
 	log.Println("Validating environments...")
-	if err := v.Environments.Validate(); err != nil {
+	if err := p.Environments.Validate(); err != nil {
 		return fmt.Errorf("validation failed for project environments: %w", err)
 	}
 	log.Println("Validating entities...")
-	if err := v.Entities.Validate(); err != nil {
+	if err := p.Entities.Validate(); err != nil {
 		return fmt.Errorf("validation failed for project entities: %w", err)
 	}
 	log.Println("Validating DB models...")
-	if err := v.DbModels.Validate(); err != nil {
+	if err := p.DbModels.Validate(); err != nil {
 		return fmt.Errorf("validation failed for project db models: %w", err)
 	}
 	log.Println("Validating boards...")
-	if err := v.Boards.Validate(); err != nil {
+	if err := p.Boards.Validate(); err != nil {
 		return fmt.Errorf("validation failed for project boards: %w", err)
 	}
 	log.Println("Validating DB servers...")
-	if err := v.DbServers.Validate(); err != nil {
+	if err := p.DbServers.Validate(); err != nil {
 		return fmt.Errorf("validation failed for project db servers: %w", err)
 	}
 	log.Println("Validating actions...")
-	if err := v.Actions.Validate(); err != nil {
+	if err := p.Actions.Validate(); err != nil {
 		return fmt.Errorf("validation failed for project actions: %w", err)
 	}
 	return nil
