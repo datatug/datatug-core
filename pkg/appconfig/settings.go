@@ -2,6 +2,7 @@ package appconfig
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path"
 
@@ -11,12 +12,13 @@ import (
 
 // Settings hold DataTug executable configuration for commands like `serve`
 type Settings struct {
-	Projects []*ProjectConfig `yaml:"projects,omitempty"` // Intentionally do not use map
+	// Intentionally do not use map
+	Projects []*ProjectConfig `yaml:"projects,omitempty" json:"projects,omitempty"`
 
-	Client *ClientConfig `yaml:"client,omitempty"`
-	Server *ServerConfig `yaml:"server,omitempty"`
+	Client *ClientConfig `yaml:"client,omitempty" json:"client,omitempty"`
+	Server *ServerConfig `yaml:"server,omitempty" json:"server,omitempty"`
 
-	Credentials map[string][]AuthCredential
+	Credentials map[string][]AuthCredential `yaml:"credentials,omitempty" json:"credentials,omitempty"`
 }
 
 func (v Settings) GetProjectConfig(projectID string) *ProjectConfig {
@@ -48,12 +50,13 @@ type ServerConfig struct {
 
 type StoreType string
 
-const FileStoreUrlPrefix = "file:"
+//const FileStoreUrlPrefix = "file:"
 
 // ProjectConfig hold project configuration, specifically path to project directory
 type ProjectConfig struct {
 	ID    string `yaml:"id"`
-	Url   string `yaml:"url"`
+	Path  string `yaml:"path,omitempty"` // Local path
+	Url   string `yaml:"url,omitempty"`
 	Title string `yaml:"title,omitempty"`
 }
 
@@ -71,10 +74,16 @@ func GetConfigFilePath() string {
 	return path.Join(configFilePath, ConfigFileName)
 }
 
+var osOpen = func(name string) (io.ReadCloser, error) {
+	return os.Open(name)
+}
+
+var openFile = osOpen
+
 func GetSettings() (settings Settings, err error) {
 	configFilePath := GetConfigFilePath()
-	var f *os.File
-	if f, err = os.Open(configFilePath); err != nil {
+	var f io.ReadCloser
+	if f, err = openFile(configFilePath); err != nil {
 		return
 	}
 	defer func() {
@@ -86,6 +95,6 @@ func GetSettings() (settings Settings, err error) {
 	if err = decoder.Decode(&settings); err != nil {
 		return
 	}
-	setDefault(&settings)
+	//setDefault(&settings)
 	return
 }

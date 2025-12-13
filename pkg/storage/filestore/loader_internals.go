@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"sort"
 	"strings"
 	"sync"
 
@@ -27,15 +28,24 @@ func loadEnvironments(projPath string) (environments datatug.Environments, err e
 		func(files []os.FileInfo) {
 			environments = make(datatug.Environments, 0, len(files))
 		},
-		func(f os.FileInfo, i int, _ *sync.Mutex) (err error) {
+		func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
 			env := new(datatug.Environment)
 			env.ID = f.Name()
+			mutex.Lock()
 			environments = append(environments, env)
+			mutex.Unlock()
 			if err = loadEnvironment(path.Join(envsDirPath, env.ID), env); err != nil {
 				return err
 			}
 			return
 		})
+	if err != nil {
+		return
+	}
+	// Sort environments by ID for a consistent order
+	sort.Slice(environments, func(i, j int) bool {
+		return strings.ToLower(environments[i].ID) < strings.ToLower(environments[j].ID)
+	})
 	return
 }
 
