@@ -20,8 +20,9 @@ const FoldersPathSeparator = `/`
 
 // ProjItemBrief hold a brief about a project item
 type ProjItemBrief struct {
-	ID     string `json:"id,omitempty" firestore:"id,omitempty" yaml:"id,omitempty"`
-	Title  string `json:"title,omitempty" firestore:"title,omitempty" yaml:"title,omitempty"`
+	ID    string `json:"id,omitempty" firestore:"id,omitempty" yaml:"id,omitempty"`
+	Title string `json:"title,omitempty" firestore:"title,omitempty" yaml:"title,omitempty"`
+	// Document what is Folder? should it be moved somewhere?
 	Folder string `json:"folder,omitempty" firestore:"folder,omitempty" yaml:"folder,omitempty"` // TODO: document purpose and usage
 	ListOfTags
 }
@@ -37,8 +38,10 @@ func (v ProjItemBrief) Validate(isTitleRequired bool) error {
 	if err := v.ListOfTags.Validate(); err != nil {
 		return err
 	}
-	if err := ValidateFolderPath(v.Folder); err != nil {
-		return err
+	if v.Folder != "" {
+		if err := ValidateFolderPath(v.Folder); err != nil {
+			return err
+		}
 	}
 	return nil
 }
