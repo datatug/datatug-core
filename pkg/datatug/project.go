@@ -41,10 +41,10 @@ type Project struct {
 
 func (p Project) GetEnvironments(ctx context.Context) (environments Environments, err error) {
 	if p.Environments == nil {
-		if environments, err = p.loader.LoadEnvironments(ctx); err != nil {
+		if p.Environments, err = p.loader.LoadEnvironments(ctx); err != nil {
 			return
 		}
-		p.Environments = environments
+		environments = p.Environments
 	}
 	return
 }
