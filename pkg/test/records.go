@@ -21,7 +21,9 @@ func IsValidRecord(t *testing.T, name string, r record) {
 }
 
 func IsInvalidRecord(t *testing.T, name string, r record, errorValidators ...func(t *testing.T, err error)) {
+	t.Helper()
 	t.Run(name, func(t *testing.T) {
+		t.Helper()
 		err := r.Validate()
 		if err == nil {
 			t.Errorf("expected an error but got nil for r: %+v", r)
