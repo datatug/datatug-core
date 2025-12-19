@@ -35,7 +35,7 @@ func (s scanner) getTableProps(c context.Context, catalog string, table *datatug
 
 func (s scanner) scanTableCols(c context.Context, catalog string, table *datatug.CollectionInfo) error {
 	log.Printf("scanning columns for table %v...", table.Name)
-	columnsReader, err := s.schemaProvider.GetColumns(c, catalog, table.Schema, table.Name)
+	columnsReader, err := s.schemaProvider.GetColumns(c, catalog, table.Ref)
 	if err != nil {
 		return err
 	}

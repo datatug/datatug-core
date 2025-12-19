@@ -53,7 +53,7 @@ type CollectionsReader interface {
 
 // ColumnsProvider reads columns info
 type ColumnsProvider interface {
-	GetColumns(c context.Context, catalog, schemaName, tableName string) (ColumnsReader, error)
+	GetColumns(c context.Context, catalog string, collectionRef *dal.CollectionRef) (ColumnsReader, error)
 }
 
 // ColumnsReader provides columns
