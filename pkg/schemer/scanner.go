@@ -112,7 +112,7 @@ func (s scanner) scanTables(c context.Context, catalog *datatug.DbCatalog) error
 }
 
 func (s scanner) scanColumnsInBulk(c context.Context, catalog string, tablesFinder SortedTables) error {
-	columnsReader, err := s.schemaProvider.GetColumns(c, catalog, nil)
+	columnsReader, err := s.schemaProvider.GetColumnsReader(c, catalog, ColumnsFilter{})
 	if err != nil {
 		return err
 	}

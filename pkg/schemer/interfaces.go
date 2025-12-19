@@ -2,6 +2,7 @@ package schemer
 
 import (
 	"context"
+	"regexp"
 
 	"github.com/dal-go/dalgo/dal"
 	"github.com/datatug/datatug-core/pkg/datatug"
@@ -48,17 +49,24 @@ type CollectionsProvider interface {
 
 // CollectionsReader reads collection info
 type CollectionsReader interface {
+	// NextCollection returns io.EOF when no more collections
 	NextCollection() (*datatug.CollectionInfo, error)
+}
+
+type ColumnsFilter struct {
+	CollectionRef *dal.CollectionRef
+	ColNameRegex  *regexp.Regexp
 }
 
 // ColumnsProvider reads columns info
 type ColumnsProvider interface {
-	GetColumns(c context.Context, catalog string, collectionRef *dal.CollectionRef) (ColumnsReader, error)
+	GetColumnsReader(c context.Context, catalog string, filter ColumnsFilter) (ColumnsReader, error)
+	GetColumns(c context.Context, catalog string, filter ColumnsFilter) ([]Column, error)
 }
 
 // ColumnsReader provides columns
 type ColumnsReader interface {
-	// NextColumn returns next column
+	// NextColumn should return io.EOF when no more columns
 	NextColumn() (Column, error)
 }
 
