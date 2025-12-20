@@ -171,13 +171,13 @@ func (v SchemaModel) Validate() error {
 	log.Printf("Validating %v tables for scheme %v\n", len(v.Tables), v.ID)
 	for i, table := range v.Tables {
 		if err := table.Validate(); err != nil {
-			return fmt.Errorf("invalid table model at index=%v, name=%v: %w", i, table.Name, err)
+			return fmt.Errorf("invalid table model at index=%v, name=%v: %w", i, table.Name(), err)
 		}
 	}
 	log.Printf("Validating %v views for scheme %v\n", len(v.Views), v.ID)
 	for i, view := range v.Views {
 		if err := view.Validate(); err != nil {
-			return fmt.Errorf("invalid view model at index=%v, name=%v: %w", i, view.Name, err)
+			return fmt.Errorf("invalid view model at index=%v, name=%v: %w", i, view.Name(), err)
 		}
 	}
 	return nil
@@ -199,7 +199,7 @@ func (v TableModels) GetByKey(k CollectionKey) *TableModel {
 // GetByName returns table by name
 func (v TableModels) GetByName(name string) *TableModel {
 	for _, t := range v {
-		if t.Name == name {
+		if t.Name() == name {
 			return t
 		}
 	}
@@ -216,7 +216,7 @@ type TableModel struct {
 }
 
 func (v *TableModel) String() string {
-	return fmt.Sprintf("table{%v.%v}", v.Schema, v.Name)
+	return fmt.Sprintf("table{%s.%s}", v.Schema(), v.Name())
 }
 
 // Validate returns error if not valid

@@ -123,21 +123,17 @@ func (store fsDbModelsStore) saveSchemaModel(schemaDirPath string, schema datatu
 }
 
 func (store fsDbModelsStore) saveTableModel(dirPath string, table datatug.TableModel) error {
-	tableDirPath := path.Join(dirPath, table.Name)
+	tableDirPath := path.Join(dirPath, table.Name())
 	if err := os.MkdirAll(tableDirPath, 0777); err != nil {
 		return err
 	}
 
 	var filePrefix string
-	if table.Schema == "" {
-		filePrefix = table.Name
+	if table.Schema() == "" {
+		filePrefix = table.Name()
 	} else {
-		filePrefix = fmt.Sprintf("%v.%v", table.Schema, table.Name)
+		filePrefix = fmt.Sprintf("%w.%s", table.Schema(), table.Name())
 	}
-
-	tableKeyWithoutCatalog := table.CollectionKey
-	tableKeyWithoutCatalog.Catalog = ""
-	tableKeyWithoutCatalog.Schema = ""
 
 	workers := make([]func() error, 0, 9)
 	if len(table.Columns) > 0 { // Saving TABLE_NAME.columns.json

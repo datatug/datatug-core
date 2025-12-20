@@ -59,10 +59,9 @@ func processConstraint(catalog string, table *datatug.CollectionInfo, constraint
 		} else {
 			//refTable := refTableFinder.FindTable(refTableCatalog, refTableSchema, refTableName)
 			fk := datatug.ForeignKey{
-				Name: constraint.Name,
-				Columns: []string{
-					constraint.ColumnName},
-				RefTable: datatug.CollectionKey{Catalog: constraint.RefTableCatalog, Schema: constraint.RefTableSchema, Name: constraint.RefTableName},
+				Name:     constraint.Name,
+				Columns:  []string{constraint.ColumnName},
+				RefTable: datatug.NewCollectionKey(datatug.CollectionTypeTable, constraint.RefTableName, constraint.RefTableSchema, constraint.RefTableCatalog, nil),
 			}
 			fk.MatchOption = constraint.MatchOption
 			fk.UpdateRule = constraint.UpdateRule
@@ -77,11 +76,11 @@ func processConstraint(catalog string, table *datatug.CollectionInfo, constraint
 				}
 				var refByTable *datatug.TableReferencedBy
 				for _, refByTable = range refTable.ReferencedBy {
-					if refByTable.Catalog == catalog && refByTable.Schema == constraint.SchemaName && refByTable.Name == constraint.TableName {
+					if refByTable.Catalog() == catalog && refByTable.Schema() == constraint.SchemaName && refByTable.Name() == constraint.TableName {
 						break
 					}
 				}
-				if refByTable == nil || refByTable.Catalog != catalog || refByTable.Schema != constraint.SchemaName || refByTable.Name != constraint.TableName {
+				if refByTable == nil || refByTable.Catalog() != catalog || refByTable.Schema() != constraint.SchemaName || refByTable.Name() != constraint.TableName {
 					refByTable = &datatug.TableReferencedBy{CollectionKey: table.CollectionKey, ForeignKeys: make([]*datatug.RefByForeignKey, 0, 1)}
 					refTable.ReferencedBy = append(refTable.ReferencedBy, refByTable)
 				}

@@ -44,7 +44,7 @@ SELECT
 FROM %v.%v
 %v JOIN %v.%v ON`, catalog, table.Schema, table.Name, "%v", fk.RefTable.Schema, fk.RefTable.Name))
 
-			fkRefTable := dbServer.Catalogs.GetTable(catalog, fk.RefTable.Schema, fk.RefTable.Name)
+			fkRefTable := dbServer.Catalogs.GetTable(catalog, fk.RefTable.Schema(), fk.RefTable.Name())
 			if fkRefTable == nil {
 				return nil, fmt.Errorf("table %v.%v is referencing via %v to unknown table %v.%v", table.Schema, table.Name, fk.Name, fk.RefTable.Schema, fk.RefTable.Name)
 			}
@@ -52,7 +52,7 @@ FROM %v.%v
 				if i > 0 {
 					joinSQL += " AND"
 				}
-				if fkRefTable.Name != table.Name {
+				if fkRefTable.Name() != table.Name() {
 					joinSQL += fmt.Sprintf(" %v.%v = %v.%v", fkRefTable.Name, fkRefTable.PrimaryKey.Columns[i], table.Name, fkCol)
 				} else {
 					joinSQL += fmt.Sprintf(" %v.%v.%v = %v.%v.%v", fkRefTable.Schema, fkRefTable.Name, fkRefTable.PrimaryKey.Columns[i], table.Schema, table.Name, fkCol)
@@ -198,13 +198,13 @@ FROM %v.%v
 
 	var openInDatatugApp string
 	if repoID != "" && projectID != "" {
-		schema := table.Schema
+		schema := table.Schema()
 		if !reUnquoted.MatchString(schema) {
-			schema = fmt.Sprintf("[%v]", schema)
+			schema = fmt.Sprintf("[%s]", schema)
 		}
-		name := table.Name
+		name := table.Name()
 		if !reUnquoted.MatchString(name) {
-			name = fmt.Sprintf("[%v]", name)
+			name = fmt.Sprintf("[%s]", name)
 		}
 		sql := fmt.Sprintf("SELECT\n\t*\nFROM %v.%v", schema, name)
 		if len(name) > 5 {
@@ -250,19 +250,19 @@ func (refByWalker) getTableID(schema, name string) string {
 
 func (walker *refByWalker) walkReferencedBy(table *datatug.CollectionInfo, level int) error {
 	level++
-	walker.processed[walker.getTableID(table.Schema, table.Name)] = table
+	walker.processed[walker.getTableID(table.Name(), table.Schema())] = table
 	for i, refBy := range table.ReferencedBy {
-		refByID := walker.getTableID(refBy.Schema, refBy.Name)
+		refByID := walker.getTableID(refBy.Schema(), refBy.Name())
 		if _, ok := walker.processed[refByID]; ok {
 			continue
 		}
 		if err := walker.process(table, refBy, level, i); err != nil {
 			return err
 		}
-		referringTable := walker.dbServer.Catalogs.GetTable(walker.catalog, refBy.Schema, refBy.Name)
+		referringTable := walker.dbServer.Catalogs.GetTable(walker.catalog, refBy.Schema(), refBy.Name())
 		if referringTable == nil {
-			return fmt.Errorf("catalog %v has table [%v.%v] that is referenced by unknown table [%v.%v]",
-				walker.catalog, table.Schema, table.Name, refBy.Schema, refBy.Name)
+			return fmt.Errorf("catalog %v has table [%s.%s] that is referenced by unknown table [%s.%s]",
+				walker.catalog, table.Schema(), table.Name(), refBy.Schema(), refBy.Name())
 		}
 		if len(referringTable.ReferencedBy) > 0 {
 			if err := walker.walkReferencedBy(referringTable, level); err != nil {
@@ -293,7 +293,7 @@ FROM %v.%v
 		//indent += singleIndent
 	}
 
-	s = append(s, fmt.Sprintf(indent+"- [%v](../../../%v).[%v](../../../%v/tables/%v)", refBy.Schema, refBy.Schema, refBy.Name, refBy.Schema, refBy.Name))
+	s = append(s, indent+fmt.Sprintf("- [%s](../../../%s).[%s](../../../%s/tables/%s)", refBy.Schema(), refBy.Schema(), refBy.Name(), refBy.Schema(), refBy.Name()))
 	fkIndent := indent + singleIndent
 	const itemTextPadding = "  "
 	for _, fk := range refBy.ForeignKeys {
@@ -302,7 +302,7 @@ FROM %v.%v
 			if i > 0 {
 				joinSQL += " AND"
 			}
-			if refBy.Name != parent.Name {
+			if refBy.Name() != parent.Name() {
 				joinSQL += fmt.Sprintf(" %v.%v = %v.%v", refBy.Name, fkCol, parent.Name, parent.PrimaryKey.Columns[i])
 			} else {
 				joinSQL += fmt.Sprintf(" %v.%v.%v = %v.%v.%v", refBy.Schema, refBy.Name, fkCol, parent.Schema, parent.Name, parent.PrimaryKey.Columns[i])
@@ -311,19 +311,19 @@ FROM %v.%v
 
 		joinMD := func(kind string) string {
 			text := url.QueryEscape(fmt.Sprintf(joinSQL, kind))
-			queryPart := fmt.Sprintf("query?server=%v&catalog=%v#text=%v", server, catalog, text)
+			queryPart := fmt.Sprintf("query?server=%s&catalog=%s#text=%s", server, catalog, text)
 			if repoID != "" && projectID != "" {
-				return fmt.Sprintf("<a href='https://datatug.app/pwa/repo/%v/project/%v/%v' target='_blank'>%v</a>", repoID, projectID, queryPart, kind)
+				return fmt.Sprintf("<a href='https://datatug.app/pwa/repo/%s/project/%s/%s' target='_blank'>%s</a>", repoID, projectID, queryPart, kind)
 			}
-			return fmt.Sprintf("<a href='https://datatug.app/pwa/%v' target='_blank'>%v</a>", queryPart, kind)
+			return fmt.Sprintf("<a href='https://datatug.app/pwa/%s' target='_blank'>%s</a>", queryPart, kind)
 		}
 		joins := []string{
 			joinMD("LEFT"),
 			joinMD("INNER"),
 			joinMD("RIGHT"),
 		}
-		s = append(s, fmt.Sprintf(fkIndent+"- `%v`\n"+
-			fkIndent+itemTextPadding+"<br>by columns: `%v` &mdash;", fk.Name, strings.Join(fk.Columns, "`, `"))+"\n"+
+		s = append(s, fmt.Sprintf(fkIndent+"- `%s`\n"+
+			fkIndent+itemTextPadding+"<br>by columns: `%s` &mdash;", fk.Name, strings.Join(fk.Columns, "`, `"))+"\n"+
 			fkIndent+itemTextPadding+"<small>JOIN:\n"+
 			fkIndent+itemTextPadding+strings.Join(joins, " |\n"+fkIndent+itemTextPadding)+"\n"+
 			fkIndent+itemTextPadding+"</small>",

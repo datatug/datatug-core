@@ -59,23 +59,19 @@ func (store fsDbCatalogStore) saveTables(tables []*datatug.CollectionInfo, save 
 }
 
 func (store fsDbCatalogStore) saveTable(table *datatug.CollectionInfo, save saveDbServerObjContext) (err error) {
-	save.dirPath = path.Join(save.dirPath, table.Name)
+	save.dirPath = path.Join(save.dirPath, table.Name())
 	if err = os.MkdirAll(save.dirPath, 0777); err != nil {
 		return err
 	}
 
 	var filePrefix string
-	if table.Schema == "" {
-		filePrefix = table.Name
+	if table.Schema() == "" {
+		filePrefix = table.Name()
 	} else {
 		filePrefix = fmt.Sprintf("%v.%v", table.Schema, table.Name)
 	}
 
 	workers := make([]func() error, 0, 9)
-
-	tableKeyWithoutCatalog := table.CollectionKey
-	tableKeyWithoutCatalog.Catalog = ""
-	tableKeyWithoutCatalog.Schema = ""
 
 	tableFile := TableFile{
 		TableProps:   table.TableProps,

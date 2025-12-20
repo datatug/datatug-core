@@ -121,14 +121,15 @@ func compareTables(target schemaToCompare, getTableModels func(schemaModel *data
 	DbTables:
 		for _, dbTable := range dbTables {
 			for _, t2c := range tablesToCompare {
-				if t2c.tableName == dbTable.Name {
+				if t2c.tableName == dbTable.Name() {
 					t2c.dbTables = append(t2c.dbTables, dbTable)
 					continue DbTables
 				}
 			}
+			tableName := dbTable.Name()
 			tablesToCompare = append(tablesToCompare, tableToCompare{
-				tableName:  dbTable.Name,
-				tableModel: tableModels.GetByName(dbTable.Name),
+				tableName:  tableName,
+				tableModel: tableModels.GetByName(tableName),
 			})
 		}
 	}

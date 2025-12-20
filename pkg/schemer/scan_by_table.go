@@ -35,7 +35,7 @@ func (s scanner) getTableProps(c context.Context, catalog string, table *datatug
 
 func (s scanner) scanTableCols(c context.Context, catalog string, table *datatug.CollectionInfo) error {
 	log.Printf("scanning columns for table %v...", table.Name)
-	columnsReader, err := s.schemaProvider.GetColumnsReader(c, catalog, ColumnsFilter{CollectionRef: table.Ref})
+	columnsReader, err := s.schemaProvider.GetColumnsReader(c, catalog, ColumnsFilter{CollectionRef: &table.Ref})
 	if err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func (s scanner) scanTableCols(c context.Context, catalog string, table *datatug
 		if len(pkColumns) > 0 {
 			sort.Sort(pkColumns.ByPrimaryKeyPosition())
 			table.PrimaryKey = &datatug.UniqueKey{
-				Name: "PK_" + table.Name,
+				Name: "PK_" + table.Name(),
 			}
 			for _, c := range pkColumns {
 				table.PrimaryKey.Columns = append(table.PrimaryKey.Columns, c.Name)
@@ -71,7 +71,7 @@ func (s scanner) scanTableCols(c context.Context, catalog string, table *datatug
 }
 
 func (s scanner) scanTableIndexes(c context.Context, catalog string, table *datatug.CollectionInfo) error {
-	indexesReader, err := s.schemaProvider.GetIndexes(c, catalog, table.Schema, table.Name)
+	indexesReader, err := s.schemaProvider.GetIndexes(c, catalog, table.Schema(), table.Name())
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func (s scanner) scanTableIndexes(c context.Context, catalog string, table *data
 }
 
 func (s scanner) scanIndexColumns(c context.Context, catalog string, table *datatug.CollectionInfo, index *datatug.Index) error {
-	indexColumnsReader, err := s.schemaProvider.GetIndexColumns(c, catalog, table.Schema, table.Name, index.Name)
+	indexColumnsReader, err := s.schemaProvider.GetIndexColumns(c, catalog, table.Schema(), table.Name(), index.Name)
 	if err != nil {
 		return err
 	}
@@ -125,7 +125,7 @@ func (s scanner) scanIndexColumns(c context.Context, catalog string, table *data
 }
 
 func (s scanner) scanTableConstraints(c context.Context, catalog string, table *datatug.CollectionInfo, tables datatug.Tables) error {
-	constraints, err := s.schemaProvider.GetConstraints(c, catalog, table.Schema, table.Name)
+	constraints, err := s.schemaProvider.GetConstraints(c, catalog, table.Schema(), table.Name())
 	if err != nil {
 		return err
 	}

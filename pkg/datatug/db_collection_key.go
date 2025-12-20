@@ -4,34 +4,57 @@ import (
 	"fmt"
 
 	"github.com/dal-go/dalgo/dal"
-	"github.com/strongo/validation"
+)
+
+type CollectionType int
+
+const (
+	CollectionTypeUnknown CollectionType = iota
+	CollectionTypeTable
+	CollectionTypeView
 )
 
 // CollectionKey defines a key that identifies a table or a view
 type CollectionKey struct {
-	Name    string `json:"name"`
-	Schema  string `json:"schema,omitempty"`
-	Catalog string `json:"catalog,omitempty"`
-	Ref     *dal.CollectionRef
+	schema  string
+	catalog string
+	t       CollectionType
+	Ref     dal.CollectionRef
+}
+
+func NewCollectionKey(t CollectionType, name, schema, catalog string, parent *dal.Key) CollectionKey {
+	return CollectionKey{
+		t:       t,
+		schema:  schema,
+		catalog: catalog,
+		Ref:     dal.NewCollectionRef(name, "", parent),
+	}
+}
+func NewTableKey(name, schema, catalog string, parent *dal.Key) CollectionKey {
+	return NewCollectionKey(CollectionTypeTable, name, schema, catalog, parent)
+}
+
+func (v CollectionKey) Name() string {
+	return v.Ref.Name()
+}
+
+func (v CollectionKey) Type() CollectionType {
+	return v.t
+}
+
+func (v CollectionKey) Schema() string {
+	return v.schema
+}
+
+func (v CollectionKey) Catalog() string {
+	return v.catalog
 }
 
 func (v CollectionKey) String() string {
-	if v.Ref != nil {
-		return v.Ref.String()
-	}
-	if v.Schema == "" && v.Catalog == "" {
-		return v.Name
-	}
-	if v.Catalog == "" {
-		return fmt.Sprintf("%v.%v", v.Schema, v.Name)
-	}
-	return fmt.Sprintf("%v.%v.%v", v.Catalog, v.Schema, v.Name)
+	return fmt.Sprintf("CollectionKey{catalog=%s,ref:%s}", v.catalog, v.Ref.String())
 }
 
 // Validate returns error if not valid
 func (v CollectionKey) Validate() error {
-	if v.Name == "" && v.Ref == nil {
-		return validation.NewErrRecordIsMissingRequiredField("name|ref")
-	}
 	return nil
 }

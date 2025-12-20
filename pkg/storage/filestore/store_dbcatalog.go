@@ -131,16 +131,16 @@ func (store fsDbCatalogStore) saveDbCatalogObjects(dbCatalog datatug.DbCatalog, 
 		for _, t := range schema.Tables {
 			dbObjects = append(dbObjects, datatug.CatalogObject{
 				Type:         "table",
-				Schema:       t.Schema,
-				Name:         t.Name,
+				Schema:       t.Schema(),
+				Name:         t.Name(),
 				DefaultAlias: "",
 			})
 		}
 		for _, t := range schema.Views {
 			dbObjects = append(dbObjects, datatug.CatalogObject{
 				Type:         "view",
-				Schema:       t.Schema,
-				Name:         t.Name,
+				Schema:       t.Schema(),
+				Name:         t.Name(),
 				DefaultAlias: "",
 			})
 		}
@@ -166,8 +166,8 @@ func (store fsDbCatalogStore) saveDbCatalogRefs(dbCatalog datatug.DbCatalog, sav
 			dbObjects = append(dbObjects, datatug.CatalogObjectWithRefs{
 				CatalogObject: datatug.CatalogObject{
 					Type:         "table",
-					Schema:       t.Schema,
-					Name:         t.Name,
+					Schema:       t.Schema(),
+					Name:         t.Name(),
 					DefaultAlias: "",
 				},
 				PrimaryKey:   t.PrimaryKey,
@@ -182,8 +182,8 @@ func (store fsDbCatalogStore) saveDbCatalogRefs(dbCatalog datatug.DbCatalog, sav
 			dbObjects = append(dbObjects, datatug.CatalogObjectWithRefs{
 				CatalogObject: datatug.CatalogObject{
 					Type:         "view",
-					Schema:       t.Schema,
-					Name:         t.Name,
+					Schema:       t.Schema(),
+					Name:         t.Name(),
 					DefaultAlias: "",
 				},
 				PrimaryKey:   t.PrimaryKey,

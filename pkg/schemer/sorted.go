@@ -19,7 +19,7 @@ func (sorted *SortedTables) Reset() {
 func (sorted *SortedTables) SequentialFind(catalog, schema, name string) *datatug.CollectionInfo {
 	for ; sorted.i < len(sorted.Tables); sorted.i++ {
 		t := sorted.Tables[sorted.i]
-		if t.Name == name && t.Schema == schema && t.Catalog == catalog {
+		if t.Name() == name && t.Schema() == schema && t.Catalog() == catalog {
 			return t
 		}
 	}
@@ -53,7 +53,7 @@ func FindTable(tables datatug.Tables, catalog, schema, name string) *datatug.Col
 	schema = normalize(schema)
 	name = normalize(name)
 	for _, t := range tables {
-		if normalize(t.Name) == name && normalize(t.Schema) == schema && normalize(t.Catalog) == catalog {
+		if normalize(t.Name()) == name && normalize(t.Schema()) == schema && normalize(t.Catalog()) == catalog {
 			return t
 		}
 	}

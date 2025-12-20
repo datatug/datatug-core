@@ -72,19 +72,19 @@ func (s scanner) scanTables(c context.Context, catalog *datatug.DbCatalog) error
 			break
 		}
 		tables = append(tables, t)
-		schema := catalog.Schemas.GetByID(t.Schema)
+		schema := catalog.Schemas.GetByID(t.Schema())
 		if schema == nil {
 			schema = new(datatug.DbSchema)
-			schema.ID = t.Schema
+			schema.ID = t.Schema()
 			catalog.Schemas = append(catalog.Schemas, schema)
 		}
 		switch t.DbType {
 		case "BASE TABLE":
 			schema.Tables = append(schema.Tables, t)
 			workers = append(workers, func() (err error) {
-				t.RecordsCount, err = s.schemaProvider.RecordsCount(c, catalog.ID, t.Schema, t.Name)
+				t.RecordsCount, err = s.schemaProvider.RecordsCount(c, catalog.ID, t.Schema(), t.Name())
 				if err != nil {
-					log.Printf("failed to retiever records count for %v.%v.%v: %v", catalog.ID, t.Schema, t.Name, err)
+					log.Printf("failed to retrieve records count for %s.%s.%s: %v", catalog.ID, t.Schema(), t.Name(), err)
 					//return fmt.Errorf()
 				}
 				return nil
@@ -92,7 +92,7 @@ func (s scanner) scanTables(c context.Context, catalog *datatug.DbCatalog) error
 		case "VIEW":
 			schema.Views = append(schema.Views, t)
 		default:
-			return fmt.Errorf("object [%v] has unknown DB type: %v", t.Name, t.DbType)
+			return fmt.Errorf("object [%s] has unknown DB type: %v", t.Name(), t.DbType)
 		}
 		if !s.schemaProvider.IsBulkProvider() {
 			workers = append(workers, func() error {
