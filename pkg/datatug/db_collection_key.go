@@ -6,13 +6,25 @@ import (
 	"github.com/dal-go/dalgo/dal"
 )
 
-type CollectionType int
+type CollectionType string
 
 const (
-	CollectionTypeUnknown CollectionType = iota
-	CollectionTypeTable
-	CollectionTypeView
+	CollectionTypeAny                    = "*"
+	CollectionTypeUnknown CollectionType = ""
+	CollectionTypeTable   CollectionType = "table"
+	CollectionTypeView    CollectionType = "view"
 )
+
+func IsKnownCollectionType(v CollectionType) bool {
+	switch v {
+	case CollectionTypeAny, CollectionTypeTable, CollectionTypeView:
+		return true
+	case CollectionTypeUnknown:
+		return false
+	default:
+		return false
+	}
+}
 
 // CollectionKey defines a key that identifies a table or a view
 type CollectionKey struct {
@@ -23,6 +35,9 @@ type CollectionKey struct {
 }
 
 func NewCollectionKey(t CollectionType, name, schema, catalog string, parent *dal.Key) CollectionKey {
+	if !IsKnownCollectionType(t) {
+		panic(fmt.Sprintf("unknown collection type: %s", t))
+	}
 	return CollectionKey{
 		t:       t,
 		schema:  schema,
@@ -30,8 +45,13 @@ func NewCollectionKey(t CollectionType, name, schema, catalog string, parent *da
 		Ref:     dal.NewCollectionRef(name, "", parent),
 	}
 }
+
 func NewTableKey(name, schema, catalog string, parent *dal.Key) CollectionKey {
 	return NewCollectionKey(CollectionTypeTable, name, schema, catalog, parent)
+}
+
+func NewViewKey(name, schema, catalog string, parent *dal.Key) CollectionKey {
+	return NewCollectionKey(CollectionTypeView, name, schema, catalog, parent)
 }
 
 func (v CollectionKey) Name() string {
