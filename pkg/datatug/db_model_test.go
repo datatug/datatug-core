@@ -199,13 +199,13 @@ func TestSchemaModel_Validate(t *testing.T) {
 		},
 		{
 			name:    "invalid_table",
-			v:       SchemaModel{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "s1"}}, Tables: TableModels{{DBCollectionKey: NewTableKey("t1", "s1", "c1", nil)}}},
-			wantErr: false, // DBCollectionKey.Validate returns nil
+			v:       SchemaModel{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "s1"}}, Tables: TableModels{{DBCollectionKey: NewTableKey("t1", "s1", "c1", nil), Columns: ColumnModels{{}}}}},
+			wantErr: true,
 		},
 		{
 			name:    "invalid_view",
-			v:       SchemaModel{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "s1"}}, Views: TableModels{{DBCollectionKey: NewTableKey("v1", "s1", "c1", nil)}}},
-			wantErr: false, // DBCollectionKey.Validate returns nil
+			v:       SchemaModel{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "s1"}}, Views: TableModels{{DBCollectionKey: NewTableKey("v1", "s1", "c1", nil), Columns: ColumnModels{{}}}}},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -243,7 +243,7 @@ func TestTableModel_Validate(t *testing.T) {
 	t.Run("invalid_columns", func(t *testing.T) {
 		v := &TableModel{
 			DBCollectionKey: NewTableKey("t1", "s1", "c1", nil),
-			Columns:         ColumnModels{{ColumnInfo: ColumnInfo{}}},
+			Columns:         ColumnModels{{}},
 		}
 		assert.Error(t, v.Validate())
 	})

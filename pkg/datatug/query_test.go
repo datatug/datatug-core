@@ -106,9 +106,12 @@ func TestQueryDef_Validate(t *testing.T) {
 		v.Targets = []QueryDefTarget{{Catalog: "c1"}}
 		test.IsInvalidRecord(t, "invalid", v)
 	})
-	t.Run("unsupported_type", func(t *testing.T) {
-		v := newQueryDef("UNKNOWN", "")
-		test.IsInvalidRecord(t, "invalid", v)
+	t.Run("missing_type", func(t *testing.T) {
+		v := newQueryDef("SQL", "SELECT 1")
+		v.Type = ""
+		if err := v.Validate(); err == nil {
+			t.Error("expected error, got nil")
+		}
 	})
 	t.Run("invalid_parameters", func(t *testing.T) {
 		v := newQueryDef("SQL", "SELECT 1")

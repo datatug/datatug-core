@@ -130,8 +130,14 @@ func TestDbCatalogs_Validate(t *testing.T) {
 		v := DbCatalogs{{DbCatalogBase: DbCatalogBase{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "c1"}}, Driver: "mysql"}}}
 		assert.NoError(t, v.Validate())
 	})
-	t.Run("invalid", func(t *testing.T) {
-		v := DbCatalogs{{}}
+	t.Run("invalid_schema", func(t *testing.T) {
+		v := DbCatalog{
+			DbCatalogBase: DbCatalogBase{
+				ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "c1", Title: "T"}},
+				Driver:      "postgres",
+			},
+			Schemas: DbSchemas{{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: ""}}}},
+		}
 		assert.Error(t, v.Validate())
 	})
 }

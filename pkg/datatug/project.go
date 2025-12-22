@@ -39,17 +39,16 @@ type Project struct {
 	Repository    *ProjectRepository  `json:"repository,omitempty" firestore:"repository,omitempty"`
 }
 
-func (p Project) GetEnvironments(ctx context.Context) (environments Environments, err error) {
+func (p *Project) GetEnvironments(ctx context.Context) (environments Environments, err error) {
 	if p.Environments == nil {
 		if p.Environments, err = p.loader.LoadEnvironments(ctx); err != nil {
 			return
 		}
-		environments = p.Environments
 	}
-	return
+	return p.Environments, nil
 }
 
-func (p Project) GetDbServers(ctx context.Context) (dbServers ProjDbServers, err error) {
+func (p *Project) GetDbServers(ctx context.Context) (dbServers ProjDbServers, err error) {
 	if p.DbServers == nil {
 		p.DbServers, err = p.loader.LoadDbServers(ctx)
 	}

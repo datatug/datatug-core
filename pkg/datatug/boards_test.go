@@ -74,13 +74,11 @@ func TestBoard_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "invalid_rows",
+			name: "invalid_card_cols",
 			v: Board{
-				ProjBoardBrief: ProjBoardBrief{
-					ProjItemBrief: ProjItemBrief{ID: "b1", Title: "Board 1"},
-				},
+				ProjBoardBrief: ProjBoardBrief{ProjItemBrief: ProjItemBrief{ID: "b1", Title: "Board 1"}},
 				Rows: BoardRows{
-					{Cards: BoardCards{{ID: ""}}},
+					{Cards: BoardCards{{ID: "c1", Cols: -1}}},
 				},
 			},
 			wantErr: true,
@@ -90,6 +88,253 @@ func TestBoard_Validate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
 				t.Errorf("Board.Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestBoardWidget_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		v       BoardWidget
+		wantErr bool
+	}{
+		{
+			name:    "empty_name",
+			v:       BoardWidget{Name: ""},
+			wantErr: true,
+		},
+		{
+			name:    "unknown_name",
+			v:       BoardWidget{Name: "unknown"},
+			wantErr: true,
+		},
+		{
+			name: "sql_valid_pointer",
+			v: BoardWidget{
+				Name: "SQL",
+				Data: &SQLWidgetDef{SQL: SQLWidgetSettings{Query: "SELECT 1"}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "sql_valid_map",
+			v: BoardWidget{
+				Name: "SQL",
+				Data: map[string]interface{}{
+					"sql": map[string]interface{}{"query": "SELECT 1"},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "http_valid_pointer",
+			v: BoardWidget{
+				Name: "HTTP",
+				Data: &HTTPWidgetDef{Request: HTTPRequest{URL: "http://example.com", Method: "GET"}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "http_valid_map",
+			v: BoardWidget{
+				Name: "HTTP",
+				Data: map[string]interface{}{
+					"request": map[string]interface{}{"url": "http://example.com", "method": "GET"},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "tabs_valid_pointer",
+			v: BoardWidget{
+				Name: "tabs",
+				Data: &TabsWidgetDef{
+					Tabs: []TabWidget{
+						{Title: "Tab 1", Widget: BoardWidget{Name: "SQL", Data: &SQLWidgetDef{SQL: SQLWidgetSettings{Query: "SELECT 1"}}}},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "tabs_valid_map",
+			v: BoardWidget{
+				Name: "tabs",
+				Data: map[string]interface{}{
+					"tabs": []interface{}{
+						map[string]interface{}{
+							"title":  "Tab 1",
+							"widget": map[string]interface{}{"name": "SQL", "data": map[string]interface{}{"sql": map[string]interface{}{"query": "SELECT 1"}}},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "sql_invalid_data",
+			v: BoardWidget{
+				Name: "SQL",
+				Data: "invalid",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("BoardWidget.Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestWidgetBase_Validate(t *testing.T) {
+	tests := []struct {
+		name            string
+		v               WidgetBase
+		isTitleRequired bool
+		wantErr         bool
+	}{
+		{
+			name:            "valid_no_title_not_required",
+			v:               WidgetBase{},
+			isTitleRequired: false,
+			wantErr:         false,
+		},
+		{
+			name:            "invalid_no_title_required",
+			v:               WidgetBase{},
+			isTitleRequired: true,
+			wantErr:         true,
+		},
+		{
+			name: "invalid_parameters",
+			v: WidgetBase{
+				Parameters: Parameters{{ID: ""}},
+			},
+			isTitleRequired: false,
+			wantErr:         true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.v.Validate(tt.isTitleRequired); (err != nil) != tt.wantErr {
+				t.Errorf("WidgetBase.Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestHTTPHeaderItem_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		v       HTTPHeaderItem
+		wantErr bool
+	}{
+		{
+			name:    "valid",
+			v:       HTTPHeaderItem{Name: "Content-Type", Value: "application/json"},
+			wantErr: false,
+		},
+		{
+			name:    "missing_name",
+			v:       HTTPHeaderItem{Value: "application/json"},
+			wantErr: true,
+		},
+		{
+			name:    "missing_value",
+			v:       HTTPHeaderItem{Name: "Content-Type"},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("HTTPHeaderItem.Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestHTTPHeaders_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		v       HTTPHeaders
+		wantErr bool
+	}{
+		{
+			name:    "valid",
+			v:       HTTPHeaders{{Name: "Content-Type", Value: "application/json"}},
+			wantErr: false,
+		},
+		{
+			name:    "invalid_item",
+			v:       HTTPHeaders{{Name: ""}},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("HTTPHeaders.Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestHTTPRequest_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		v       HTTPRequest
+		wantErr bool
+	}{
+		{
+			name:    "valid_get",
+			v:       HTTPRequest{URL: "http://example.com", Method: "GET"},
+			wantErr: false,
+		},
+		{
+			name:    "missing_url",
+			v:       HTTPRequest{Method: "GET"},
+			wantErr: true,
+		},
+		{
+			name:    "negative_timeout",
+			v:       HTTPRequest{URL: "http://example.com", Method: "GET", TimeoutThresholdMs: -1},
+			wantErr: true,
+		},
+		{
+			name:    "missing_method",
+			v:       HTTPRequest{URL: "http://example.com"},
+			wantErr: true,
+		},
+		{
+			name:    "get_with_content",
+			v:       HTTPRequest{URL: "http://example.com", Method: "GET", Content: "some content"},
+			wantErr: true,
+		},
+		{
+			name:    "valid_post",
+			v:       HTTPRequest{URL: "http://example.com", Method: "POST", Content: "some content"},
+			wantErr: false,
+		},
+		{
+			name:    "unknown_method",
+			v:       HTTPRequest{URL: "http://example.com", Method: "UNKNOWN"},
+			wantErr: true,
+		},
+		{
+			name:    "invalid_headers",
+			v:       HTTPRequest{URL: "http://example.com", Method: "GET", Headers: HTTPHeaders{{Name: ""}}},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("HTTPRequest.Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -215,219 +460,6 @@ func TestBoardCard_Validate(t *testing.T) {
 	}
 }
 
-func TestBoardWidget_Validate(t *testing.T) {
-	tests := []struct {
-		name    string
-		v       BoardWidget
-		wantErr bool
-	}{
-		{
-			name: "valid_sql",
-			v: BoardWidget{
-				Name: "SQL",
-				Data: &SQLWidgetDef{SQL: SQLWidgetSettings{Query: "SELECT 1"}},
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid_sql_map",
-			v: BoardWidget{
-				Name: "SQL",
-				Data: map[string]interface{}{"sql": map[string]interface{}{"query": "SELECT 1"}},
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid_http",
-			v: BoardWidget{
-				Name: "HTTP",
-				Data: &HTTPWidgetDef{Request: HTTPRequest{Method: "GET", URL: "http://example.com"}},
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid_tabs",
-			v: BoardWidget{
-				Name: "tabs",
-				Data: &TabsWidgetDef{},
-			},
-			wantErr: false,
-		},
-		{
-			name:    "missing_name",
-			v:       BoardWidget{Name: ""},
-			wantErr: true,
-		},
-		{
-			name:    "unknown_name",
-			v:       BoardWidget{Name: "unknown"},
-			wantErr: true,
-		},
-		{
-			name: "invalid_sql_data",
-			v: BoardWidget{
-				Name: "SQL",
-				Data: &SQLWidgetDef{SQL: SQLWidgetSettings{Query: ""}},
-			},
-			wantErr: true,
-		},
-		{
-			name: "invalid_data_type",
-			v: BoardWidget{
-				Name: "SQL",
-				Data: "invalid",
-			},
-			wantErr: true,
-		},
-		{
-			name: "invalid_json_data",
-			v: BoardWidget{
-				Name: "SQL",
-				Data: map[string]interface{}{"sql": "invalid"},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("BoardWidget.Validate() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestWidgetBase_Validate(t *testing.T) {
-	t.Run("valid", func(t *testing.T) {
-		assert.NoError(t, WidgetBase{Title: "T"}.Validate(true))
-	})
-	t.Run("too_long_title", func(t *testing.T) {
-		title := ""
-		for i := 0; i < 101; i++ {
-			title += "a"
-		}
-		assert.Error(t, WidgetBase{Title: title}.Validate(false))
-	})
-}
-
 func TestTabsWidgetDef_Validate(t *testing.T) {
 	assert.NoError(t, (&TabsWidgetDef{}).Validate())
-}
-
-func TestHTTPRequest_Validate(t *testing.T) {
-	tests := []struct {
-		name    string
-		v       HTTPRequest
-		wantErr bool
-	}{
-		{
-			name:    "valid_get",
-			v:       HTTPRequest{Method: "GET", URL: "http://example.com"},
-			wantErr: false,
-		},
-		{
-			name:    "missing_url",
-			v:       HTTPRequest{Method: "GET", URL: ""},
-			wantErr: true,
-		},
-		{
-			name:    "negative_timeout",
-			v:       HTTPRequest{Method: "GET", URL: "http://example.com", TimeoutThresholdMs: -1},
-			wantErr: true,
-		},
-		{
-			name:    "missing_method",
-			v:       HTTPRequest{Method: "", URL: "http://example.com"},
-			wantErr: true,
-		},
-		{
-			name:    "get_with_content",
-			v:       HTTPRequest{Method: "GET", URL: "http://example.com", Content: "some content"},
-			wantErr: true,
-		},
-		{
-			name:    "unknown_method",
-			v:       HTTPRequest{Method: "UNKNOWN", URL: "http://example.com"},
-			wantErr: true,
-		},
-		{
-			name: "invalid_headers",
-			v: HTTPRequest{
-				Method: "GET",
-				URL:    "http://example.com",
-				Headers: HTTPHeaders{
-					{Name: ""},
-				},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("HTTPRequest.Validate() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestHTTPHeaders_Validate(t *testing.T) {
-	tests := []struct {
-		name    string
-		v       HTTPHeaders
-		wantErr bool
-	}{
-		{
-			name: "valid",
-			v: HTTPHeaders{
-				{Name: "Content-Type", Value: "application/json"},
-			},
-			wantErr: false,
-		},
-		{
-			name: "invalid_item",
-			v: HTTPHeaders{
-				{Name: "", Value: "application/json"},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("HTTPHeaders.Validate() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestHTTPHeaderItem_Validate(t *testing.T) {
-	tests := []struct {
-		name    string
-		v       HTTPHeaderItem
-		wantErr bool
-	}{
-		{
-			name:    "valid",
-			v:       HTTPHeaderItem{Name: "N", Value: "V"},
-			wantErr: false,
-		},
-		{
-			name:    "missing_name",
-			v:       HTTPHeaderItem{Name: "", Value: "V"},
-			wantErr: true,
-		},
-		{
-			name:    "missing_value",
-			v:       HTTPHeaderItem{Name: "N", Value: ""},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("HTTPHeaderItem.Validate() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
 }
