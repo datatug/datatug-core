@@ -11,7 +11,7 @@ import (
 	"github.com/datatug/datatug-core/pkg/parallel"
 )
 
-// Save saves project
+// SaveProject saves project
 func (store fsProjectStore) SaveProject(ctx context.Context, project datatug.Project) (err error) {
 	log.Println("Validating project for saving to: ", store.projectPath)
 	if err = project.Validate(); err != nil {

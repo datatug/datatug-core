@@ -46,7 +46,7 @@ func (sorted *SortedIndexes) SequentialFind(schema, table, name string) *Index {
 	return nil
 }
 
-// FullFind can be called in any order and always do a full table scan
+// FindTable can be called in any order and always do a full table scan
 func FindTable(tables datatug.Tables, catalog, schema, name string) *datatug.CollectionInfo {
 	normalize := strings.ToLower
 	catalog = normalize(catalog)

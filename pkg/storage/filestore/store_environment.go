@@ -36,7 +36,7 @@ func (store fsEnvironmentStore) DeleteEnvironment() (err error) {
 	panic("implement me")
 }
 
-func (store fsEnvironmentStore) SaveEnvironment(environment *datatug.Environment) (err error) {
+func (store fsEnvironmentStore) SaveEnvironment(_ *datatug.Environment) (err error) {
 	panic("implement me")
 }
 
@@ -47,7 +47,7 @@ func newFsEnvironmentStore(id string, fsEnvironmentsStore fsEnvironmentsStore) f
 	}
 }
 
-// GetEnvironmentSummary loads environment summary
+// LoadEnvironmentSummary loads environment summary
 func (store fsEnvironmentStore) LoadEnvironmentSummary() (*datatug.EnvironmentSummary, error) {
 	envSummary, err := loadEnvFile(store.envsDirPath, store.envID)
 	if err != nil {
@@ -57,12 +57,12 @@ func (store fsEnvironmentStore) LoadEnvironmentSummary() (*datatug.EnvironmentSu
 	return &envSummary, err
 }
 
-// GetEnvironmentDbSummary return DB summary for specific environment
+// LoadEnvironmentDbSummary return DB summary for specific environment
 func (store fsEnvironmentStore) LoadEnvironmentDbSummary(databaseID string) (datatug.DbCatalogSummary, error) {
 	panic(fmt.Sprintf("implement me: %v, %v, %v", store.projectID, store.envID, databaseID))
 }
 
-func (store fsEnvironmentStore) saveEnvironment(ctx context.Context, env datatug.Environment) (err error) {
+func (store fsEnvironmentStore) saveEnvironment(_ context.Context, env datatug.Environment) (err error) {
 	dirPath := path.Join(store.projectPath, DatatugFolder, EnvironmentsFolder, env.ID)
 	log.Printf("Saving environment [%v]: %v", env.ID, dirPath)
 	if err = os.MkdirAll(dirPath, 0777); err != nil {

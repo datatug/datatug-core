@@ -52,7 +52,7 @@ func DirExists(path string) (bool, error) {
 	return info.IsDir(), nil
 }
 
-// expandHome expands leading ~ to the user's home directory.
+// ExpandHome expands leading ~ to the user's home directory.
 func ExpandHome(p string) string {
 	if p == "" {
 		return p

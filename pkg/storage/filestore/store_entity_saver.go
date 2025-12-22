@@ -18,7 +18,7 @@ func (store fsEntitiesStore) saveEntities(ctx context.Context, entities datatug.
 }
 
 // SaveEntity saves entity
-func (store fsEntitiesStore) SaveEntity(ctx context.Context, entity *datatug.Entity) (err error) {
+func (store fsEntitiesStore) SaveEntity(_ context.Context, entity *datatug.Entity) (err error) {
 	if entity == nil {
 		return validation.NewErrRequestIsMissingRequiredField("entity")
 	}

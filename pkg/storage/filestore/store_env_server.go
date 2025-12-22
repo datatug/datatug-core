@@ -23,7 +23,7 @@ func (store fsEnvServerStore) LoadEnvServer() (*datatug.EnvDbServer, error) {
 	panic("implement me")
 }
 
-func (store fsEnvServerStore) SaveEnvServer(envServer *datatug.EnvDbServer) error {
+func (store fsEnvServerStore) SaveEnvServer(_ *datatug.EnvDbServer) error {
 	panic("implement me")
 }
 

@@ -23,11 +23,11 @@ func (store fsEnvCatalogStore) Catalogs() storage.EnvDbCatalogsStore {
 	return store.fsEnvCatalogsStore
 }
 
-func (store fsEnvCatalogStore) SaveDbCatalog(envServer *datatug.EnvDbServer) error {
+func (store fsEnvCatalogStore) SaveDbCatalog(_ *datatug.EnvDbServer) error {
 	panic("not implemented?")
 }
 
-// GetEnvironmentDb return information about environment DB
+// LoadEnvironmentCatalog return information about environment DB
 func (store fsEnvCatalogStore) LoadEnvironmentCatalog() (envDb *datatug.EnvDb, err error) {
 	filePath := path.Join(store.envsDirPath, store.envID, DbCatalogsFolder, store.catalogID, jsonFileName(store.catalogID, dbCatalogFileSuffix))
 	envDb = new(datatug.EnvDb)

@@ -244,7 +244,7 @@ type refByWalker struct {
 	process   func(parent *datatug.CollectionInfo, refBy *datatug.TableReferencedBy, level, index int) error
 }
 
-func (refByWalker) getTableID(schema, name string) string {
+func (*refByWalker) getTableID(schema, name string) string {
 	return fmt.Sprintf("[%v].[%v]", schema, name)
 }
 

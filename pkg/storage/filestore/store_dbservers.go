@@ -110,7 +110,7 @@ func (store fsDbServerStore) SaveDbServer(_ context.Context, dbServer datatug.Pr
 }
 
 func (store fsDbServerStore) saveDbServerReadme(dbServer datatug.ProjDbServer, dbServerDirPath string, project datatug.Project) error {
-	return saveReadme(dbServerDirPath, "DB server", func(w io.Writer) error {
+	return saveReadme(dbServerDirPath, func(w io.Writer) error {
 		if err := store.readmeEncoder.DbServerToReadme(w, project.Repository, dbServer); err != nil {
 			return fmt.Errorf("failed to write README.md for DB server: %w", err)
 		}

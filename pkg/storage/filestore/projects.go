@@ -1,8 +1,6 @@
 package filestore
 
-import (
-	"log"
-)
+import "log"
 
 var projectPaths = make(map[string]string, 1) // TODO(refactoring): global package level states are bad
 
@@ -22,9 +20,8 @@ func SetProjectPath(id, path string) {
 	if p, ok := projectPaths[id]; ok {
 		if p != path {
 			panic("attempt to overwrite project projDirPath")
-		} else {
-			log.Printf("Duplicate set of projcet projDirPath %v: %v", id, path)
 		}
+		log.Printf("Duplicate set of project projDirPath %v: %v", id, path)
 	}
 	projectPaths[id] = path
 }

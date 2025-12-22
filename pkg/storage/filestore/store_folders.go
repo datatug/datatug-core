@@ -14,17 +14,17 @@ type fsFoldersStore struct {
 	fsProjectStore
 }
 
-func (f fsFoldersStore) CreateFolder(ctx context.Context, request storage.CreateFolderRequest) (folder *datatug.Folder, err error) {
+func (f fsFoldersStore) CreateFolder(_ context.Context, request storage.CreateFolderRequest) (folder *datatug.Folder, err error) {
 	if err := datatug.ValidateFolderPath(request.Path); err != nil {
 		return nil, validation.NewErrBadRequestFieldValue("path", err.Error())
 	}
 	panic("implement me")
 }
 
-func (f fsFoldersStore) GetFolder(ctx context.Context, path string) (folder *datatug.Folder, err error) {
-	panic("implement me")
+func (f fsFoldersStore) GetFolder(_ context.Context, path string) (folder *datatug.Folder, err error) {
+	panic("implement me: path=" + path)
 }
 
-func (f fsFoldersStore) DeleteFolder(ctx context.Context, path string) (err error) {
-	panic("implement me")
+func (f fsFoldersStore) DeleteFolder(_ context.Context, path string) (err error) {
+	panic("implement me: path=" + path)
 }

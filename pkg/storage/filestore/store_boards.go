@@ -49,7 +49,7 @@ func (store fsBoardsStore) DeleteBoard(_ context.Context, id string) (err error)
 	return os.Remove(filePath)
 }
 
-func (store fsBoardsStore) CreateBoard(ctx context.Context, board datatug.Board) (*datatug.Board, error) {
+func (store fsBoardsStore) CreateBoard(_ context.Context, _ datatug.Board) (*datatug.Board, error) {
 	panic("implement me")
 }
 

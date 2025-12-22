@@ -136,10 +136,10 @@ func loadDbServer(driverDirPath, driver, serverName string) (dbServer *datatug.P
 
 // LoadProjectSummary loads project summary
 func (store fsProjectStore) LoadProjectSummary(context.Context) (projectSummary datatug.ProjectSummary, err error) {
-	projectSummary.ID = store.projectID
 	if projectSummary.ProjectFile, err = LoadProjectFile(store.projectPath); err != nil {
 		return projectSummary, fmt.Errorf("failed to load project file: %w", err)
 	}
+	projectSummary.ID = store.projectID
 	return
 }
 

@@ -9,7 +9,7 @@ import (
 )
 
 // AutoID defines a value that indicate system to use automatically generated ID
-const AutoID = "<auto/id>"
+//const AutoID = "<auto/id>"
 
 // RootSharedFolderName defines name for a root shared folder
 const RootSharedFolderName = "~"

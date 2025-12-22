@@ -121,7 +121,7 @@ func (store fsQueriesStore) DeleteQuery(_ context.Context, id string) (err error
 }
 
 func (store fsQueriesStore) getQueryFolderPath(queryID string) (folderPath string, err error) {
-	panic("not implemented")
+	panic("not implemented: queryID=" + queryID)
 }
 
 func (store fsQueriesStore) UpdateQuery(_ context.Context, query datatug.QueryDef) (q *datatug.QueryDefWithFolderPath, err error) {

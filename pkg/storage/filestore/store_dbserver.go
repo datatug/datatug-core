@@ -35,7 +35,7 @@ func (store fsDbServerStore) Catalogs() storage.DbCatalogsStore {
 	return newFsDbCatalogsStore(store)
 }
 
-// GetDbServerSummary returns ProjDbServerSummary
+// LoadDbServerSummary returns ProjDbServerSummary
 func (store fsDbServerStore) LoadDbServerSummary(_ context.Context, dbServer datatug.ServerReference) (summary *datatug.ProjDbServerSummary, err error) {
 	summary, err = loadDbServerForDbServerSummary(store.projectPath, dbServer)
 	return

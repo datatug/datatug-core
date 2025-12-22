@@ -8,18 +8,18 @@ import (
 
 // UserDatatugInfo holds user info for DataTug project
 type UserDatatugInfo struct {
-	Stores map[string]DatatugStoreBrief `json:"stores,omitempty" firestore:"stores,omitempty"`
+	Stores map[string]StoreBrief `json:"stores,omitempty" firestore:"stores,omitempty"`
 }
 
-// DatatugStoreBrief stores info about datatug storage known to a user
-type DatatugStoreBrief struct {
+// StoreBrief stores info about datatug storage known to a user
+type StoreBrief struct {
 	Type     string                  `json:"type,omitempty" firestore:"type,omitempty" yaml:"type,omitempty"`
 	Title    string                  `json:"title,omitempty" firestore:"title,omitempty" yaml:"title,omitempty"`
 	Projects map[string]ProjectBrief `json:"projects,omitempty" firestore:"projects,omitempty"`
 }
 
 // Validate returns error if not valid
-func (v DatatugStoreBrief) Validate() error {
+func (v StoreBrief) Validate() error {
 	if v.Type == "" {
 		return validation.NewErrRecordIsMissingRequiredField("type")
 	}
@@ -62,13 +62,13 @@ func (v UserDatatugInfo) Validate() error {
 	return nil
 }
 
-// DatatugUser defines a user record with props related to Datatug
-type DatatugUser struct {
+// User defines a user record with props related to Datatug
+type User struct {
 	Datatug *UserDatatugInfo `json:"datatug,omitempty" firestore:"datatug,omitempty"`
 }
 
 // Validate returns error if not valid
-func (v DatatugUser) Validate() error {
+func (v User) Validate() error {
 	if v.Datatug != nil {
 		if err := v.Datatug.Validate(); err != nil {
 			return fmt.Errorf("invalid datatug property: %w", err)

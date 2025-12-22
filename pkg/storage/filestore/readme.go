@@ -7,7 +7,7 @@ import (
 	"path"
 )
 
-func saveReadme(dirPath, forTitle string, saver func(w io.Writer) error) error {
+func saveReadme(dirPath string, saver func(w io.Writer) error) error {
 	filePath := path.Join(dirPath, "README.md")
 	f, err := os.Create(filePath)
 	if err != nil {
