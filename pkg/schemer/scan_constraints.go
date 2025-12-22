@@ -81,7 +81,7 @@ func processConstraint(catalog string, table *datatug.CollectionInfo, constraint
 					}
 				}
 				if refByTable == nil || refByTable.Catalog() != catalog || refByTable.Schema() != constraint.SchemaName || refByTable.Name() != constraint.TableName {
-					refByTable = &datatug.TableReferencedBy{CollectionKey: table.CollectionKey, ForeignKeys: make([]*datatug.RefByForeignKey, 0, 1)}
+					refByTable = &datatug.TableReferencedBy{DBCollectionKey: table.DBCollectionKey, ForeignKeys: make([]*datatug.RefByForeignKey, 0, 1)}
 					refTable.ReferencedBy = append(refTable.ReferencedBy, refByTable)
 				}
 				for _, fk2 := range refByTable.ForeignKeys {

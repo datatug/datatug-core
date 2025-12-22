@@ -35,4 +35,20 @@ func TestListOfTags_Validate(t *testing.T) { // TODO: test error type & text
 			t.Error("expected to get an error, got nil")
 		}
 	})
+	t.Run("should_fail_on_empty_tag", func(t *testing.T) {
+		v := ListOfTags{Tags: []string{""}}
+		if err := v.Validate(); err == nil {
+			t.Error("expected error")
+		}
+	})
+	t.Run("should_fail_on_too_long_tag", func(t *testing.T) {
+		tag := ""
+		for i := 0; i < MaxTagLength+1; i++ {
+			tag += "a"
+		}
+		v := ListOfTags{Tags: []string{tag}}
+		if err := v.Validate(); err == nil {
+			t.Error("expected error")
+		}
+	})
 }

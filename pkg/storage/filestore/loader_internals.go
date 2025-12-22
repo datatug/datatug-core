@@ -352,7 +352,7 @@ func loadTable(dirPath, schema, tableName string) (table *datatug.CollectionInfo
 	prefix := fmt.Sprintf("%v.%v.", schema, tableName)
 
 	table = &datatug.CollectionInfo{
-		CollectionKey: datatug.NewCollectionKey(datatug.CollectionTypeTable, tableName, schema, "", nil),
+		DBCollectionKey: datatug.NewCollectionKey(datatug.CollectionTypeTable, tableName, schema, "", nil),
 	}
 	loadTableFile := func(suffix string, required bool) (err error) {
 		filePath := path.Join(tableDirPath, prefix+suffix)
@@ -388,7 +388,7 @@ func loadTable(dirPath, schema, tableName string) (table *datatug.CollectionInfo
 
 func loadTableModel(name string) (tableModel *datatug.TableModel, err error) {
 	tableModel = &datatug.TableModel{
-		CollectionKey: datatug.NewCollectionKey(datatug.CollectionTypeTable, name, "", "", nil),
+		DBCollectionKey: datatug.NewCollectionKey(datatug.CollectionTypeTable, name, "", "", nil),
 	}
 	return
 }

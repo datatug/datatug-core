@@ -68,3 +68,13 @@ func TestNewCollectionKey(t *testing.T) {
 		})
 	})
 }
+
+func TestCollectionKey_String(t *testing.T) {
+	key := NewTableKey("table1", "schema1", "catalog1", nil)
+	assert.NotEmpty(t, key.String())
+}
+
+func TestCollectionKey_Validate(t *testing.T) {
+	key := NewTableKey("table1", "schema1", "catalog1", nil)
+	assert.Nil(t, key.Validate())
+}

@@ -19,37 +19,37 @@ type TableFile struct {
 
 // TableRefsByFile info to be stored about reference in a JSON file
 type TableRefsByFile struct {
-	datatug.CollectionKey
+	datatug.DBCollectionKey
 	ReferencedBy []*datatug.TableReferencedBy `json:"referencedBy"`
 }
 
 // TableForeignKeysFile info to be stored about FK in a JSON file
 type TableForeignKeysFile struct {
-	datatug.CollectionKey
+	datatug.DBCollectionKey
 	ForeignKeys []*datatug.ForeignKey `json:"foreignKeys"`
 }
 
 // TablePrimaryKeyFile info to be stored about PK in a JSON file
 type TablePrimaryKeyFile struct {
-	datatug.CollectionKey
+	datatug.DBCollectionKey
 	PrimaryKey *datatug.UniqueKey `json:"primaryKey"`
 }
 
 // TableColumnsFile info to be stored about column in a JSON file
 type TableColumnsFile struct {
-	datatug.CollectionKey
+	datatug.DBCollectionKey
 	Columns []*datatug.ColumnInfo `json:"columns,omitempty"`
 }
 
 // TablePropsFile info to be stored about table in a JSON file
 type TablePropsFile struct {
-	datatug.CollectionKey
+	datatug.DBCollectionKey
 	datatug.TableProps
 }
 
 // TableModelFile defines what to storage in table model file
 type TableModelFile struct {
-	datatug.CollectionKey
+	datatug.DBCollectionKey
 }
 
 // TableModelColumnsFile info to be stored about column in a JSON file

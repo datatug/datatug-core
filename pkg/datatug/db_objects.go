@@ -164,8 +164,8 @@ func (v DbCatalogs) GetDbByID(id string) *DbCatalog {
 	return nil
 }
 
-// TableKeys is a []CollectionKey
-type TableKeys []CollectionKey
+// TableKeys is a []DBCollectionKey
+type TableKeys []DBCollectionKey
 
 // Validate returns error if not valid
 func (v TableKeys) Validate() error {
@@ -307,12 +307,12 @@ func (v ForeignKeys) Validate() error {
 
 // ForeignKey holds metadata about foreign key
 type ForeignKey struct {
-	Name        string        `json:"name"`
-	Columns     []string      `json:"columns"`
-	RefTable    CollectionKey `json:"refTable"`
-	MatchOption string        `json:"matchOption,omitempty"` // Document what this?
-	UpdateRule  string        `json:"updateRule,omitempty"`  // Document what this?
-	DeleteRule  string        `json:"deleteRule,omitempty"`  // Document what this?
+	Name        string          `json:"name"`
+	Columns     []string        `json:"columns"`
+	RefTable    DBCollectionKey `json:"refTable"`
+	MatchOption string          `json:"matchOption,omitempty"` // Document what this?
+	UpdateRule  string          `json:"updateRule,omitempty"`  // Document what this?
+	DeleteRule  string          `json:"deleteRule,omitempty"`  // Document what this?
 }
 
 // Validate returns error if not valid
@@ -356,9 +356,9 @@ func (v Constraint) Validate() error {
 }
 
 // GetByKey return 9a *CollectionInfo by key or nil if not found
-func (v Tables) GetByKey(k CollectionKey) *CollectionInfo {
+func (v Tables) GetByKey(k DBCollectionKey) *CollectionInfo {
 	for _, t := range v {
-		if t.CollectionKey == k {
+		if t.DBCollectionKey == k {
 			return t
 		}
 	}
@@ -376,7 +376,7 @@ type RecordsetBaseDef struct {
 // CollectionInfo holds metadata about a collection or a table or a view
 type CollectionInfo struct {
 	RecordsetBaseDef
-	CollectionKey
+	DBCollectionKey
 	TableProps
 	SQL          string             `json:"sql,omitempty"`
 	Columns      TableColumns       `json:"columns,omitempty"`
@@ -387,7 +387,7 @@ type CollectionInfo struct {
 
 // Validate returns error if not valid
 func (v CollectionInfo) Validate() error {
-	if err := v.CollectionKey.Validate(); err != nil {
+	if err := v.DBCollectionKey.Validate(); err != nil {
 		return err
 	}
 	if err := v.TableProps.Validate(); err != nil {
@@ -416,7 +416,7 @@ func (v TableReferencedBys) Validate() error {
 
 // TableReferencedBy holds metadata about table/view that reference a table/view
 type TableReferencedBy struct {
-	CollectionKey
+	DBCollectionKey
 	ForeignKeys []*RefByForeignKey `json:"foreignKeys"`
 }
 

@@ -26,19 +26,19 @@ func IsKnownCollectionType(v CollectionType) bool {
 	}
 }
 
-// CollectionKey defines a key that identifies a table or a view
-type CollectionKey struct {
+// DBCollectionKey defines a key that identifies a table or a view
+type DBCollectionKey struct {
 	schema  string
 	catalog string
 	t       CollectionType
 	Ref     dal.CollectionRef
 }
 
-func NewCollectionKey(t CollectionType, name, schema, catalog string, parent *dal.Key) CollectionKey {
+func NewCollectionKey(t CollectionType, name, schema, catalog string, parent *dal.Key) DBCollectionKey {
 	if !IsKnownCollectionType(t) {
 		panic(fmt.Sprintf("unknown collection type: %s", t))
 	}
-	return CollectionKey{
+	return DBCollectionKey{
 		t:       t,
 		schema:  schema,
 		catalog: catalog,
@@ -46,35 +46,35 @@ func NewCollectionKey(t CollectionType, name, schema, catalog string, parent *da
 	}
 }
 
-func NewTableKey(name, schema, catalog string, parent *dal.Key) CollectionKey {
+func NewTableKey(name, schema, catalog string, parent *dal.Key) DBCollectionKey {
 	return NewCollectionKey(CollectionTypeTable, name, schema, catalog, parent)
 }
 
-func NewViewKey(name, schema, catalog string, parent *dal.Key) CollectionKey {
+func NewViewKey(name, schema, catalog string, parent *dal.Key) DBCollectionKey {
 	return NewCollectionKey(CollectionTypeView, name, schema, catalog, parent)
 }
 
-func (v CollectionKey) Name() string {
+func (v DBCollectionKey) Name() string {
 	return v.Ref.Name()
 }
 
-func (v CollectionKey) Type() CollectionType {
+func (v DBCollectionKey) Type() CollectionType {
 	return v.t
 }
 
-func (v CollectionKey) Schema() string {
+func (v DBCollectionKey) Schema() string {
 	return v.schema
 }
 
-func (v CollectionKey) Catalog() string {
+func (v DBCollectionKey) Catalog() string {
 	return v.catalog
 }
 
-func (v CollectionKey) String() string {
-	return fmt.Sprintf("CollectionKey{catalog=%s,ref:%s}", v.catalog, v.Ref.String())
+func (v DBCollectionKey) String() string {
+	return fmt.Sprintf("DBCollectionKey{catalog=%s,ref:%s}", v.catalog, v.Ref.String())
 }
 
 // Validate returns error if not valid
-func (v CollectionKey) Validate() error {
+func (v DBCollectionKey) Validate() error {
 	return nil
 }

@@ -187,9 +187,9 @@ func (v SchemaModel) Validate() error {
 type TableModels []*TableModel
 
 // GetByKey returns table by key (name, schema, catalog)
-func (v TableModels) GetByKey(k CollectionKey) *TableModel {
+func (v TableModels) GetByKey(k DBCollectionKey) *TableModel {
 	for _, t := range v {
-		if t.CollectionKey == k {
+		if t.DBCollectionKey == k {
 			return t
 		}
 	}
@@ -208,7 +208,7 @@ func (v TableModels) GetByName(name string) *TableModel {
 
 // TableModel hold models for table or view
 type TableModel struct {
-	CollectionKey
+	DBCollectionKey
 	DbType  string `json:"dbType,omitempty"` // e.g. "BASE TABLE", "VIEW", etc.
 	Columns ColumnModels
 	Checks  Checks     `json:"checks,omitempty"` // References to checks by type/id
@@ -221,7 +221,7 @@ func (v *TableModel) String() string {
 
 // Validate returns error if not valid
 func (v *TableModel) Validate() error {
-	if err := v.CollectionKey.Validate(); err != nil {
+	if err := v.DBCollectionKey.Validate(); err != nil {
 		return err
 	}
 	if v.Columns != nil {
@@ -236,7 +236,7 @@ func (v *TableModel) Validate() error {
 	}
 	if v.Checks != nil {
 		if err := v.Checks.Validate(); err != nil {
-			return fmt.Errorf("table %v has invalid checks: %w", v.CollectionKey.String(), err)
+			return fmt.Errorf("table %v has invalid checks: %w", v.DBCollectionKey.String(), err)
 		}
 	}
 	return nil
