@@ -132,7 +132,7 @@ func (store fsDbModelsStore) saveTableModel(dirPath string, table datatug.TableM
 	if table.Schema() == "" {
 		filePrefix = table.Name()
 	} else {
-		filePrefix = fmt.Sprintf("%w.%s", table.Schema(), table.Name())
+		filePrefix = fmt.Sprintf("%s.%s", table.Schema(), table.Name())
 	}
 
 	workers := make([]func() error, 0, 9)

@@ -38,24 +38,24 @@ func getTableData(repository *datatug.ProjectRepository, catalog string, table *
 		fks := make([]string, len(table.ForeignKeys))
 		for i, fk := range table.ForeignKeys {
 			joinSQL := strings.TrimSpace(fmt.Sprintf(`
-USE %v
+USE %s
 SELECT
 	*
-FROM %v.%v
-%v JOIN %v.%v ON`, catalog, table.Schema, table.Name, "%v", fk.RefTable.Schema, fk.RefTable.Name))
+FROM %s.%s
+%s JOIN %s.%s ON`, catalog, table.Schema(), table.Name(), "%v", fk.RefTable.Schema(), fk.RefTable.Name()))
 
 			fkRefTable := dbServer.Catalogs.GetTable(catalog, fk.RefTable.Schema(), fk.RefTable.Name())
 			if fkRefTable == nil {
-				return nil, fmt.Errorf("table %v.%v is referencing via %v to unknown table %v.%v", table.Schema, table.Name, fk.Name, fk.RefTable.Schema, fk.RefTable.Name)
+				return nil, fmt.Errorf("table %s.%s is referencing via %s to unknown table %s.%s", table.Schema(), table.Name(), fk.Name, fk.RefTable.Schema(), fk.RefTable.Name())
 			}
 			for i, fkCol := range fk.Columns {
 				if i > 0 {
 					joinSQL += " AND"
 				}
 				if fkRefTable.Name() != table.Name() {
-					joinSQL += fmt.Sprintf(" %v.%v = %v.%v", fkRefTable.Name, fkRefTable.PrimaryKey.Columns[i], table.Name, fkCol)
+					joinSQL += fmt.Sprintf(" %s.%s = %s.%s", fkRefTable.Name(), fkRefTable.PrimaryKey.Columns[i], table.Name(), fkCol)
 				} else {
-					joinSQL += fmt.Sprintf(" %v.%v.%v = %v.%v.%v", fkRefTable.Schema, fkRefTable.Name, fkRefTable.PrimaryKey.Columns[i], table.Schema, table.Name, fkCol)
+					joinSQL += fmt.Sprintf(" %s.%s.%s = %s.%s.%s", fkRefTable.Schema(), fkRefTable.Name(), fkRefTable.PrimaryKey.Columns[i], table.Schema(), table.Name(), fkCol)
 				}
 			}
 
@@ -68,11 +68,11 @@ FROM %v.%v
 				joinMD("INNER"),
 				joinMD("RIGHT"),
 			}
-			fks[i] = fmt.Sprintf("- `%v` (%v) ⇒ [%v](../../../%v).[%v](../../../%v/tables/%v)",
+			fks[i] = fmt.Sprintf("- `%s` (%s) ⇒ [%s](../../../%s).[%s](../../../%s/tables/%s)",
 				fk.Name,
 				fmt.Sprintf("**%v**", strings.Join(fk.Columns, "**, **")),
-				fk.RefTable.Schema, fk.RefTable.Schema, fk.RefTable.Name,
-				fk.RefTable.Schema, fk.RefTable.Name,
+				fk.RefTable.Schema(), fk.RefTable.Schema(), fk.RefTable.Name(),
+				fk.RefTable.Schema(), fk.RefTable.Name(),
 			) + "\n  <br>&nbsp;&nbsp;SQL *to* JOIN: " + strings.Join(joins, " | ")
 		}
 		//<br>&nbsp;&nbsp;&nbsp;&nbsp;SQL to JOIN: [LEFT](left) | [INNER](inner) | [RIGHT](right)
@@ -275,11 +275,11 @@ func (walker *refByWalker) walkReferencedBy(table *datatug.CollectionInfo, level
 
 func writeRefByToMarkDownListTree(repoID, projectID, server, catalog string, parent *datatug.CollectionInfo, refBy *datatug.TableReferencedBy, level, index int) (string, error) {
 	joinSQL := strings.TrimSpace(fmt.Sprintf(`
-USE %v
+USE %s
 SELECT
 	*
-FROM %v.%v
-%v JOIN %v.%v ON`, catalog, parent.Schema, parent.Name, "%v", refBy.Schema, refBy.Name))
+FROM %s.%s
+%s JOIN %s.%s ON`, catalog, parent.Schema(), parent.Name(), "%v", refBy.Schema(), refBy.Name()))
 
 	const singleIndent = "  "
 	indent := strings.Repeat(singleIndent, (level-1)*len(singleIndent))
@@ -303,9 +303,9 @@ FROM %v.%v
 				joinSQL += " AND"
 			}
 			if refBy.Name() != parent.Name() {
-				joinSQL += fmt.Sprintf(" %v.%v = %v.%v", refBy.Name, fkCol, parent.Name, parent.PrimaryKey.Columns[i])
+				joinSQL += fmt.Sprintf(" %s.%s = %s.%s", refBy.Name(), fkCol, parent.Name(), parent.PrimaryKey.Columns[i])
 			} else {
-				joinSQL += fmt.Sprintf(" %v.%v.%v = %v.%v.%v", refBy.Schema, refBy.Name, fkCol, parent.Schema, parent.Name, parent.PrimaryKey.Columns[i])
+				joinSQL += fmt.Sprintf(" %s.%s.%s = %v.%v.%v", refBy.Schema(), refBy.Name(), fkCol, parent.Schema(), parent.Name(), parent.PrimaryKey.Columns[i])
 			}
 		}
 

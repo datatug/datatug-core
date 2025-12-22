@@ -68,7 +68,7 @@ func (store fsDbCatalogStore) saveTable(table *datatug.CollectionInfo, save save
 	if table.Schema() == "" {
 		filePrefix = table.Name()
 	} else {
-		filePrefix = fmt.Sprintf("%v.%v", table.Schema, table.Name)
+		filePrefix = fmt.Sprintf("%s.%s", table.Schema(), table.Name())
 	}
 
 	workers := make([]func() error, 0, 9)

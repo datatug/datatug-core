@@ -12,7 +12,7 @@ import (
 )
 
 func (s scanner) getTableProps(c context.Context, catalog string, table *datatug.CollectionInfo) error {
-	log.Printf("getTableProps() table=%v", table.Name)
+	log.Printf("getTableProps() table=%s", table.Name())
 	err := parallel.Run(
 		func() (err error) {
 			if err = s.scanTableCols(c, catalog, table); err != nil {
@@ -34,7 +34,7 @@ func (s scanner) getTableProps(c context.Context, catalog string, table *datatug
 }
 
 func (s scanner) scanTableCols(c context.Context, catalog string, table *datatug.CollectionInfo) error {
-	log.Printf("scanning columns for table %v...", table.Name)
+	log.Printf("scanning columns for table %s...", table.Name())
 	columnsReader, err := s.schemaProvider.GetColumnsReader(c, catalog, ColumnsFilter{CollectionRef: &table.Ref})
 	if err != nil {
 		return err
