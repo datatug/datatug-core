@@ -27,7 +27,7 @@ func IsKnownCollectionType(v CollectionType) bool {
 }
 
 // DBCollectionKey defines a key that identifies a table or a view
-type DBCollectionKey struct {
+type DBCollectionKey struct { // TODO: Should we rename back to the `CollectionKey`?
 	schema  string
 	catalog string
 	t       CollectionType
