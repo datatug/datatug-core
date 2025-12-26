@@ -8,19 +8,18 @@ import (
 	"sync"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
-	"github.com/datatug/datatug-core/pkg/storage"
 )
 
-var _ storage.EntitiesStore = (*fsEntitiesStore)(nil)
+//var _ storage.entitiesStore = (*fsEntitiesStore)(nil)
 
 type fsEntitiesStore struct {
 	fsProjectStoreRef
 	entitiesDirPath string
 }
 
-func (store fsEntitiesStore) Entity(id string) storage.EntityStore {
-	return store.entity(id)
-}
+//func (store fsEntitiesStore) Entity(id string) storage.EntityStore {
+//	return store.entity(id)
+//}
 
 func (store fsEntitiesStore) entity(id string) fsEntityStore {
 	return newFsEntityStore(id, store)

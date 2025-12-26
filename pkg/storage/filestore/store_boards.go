@@ -17,7 +17,7 @@ type fsBoardsStore struct {
 	boardsDirPath string
 }
 
-func (store fsBoardsStore) Project() storage.ProjectStore {
+func (store fsBoardsStore) Project() datatug.ProjectStore {
 	return store.fsProjectStore
 }
 

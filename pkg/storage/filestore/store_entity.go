@@ -6,10 +6,9 @@ import (
 	"path"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
-	"github.com/datatug/datatug-core/pkg/storage"
 )
 
-var _ storage.EntityStore = (*fsEntityStore)(nil)
+//var _ storage.EntityStore = (*fsEntityStore)(nil)
 
 type fsEntityStore struct {
 	entityID string

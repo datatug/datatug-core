@@ -18,24 +18,19 @@ type fileSystemLoader struct {
 	pathByID map[string]string
 }
 
-// NewSingleProjectLoader create new single project loader
-func NewSingleProjectLoader(path string) (loader storage.ProjectStore, projectID string) {
-	return newFsProjectStore(storage.SingleProjectID, path), storage.SingleProjectID
-}
-
 // LoadProject loads project
-func (store fsProjectStore) LoadProject(ctx context.Context) (project *datatug.Project, err error) {
+func (s fsProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOption) (project *datatug.Project, err error) {
 	project = new(datatug.Project)
-	if err = loadProjectFile(store.projectPath, project); err != nil {
+	if err = loadProjectFile(s.projectPath, project); err != nil {
 		return nil, err
 	}
 	if err = parallel.Run(
 		func() error {
-			project.Environments, err = loadEnvironments(store.projectPath)
+			project.Environments, err = s.LoadEnvironments(ctx, o...)
 			return err
 		},
 		func() error {
-			entities, err := loadEntities(ctx, store.projectPath)
+			entities, err := loadEntities(ctx, s.projectPath)
 			if err != nil {
 				return err
 			}
@@ -43,13 +38,13 @@ func (store fsProjectStore) LoadProject(ctx context.Context) (project *datatug.P
 			return err
 		},
 		func() error {
-			return loadBoards(ctx, store.projectPath, project)
+			return loadBoards(ctx, s.projectPath, project)
 		},
 		func() error {
-			return loadDbModels(ctx, store.projectPath, project)
+			return loadDbModels(ctx, s.projectPath, project)
 		},
 		func() error {
-			projDbServers, err := loadDbDrivers(ctx, store.projectPath)
+			projDbServers, err := loadDbDrivers(ctx, s.projectPath)
 			if err != nil {
 				return err
 			}
@@ -57,7 +52,7 @@ func (store fsProjectStore) LoadProject(ctx context.Context) (project *datatug.P
 			return nil
 		},
 	); err != nil {
-		err = fmt.Errorf("failed to load project by ID=[%v]: %w", store.projectID, err)
+		err = fmt.Errorf("failed to load project by ID=[%v]: %w", s.projectID, err)
 		return
 	}
 	return project, err
@@ -135,11 +130,11 @@ func loadDbServer(driverDirPath, driver, serverName string) (dbServer *datatug.P
 }
 
 // LoadProjectSummary loads project summary
-func (store fsProjectStore) LoadProjectSummary(context.Context) (projectSummary datatug.ProjectSummary, err error) {
-	if projectSummary.ProjectFile, err = LoadProjectFile(store.projectPath); err != nil {
+func (s fsProjectStore) LoadProjectSummary(context.Context) (projectSummary datatug.ProjectSummary, err error) {
+	if projectSummary.ProjectFile, err = LoadProjectFile(s.projectPath); err != nil {
 		return projectSummary, fmt.Errorf("failed to load project file: %w", err)
 	}
-	projectSummary.ID = store.projectID
+	projectSummary.ID = s.projectID
 	return
 }
 

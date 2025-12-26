@@ -28,7 +28,7 @@ func (store FsStore) CreateProject(_ context.Context, _ dto.CreateProjectRequest
 	panic("not implemented")
 }
 
-func (store FsStore) GetProjectStore(id string) storage.ProjectStore {
+func (store FsStore) GetProjectStore(id string) datatug.ProjectStore {
 	path := store.pathByID[id]
 	return newFsProjectStore(id, path)
 }

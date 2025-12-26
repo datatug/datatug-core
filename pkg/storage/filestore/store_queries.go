@@ -9,19 +9,18 @@ import (
 	"sync"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
-	"github.com/datatug/datatug-core/pkg/storage"
 )
 
-var _ storage.QueriesStore = (*fsQueriesStore)(nil)
+//var _ storage.QueriesStore = (*fsQueriesStore)(nil)
 
 type fsQueriesStore struct {
 	fsProjectStore
 	queriesPath string
 }
 
-func (store fsQueriesStore) Project() storage.ProjectStore {
-	return store.fsProjectStore
-}
+//func (store fsQueriesStore) Project() storage.ProjectStore {
+//	return store.fsProjectStore
+//}
 
 func newFsQueriesStore(fsProjectStore fsProjectStore) fsQueriesStore {
 	return fsQueriesStore{fsProjectStore: fsProjectStore, queriesPath: path.Join(fsProjectStore.projectPath, DatatugFolder, QueriesFolder)}

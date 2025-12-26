@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+
+	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
 // Current holds currently active storage interface
@@ -50,4 +52,12 @@ func GetStore(ctx context.Context, id string) (Store, error) {
 		return nil, fmt.Errorf("%w: storeID=%s", ErrStoreIsNotConfigured, id)
 	}
 	return store, nil
+}
+
+func GetProjectStore(ctx context.Context, storeID, projectID string) (datatug.ProjectStore, error) {
+	store, err := GetStore(ctx, storeID)
+	if err != nil {
+		return nil, err
+	}
+	return store.GetProjectStore(projectID), nil
 }

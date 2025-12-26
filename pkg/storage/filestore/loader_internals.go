@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path"
-	"sort"
 	"strings"
 	"sync"
 
@@ -19,33 +18,6 @@ func loadProjectFile(projPath string, project *datatug.Project) (err error) {
 	if err = readJSONFile(filePath, true, project); err != nil {
 		err = fmt.Errorf("failed to load project file %s: %w", filePath, err)
 	}
-	return
-}
-
-func loadEnvironments(projPath string) (environments datatug.Environments, err error) {
-	envsDirPath := path.Join(projPath, DatatugFolder, EnvironmentsFolder)
-	err = loadDir(nil, envsDirPath, processDirs,
-		func(files []os.FileInfo) {
-			environments = make(datatug.Environments, 0, len(files))
-		},
-		func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
-			env := new(datatug.Environment)
-			env.ID = f.Name()
-			mutex.Lock()
-			environments = append(environments, env)
-			mutex.Unlock()
-			if err = loadEnvironment(path.Join(envsDirPath, env.ID), env); err != nil {
-				return err
-			}
-			return
-		})
-	if err != nil {
-		return
-	}
-	// Sort environments by ID for a consistent order
-	sort.Slice(environments, func(i, j int) bool {
-		return strings.ToLower(environments[i].ID) < strings.ToLower(environments[j].ID)
-	})
 	return
 }
 
@@ -224,8 +196,8 @@ func loadEnvFile(envDirPath, envID string) (env datatug.EnvironmentSummary, err 
 	return
 }
 
-func loadEnvironment(dirPath string, env *datatug.Environment) (err error) {
-	return parallel.Run(
+func (s fsProjectStore) loadEnvironment(dirPath string, env *datatug.Environment, o ...datatug.StoreOption) (err error) {
+	workers := []func() error{
 		func() error {
 			envSummary, err := loadEnvFile(dirPath, env.ID)
 			if err != nil {
@@ -237,7 +209,13 @@ func loadEnvironment(dirPath string, env *datatug.Environment) (err error) {
 		func() error {
 			return loadEnvServers(path.Join(dirPath, ServersFolder), env)
 		},
-	)
+	}
+	if datatug.GetStoreOptions(o...).Deep() {
+		workers = append(workers, func() error {
+			return nil
+		})
+	}
+	return parallel.Run(workers...)
 }
 
 func loadDbCatalogs(dirPath string, dbServer *datatug.ProjDbServer) (err error) {

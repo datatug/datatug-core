@@ -8,7 +8,7 @@ import (
 	"github.com/datatug/datatug-core/pkg/storage"
 )
 
-var _ storage.EnvironmentsStore = (*fsEnvironmentsStore)(nil)
+//var _ storage.environmentsStore = (*fsEnvironmentsStore)(nil)
 
 type fsEnvironmentsStore struct {
 	envsDirPath string

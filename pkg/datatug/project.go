@@ -10,17 +10,19 @@ import (
 	"github.com/strongo/validation"
 )
 
-func NewProject(id string, loader ProjectLoader) (p *Project) {
+func NewProject(id string, newStore func(p *Project) ProjectStore) (p *Project) {
 	p = new(Project)
 	p.ID = id
-	p.loader = loader
+	if newStore != nil {
+		p.store = newStore(p)
+	}
 	return
 }
 
 // Project holds info about a project
 type Project struct {
 	ProjectItem
-	loader   ProjectLoader
+	store    ProjectStore
 	Created  *ProjectCreated `json:"created,omitempty" firestore:"created,omitempty"`
 	Boards   Boards          `json:"boards,omitempty" firestore:"boards,omitempty"`
 	Queries  *QueryFolder    `json:"queries,omitempty" firestore:"queries,omitempty"`
@@ -41,7 +43,7 @@ type Project struct {
 
 func (p *Project) GetEnvironments(ctx context.Context) (environments Environments, err error) {
 	if p.Environments == nil {
-		if p.Environments, err = p.loader.LoadEnvironments(ctx); err != nil {
+		if p.Environments, err = p.store.LoadEnvironments(ctx); err != nil {
 			return
 		}
 	}
@@ -50,7 +52,7 @@ func (p *Project) GetEnvironments(ctx context.Context) (environments Environment
 
 func (p *Project) GetDbServers(ctx context.Context) (dbServers ProjDbServers, err error) {
 	if p.DbServers == nil {
-		p.DbServers, err = p.loader.LoadDbServers(ctx)
+		p.DbServers, err = p.store.LoadProjDbServers(ctx)
 	}
 	return p.DbServers, err
 }

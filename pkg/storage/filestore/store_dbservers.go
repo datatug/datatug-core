@@ -13,7 +13,7 @@ import (
 	"github.com/datatug/datatug-core/pkg/storage"
 )
 
-var _ storage.DbServersStore = (*fsDbServersStore)(nil)
+//var _ storage.DbServersStore = (*fsDbServersStore)(nil)
 
 type fsDbServersStore struct {
 	fsProjectStoreRef

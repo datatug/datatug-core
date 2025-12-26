@@ -12,19 +12,19 @@ import (
 )
 
 // SaveProject saves project
-func (store fsProjectStore) SaveProject(ctx context.Context, project datatug.Project) (err error) {
-	log.Println("Validating project for saving to: ", store.projectPath)
+func (s fsProjectStore) SaveProject(ctx context.Context, project *datatug.Project) (err error) {
+	log.Println("Validating project for saving to: ", s.projectPath)
 	if err = project.Validate(); err != nil {
 		return fmt.Errorf("project validation failed: %w", err)
 	}
 	log.Println("GetProjectStore is valid")
-	if err = os.MkdirAll(path.Join(store.projectPath, DatatugFolder), 0777); err != nil {
+	if err = os.MkdirAll(path.Join(s.projectPath, DatatugFolder), 0777); err != nil {
 		return fmt.Errorf("failed to create datatug folder: %w", err)
 	}
 	if err = parallel.Run(
 		func() (err error) {
 			log.Println("Saving project file...")
-			if err = store.saveProjectFile(project); err != nil {
+			if err = s.saveProjectFile(project); err != nil {
 				return fmt.Errorf("failed to save project file: %w", err)
 			}
 			log.Println("Saved project file.")
@@ -33,7 +33,7 @@ func (store fsProjectStore) SaveProject(ctx context.Context, project datatug.Pro
 		func() (err error) {
 			if len(project.Entities) > 0 {
 				log.Printf("Saving %v entities...\n", len(project.Entities))
-				entitiesStore := newFsEntitiesStore(store)
+				entitiesStore := newFsEntitiesStore(s)
 				if err = entitiesStore.saveEntities(ctx, project.Entities); err != nil {
 					return fmt.Errorf("failed to save entities: %w", err)
 				}
@@ -46,8 +46,8 @@ func (store fsProjectStore) SaveProject(ctx context.Context, project datatug.Pro
 		func() (err error) {
 			if len(project.Environments) > 0 {
 				log.Printf("Saving %v environments...\n", len(project.Environments))
-				environmentStore := newFsEnvironmentsStore(store)
-				if err = environmentStore.saveEnvironments(ctx, project); err != nil {
+				environmentStore := newFsEnvironmentsStore(s)
+				if err = environmentStore.saveEnvironments(ctx, *project); err != nil {
 					return fmt.Errorf("failed to save environments: %w", err)
 				}
 				log.Printf("Saved %v environments.", len(project.Environments))
@@ -58,7 +58,7 @@ func (store fsProjectStore) SaveProject(ctx context.Context, project datatug.Pro
 		},
 		func() (err error) {
 			log.Printf("Saving %v DB models...\n", len(project.DbModels))
-			dbModelsStore := newFsDbModelsStore(store)
+			dbModelsStore := newFsDbModelsStore(s)
 			if err = dbModelsStore.saveDbModels(project.DbModels); err != nil {
 				return fmt.Errorf("failed to save DB models: %w", err)
 			}
@@ -68,7 +68,7 @@ func (store fsProjectStore) SaveProject(ctx context.Context, project datatug.Pro
 		func() (err error) {
 			if len(project.Boards) > 0 {
 				log.Printf("Saving %v boards...\n", len(project.Boards))
-				if err = newFsBoardsStore(store).saveBoards(ctx, project.Boards); err != nil {
+				if err = newFsBoardsStore(s).saveBoards(ctx, project.Boards); err != nil {
 					return fmt.Errorf("failed to save boards: %w", err)
 				}
 				log.Printf("Saved %v boards.", len(project.Boards))
@@ -78,8 +78,8 @@ func (store fsProjectStore) SaveProject(ctx context.Context, project datatug.Pro
 			return nil
 		},
 		func() (err error) {
-			dbServersStore := newFsDbServersStore(store)
-			if err = dbServersStore.saveDbServers(ctx, project.DbServers, project); err != nil {
+			dbServersStore := newFsDbServersStore(s)
+			if err = dbServersStore.saveDbServers(ctx, project.DbServers, *project); err != nil {
 				return fmt.Errorf("failed to save DB servers: %w", err)
 			}
 			return nil
@@ -90,11 +90,11 @@ func (store fsProjectStore) SaveProject(ctx context.Context, project datatug.Pro
 	return nil
 }
 
-func (store fsProjectStore) putProjectFile(projFile datatug.ProjectFile) error {
+func (s fsProjectStore) putProjectFile(projFile datatug.ProjectFile) error {
 	if err := projFile.Validate(); err != nil {
 		return fmt.Errorf("invalid project file: %w", err)
 	}
-	return saveJSONFile(path.Join(store.projectPath, DatatugFolder), ProjectSummaryFileName, projFile)
+	return saveJSONFile(path.Join(s.projectPath, DatatugFolder), ProjectSummaryFileName, projFile)
 }
 
 //func projItemFileName(id, prefix string) string {
@@ -105,9 +105,9 @@ func (store fsProjectStore) putProjectFile(projFile datatug.ProjectFile) error {
 //	return fmt.Sprintf("%v-%v.json", prefix, id)
 //}
 
-func (store fsProjectStore) saveProjectFile(project datatug.Project) error {
+func (s fsProjectStore) saveProjectFile(project *datatug.Project) error {
 	//var existingProject models.ProjectFile
-	//if err := readJSONFile(projDirPath.Join(store.projectPath, DatatugFolder, ProjectSummaryFileName), false, &existingProject); err != nil {
+	//if err := readJSONFile(projDirPath.Join(s.projectPath, DatatugFolder, ProjectSummaryFileName), false, &existingProject); err != nil {
 	//	return err
 	//}
 	projFile := datatug.ProjectFile{
@@ -163,10 +163,10 @@ func (store fsProjectStore) saveProjectFile(project datatug.Project) error {
 			&brief,
 		)
 	}
-	if err := store.writeProjectReadme(project); err != nil {
+	if err := s.writeProjectReadme(*project); err != nil {
 		return fmt.Errorf("failed to write project doc file: %w", err)
 	}
-	if err := store.putProjectFile(projFile); err != nil {
+	if err := s.putProjectFile(projFile); err != nil {
 		return fmt.Errorf("failed to save project file: %w", err)
 	}
 	return nil

@@ -7,10 +7,9 @@ import (
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/parallel"
-	"github.com/datatug/datatug-core/pkg/storage"
 )
 
-var _ storage.DbModelsStore = (*fsDbModelsStore)(nil)
+//var _ storage.DbModelsStore = (*fsDbModelsStore)(nil)
 
 type fsDbModelsStore struct {
 	dbModelsPath string
@@ -24,15 +23,15 @@ func newFsDbModelsStore(fsProjectStore fsProjectStore) fsDbModelsStore {
 	}
 }
 
-func (store fsDbModelsStore) DbModel(id string) storage.DbModelStore {
-	return store.dbModel(id)
-}
-
-func (store fsDbModelsStore) dbModel(id string) storage.DbModelStore {
-	return newFsDbModelStore(id, store)
-}
-
-var _ storage.DbModelStore = (*fsDbModelStore)(nil)
+//func (store fsDbModelsStore) DbModel(id string) storage.DbModelStore {
+//	return store.dbModel(id)
+//}
+//
+//func (store fsDbModelsStore) dbModel(id string) storage.DbModelStore {
+//	return newFsDbModelStore(id, store)
+//}
+//
+//var _ storage.DbModelStore = (*fsDbModelStore)(nil)
 
 type fsDbModelStore struct {
 	dbModelID string
@@ -50,9 +49,9 @@ func newFsDbModelStore(dbModelID string, fsDbModelsStore fsDbModelsStore) fsDbMo
 	}
 }
 
-func (store fsDbModelStore) DbModels() storage.DbModelsStore {
-	return store.fsDbModelsStore
-}
+//func (store fsDbModelStore) DbModels() datatug.DbModelsStore {
+//	return store.fsDbModelsStore
+//}
 
 func (store fsDbModelsStore) saveDbModels(dbModels datatug.DbModels) (err error) {
 	return saveItems(DbModelsFolder, len(dbModels), func(i int) func() error {

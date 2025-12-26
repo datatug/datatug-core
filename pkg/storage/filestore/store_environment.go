@@ -20,7 +20,7 @@ type fsEnvironmentStore struct {
 	fsEnvironmentsStore
 }
 
-func (store fsEnvironmentStore) Project() storage.ProjectStore {
+func (store fsEnvironmentStore) Project() datatug.ProjectStore {
 	return store.fsProjectStore
 }
 

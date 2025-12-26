@@ -7,10 +7,12 @@ import (
 )
 
 type ProjectStoreRef interface {
-	Project() ProjectStore
+	Project() datatug.ProjectStore
 }
 
-type ProjectStore interface {
+// ProjectStoreDeprecated
+// Deprecated: Use datatug.ProjectStore instead
+type ProjectStoreDeprecated interface {
 	ProjectID() string
 	Folders() FoldersStore
 	Queries() QueriesStore

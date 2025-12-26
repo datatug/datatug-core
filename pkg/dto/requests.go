@@ -59,5 +59,5 @@ type CreateQuery struct {
 
 type UpdateQuery struct {
 	ProjectItemRef
-	Query datatug.QueryDef `json:"query"`
+	Query datatug.QueryDefWithFolderPath `json:"query"`
 }

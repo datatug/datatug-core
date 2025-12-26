@@ -10,26 +10,26 @@ import (
 )
 
 type mockProjectLoader struct {
-	ProjectLoader
+	ProjectStore
 	errLoadEnvironments error
 	envs                Environments
 }
 
-func (m mockProjectLoader) LoadEnvironments(ctx context.Context) (Environments, error) {
+func (m mockProjectLoader) LoadEnvironments(ctx context.Context, o ...StoreOption) (Environments, error) {
 	if m.envs != nil || m.errLoadEnvironments != nil {
 		return m.envs, m.errLoadEnvironments
 	}
 	return Environments{{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "e1"}}}}, nil
 }
 
-func (m mockProjectLoader) LoadDbServers(_ context.Context) (ProjDbServers, error) {
+func (m mockProjectLoader) LoadProjDbServers(_ context.Context, o ...StoreOption) (ProjDbServers, error) {
 	return ProjDbServers{{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "s1"}}}}, nil
 }
 
 func TestProject_GetEnvironments(t *testing.T) {
 	ctx := context.Background()
 	t.Run("success", func(t *testing.T) {
-		p := NewProject("p1", &mockProjectLoader{})
+		p := NewProject("p1", func(p *Project) ProjectStore { return &mockProjectLoader{} })
 		envs, err := p.GetEnvironments(ctx)
 		assert.NoError(t, err)
 		assert.Len(t, envs, 1)
@@ -37,21 +37,21 @@ func TestProject_GetEnvironments(t *testing.T) {
 	})
 	t.Run("nil_environments_success", func(t *testing.T) {
 		envs := Environments{{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "env1"}}}}
-		p := Project{loader: mockProjectLoader{envs: envs}}
+		p := Project{store: mockProjectLoader{envs: envs}}
 		res, err := p.GetEnvironments(ctx)
 		assert.NoError(t, err)
 		assert.Equal(t, envs, res)
 		assert.Equal(t, envs, p.Environments)
 	})
 	t.Run("nil_environments_error", func(t *testing.T) {
-		p := Project{loader: mockProjectLoader{errLoadEnvironments: errors.New("test error")}}
+		p := Project{store: mockProjectLoader{errLoadEnvironments: errors.New("test error")}}
 		_, err := p.GetEnvironments(ctx)
 		assert.Error(t, err)
 	})
 }
 
 func TestProject_GetDbServers(t *testing.T) {
-	p := NewProject("p1", &mockProjectLoader{})
+	p := NewProject("p1", func(p *Project) ProjectStore { return &mockProjectLoader{} })
 	servers, err := p.GetDbServers(context.Background())
 	assert.NoError(t, err)
 	assert.Len(t, servers, 1)

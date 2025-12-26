@@ -11,7 +11,7 @@ import (
 // Each store can keep multiple projects.
 // Projects can be stored locally on file system or on server on some database.
 type Store interface {
-	GetProjectStore(projectID string) ProjectStore
+	GetProjectStore(projectID string) datatug.ProjectStore
 
 	// CreateProject creates a new DataTug project
 	CreateProject(ctx context.Context, request dto.CreateProjectRequest) (summary *datatug.ProjectSummary, err error)
@@ -22,12 +22,17 @@ type Store interface {
 }
 
 // NewNoOpStore creates a DataTug store that panics in all methods
+//func NewNoOpStore() Store {
+//	return noOpStore{}
+//}
+
+var _ Store = (*noOpStore)(nil)
+
 func NewNoOpStore() Store {
 	return noOpStore{}
 }
 
-// noOpStore panics in all methods
-// At the moment is used in some unit tests.
+// noOpStore implements Store and panics in all methods. At the moment is used in some unit tests.
 type noOpStore struct {
 }
 
@@ -41,7 +46,7 @@ func (n noOpStore) GetProjects(_ context.Context) (projectBriefs []datatug.Proje
 }
 
 // GetProjectStore - noOpStore panics in all methods
-func (n noOpStore) GetProjectStore(id string) ProjectStore {
+func (n noOpStore) GetProjectStore(id string) datatug.ProjectStore {
 	panic("implement me, id=" + id)
 }
 

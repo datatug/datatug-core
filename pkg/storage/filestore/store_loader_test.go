@@ -9,23 +9,8 @@ import (
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
-	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestNewSingleProjectLoader(t *testing.T) {
-	path := "/path/p1"
-	loader, projectID := NewSingleProjectLoader(path)
-	assert.Equal(t, storage.SingleProjectID, projectID)
-	assert.NotNil(t, loader)
-
-	fsps, ok := loader.(fsProjectStore)
-	if !ok {
-		t.Fatalf("expected fsProjectStore, got %T", loader)
-	}
-	assert.Equal(t, path, fsps.projectPath)
-	assert.Equal(t, storage.SingleProjectID, fsps.projectID)
-}
 
 func TestLoadProjectFile(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "datatug_test")

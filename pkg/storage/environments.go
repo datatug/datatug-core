@@ -10,11 +10,8 @@ type EnvironmentsStore interface {
 // EnvironmentStore provides access to environment record
 type EnvironmentStore interface {
 	// ID returns environment ID
-	ID() string
+	//ID() string
 
-	Project() ProjectStore
-
-	Servers() EnvServersStore
 	//
 
 	// LoadEnvironmentSummary return summary metadata about environment
@@ -25,11 +22,4 @@ type EnvironmentStore interface {
 
 	// LoadEnvironmentDbSummary returns summary of environment
 	// LoadEnvironmentDbSummary(environmentID, databaseID string) (*models.DbCatalogSummary, error)
-}
-
-// EnvironmentsLoader loads environments
-type EnvironmentsLoader interface {
-}
-
-type EnvironmentsSaver interface {
 }
