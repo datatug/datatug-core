@@ -30,7 +30,7 @@ func (s fsProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOptio
 			return err
 		},
 		func() error {
-			entities, err := loadEntities(ctx, s.projectPath)
+			entities, err := s.loadEntities(ctx, o...)
 			if err != nil {
 				return err
 			}

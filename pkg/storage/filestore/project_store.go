@@ -73,18 +73,15 @@ func (s fsProjectStore) DeleteQuery(ctx context.Context, id string) error {
 }
 
 func (s fsProjectStore) LoadEntities(ctx context.Context, o ...datatug.StoreOption) (datatug.Entities, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.loadEntities(ctx, o...)
 }
 
 func (s fsProjectStore) LoadEntity(ctx context.Context, id string, o ...datatug.StoreOption) (*datatug.Entity, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.loadEntity(ctx, id, o...)
 }
 
 func (s fsProjectStore) SaveEntity(ctx context.Context, entity *datatug.Entity) error {
-	//TODO implement me
-	panic("implement me")
+	return s.saveEntity(ctx, entity)
 }
 
 func (s fsProjectStore) DeleteEntity(ctx context.Context, id string) error {

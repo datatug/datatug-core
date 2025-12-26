@@ -33,8 +33,7 @@ func (s fsProjectStore) SaveProject(ctx context.Context, project *datatug.Projec
 		func() (err error) {
 			if len(project.Entities) > 0 {
 				log.Printf("Saving %v entities...\n", len(project.Entities))
-				entitiesStore := newFsEntitiesStore(s)
-				if err = entitiesStore.saveEntities(ctx, project.Entities); err != nil {
+				if err = s.saveEntities(ctx, project.Entities); err != nil {
 					return fmt.Errorf("failed to save entities: %w", err)
 				}
 				log.Printf("Saved %v entities.\n", len(project.Entities))
