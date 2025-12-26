@@ -56,7 +56,7 @@ func (p *Project) GetDbServers(ctx context.Context) (dbServers ProjDbServers, er
 }
 
 // Validate returns error if not valid
-func (p Project) Validate() error {
+func (p *Project) Validate() error {
 	switch p.Access {
 	case "private", "protected", "public":
 	case "":
