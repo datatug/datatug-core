@@ -7,6 +7,7 @@ type FKAnchor struct {
 	Columns []string `json:"columns,omitempty"`
 }
 
+// ForeignKey describes a foreign key
 type ForeignKey struct {
 	Name string   `json:"name,omitempty"`
 	From FKAnchor `json:"from"`
