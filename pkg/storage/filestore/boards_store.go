@@ -26,7 +26,7 @@ func (s fsBoardsStore) SaveBoard(ctx context.Context, board *datatug.Board) erro
 }
 
 func (s fsBoardsStore) saveBoards(ctx context.Context, boards datatug.Boards) error {
-	return s.saveProjectItems(ctx, boards)
+	return s.saveProjectItems(ctx, BoardsFolder, boards)
 }
 
 func (s fsBoardsStore) DeleteBoard(ctx context.Context, id string) error {

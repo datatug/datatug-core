@@ -68,7 +68,7 @@ func (v QueryFolder) Validate() error {
 }
 
 // QueryDefs defines slice
-type QueryDefs []QueryDef
+type QueryDefs []*QueryDef
 
 // Validate returns error if not valid
 func (v QueryDefs) Validate() error {

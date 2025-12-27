@@ -15,7 +15,12 @@ func newFsProjectStore(projectID string, projectPath string) fsProjectStore {
 		readmeEncoder: datatug2md.NewEncoder(),
 		fsBoardsStore: fsBoardsStore{
 			fsProjectItemsStore: newFsProjectItemsStore[datatug.Boards, *datatug.Board, datatug.Board](
-				projectPath, BoardsFolder, ".boards",
+				projectPath, BoardsFolder, boardFileSuffix,
+			),
+		},
+		fsQueriesStore: fsQueriesStore{
+			fsProjectItemsStore: newFsProjectItemsStore[datatug.QueryDefs, *datatug.QueryDef, datatug.QueryDef](
+				projectPath, QueriesFolder, querySQLFileSuffix,
 			),
 		},
 	}
@@ -31,6 +36,7 @@ type fsProjectStore struct {
 	projFileMutex *sync.Mutex
 	readmeEncoder datatug.ReadmeEncoder
 	fsBoardsStore
+	fsQueriesStore
 }
 
 func (s fsProjectStore) LoadRecordsetData(ctx context.Context, id string) (datatug.Recordset, error) {
@@ -64,18 +70,15 @@ func (s fsProjectStore) DeleteFolder(ctx context.Context, id string) error {
 }
 
 func (s fsProjectStore) LoadQuery(ctx context.Context, id string) (*datatug.QueryDefWithFolderPath, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.GetQuery(ctx, id)
 }
 
 func (s fsProjectStore) SaveQuery(ctx context.Context, query *datatug.QueryDefWithFolderPath) error {
-	//TODO implement me
-	panic("implement me")
+	return s.fsQueriesStore.saveProjectItem(ctx, &query.QueryDef)
 }
 
 func (s fsProjectStore) DeleteQuery(ctx context.Context, id string) error {
-	//TODO implement me
-	panic("implement me")
+	return s.fsQueriesStore.deleteProjectItem(ctx, id)
 }
 
 func (s fsProjectStore) LoadEntities(ctx context.Context, o ...datatug.StoreOption) (datatug.Entities, error) {

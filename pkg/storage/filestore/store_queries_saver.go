@@ -34,8 +34,8 @@ func getQueryPaths(queryID, queriesDirPath string) (
 	return
 }
 
-func (store fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, name string) (err error) {
-	folderPath := path.Join(store.queriesPath, parentPath, name)
+func (s fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, name string) (err error) {
+	folderPath := path.Join(s.dirPath, parentPath, name)
 	if err = os.MkdirAll(folderPath, 0666); err != nil {
 		err = fmt.Errorf("failed to create folder: %w", err)
 		return
@@ -54,15 +54,15 @@ func (store fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, nam
 	return
 }
 
-func (store fsQueriesStore) CreateQuery(_ context.Context, query datatug.QueryDefWithFolderPath) (*datatug.QueryDefWithFolderPath, error) {
-	return &query, store.saveQuery(query.FolderPath, query.QueryDef, true)
+func (s fsQueriesStore) CreateQuery(_ context.Context, query datatug.QueryDefWithFolderPath) (*datatug.QueryDefWithFolderPath, error) {
+	return &query, s.saveQuery(query.FolderPath, query.QueryDef, true)
 }
 
-func (store fsQueriesStore) saveQuery(folderPath string, query datatug.QueryDef, isNew bool) (err error) {
+func (s fsQueriesStore) saveQuery(folderPath string, query datatug.QueryDef, isNew bool) (err error) {
 	if err := query.Validate(); err != nil {
 		return fmt.Errorf("invalid query (isNew=%v): %w", isNew, err)
 	}
-	_, queryType, queryFileName, _, queryPath, err := getQueryPaths(folderPath+query.ID, store.queriesPath)
+	_, queryType, queryFileName, _, queryPath, err := getQueryPaths(folderPath+query.ID, s.dirPath)
 	if err != nil {
 		return err
 	}

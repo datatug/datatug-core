@@ -64,7 +64,7 @@ func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) loadProjectItems(
 				return nil
 			}
 			id, suffix := getProjItemIDFromFileName(f.Name())
-			if suffix != boardFileSuffix {
+			if suffix != s.itemFileSuffix {
 				return nil
 			}
 			item, err := s.loadProjectItem(ctx, id, f.Name())
@@ -90,8 +90,8 @@ func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) saveProjectItem(_ context.
 	return nil
 }
 
-func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) saveProjectItems(ctx context.Context, items TSlice) error {
-	return saveItems(BoardsFolder, len(items), func(i int) func() error {
+func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) saveProjectItems(ctx context.Context, folderName string, items TSlice) error {
+	return saveItems(folderName, len(items), func(i int) func() error {
 		return func() error {
 			return s.saveProjectItem(ctx, items[i])
 		}
