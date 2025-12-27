@@ -2,7 +2,6 @@ package filestore
 
 import (
 	"context"
-	"sync"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/datatug2md"
@@ -23,6 +22,11 @@ func newFsProjectStore(projectID string, projectPath string) fsProjectStore {
 				projectPath, QueriesFolder, querySQLFileSuffix,
 			),
 		},
+		fsEntitiesStore: fsEntitiesStore{
+			fsProjectItemsStore: newFsProjectItemsStore[datatug.Entities, *datatug.Entity, datatug.Entity](
+				projectPath, EntitiesFolder, entityFileSuffix,
+			),
+		},
 	}
 }
 
@@ -33,10 +37,10 @@ var _ datatug.ProjectStore = (*fsProjectStore)(nil)
 type fsProjectStore struct {
 	projectID     string
 	projectPath   string
-	projFileMutex *sync.Mutex
 	readmeEncoder datatug.ReadmeEncoder
 	fsBoardsStore
 	fsQueriesStore
+	fsEntitiesStore
 }
 
 func (s fsProjectStore) LoadRecordsetData(ctx context.Context, id string) (datatug.Recordset, error) {
@@ -94,8 +98,7 @@ func (s fsProjectStore) SaveEntity(ctx context.Context, entity *datatug.Entity) 
 }
 
 func (s fsProjectStore) DeleteEntity(ctx context.Context, id string) error {
-	//TODO implement me
-	panic("implement me")
+	return s.deleteEntity(ctx, id)
 }
 
 func (s fsProjectStore) LoadEnvironmentSummary(ctx context.Context, id string) (*datatug.EnvironmentSummary, error) {

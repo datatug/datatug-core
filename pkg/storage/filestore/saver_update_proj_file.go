@@ -1,13 +1,12 @@
 package filestore
 
-import (
-	"github.com/datatug/datatug-core/pkg/datatug"
-)
-
+/*
 func (s fsProjectStore) loadProjectFile() (v datatug.ProjectFile, err error) {
 	return LoadProjectFile(s.projectPath)
 }
+*/
 
+/*
 func (s fsProjectStore) updateProjectFile(updater func(projFile *datatug.ProjectFile) error) error {
 	s.projFileMutex.Lock()
 	defer func() {
@@ -25,6 +24,7 @@ func (s fsProjectStore) updateProjectFile(updater func(projFile *datatug.Project
 	}
 	return nil
 }
+*/
 
 /*
 func (s fileSystemSaver) updateProjectFileDeleteEntity(id string) (err error) {
