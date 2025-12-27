@@ -111,23 +111,20 @@ func (s fsProjectStore) DeleteProjDbServer(ctx context.Context, id string) error
 }
 
 func (s fsProjectStore) LoadBoard(ctx context.Context, id string, o ...datatug.StoreOption) (*datatug.Board, error) {
-	//TODO implement me
-	panic("implement me")
+	fileName := jsonFileName(id, boardFileSuffix)
+	return s.loadBoard(ctx, id, fileName, o...)
 }
 
 func (s fsProjectStore) LoadBoards(ctx context.Context, o ...datatug.StoreOption) (datatug.Boards, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.loadBoards(ctx, o...)
 }
 
 func (s fsProjectStore) SaveBoard(ctx context.Context, board *datatug.Board) error {
-	//TODO implement me
-	panic("implement me")
+	return s.saveBoard(ctx, board)
 }
 
 func (s fsProjectStore) DeleteBoard(ctx context.Context, id string) error {
-	//TODO implement me
-	panic("implement me")
+	return s.deleteBoard(ctx, id)
 }
 
 func (s fsProjectStore) ProjectID() string {

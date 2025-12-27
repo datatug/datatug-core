@@ -8,30 +8,6 @@ func (s fsProjectStore) loadProjectFile() (v datatug.ProjectFile, err error) {
 	return LoadProjectFile(s.projectPath)
 }
 
-func (s fsProjectStore) updateProjectFileWithBoard(_ datatug.Board) (err error) {
-	//	projFile, err := s.loadProjectFile()
-	//	if err != nil {
-	//		return err
-	//	}
-	//	for _, b := range projFile.Boards {
-	//		if b.ID == board.ID {
-	//			if b.Name == board.Name {
-	//				goto SAVED
-	//			}
-	//			b.Name = board.Name
-	//			goto UPDATED
-	//		}
-	//	}
-	//	projFile.Boards = append(projFile.Boards, &models.ProjBoardBrief{
-	//		ProjItemBrief: models.ProjItemBrief{ID: board.ID, Name: board.Name},
-	//		Parameters:    board.Parameters,
-	//	})
-	//UPDATED:
-	//	err = s.putProjectFile(projFile)
-	//SAVED:
-	return err
-}
-
 func (s fsProjectStore) updateProjectFile(updater func(projFile *datatug.ProjectFile) error) error {
 	s.projFileMutex.Lock()
 	defer func() {

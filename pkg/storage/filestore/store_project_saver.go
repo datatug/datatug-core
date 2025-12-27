@@ -67,7 +67,7 @@ func (s fsProjectStore) SaveProject(ctx context.Context, project *datatug.Projec
 		func() (err error) {
 			if len(project.Boards) > 0 {
 				log.Printf("Saving %v boards...\n", len(project.Boards))
-				if err = newFsBoardsStore(s).saveBoards(ctx, project.Boards); err != nil {
+				if err = s.saveBoards(ctx, project.Boards); err != nil {
 					return fmt.Errorf("failed to save boards: %w", err)
 				}
 				log.Printf("Saved %v boards.", len(project.Boards))

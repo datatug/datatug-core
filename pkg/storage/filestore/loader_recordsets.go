@@ -26,7 +26,7 @@ func (loader fileSystemLoader) LoadRecordsetDefinitions(projectID string) (recor
 }
 
 func (loader fileSystemLoader) loadRecordsetsDir(projectID, folder, dirPath string) (recordsetDefs []*datatug.RecordsetDefinition, err error) {
-	if err := loadDir(nil, dirPath, processDirs, func(files []os.FileInfo) {
+	if err := loadDir(nil, dirPath, "", processDirs, func(files []os.FileInfo) {
 		recordsetDefs = make([]*datatug.RecordsetDefinition, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 		recordsetID := f.Name() // directory name

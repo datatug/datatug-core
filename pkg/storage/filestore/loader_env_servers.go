@@ -10,7 +10,7 @@ import (
 )
 
 func loadEnvServers(dirPath string, env *datatug.Environment) error {
-	return loadDir(nil, dirPath, processFiles, func(files []os.FileInfo) {
+	return loadDir(nil, dirPath, "*.json", processFiles, func(files []os.FileInfo) {
 		env.DbServers = make([]*datatug.EnvDbServer, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 		fileName := f.Name()

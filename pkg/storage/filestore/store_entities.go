@@ -77,7 +77,7 @@ func (s fsProjectStore) loadEntity(_ context.Context, id string, _ ...datatug.St
 
 func (s fsProjectStore) loadEntities(_ context.Context, _ ...datatug.StoreOption) (entities datatug.Entities, err error) {
 	entitiesDirPath := path.Join(s.projectPath, DatatugFolder, EntitiesFolder)
-	if err = loadDir(nil, entitiesDirPath, processDirs,
+	if err = loadDir(nil, entitiesDirPath, "", processDirs,
 		func(files []os.FileInfo) {
 			entities = make(datatug.Entities, 0, len(files))
 		},

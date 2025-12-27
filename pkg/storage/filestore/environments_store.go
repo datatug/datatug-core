@@ -13,7 +13,7 @@ import (
 
 func (s fsProjectStore) loadEnvironments(_ context.Context, o ...datatug.StoreOption) (environments datatug.Environments, err error) {
 	envsDirPath := path.Join(s.projectPath, DatatugFolder, EnvironmentsFolder)
-	err = loadDir(nil, envsDirPath, processDirs,
+	err = loadDir(nil, envsDirPath, "", processDirs,
 		func(files []os.FileInfo) {
 			environments = make(datatug.Environments, 0, len(files))
 		},

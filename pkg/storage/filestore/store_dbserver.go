@@ -56,7 +56,7 @@ func loadDbServerForDbServerSummary(projPath string, dbServer datatug.ServerRefe
 
 func loadDbCatalogsForDbServerSummary(dbServerPath string, dbsByEnv map[string][]string) (catalogSummaries []*datatug.DbCatalogSummary, err error) {
 	catalogsPath := path.Join(dbServerPath, "catalogs")
-	err = loadDir(nil, catalogsPath, processDirs, func(files []os.FileInfo) {
+	err = loadDir(nil, catalogsPath, "", processDirs, func(files []os.FileInfo) {
 		catalogSummaries = make([]*datatug.DbCatalogSummary, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
 		catalogSummary, err := loadDbCatalogSummary(catalogsPath, f.Name())
@@ -99,7 +99,7 @@ func loadDbCatalogSummary(catalogsDirPath, dirName string) (*datatug.DbCatalogSu
 
 func loadDbServerCatalogNamesByEnvironments(projPath string, dbServer datatug.ServerReference) (dbsByEnv map[string][]string, err error) {
 	envsPath := path.Join(projPath, "environments")
-	err = loadDir(nil, envsPath, processDirs, func(files []os.FileInfo) {
+	err = loadDir(nil, envsPath, "", processDirs, func(files []os.FileInfo) {
 		dbsByEnv = make(map[string][]string, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
 		env := f.Name()

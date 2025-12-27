@@ -31,7 +31,7 @@ func (store fsQueriesStore) LoadQueries(ctx context.Context, folderPath string) 
 }
 
 func (store fsQueriesStore) loadQueriesDir(ctx context.Context, dirPath string) (folder *datatug.QueryFolder, err error) {
-	err = loadDir(nil, dirPath, processDirs|processFiles, func(files []os.FileInfo) {
+	err = loadDir(nil, dirPath, "*.json", processDirs|processFiles, func(files []os.FileInfo) {
 		folder = new(datatug.QueryFolder)
 		folder.Items = make(datatug.QueryDefs, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {

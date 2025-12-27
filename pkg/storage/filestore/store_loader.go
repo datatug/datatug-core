@@ -60,7 +60,7 @@ func (s fsProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOptio
 
 func loadDbDrivers(_ context.Context, projPath string) (dbServers datatug.ProjDbServers, err error) {
 	dbServersPath := path.Join(projPath, DatatugFolder, ServersFolder, DbFolder)
-	if err = loadDir(nil, dbServersPath, processDirs, func(files []os.FileInfo) {
+	if err = loadDir(nil, dbServersPath, "", processDirs, func(files []os.FileInfo) {
 		dbServers = make(datatug.ProjDbServers, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 		dbDriver, err := loadDbDriver(dbServersPath, f.Name())
@@ -79,7 +79,7 @@ func loadDbDrivers(_ context.Context, projPath string) (dbServers datatug.ProjDb
 
 func loadDbDriver(dbServersPath, driverName string) (dbServers datatug.ProjDbServers, err error) {
 	driverDirPath := path.Join(dbServersPath, driverName)
-	if err = loadDir(nil, driverDirPath, processDirs, func(files []os.FileInfo) {
+	if err = loadDir(nil, driverDirPath, "", processDirs, func(files []os.FileInfo) {
 		dbServers = make(datatug.ProjDbServers, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
 		var dbServer *datatug.ProjDbServer

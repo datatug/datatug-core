@@ -11,6 +11,7 @@ import (
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/parallel"
+	"github.com/datatug/datatug-core/pkg/storage"
 )
 
 func loadProjectFile(projPath string, project *datatug.Project) (err error) {
@@ -31,6 +32,7 @@ const (
 func loadDir(
 	mutex *sync.Mutex, // pass null by default unless you want to use existing shared mutex
 	dirPath string,
+	fileMask string,
 	filter process,
 	init func(files []os.FileInfo),
 	loader func(f os.FileInfo, i int, mutex *sync.Mutex) (err error),
@@ -53,13 +55,27 @@ func loadDir(
 	if mutex == nil {
 		mutex = new(sync.Mutex)
 	}
+	if _, err = path.Match(fileMask, ""); err != nil {
+		return
+	}
+	var errs []storage.FileLoadError
 	for i := range files {
 		file := files[i]
 		isDir := file.IsDir()
 		if isDir && filter&processDirs == processDirs || !isDir && filter&processFiles == processFiles {
+			if !isDir && fileMask != "" {
+				if matched, _ := path.Match(fileMask, file.Name()); !matched {
+					continue
+				}
+			}
 			k := j
 			workers = append(workers, func() error {
-				return loader(file, k, mutex)
+				if loaderErr := loader(file, k, mutex); loaderErr != nil {
+					mutex.Lock()
+					errs = append(errs, storage.NewFileLoadError(file.Name(), loaderErr))
+					mutex.Unlock()
+				}
+				return nil
 			})
 			j++
 		}
@@ -70,12 +86,18 @@ func loadDir(
 	if init != nil {
 		init(files)
 	}
-	return parallel.Run(workers...)
+	if err = parallel.Run(workers...); err != nil {
+		return err
+	}
+	if len(errs) > 0 {
+		return storage.NewFilesLoadError(errs)
+	}
+	return
 }
 
 func loadBoards(_ context.Context, projPath string, project *datatug.Project) (err error) {
 	boardsDirPath := path.Join(projPath, DatatugFolder, "boards")
-	if err = loadDir(nil, boardsDirPath, processFiles,
+	if err = loadDir(nil, boardsDirPath, "*.json", processFiles,
 		func(files []os.FileInfo) {
 			project.Boards = make(datatug.Boards, 0, len(files))
 		},
@@ -104,7 +126,7 @@ func loadBoards(_ context.Context, projPath string, project *datatug.Project) (e
 
 func loadDbModels(_ context.Context, projPath string, project *datatug.Project) error {
 	dbModelsDirPath := path.Join(projPath, DatatugFolder, "dbmodels")
-	if err := loadDir(nil, dbModelsDirPath, processDirs,
+	if err := loadDir(nil, dbModelsDirPath, "", processDirs,
 		func(files []os.FileInfo) {
 			project.DbModels = make(datatug.DbModels, 0, len(files))
 		},
@@ -141,7 +163,7 @@ func loadDbModel(dbModelsDirPath, id string) (dbModel *datatug.DbModel, err erro
 			return err
 		},
 		func() (err error) {
-			return loadDir(nil, dbModelDirPath, processDirs,
+			return loadDir(nil, dbModelDirPath, "", processDirs,
 				func(files []os.FileInfo) {
 					dbModel.Schemas = make([]*datatug.SchemaModel, 0, len(files))
 				},
@@ -165,7 +187,7 @@ func loadSchemaModel(dbModelDirPath, schemaID string) (schemaModel *datatug.Sche
 	loadTableModels := func(dir, dbType string) (tables datatug.TableModels, err error) {
 		dirPath := path.Join(schemaDirPath, dir)
 
-		err = loadDir(nil, dirPath, processDirs, func(files []os.FileInfo) {
+		err = loadDir(nil, dirPath, "", processDirs, func(files []os.FileInfo) {
 			tables = make(datatug.TableModels, len(files))
 		}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
 			tables[i], err = loadTableModel(f.Name())
@@ -219,7 +241,7 @@ func (s fsProjectStore) loadEnvironment(dirPath string, env *datatug.Environment
 }
 
 func loadDbCatalogs(dirPath string, dbServer *datatug.ProjDbServer) (err error) {
-	return loadDir(nil, dirPath, processDirs, func(files []os.FileInfo) {
+	return loadDir(nil, dirPath, "", processDirs, func(files []os.FileInfo) {
 		dbServer.Catalogs = make(datatug.DbCatalogs, 0, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
 		dbCatalog := new(datatug.DbCatalog)
@@ -244,7 +266,7 @@ func loadDbCatalog(dirPath string, dbCatalog *datatug.DbCatalog) (err error) {
 	}
 
 	schemasDirPath := path.Join(dirPath, SchemasFolder)
-	return loadDir(nil, schemasDirPath, processDirs, func(files []os.FileInfo) {
+	return loadDir(nil, schemasDirPath, "", processDirs, func(files []os.FileInfo) {
 		dbCatalog.Schemas = make(datatug.DbSchemas, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
 		dbCatalog.Schemas[i], err = loadSchema(schemasDirPath, f.Name())
@@ -302,7 +324,7 @@ func loadTables(schemasDirPath, schema, folder string) (tables datatug.Tables, e
 	//if dirs, err = getSortedSubDirNames(dirPath); err != nil {
 	//	return err
 	//}
-	err = loadDir(nil, dirPath, processDirs,
+	err = loadDir(nil, dirPath, "", processDirs,
 		func(files []os.FileInfo) {
 			tables = make(datatug.Tables, 0, len(files))
 		}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
