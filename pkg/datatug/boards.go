@@ -27,7 +27,7 @@ type Board struct {
 }
 
 // Validate returns error if failed
-func (v Board) Validate() error {
+func (v *Board) Validate() error {
 	if err := v.ProjBoardBrief.Validate(); err != nil {
 		return err
 	}

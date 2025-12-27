@@ -13,6 +13,11 @@ func newFsProjectStore(projectID string, projectPath string) fsProjectStore {
 		projectID:     projectID,
 		projectPath:   projectPath,
 		readmeEncoder: datatug2md.NewEncoder(),
+		fsBoardsStore: fsBoardsStore{
+			fsProjectItemsStore: newFsProjectItemsStore[datatug.Boards, *datatug.Board, datatug.Board](
+				projectPath, BoardsFolder, ".boards",
+			),
+		},
 	}
 }
 
@@ -25,6 +30,7 @@ type fsProjectStore struct {
 	projectPath   string
 	projFileMutex *sync.Mutex
 	readmeEncoder datatug.ReadmeEncoder
+	fsBoardsStore
 }
 
 func (s fsProjectStore) LoadRecordsetData(ctx context.Context, id string) (datatug.Recordset, error) {
@@ -110,23 +116,6 @@ func (s fsProjectStore) DeleteProjDbServer(ctx context.Context, id string) error
 	panic("implement me")
 }
 
-func (s fsProjectStore) LoadBoard(ctx context.Context, id string, o ...datatug.StoreOption) (*datatug.Board, error) {
-	fileName := jsonFileName(id, boardFileSuffix)
-	return s.loadBoard(ctx, id, fileName, o...)
-}
-
-func (s fsProjectStore) LoadBoards(ctx context.Context, o ...datatug.StoreOption) (datatug.Boards, error) {
-	return s.loadBoards(ctx, o...)
-}
-
-func (s fsProjectStore) SaveBoard(ctx context.Context, board *datatug.Board) error {
-	return s.saveBoard(ctx, board)
-}
-
-func (s fsProjectStore) DeleteBoard(ctx context.Context, id string) error {
-	return s.deleteBoard(ctx, id)
-}
-
 func (s fsProjectStore) ProjectID() string {
 	return s.projectID
 }
@@ -174,10 +163,6 @@ type fsProjectStoreRef struct {
 
 //func (store fsProjectStore) Folders() storage.FoldersStore {
 //	return fsFoldersStore{fsProjectStore: store}
-//}
-
-//func (store fsProjectStore) Boards() storage.boardsStore {
-//	return newFsBoardsStore(store)
 //}
 
 //func (store fsProjectStore) Queries() storage.QueriesStore {

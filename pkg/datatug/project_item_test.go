@@ -8,22 +8,28 @@ import (
 
 func TestProjItemBrief_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
-		assert.NoError(t, ProjItemBrief{ID: "i1", Title: "T"}.Validate(true))
+		v := ProjItemBrief{ID: "i1", Title: "T"}
+		assert.NoError(t, v.Validate(true))
 	})
 	t.Run("missing_id", func(t *testing.T) {
-		assert.Error(t, ProjItemBrief{Title: "T"}.Validate(true))
+		v := ProjItemBrief{Title: "T"}
+		assert.Error(t, v.Validate(true))
 	})
 	t.Run("missing_title", func(t *testing.T) {
-		assert.Error(t, ProjItemBrief{ID: "i1"}.Validate(true))
+		v := ProjItemBrief{ID: "i1"}
+		assert.Error(t, v.Validate(true))
 	})
 	t.Run("valid_folder", func(t *testing.T) {
-		assert.NoError(t, ProjItemBrief{ID: "i1", Folder: "~"}.Validate(false))
+		v := ProjItemBrief{ID: "i1", Folder: "~"}
+		assert.NoError(t, v.Validate(false))
 	})
 	t.Run("invalid_folder", func(t *testing.T) {
-		assert.Error(t, ProjItemBrief{ID: "i1", Folder: "invalid"}.Validate(false))
+		v := ProjItemBrief{ID: "i1", Folder: "invalid"}
+		assert.Error(t, v.Validate(false))
 	})
 	t.Run("invalid_tags", func(t *testing.T) {
-		assert.Error(t, ProjItemBrief{ID: "i1", ListOfTags: ListOfTags{Tags: []string{""}}}.Validate(false))
+		v := ProjItemBrief{ID: "i1", ListOfTags: ListOfTags{Tags: []string{""}}}
+		assert.Error(t, v.Validate(false))
 	})
 }
 

@@ -19,7 +19,7 @@ type ProjectStore interface {
 	//DeleteEntity(ctx context.Context, id string) error
 
 	queryStore
-	boardsStore
+	BoardsStore
 	foldersStore
 	entitiesStore
 	environmentsStore
@@ -34,7 +34,7 @@ type environmentsStore interface {
 	//DeleteEnvironment(ctx context.Context, id string) error
 }
 
-type boardsStore interface {
+type BoardsStore interface {
 	LoadBoards(ctx context.Context, o ...StoreOption) (Boards, error)
 	LoadBoard(ctx context.Context, id string, o ...StoreOption) (*Board, error)
 	SaveBoard(ctx context.Context, board *Board) error

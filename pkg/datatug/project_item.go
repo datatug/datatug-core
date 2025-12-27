@@ -27,8 +27,16 @@ type ProjItemBrief struct {
 	ListOfTags
 }
 
+func (v *ProjItemBrief) GetID() string {
+	return v.ID
+}
+
+func (v *ProjItemBrief) SetID(id string) {
+	v.ID = id
+}
+
 // Validate returns error if not valid
-func (v ProjItemBrief) Validate(isTitleRequired bool) error {
+func (v *ProjItemBrief) Validate(isTitleRequired bool) error {
 	if v.ID == "" {
 		return validation.NewErrRecordIsMissingRequiredField("id")
 	}
