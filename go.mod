@@ -5,7 +5,7 @@ go 1.24.3
 toolchain go1.25.5
 
 require (
-	github.com/dal-go/dalgo v0.37.0
+	github.com/dal-go/dalgo v0.40.2
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/stretchr/testify v1.11.1

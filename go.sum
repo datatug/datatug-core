@@ -4,8 +4,8 @@ github.com/bits-and-blooms/bitset v1.12.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6
 github.com/bits-and-blooms/bitset v1.24.4 h1:95H15Og1clikBrKr/DuzMXkQzECs1M6hhoGXLwLQOZE=
 github.com/bits-and-blooms/bitset v1.24.4/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
-github.com/dal-go/dalgo v0.37.0 h1:tIAD3Pii2KTrqM01TS4u1RyOB/dyuy5jK17XIbEpU68=
-github.com/dal-go/dalgo v0.37.0/go.mod h1:BJQ/N3I40KjoT0+diGNfST1nCU9TP0Hjjy6gM20GPhI=
+github.com/dal-go/dalgo v0.40.2 h1:J2wlA6SSF9FmmJ3PkJC6GWAp+kHj3mGyrvybNrgGQLo=
+github.com/dal-go/dalgo v0.40.2/go.mod h1:+4W48ajQr3fm7hO7J362gRs72o8Y7E0TBfekJFvP/2Y=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
