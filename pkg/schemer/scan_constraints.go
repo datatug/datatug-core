@@ -3,6 +3,7 @@ package schemer
 import (
 	"context"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
@@ -19,11 +20,11 @@ func (s scanner) scanConstraintsInBulk(c context.Context, catalog string, tables
 			return fmt.Errorf("exceeded deadline")
 		}
 		constraint, err := reader.NextConstraint()
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			return err
-		}
-		if constraint.Constraint == nil {
-			break
 		}
 		table := tablesFinder.SequentialFind(catalog, constraint.SchemaName, constraint.TableName)
 		if table == nil {
@@ -46,11 +47,11 @@ func processConstraint(catalog string, table *datatug.CollectionInfo, constraint
 			table.PrimaryKey.Columns = append(table.PrimaryKey.Columns, constraint.ColumnName)
 		}
 	case "UNIQUE":
-		if len(table.UniqueKeys) > 0 && table.UniqueKeys[len(table.UniqueKeys)-1].Name == constraint.ColumnName {
-			i := len(table.UniqueKeys) - 1
-			table.UniqueKeys[i].Columns = append(table.UniqueKeys[i].Columns, constraint.ColumnName)
+		if len(table.AlternateKeys) > 0 && table.AlternateKeys[len(table.AlternateKeys)-1].Name == constraint.Name {
+			i := len(table.AlternateKeys) - 1
+			table.AlternateKeys[i].Columns = append(table.AlternateKeys[i].Columns, constraint.ColumnName)
 		} else {
-			table.UniqueKeys = append(table.UniqueKeys, &datatug.UniqueKey{Name: constraint.Name, Columns: []string{constraint.ColumnName}})
+			table.AlternateKeys = append(table.AlternateKeys, datatug.UniqueKey{Name: constraint.Name, Columns: []string{constraint.ColumnName}})
 		}
 	case "FOREIGN KEY":
 		if len(table.ForeignKeys) > 0 && table.ForeignKeys[len(table.ForeignKeys)-1].Name == constraint.Name {

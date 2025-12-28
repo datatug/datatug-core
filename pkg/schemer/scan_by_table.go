@@ -3,6 +3,7 @@ package schemer
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"sort"
 	"time"
@@ -57,11 +58,11 @@ func (s scanner) scanTableCols(c context.Context, catalog string, table *datatug
 			return fmt.Errorf("exceeded deadline")
 		}
 		column, err := columnsReader.NextColumn()
+		if err == io.EOF {
+			return nil
+		}
 		if err != nil {
 			return err
-		}
-		if column.Name == "" {
-			return nil
 		}
 		table.Columns = append(table.Columns, &column.ColumnInfo)
 		if column.PrimaryKeyPosition > 0 {
@@ -82,11 +83,11 @@ func (s scanner) scanTableIndexes(c context.Context, catalog string, table *data
 			return fmt.Errorf("exceeded deadline")
 		}
 		index, err := indexesReader.NextIndex()
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			return fmt.Errorf("failed to get index record: %w", err)
-		}
-		if index == nil {
-			break
 		}
 		table.Indexes = append(table.Indexes, index.Index)
 		workers = append(workers, func() error {
@@ -113,11 +114,11 @@ func (s scanner) scanIndexColumns(c context.Context, catalog string, table *data
 			return fmt.Errorf("exceeded deadline")
 		}
 		indexCol, err := indexColumnsReader.NextIndexColumn()
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			return fmt.Errorf("failed to get index column record: %w", err)
-		}
-		if indexCol == nil {
-			break
 		}
 		index.Columns = append(index.Columns, indexCol.IndexColumn)
 	}
@@ -131,11 +132,11 @@ func (s scanner) scanTableConstraints(c context.Context, catalog string, table *
 	}
 	for {
 		constraint, err := constraints.NextConstraint()
+		if err == io.EOF {
+			return nil
+		}
 		if err != nil {
 			return err
-		}
-		if constraint == nil {
-			return nil
 		}
 		if err = processConstraint(catalog, table, constraint, tables); err != nil {
 			return fmt.Errorf("failed to process contraint record: %w", err)

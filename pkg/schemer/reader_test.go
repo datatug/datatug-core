@@ -10,14 +10,14 @@ import (
 	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
-type mockColumnsReader struct {
+type mockColumnsReaderForReadColumns struct {
 	columns []Column
 	index   int
 	err     error
-	onNext  func(m *mockColumnsReader)
+	onNext  func(m *mockColumnsReaderForReadColumns)
 }
 
-func (m *mockColumnsReader) NextColumn() (Column, error) {
+func (m *mockColumnsReaderForReadColumns) NextColumn() (Column, error) {
 	if m.onNext != nil {
 		m.onNext(m)
 	}
@@ -39,14 +39,14 @@ func TestReadColumns(t *testing.T) {
 	tests := []struct {
 		name    string
 		ctx     context.Context
-		reader  *mockColumnsReader
+		reader  *mockColumnsReaderForReadColumns
 		want    []Column
 		wantErr bool
 	}{
 		{
 			name: "success",
 			ctx:  context.Background(),
-			reader: &mockColumnsReader{
+			reader: &mockColumnsReaderForReadColumns{
 				columns: []Column{
 					{TableRef: TableRef{TableName: "t1"}, ColumnInfo: datatug.ColumnInfo{DbColumnProps: datatug.DbColumnProps{Name: "c1"}}},
 					{TableRef: TableRef{TableName: "t1"}, ColumnInfo: datatug.ColumnInfo{DbColumnProps: datatug.DbColumnProps{Name: "c2"}}},
@@ -60,13 +60,13 @@ func TestReadColumns(t *testing.T) {
 		{
 			name:   "empty",
 			ctx:    context.Background(),
-			reader: &mockColumnsReader{},
+			reader: &mockColumnsReaderForReadColumns{},
 			want:   nil,
 		},
 		{
 			name: "error",
 			ctx:  context.Background(),
-			reader: &mockColumnsReader{
+			reader: &mockColumnsReaderForReadColumns{
 				columns: []Column{
 					{TableRef: TableRef{TableName: "t1"}, ColumnInfo: datatug.ColumnInfo{DbColumnProps: datatug.DbColumnProps{Name: "c1"}}},
 				},
@@ -80,7 +80,7 @@ func TestReadColumns(t *testing.T) {
 		{
 			name: "deadline_immediate",
 			ctx:  ctxCancelled,
-			reader: &mockColumnsReader{
+			reader: &mockColumnsReaderForReadColumns{
 				columns: []Column{
 					{TableRef: TableRef{TableName: "t1"}, ColumnInfo: datatug.ColumnInfo{DbColumnProps: datatug.DbColumnProps{Name: "c1"}}},
 				},
@@ -91,7 +91,7 @@ func TestReadColumns(t *testing.T) {
 		{
 			name: "nil_context",
 			ctx:  nil,
-			reader: &mockColumnsReader{
+			reader: &mockColumnsReaderForReadColumns{
 				columns: []Column{
 					{TableRef: TableRef{TableName: "t1"}, ColumnInfo: datatug.ColumnInfo{DbColumnProps: datatug.DbColumnProps{Name: "c1"}}},
 				},
@@ -107,7 +107,7 @@ func TestReadColumns(t *testing.T) {
 				cancel()
 				return ctx
 			}(),
-			reader: &mockColumnsReader{
+			reader: &mockColumnsReaderForReadColumns{
 				columns: []Column{
 					{TableRef: TableRef{TableName: "t1"}, ColumnInfo: datatug.ColumnInfo{DbColumnProps: datatug.DbColumnProps{Name: "c1"}}},
 				},
@@ -131,12 +131,12 @@ func TestReadColumns(t *testing.T) {
 
 	t.Run("deadline_after_first", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
-		reader := &mockColumnsReader{
+		reader := &mockColumnsReaderForReadColumns{
 			columns: []Column{
 				{TableRef: TableRef{TableName: "t1"}, ColumnInfo: datatug.ColumnInfo{DbColumnProps: datatug.DbColumnProps{Name: "c1"}}},
 				{TableRef: TableRef{TableName: "t1"}, ColumnInfo: datatug.ColumnInfo{DbColumnProps: datatug.DbColumnProps{Name: "c2"}}},
 			},
-			onNext: func(m *mockColumnsReader) {
+			onNext: func(m *mockColumnsReaderForReadColumns) {
 				if m.index == 1 {
 					cancel()
 				}

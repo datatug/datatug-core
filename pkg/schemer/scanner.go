@@ -3,6 +3,7 @@ package schemer
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"strings"
 	"time"
@@ -65,11 +66,11 @@ func (s scanner) scanTables(c context.Context, catalog *datatug.DbCatalog) error
 			return fmt.Errorf("exceeded deadline")
 		}
 		t, err := tablesReader.NextCollection()
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			return err
-		}
-		if t == nil {
-			break
 		}
 		tables = append(tables, t)
 		schema := catalog.Schemas.GetByID(t.Schema())
@@ -100,7 +101,9 @@ func (s scanner) scanTables(c context.Context, catalog *datatug.DbCatalog) error
 			})
 		}
 	}
-	err = parallel.Run(workers...)
+	if err = parallel.Run(workers...); err != nil {
+		return err
+	}
 	if !s.schemaProvider.IsBulkProvider() {
 		for _, table := range tables {
 			if err = s.scanTableConstraints(c, catalog.ID, table, tables); err != nil {
@@ -108,7 +111,7 @@ func (s scanner) scanTables(c context.Context, catalog *datatug.DbCatalog) error
 			}
 		}
 	}
-	return err
+	return nil
 }
 
 func (s scanner) scanColumnsInBulk(c context.Context, catalog string, tablesFinder SortedTables) error {
@@ -122,11 +125,11 @@ func (s scanner) scanColumnsInBulk(c context.Context, catalog string, tablesFind
 			return fmt.Errorf("exceeded deadline")
 		}
 		column, err := columnsReader.NextColumn()
+		if err == io.EOF {
+			return nil
+		}
 		if err != nil {
 			return err
-		}
-		if column.Name == "" {
-			return nil
 		}
 		if table := tablesFinder.SequentialFind(catalog, column.SchemaName, column.TableName); table != nil {
 			table.Columns = append(table.Columns, &column.ColumnInfo)
@@ -149,11 +152,17 @@ func (s scanner) scanIndexesInBulk(c context.Context, catalog string, tablesFind
 			return fmt.Errorf("exceeded deadline")
 		}
 		index, err := reader.NextIndex()
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			return err
 		}
+		if index == nil {
+			return fmt.Errorf("got nil index at iteration #%v", i)
+		}
 		if index.Index == nil {
-			break
+			return fmt.Errorf("got nil index.Index at iteration #%v", i)
 		}
 		indexes = append(indexes, index)
 		if index.Name == "" {
@@ -183,20 +192,26 @@ func (s scanner) scanIndexColumnsInBulk(c context.Context, catalog string, index
 			return fmt.Errorf("exceeded deadline")
 		}
 		indexColumn, err := reader.NextIndexColumn()
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			return fmt.Errorf("failed to get next index column at iteration #%v: %w", i, err)
 		}
-		if indexColumn.IndexColumn == nil {
-			break
-		}
 		index := indexFinder.SequentialFind(indexColumn.SchemaName, indexColumn.TableName, indexColumn.IndexName)
-		if index.Index == nil {
+		if index == nil || index.Index == nil {
 			indexNames := make([]string, len(indexFinder.indexes))
 			for k, index := range indexFinder.indexes {
 				indexNames[k] = index.Name
 			}
+			indexName := ""
+			if index != nil && index.Index != nil {
+				indexName = index.Name
+			} else {
+				indexName = indexColumn.IndexName
+			}
 			return fmt.Errorf("unknown index referenced by column [%v.%v.%v.%v] at iteration #%v: %v\nKnown indexes: %v",
-				catalog, indexColumn.SchemaName, indexColumn.TableName, indexColumn.Name, i, indexColumn.IndexName, strings.Join(indexNames, ", "))
+				catalog, indexColumn.SchemaName, indexColumn.TableName, indexColumn.Name, i, indexName, strings.Join(indexNames, ", "))
 		}
 		index.Columns = append(index.Columns, indexColumn.IndexColumn)
 	}
