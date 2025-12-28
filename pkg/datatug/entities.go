@@ -141,13 +141,13 @@ func (v EntityField) Validate() error {
 }
 
 // EntityFields is a slice of EntityField
-type EntityFields []EntityField
+type EntityFields []*EntityField
 
 // Validate returns error if not valid
 func (v EntityFields) Validate() error {
 	for i, f := range v {
 		if err := f.Validate(); err != nil {
-			return fmt.Errorf("invalid fields[%v]: %w", i, err)
+			return fmt.Errorf("fields[%v]: %w", i, err)
 		}
 	}
 	return nil
