@@ -821,8 +821,8 @@ func TestScanCatalog_Errors(t *testing.T) {
 		table := &datatug.CollectionInfo{DBCollectionKey: datatug.NewTableKey("t1", "s1", "cat", nil)}
 		u1 := &Constraint{Constraint: &datatug.Constraint{Name: "u1", Type: "UNIQUE"}, ColumnName: "col1"}
 		u2 := &Constraint{Constraint: &datatug.Constraint{Name: "u2", Type: "UNIQUE"}, ColumnName: "col2"}
-		processConstraint("cat", table, u1, nil)
-		processConstraint("cat", table, u2, nil)
+		_ = processConstraint("cat", table, u1, nil)
+		_ = processConstraint("cat", table, u2, nil)
 		if len(table.AlternateKeys) != 2 {
 			t.Errorf("expected 2 alternate keys, got %v", len(table.AlternateKeys))
 		}

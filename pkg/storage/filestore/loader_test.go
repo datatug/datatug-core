@@ -15,7 +15,9 @@ import (
 func TestLoader(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "datatug_test_loader")
 	assert.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		_ = os.RemoveAll(tmpDir)
+	}()
 
 	projID := "test_project"
 	projPath := path.Join(tmpDir, projID)
