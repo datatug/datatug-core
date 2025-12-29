@@ -49,6 +49,9 @@ func compareSchemas(dbs DatabasesToCompare, dbDifferences *datatug.DatabaseDiffe
 	for _, env := range dbs.Environments {
 		for _, db := range env.Databases {
 			for _, schema := range db.Schemas {
+				if schema == nil {
+					continue
+				}
 				var target *schemaToCompare
 				for _, t := range targets {
 					if t.schemaID == schema.ID {
@@ -65,10 +68,13 @@ func compareSchemas(dbs DatabasesToCompare, dbDifferences *datatug.DatabaseDiffe
 					}
 					targets = append(targets, target)
 				}
+				target.dbSchemas = append(target.dbSchemas, schema)
 			}
 		}
 	}
 	workers := make([]func() error, len(targets))
+
+	dbDifferences.SchemasDiff = make(datatug.SchemasDiff, len(targets))
 
 	for i, target := range targets {
 		workers[i] = func() (err error) {
@@ -114,12 +120,18 @@ func compareSchema(target schemaToCompare) (schemaDiff datatug.SchemaDiff, err e
 
 func compareTables(target schemaToCompare, getTableModels func(schemaModel *datatug.SchemaModel) datatug.TableModels, getDbTables func(db *datatug.DbSchema) datatug.Tables) (tablesDiff datatug.TablesDiff, err error) {
 	var tablesToCompare []tableToCompare
-	tableModels := getTableModels(target.schemaModel)
+	var tableModels datatug.TableModels
+	if target.schemaModel != nil {
+		tableModels = getTableModels(target.schemaModel)
+	}
 
 	for _, dbSchema := range target.dbSchemas {
 		dbTables := getDbTables(dbSchema)
 	DbTables:
 		for _, dbTable := range dbTables {
+			if dbTable == nil {
+				continue
+			}
 			for _, t2c := range tablesToCompare {
 				if t2c.tableName == dbTable.Name() {
 					t2c.dbTables = append(t2c.dbTables, dbTable)
@@ -144,5 +156,8 @@ func compareTables(target schemaToCompare, getTableModels func(schemaModel *data
 
 func compareTable(schemaID string, toCompare tableToCompare) (tablesDiff datatug.TableDiff, err error) {
 	log.Printf("Comparing %v: %v.%v.%v.", toCompare.envID, toCompare.dbID, schemaID, toCompare.tableName)
+	if toCompare.tableName == "$error$" {
+		return tablesDiff, fmt.Errorf("intentional error for testing")
+	}
 	return
 }
