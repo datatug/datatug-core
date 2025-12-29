@@ -16,10 +16,10 @@ func (m mockTestingT) Run(name string, f func(t *testing.T)) bool {
 	return m.t.Run(name, f)
 }
 func (m mockTestingT) Error(args ...interface{}) {
-	m.t.Log("Expected error (mock):", args)
+	//m.t.Log("Expected error (mock):", args)
 }
 func (m mockTestingT) Errorf(format string, args ...interface{}) {
-	m.t.Logf("Expected error (mock): "+format, args...)
+	//m.t.Logf("Expected error (mock): "+format, args...)
 }
 
 type mockRecord struct {

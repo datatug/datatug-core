@@ -13,30 +13,30 @@ import (
 
 // SaveProject saves project
 func (s fsProjectStore) SaveProject(ctx context.Context, project *datatug.Project) (err error) {
-	log.Println("Validating project for saving to: ", s.projectPath)
+	//log.Println("Validating project for saving to: ", s.projectPath)
 	if err = project.Validate(); err != nil {
 		return fmt.Errorf("project validation failed: %w", err)
 	}
-	log.Println("GetProjectStore is valid")
+	//log.Println("GetProjectStore is valid")
 	if err = os.MkdirAll(path.Join(s.projectPath, DatatugFolder), 0777); err != nil {
 		return fmt.Errorf("failed to create datatug folder: %w", err)
 	}
 	if err = parallel.Run(
 		func() (err error) {
-			log.Println("Saving project file...")
+			//log.Println("Saving project file...")
 			if err = s.saveProjectFile(project); err != nil {
 				return fmt.Errorf("failed to save project file: %w", err)
 			}
-			log.Println("Saved project file.")
+			//log.Println("Saved project file.")
 			return
 		},
 		func() (err error) {
 			if len(project.Entities) > 0 {
-				log.Printf("Saving %v entities...\n", len(project.Entities))
+				//log.Printf("Saving %v entities...\n", len(project.Entities))
 				if err = s.saveEntities(ctx, project.Entities); err != nil {
 					return fmt.Errorf("failed to save entities: %w", err)
 				}
-				log.Printf("Saved %v entities.\n", len(project.Entities))
+				//log.Printf("Saved %v entities.\n", len(project.Entities))
 			} else {
 				log.Println("No entities to save.")
 			}

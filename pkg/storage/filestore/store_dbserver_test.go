@@ -89,4 +89,28 @@ func TestDbServerStore(t *testing.T) {
 		_, err = os.Stat(serverPath)
 		assert.True(t, os.IsNotExist(err))
 	})
+
+	t.Run("fsDbServersStore", func(t *testing.T) {
+		dbServersStore := store.fsDbServersStore
+
+		t.Run("DbServer", func(t *testing.T) {
+			assert.NotNil(t, dbServersStore.DbServer(dbServer))
+		})
+
+		t.Run("dbServer", func(t *testing.T) {
+			assert.NotNil(t, dbServersStore.dbServer(dbServer))
+		})
+	})
+
+	//t.Run("SaveDbServer", func(t *testing.T) {
+	//	project := datatug.Project{
+	//		Repository: &datatug.ProjectRepository{},
+	//	}
+	//	projDbServer := datatug.ProjDbServer{
+	//		Server: dbServer,
+	//	}
+	//	err := store.SaveDbServer(context.Background(), projDbServer, project)
+	//	assert.NoError(t, err)
+	//	assert.DirExists(t, path.Join(projectPath, DatatugFolder, ServersFolder, DbFolder, dbServer.Driver, dbServer.FileName()))
+	//})
 }
