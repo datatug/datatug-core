@@ -221,7 +221,7 @@ FROM %s.%s
 	data = map[string]interface{}{
 		"table":            table,
 		"catalog":          catalog,
-		recordsCount:       recordsCount,
+		"recordsCount":     recordsCount,
 		"openInDatatugApp": openInDatatugApp,
 		"primaryKey":       primaryKey,
 		"foreignKeys":      foreignKeys,
@@ -246,10 +246,12 @@ func (*refByWalker) getTableID(schema, name string) string {
 
 func (walker *refByWalker) walkReferencedBy(table *datatug.CollectionInfo, level int) error {
 	level++
-	walker.processed[walker.getTableID(table.Schema(), table.Name())] = table
+	tableID := walker.getTableID(table.Schema(), table.Name())
+	walker.processed[tableID] = table
 	for i, refBy := range table.ReferencedBy {
 		refByID := walker.getTableID(refBy.Schema(), refBy.Name())
-		if _, ok := walker.processed[refByID]; ok {
+		isSelf := refByID == tableID
+		if _, ok := walker.processed[refByID]; ok && !isSelf {
 			continue
 		}
 		walker.process(table, refBy, level, i)
@@ -258,7 +260,7 @@ func (walker *refByWalker) walkReferencedBy(table *datatug.CollectionInfo, level
 			return fmt.Errorf("catalog %v has table [%s.%s] that is referenced by unknown table [%s.%s]",
 				walker.catalog, table.Schema(), table.Name(), refBy.Schema(), refBy.Name())
 		}
-		if len(referringTable.ReferencedBy) > 0 {
+		if !isSelf && len(referringTable.ReferencedBy) > 0 {
 			_ = walker.walkReferencedBy(referringTable, level)
 		}
 	}

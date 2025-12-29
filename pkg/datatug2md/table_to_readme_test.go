@@ -292,16 +292,19 @@ func TestTableToReadmeFull(t *testing.T) {
 			},
 			ReferencedBy: datatug.TableReferencedBys{
 				{
-					DBCollectionKey: datatug.NewTableKey("ref_table", "dbo", "test-catalog", nil),
+					DBCollectionKey: datatug.NewTableKey("tableWithRefBy", "dbo", "test-catalog", nil),
 					ForeignKeys: []*datatug.RefByForeignKey{
-						{Name: "FK_ref", Columns: []string{"col1"}},
+						{Name: "FK_self", Columns: []string{"col1"}},
 					},
 				},
 			},
 		}
+		dbServer.Catalogs[0].Schemas[0].Tables = append(dbServer.Catalogs[0].Schemas[0].Tables, tableWithRefBy)
 		w := new(bytes.Buffer)
-		err := encoder.TableToReadme(w, nil, catalog, tableWithRefBy, dbServer)
+		err := encoder.TableToReadme(w, repo, catalog, tableWithRefBy, dbServer)
 		assert.Nil(t, err)
+		unescaped, _ := url.QueryUnescape(w.String())
+		assert.Contains(t, unescaped, "dbo.tableWithRefBy.col1 = dbo.tableWithRefBy.col1")
 	})
 
 	t.Run("multiple_foreign_keys_same_column", func(t *testing.T) {
@@ -395,6 +398,31 @@ func TestTableToReadmeFull(t *testing.T) {
 		dbServer.Catalogs[0].Schemas[0].Tables = append(dbServer.Catalogs[0].Schemas[0].Tables, selfRefTable)
 		w := new(bytes.Buffer)
 		err := encoder.TableToReadme(w, repo, catalog, selfRefTable, dbServer)
+		assert.Nil(t, err)
+
+		// Self-referencing with DIFFERENT names
+		otherTable := &datatug.CollectionInfo{
+			DBCollectionKey: datatug.NewTableKey("other_table", "dbo", "test-catalog", nil),
+			TableProps:      datatug.TableProps{DbType: "BASE TABLE"},
+		}
+		selfRefTable2 := &datatug.CollectionInfo{
+			DBCollectionKey: datatug.NewTableKey("self_ref_diff", "dbo", "test-catalog", nil),
+			TableProps:      datatug.TableProps{DbType: "BASE TABLE"},
+			RecordsetBaseDef: datatug.RecordsetBaseDef{
+				PrimaryKey: &datatug.UniqueKey{Name: "PK", Columns: []string{"id"}},
+			},
+			ReferencedBy: datatug.TableReferencedBys{
+				{
+					DBCollectionKey: datatug.NewTableKey("other_table", "dbo", "test-catalog", nil),
+					ForeignKeys: []*datatug.RefByForeignKey{
+						{Name: "FK_diff", Columns: []string{"parent_id"}},
+					},
+				},
+			},
+		}
+		dbServer.Catalogs[0].Schemas[0].Tables = append(dbServer.Catalogs[0].Schemas[0].Tables, otherTable, selfRefTable2)
+		w = new(bytes.Buffer)
+		err = encoder.TableToReadme(w, repo, catalog, selfRefTable2, dbServer)
 		assert.Nil(t, err)
 	})
 }

@@ -65,3 +65,28 @@ func TestNewConnectionString(t *testing.T) {
 		}
 	})
 }
+
+func TestGeneralParams_String(t *testing.T) {
+	t.Run("trusted", func(t *testing.T) {
+		v := GeneralParams{server: "localhost", catalog: "master"}
+		expected := "server=localhost;trusted_connection=yes;database=master"
+		if v.String() != expected {
+			t.Errorf("expected %v, got %v", expected, v.String())
+		}
+	})
+
+	t.Run("user_pass", func(t *testing.T) {
+		v := GeneralParams{server: "localhost", user: "sa", password: "password", port: 1433}
+		expected := "server=localhost;port=1433;user id=sa;password=password"
+		if v.String() != expected {
+			t.Errorf("expected %v, got %v", expected, v.String())
+		}
+	})
+}
+
+func TestGeneralParams_ConnectionString(t *testing.T) {
+	v := GeneralParams{server: "localhost"}
+	if v.ConnectionString() != v.String() {
+		t.Error("ConnectionString() should return same as String()")
+	}
+}

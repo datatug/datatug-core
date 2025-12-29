@@ -34,7 +34,7 @@ func (v GeneralParams) Catalog() string {
 
 // ConnectionString returns ConnectionString
 func (v GeneralParams) ConnectionString() string {
-	panic("implement me")
+	return v.String()
 }
 
 // Driver returns DB
