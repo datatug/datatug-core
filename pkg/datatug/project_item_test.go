@@ -99,3 +99,9 @@ func TestValidateStringField(t *testing.T) {
 		assert.NoError(t, validateStringField("f1", "", false, 10))
 	})
 }
+
+func TestProjItemBrief_GetIDSetID(t *testing.T) {
+	v := ProjItemBrief{}
+	v.SetID("i1")
+	assert.Equal(t, "i1", v.GetID())
+}

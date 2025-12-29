@@ -19,6 +19,12 @@ func TestCredentials_Validate(t *testing.T) {
 			assert.Nil(t, credentials.Validate())
 		})
 	})
+	t.Run("should_fail", func(t *testing.T) {
+		t.Run("on_error_username", func(t *testing.T) {
+			var credentials = Credentials{Username: "error"}
+			assert.Error(t, credentials.Validate())
+		})
+	})
 }
 
 func TestCredentials_JSON(t *testing.T) {

@@ -192,6 +192,25 @@ func TestIndexes_Validate(t *testing.T) {
 	})
 }
 
+func TestIndex_Validate(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		v := Index{Name: "i1", Type: "BTREE", Columns: []*IndexColumn{{Name: "c1"}}}
+		assert.NoError(t, v.Validate())
+	})
+	t.Run("missing_name", func(t *testing.T) {
+		v := Index{Type: "BTREE", Columns: []*IndexColumn{{Name: "c1"}}}
+		assert.Error(t, v.Validate())
+	})
+	t.Run("missing_type", func(t *testing.T) {
+		v := Index{Name: "i1", Columns: []*IndexColumn{{Name: "c1"}}}
+		assert.Error(t, v.Validate())
+	})
+	t.Run("missing_columns", func(t *testing.T) {
+		v := Index{Name: "i1", Type: "BTREE"}
+		assert.Error(t, v.Validate())
+	})
+}
+
 func TestUniqueKey_Validate(t *testing.T) {
 	t.Run("nil", func(t *testing.T) {
 		var v *UniqueKey
@@ -289,8 +308,69 @@ func TestDbColumnProps_Validate(t *testing.T) {
 		v := DbColumnProps{Name: "c1", CharacterSet: &CharacterSet{}}
 		assert.Error(t, v.Validate())
 	})
-	t.Run("invalid_collation", func(t *testing.T) {
-		v := DbColumnProps{Name: "c1", Collation: &Collation{}}
+	t.Run("invalid_ordinal_position", func(t *testing.T) {
+		v := DbColumnProps{Name: "c1", OrdinalPosition: -1}
+		assert.Error(t, v.Validate())
+	})
+	t.Run("invalid_dateTimePrecision", func(t *testing.T) {
+		p := -1
+		v := DbColumnProps{Name: "c1", DateTimePrecision: &p}
+		assert.Error(t, v.Validate())
+	})
+	t.Run("invalid_charMaxLength", func(t *testing.T) {
+		p := -2
+		v := DbColumnProps{Name: "c1", CharMaxLength: &p}
+		assert.Error(t, v.Validate())
+	})
+	t.Run("invalid_charOctetLength", func(t *testing.T) {
+		p := -2
+		v := DbColumnProps{Name: "c1", CharOctetLength: &p}
+		assert.Error(t, v.Validate())
+	})
+	t.Run("invalid_characterSet", func(t *testing.T) {
+		v := DbColumnProps{Name: "c1", CharacterSet: &CharacterSet{Name: ""}}
+		assert.Error(t, v.Validate())
+	})
+	t.Run("invalid_collation_missing_name", func(t *testing.T) {
+		v := DbColumnProps{Name: "c1", Collation: &Collation{Name: ""}}
+		assert.Error(t, v.Validate())
+	})
+}
+
+func TestCollectionInfo_Validate(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		v := CollectionInfo{
+			TableProps: TableProps{DbType: "BASE TABLE"},
+		}
+		assert.NoError(t, v.Validate())
+	})
+	t.Run("invalid_props", func(t *testing.T) {
+		v := CollectionInfo{
+			TableProps: TableProps{DbType: ""},
+		}
+		assert.Error(t, v.Validate())
+	})
+	t.Run("invalid_pk", func(t *testing.T) {
+		v := CollectionInfo{
+			TableProps: TableProps{DbType: "BASE TABLE", UniqueKeys: []*UniqueKey{{Name: "PK", Columns: []string{"c1"}}}},
+		}
+		v.PrimaryKey = &UniqueKey{Name: ""}
+		assert.Error(t, v.Validate())
+	})
+	t.Run("invalid_columns", func(t *testing.T) {
+		v := CollectionInfo{
+			TableProps: TableProps{DbType: "BASE TABLE"},
+			Columns:    TableColumns{{DbColumnProps: DbColumnProps{Name: ""}}},
+		}
+		assert.Error(t, v.Validate())
+	})
+	t.Run("invalid_fk", func(t *testing.T) {
+		v := CollectionInfo{
+			TableProps: TableProps{DbType: "BASE TABLE"},
+			RecordsetBaseDef: RecordsetBaseDef{
+				ForeignKeys: ForeignKeys{{Name: ""}},
+			},
+		}
 		assert.Error(t, v.Validate())
 	})
 }

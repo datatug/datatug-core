@@ -180,6 +180,30 @@ func TestBoardWidget_Validate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "sql_marshal_error",
+			v: BoardWidget{
+				Name: "SQL",
+				Data: make(chan int),
+			},
+			wantErr: true,
+		},
+		{
+			name: "http_marshal_error",
+			v: BoardWidget{
+				Name: "HTTP",
+				Data: make(chan int),
+			},
+			wantErr: true,
+		},
+		{
+			name: "tabs_marshal_error",
+			v: BoardWidget{
+				Name: "tabs",
+				Data: make(chan int),
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -318,6 +342,41 @@ func TestHTTPRequest_Validate(t *testing.T) {
 		{
 			name:    "valid_post",
 			v:       HTTPRequest{URL: "http://example.com", Method: "POST", Content: "some content"},
+			wantErr: false,
+		},
+		{
+			name:    "valid_put",
+			v:       HTTPRequest{URL: "http://example.com", Method: "PUT", Content: "some content"},
+			wantErr: false,
+		},
+		{
+			name:    "valid_head",
+			v:       HTTPRequest{URL: "http://example.com", Method: "HEAD"},
+			wantErr: false,
+		},
+		{
+			name:    "valid_options",
+			v:       HTTPRequest{URL: "http://example.com", Method: "OPTIONS"},
+			wantErr: false,
+		},
+		{
+			name:    "valid_delete",
+			v:       HTTPRequest{URL: "http://example.com", Method: "DELETE"},
+			wantErr: false,
+		},
+		{
+			name:    "valid_patch",
+			v:       HTTPRequest{URL: "http://example.com", Method: "PATCH"},
+			wantErr: false,
+		},
+		{
+			name:    "valid_trace",
+			v:       HTTPRequest{URL: "http://example.com", Method: "TRACE"},
+			wantErr: false,
+		},
+		{
+			name:    "valid_connect",
+			v:       HTTPRequest{URL: "http://example.com", Method: "CONNECT"},
 			wantErr: false,
 		},
 		{
@@ -461,5 +520,63 @@ func TestBoardCard_Validate(t *testing.T) {
 }
 
 func TestTabsWidgetDef_Validate(t *testing.T) {
-	assert.NoError(t, (&TabsWidgetDef{}).Validate())
+	t.Run("valid", func(t *testing.T) {
+		v := TabsWidgetDef{
+			WidgetBase: WidgetBase{Title: "Tabs"},
+			Tabs: []TabWidget{
+				{Title: "Tab 1", Widget: BoardWidget{Name: "SQL", Data: &SQLWidgetDef{SQL: SQLWidgetSettings{Query: "SELECT 1"}}}},
+			},
+		}
+		assert.NoError(t, v.Validate())
+	})
+	t.Run("invalid_base", func(t *testing.T) {
+		v := TabsWidgetDef{
+			WidgetBase: WidgetBase{Title: string(make([]byte, MaxTitleLength+1))},
+		}
+		assert.Error(t, v.Validate())
+	})
+}
+
+func TestSQLWidgetDef_Validate(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		v := SQLWidgetDef{
+			SQL: SQLWidgetSettings{Query: "SELECT 1"},
+		}
+		assert.NoError(t, v.Validate())
+	})
+	t.Run("invalid_base", func(t *testing.T) {
+		v := SQLWidgetDef{
+			WidgetBase: WidgetBase{Parameters: Parameters{{ID: ""}}},
+			SQL:        SQLWidgetSettings{Query: "SELECT 1"},
+		}
+		assert.Error(t, v.Validate())
+	})
+	t.Run("invalid_sql", func(t *testing.T) {
+		v := SQLWidgetDef{
+			SQL: SQLWidgetSettings{Query: ""},
+		}
+		assert.Error(t, v.Validate())
+	})
+}
+
+func TestHTTPWidgetDef_Validate(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		v := HTTPWidgetDef{
+			Request: HTTPRequest{URL: "http://example.com", Method: "GET"},
+		}
+		assert.NoError(t, v.Validate())
+	})
+	t.Run("invalid_base", func(t *testing.T) {
+		v := HTTPWidgetDef{
+			WidgetBase: WidgetBase{Parameters: Parameters{{ID: ""}}},
+			Request:    HTTPRequest{URL: "http://example.com", Method: "GET"},
+		}
+		assert.Error(t, v.Validate())
+	})
+	t.Run("invalid_request", func(t *testing.T) {
+		v := HTTPWidgetDef{
+			Request: HTTPRequest{URL: "", Method: "GET"},
+		}
+		assert.Error(t, v.Validate())
+	})
 }

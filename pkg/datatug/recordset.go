@@ -44,8 +44,10 @@ func (v RecordsetColumn) Validate() error {
 	if err := validateStringField("name", v.Name, true, 100); err != nil {
 		return err
 	}
-	if err := v.Meta.Validate(); err != nil {
-		return err
+	if v.Meta != nil {
+		if err := v.Meta.Validate(); err != nil {
+			return err
+		}
 	}
 	return nil
 }

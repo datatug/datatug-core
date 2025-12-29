@@ -30,12 +30,16 @@ func TestRecordset_Validate(t *testing.T) {
 
 func TestRecordsetColumn_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
-		v := RecordsetColumn{Name: "c1", Meta: &EntityFieldRef{Entity: "e1", Field: "f1"}}
+		v := RecordsetColumn{Name: "c1"}
 		assert.NoError(t, v.Validate())
 	})
 	t.Run("missing_name", func(t *testing.T) {
-		v := RecordsetColumn{Meta: &EntityFieldRef{Entity: "e1", Field: "f1"}}
+		v := RecordsetColumn{}
 		assert.Error(t, v.Validate())
+	})
+	t.Run("valid_meta", func(t *testing.T) {
+		v := RecordsetColumn{Name: "c1", Meta: &EntityFieldRef{Entity: "e1", Field: "f1"}}
+		assert.NoError(t, v.Validate())
 	})
 	t.Run("invalid_meta", func(t *testing.T) {
 		v := RecordsetColumn{Name: "c1", Meta: &EntityFieldRef{}}
