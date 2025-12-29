@@ -30,11 +30,10 @@ type CreateFolder struct {
 // Validate returns error if not valid
 func (v CreateFolder) Validate() error {
 	if err := v.ProjectRef.Validate(); err != nil {
-		return nil
+		return err
 	}
 	if v.Name == "" {
 		return validation.NewErrRequestIsMissingRequiredField("name")
 	}
 	return nil
-
 }
