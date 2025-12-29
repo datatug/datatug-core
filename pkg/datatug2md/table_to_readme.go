@@ -98,13 +98,9 @@ FROM %s.%s
 			catalog:   catalog,
 			dbServer:  dbServer,
 			processed: make(map[string]*datatug.CollectionInfo),
-			process: func(parent *datatug.CollectionInfo, refBy *datatug.TableReferencedBy, level, index int) error {
-				line, err := writeRefByToMarkDownListTree(repoID, projectID, dbServer.ID, catalog, parent, refBy, level, index)
-				if err != nil {
-					return err
-				}
+			process: func(parent *datatug.CollectionInfo, refBy *datatug.TableReferencedBy, level, index int) {
+				line := writeRefByToMarkDownListTree(repoID, projectID, dbServer.ID, catalog, parent, refBy, level, index)
 				refBys = append(refBys, line)
-				return nil
 			}}
 		err := walker.walkReferencedBy(table, 0)
 		if err != nil {
@@ -241,7 +237,7 @@ type refByWalker struct {
 	catalog   string
 	dbServer  datatug.ProjDbServer
 	processed map[string]*datatug.CollectionInfo
-	process   func(parent *datatug.CollectionInfo, refBy *datatug.TableReferencedBy, level, index int) error
+	process   func(parent *datatug.CollectionInfo, refBy *datatug.TableReferencedBy, level, index int)
 }
 
 func (*refByWalker) getTableID(schema, name string) string {
@@ -250,30 +246,26 @@ func (*refByWalker) getTableID(schema, name string) string {
 
 func (walker *refByWalker) walkReferencedBy(table *datatug.CollectionInfo, level int) error {
 	level++
-	walker.processed[walker.getTableID(table.Name(), table.Schema())] = table
+	walker.processed[walker.getTableID(table.Schema(), table.Name())] = table
 	for i, refBy := range table.ReferencedBy {
 		refByID := walker.getTableID(refBy.Schema(), refBy.Name())
 		if _, ok := walker.processed[refByID]; ok {
 			continue
 		}
-		if err := walker.process(table, refBy, level, i); err != nil {
-			return err
-		}
+		walker.process(table, refBy, level, i)
 		referringTable := walker.dbServer.Catalogs.GetTable(walker.catalog, refBy.Schema(), refBy.Name())
 		if referringTable == nil {
 			return fmt.Errorf("catalog %v has table [%s.%s] that is referenced by unknown table [%s.%s]",
 				walker.catalog, table.Schema(), table.Name(), refBy.Schema(), refBy.Name())
 		}
 		if len(referringTable.ReferencedBy) > 0 {
-			if err := walker.walkReferencedBy(referringTable, level); err != nil {
-				return err
-			}
+			_ = walker.walkReferencedBy(referringTable, level)
 		}
 	}
 	return nil
 }
 
-func writeRefByToMarkDownListTree(repoID, projectID, server, catalog string, parent *datatug.CollectionInfo, refBy *datatug.TableReferencedBy, level, index int) (string, error) {
+func writeRefByToMarkDownListTree(repoID, projectID, server, catalog string, parent *datatug.CollectionInfo, refBy *datatug.TableReferencedBy, level, index int) string {
 	joinSQL := strings.TrimSpace(fmt.Sprintf(`
 USE %s
 SELECT
@@ -329,5 +321,5 @@ FROM %s.%s
 			fkIndent+itemTextPadding+"</small>",
 		)
 	}
-	return strings.Join(s, "\n"), nil
+	return strings.Join(s, "\n")
 }
