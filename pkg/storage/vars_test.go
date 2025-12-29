@@ -13,12 +13,24 @@ func TestCurrentIsNil(t *testing.T) {
 }
 
 func TestContextWithDatatugStore(t *testing.T) {
-	store := NewNoOpStore()
-	ctx := ContextWithDatatugStore(context.Background(), store)
-	assert.NotNil(t, ctx)
-	storeFromContext, err := StoreFromContext(ctx)
-	assert.Nil(t, err)
-	assert.Equal(t, store, storeFromContext)
+	t.Run("success", func(t *testing.T) {
+		store := NewNoOpStore()
+		ctx := ContextWithDatatugStore(context.Background(), store)
+		assert.NotNil(t, ctx)
+		storeFromContext, err := StoreFromContext(ctx)
+		assert.Nil(t, err)
+		assert.Equal(t, store, storeFromContext)
+	})
+	t.Run("panic_on_nil", func(t *testing.T) {
+		assert.Panics(t, func() {
+			ContextWithDatatugStore(context.Background(), nil)
+		})
+	})
+}
+
+func TestStoreFromContext_Error(t *testing.T) {
+	_, err := StoreFromContext(context.Background())
+	assert.Error(t, err)
 }
 
 func TestGetStore(t *testing.T) {
@@ -45,6 +57,24 @@ func TestGetStore(t *testing.T) {
 	t.Run("not_found", func(t *testing.T) {
 		stores = nil
 		_, err := GetStore(context.Background(), "s3")
+		assert.Error(t, err)
+	})
+}
+
+func TestGetProjectStore(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		// NoOpStore panics on GetProjectStore, but we want to see it called
+		mockStore := NewNoOpStore()
+		stores = map[string]Store{"s1": mockStore}
+		defer func() { stores = nil }()
+
+		assert.Panics(t, func() {
+			_, _ = GetProjectStore(context.Background(), "s1", "p1")
+		})
+	})
+	t.Run("error", func(t *testing.T) {
+		stores = nil
+		_, err := GetProjectStore(context.Background(), "s1", "p1")
 		assert.Error(t, err)
 	})
 }
