@@ -56,7 +56,9 @@ func TestReadme(t *testing.T) {
 
 func TestSaveReadme_SaverError(t *testing.T) {
 	tmpDir, _ := os.MkdirTemp("", "datatug_test_readme_err")
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		_ = os.RemoveAll(tmpDir)
+	}()
 
 	err := saveReadme(tmpDir, func(w io.Writer) error {
 		return errors.New("saver error")

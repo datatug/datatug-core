@@ -14,7 +14,9 @@ import (
 func TestFsEnvironmentStore(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "datatug_test_envstore")
 	assert.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		_ = os.RemoveAll(tmpDir)
+	}()
 
 	projectID := "test_p"
 	projectPath := path.Join(tmpDir, projectID)

@@ -58,7 +58,7 @@ func (store fsEnvServersStore) saveEnvServers(servers []*datatug.EnvDbServer) (e
 	for host, servers := range serversByHost {
 		hostsWithServers = append(hostsWithServers, &hostWithServer{host: host, servers: servers})
 	}
-	dirPath := "<NOT implemented;/>"
+	dirPath := path.Join(store.envsDirPath, store.envServersPath)
 	return saveItems("servers", len(hostsWithServers), func(i int) func() error {
 		return func() error {
 			hostWithServer := hostsWithServers[i]
