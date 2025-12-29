@@ -130,6 +130,14 @@ func TestGetConfigFilePath(t *testing.T) {
 	})
 }
 
+func TestOsOpen(t *testing.T) {
+	f, err := osOpen("non-existent-file")
+	if err == nil {
+		_ = f.Close()
+		t.Error("expected error for non-existent file")
+	}
+}
+
 func TestAuthCredential_Validate(t *testing.T) {
 	v := AuthCredential{}
 	if err := v.Validate(); err != nil {
