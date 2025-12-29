@@ -88,13 +88,11 @@ func loadDir(
 	if init != nil {
 		init(files)
 	}
-	log.Printf("loadDir: %v, workers: %v", dirPath, len(workers))
+	//log.Printf("loadDir: %v, workers: %v", dirPath, len(workers))
 	if err = parallel.Run(workers...); err != nil {
-		log.Printf("parallel.Run failed for [%v]: %v", dirPath, err)
-		return err
+		return fmt.Errorf("parallel.Run failed for [%v]: %w", dirPath, err)
 	}
 	if len(errs) > 0 {
-		log.Printf("loadDir errors for [%v]: %v", dirPath, errs)
 		return storage.NewFilesLoadError(errs)
 	}
 	return
@@ -226,26 +224,18 @@ func loadEnvFile(envDirPath, envID string) (env datatug.EnvironmentSummary, err 
 }
 
 func (s fsProjectStore) loadEnvironment(dirPath string, env *datatug.Environment, o ...datatug.StoreOption) (err error) {
-	log.Printf("loadEnvironment: id=%v, path=%v", env.ID, dirPath)
 	workers := []func() error{
 		func() error {
-			log.Printf("worker1: loadEnvFile: id=%v, path=%v", env.ID, dirPath)
 			envSummary, err := loadEnvFile(dirPath, env.ID)
 			if err != nil {
-				log.Printf("failed to load environment file for [%v] from [%v]: %v", env.ID, dirPath, err)
-				return err
+				return fmt.Errorf("failed to load environment file for [%v] from [%v]: %v", env.ID, dirPath, err)
 			}
 			env.ProjectItem = envSummary.ProjectItem
 			return nil
 		},
 		func() error {
 			serversPath := path.Join(dirPath, ServersFolder)
-			log.Printf("worker2: loadEnvServers: id=%v, path=%v", env.ID, serversPath)
-			err := loadEnvServers(serversPath, env)
-			if err != nil {
-				log.Printf("failed to load environment servers for [%v]: %v", env.ID, err)
-			}
-			return err
+			return loadEnvServers(serversPath, env)
 		},
 	}
 	if datatug.GetStoreOptions(o...).Deep() {
