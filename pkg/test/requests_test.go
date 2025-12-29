@@ -1,6 +1,7 @@
 package test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/strongo/validation"
@@ -18,6 +19,10 @@ func TestIsValidRequest(t *testing.T) {
 	IsValidRequest(t, "valid", mockRequest{err: nil})
 }
 
+func TestIsValidRequest_Error(t *testing.T) {
+	isValidRequest(mockTestingT{t: t}, mockRequest{err: errors.New("test error")})
+}
+
 func TestIsInvalidRequest(t *testing.T) {
 	err := validation.NewErrBadRequestFieldValue("field", "value")
 	IsInvalidRequest(t, "invalid", mockRequest{err: err}, func(t *testing.T, err error) {
@@ -28,13 +33,21 @@ func TestIsInvalidRequest(t *testing.T) {
 }
 
 func TestIsInvalidRequest_NonValidationError(t *testing.T) {
-	t.Run("suppress-failure", func(st *testing.T) {
-		// IsInvalidRequest(st, "non-validation", mockRequest{err: errors.New("test error")})
-	})
+	isInvalidRequest(mockTestingT{t: t}, mockRequest{err: errors.New("test error")})
 }
 
 func TestIsInvalidRequest_NilError(t *testing.T) {
-	t.Run("suppress-failure", func(st *testing.T) {
-		// IsInvalidRequest(st, "nil-error", mockRequest{err: nil})
+	isInvalidRequest(mockTestingT{t: t}, mockRequest{err: nil})
+}
+
+func TestIsInvalidRequest_WrongValidationError(t *testing.T) {
+	err := validation.NewErrRecordIsMissingRequiredField("field")
+	isInvalidRequest(mockTestingT{t: t}, mockRequest{err: err})
+}
+
+func TestIsInvalidRequest_MockWithValidator(t *testing.T) {
+	err := validation.NewErrBadRequestFieldValue("field", "value")
+	isInvalidRequest(mockTestingT{t: t}, mockRequest{err: err}, func(t *testing.T, err error) {
+		// This should not be called and should be covered by the else branch in isInvalidRequest
 	})
 }
