@@ -164,7 +164,7 @@ type ProjectFile struct {
 
 // Validate returns error if not valid
 func (v ProjectFile) Validate() error {
-	// Do not check ID or title as they can be nil for project
+	// Do not check GetID or title as they can be nil for project
 	//if err := v.ProjectItem.Validate(); err != nil {
 	//	return err
 	//}

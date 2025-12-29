@@ -8,30 +8,40 @@ type ProjectStore interface {
 	LoadProject(ctx context.Context, o ...StoreOption) (p *Project, err error)
 	SaveProject(ctx context.Context, p *Project) error
 
-	//SaveProjectSummary(ctx context.Context, summary *ProjectSummary) error
-
-	//LoadQueries(ctx context.Context, folder *QueryFolder, o ...StoreOption) error
-	//SaveQuery(ctx context.Context, folder *QueryFolder, query *QueryDef) error
-	//DeleteQuery(ctx context.Context, id string) error
-
-	//LoadEntities(ctx context.Context, o ...StoreOption) (Entities, error)
-	//SaveEntity(ctx context.Context, entity *Entity) error
-	//DeleteEntity(ctx context.Context, id string) error
-
-	queryStore
+	QueryStore
 	BoardsStore
-	foldersStore
-	entitiesStore
-	environmentsStore
-	projDbServersStore
-	recordsetDefinitionsStore
+	FoldersStore
+	EntitiesStore
+	EnvironmentsStore
+	EnvDbServersStore
+	EnvDbCatalogStore
+	ProjDbServersStore
+	RecordsetDefinitionsStore
 }
 
-type environmentsStore interface {
+type EnvironmentsStore interface {
 	LoadEnvironments(ctx context.Context, o ...StoreOption) (Environments, error)
+	LoadEnvironment(ctx context.Context, id string, o ...StoreOption) (*Environment, error)
 	LoadEnvironmentSummary(ctx context.Context, id string) (*EnvironmentSummary, error)
-	//SaveEnvironment(ctx context.Context, env *Environment) error
-	//DeleteEnvironment(ctx context.Context, id string) error
+	SaveEnvironment(ctx context.Context, env *Environment) error
+	SaveEnvironments(ctx context.Context, envs Environments) error
+	DeleteEnvironment(ctx context.Context, id string) error
+}
+
+type EnvDbServersStore interface {
+	LoadEnvDbServers(ctx context.Context, envID string, o ...StoreOption) (EnvDbServers, error)
+	LoadEnvDbServer(ctx context.Context, envID, serverID string, o ...StoreOption) (*EnvDbServer, error)
+	SaveEnvDbServer(ctx context.Context, envID string, server *EnvDbServer) error
+	SaveEnvServers(ctx context.Context, envID string, servers EnvDbServers) error
+	DeleteEnvDbServer(ctx context.Context, envID, serverID string) error
+}
+
+type EnvDbCatalogStore interface {
+	LoadEnvDbCatalogs(ctx context.Context, envID string, o ...StoreOption) (EnvDbCatalogs, error)
+	LoadEnvDbCatalog(ctx context.Context, envID, serverID, catalogID string, o ...StoreOption) (EnvDbCatalog, error)
+	SaveEnvDbCatalog(ctx context.Context, envID, serverID, catalogID string, catalogs *EnvDbCatalog) error
+	SaveEnvDbCatalogs(ctx context.Context, envID, serverID, catalogID string, catalogs EnvDbCatalogs) error
+	DeleteEnvDbCatalog(ctx context.Context, envID, serverID, catalogID string) error
 }
 
 type BoardsStore interface {
@@ -41,34 +51,36 @@ type BoardsStore interface {
 	DeleteBoard(ctx context.Context, id string) error
 }
 
-type projDbServersStore interface {
+type ProjDbServersStore interface {
 	LoadProjDbServers(ctx context.Context, o ...StoreOption) (ProjDbServers, error)
 	LoadProjDbServerSummary(ctx context.Context, id string) (*ProjDbServerSummary, error)
 	SaveProjDbServer(ctx context.Context, server *ProjDbServer) error
 	DeleteProjDbServer(ctx context.Context, id string) error
 }
 
-type entitiesStore interface {
+type EntitiesStore interface {
 	LoadEntities(ctx context.Context, o ...StoreOption) (Entities, error)
 	LoadEntity(ctx context.Context, id string, o ...StoreOption) (*Entity, error)
 	SaveEntity(ctx context.Context, entity *Entity) error
 	DeleteEntity(ctx context.Context, id string) error
 }
 
-type queryStore interface {
+type QueryStore interface {
 	LoadQuery(ctx context.Context, id string) (*QueryDefWithFolderPath, error)
 	SaveQuery(ctx context.Context, query *QueryDefWithFolderPath) error
 	DeleteQuery(ctx context.Context, id string) error
 }
 
-type foldersStore interface {
-	LoadFolders(ctx context.Context, o ...StoreOption) (*Folder, error)
+type FoldersStore interface {
+	LoadFolders(ctx context.Context, o ...StoreOption) (Folders, error)
+	LoadFolder(ctx context.Context, id string, o ...StoreOption) (*Folder, error)
 	SaveFolder(ctx context.Context, path string, folder *Folder) error
-	DeleteFolder(ctx context.Context, id string) error
+	SaveFolders(ctx context.Context, path string, folders Folders) error
+	DeleteFolder(ctx context.Context, dirPath, id string) error
 }
 
-type recordsetDefinitionsStore interface {
+type RecordsetDefinitionsStore interface {
 	LoadRecordsetDefinitions(ctx context.Context, o ...StoreOption) ([]*RecordsetDefinition, error)
-	LoadRecordsetDefinition(ctx context.Context, id string) (*RecordsetDefinition, error)
+	LoadRecordsetDefinition(ctx context.Context, id string, o ...StoreOption) (*RecordsetDefinition, error)
 	LoadRecordsetData(ctx context.Context, id string) (Recordset, error)
 }

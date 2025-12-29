@@ -50,7 +50,7 @@ func (store fsDbCatalogStore) saveDbCatalogs(dbServer datatug.ProjDbServer, repo
 	})
 }
 
-func (store fsDbCatalogStore) saveDbCatalog(dbCatalog *datatug.DbCatalog, repository *datatug.ProjectRepository) (err error) {
+func (store fsDbCatalogStore) saveDbCatalog(dbCatalog *datatug.EnvDbCatalog, repository *datatug.ProjectRepository) (err error) {
 	if dbCatalog == nil {
 		return errors.New("dbCatalog is nil")
 	}
@@ -103,7 +103,7 @@ func (store fsDbCatalogStore) saveDbCatalog(dbCatalog *datatug.DbCatalog, reposi
 	return nil
 }
 
-func (store fsDbCatalogStore) saveDbCatalogJSON(dbCatalog datatug.DbCatalog, saverCtx saveDbServerObjContext) error {
+func (store fsDbCatalogStore) saveDbCatalogJSON(dbCatalog datatug.EnvDbCatalog, saverCtx saveDbServerObjContext) error {
 	fileName := jsonFileName(dbCatalog.ID, dbCatalogFileSuffix)
 	dbFile := DbCatalogFile{
 		Driver:  dbCatalog.Driver,
@@ -116,7 +116,7 @@ func (store fsDbCatalogStore) saveDbCatalogJSON(dbCatalog datatug.DbCatalog, sav
 	return nil
 }
 
-//func (store fsDbCatalogStore) saveDbCatalogReadme(dbCatalog models.DbCatalog, saverCtx saveDbServerObjContext) error {
+//func (store fsDbCatalogStore) saveDbCatalogReadme(dbCatalog models.EnvDbCatalog, saverCtx saveDbServerObjContext) error {
 //	return saveReadme(saverCtx.dirPath, "DB catalog", func(w io.Writer) error {
 //		if err := store.readmeEncoder.DbCatalogToReadme(w, saverCtx.repository, saverCtx.dbServer, dbCatalog); err != nil {
 //			return fmt.Errorf("failed to write README.md for DB server: %w", err)
@@ -125,7 +125,7 @@ func (store fsDbCatalogStore) saveDbCatalogJSON(dbCatalog datatug.DbCatalog, sav
 //	})
 //}
 
-func (store fsDbCatalogStore) saveDbCatalogObjects(dbCatalog datatug.DbCatalog, saverCtx saveDbServerObjContext) error {
+func (store fsDbCatalogStore) saveDbCatalogObjects(dbCatalog datatug.EnvDbCatalog, saverCtx saveDbServerObjContext) error {
 	dbObjects := make(datatug.CatalogObjects, 0)
 	for _, schema := range dbCatalog.Schemas {
 		for _, t := range schema.Tables {
@@ -156,7 +156,7 @@ func (store fsDbCatalogStore) saveDbCatalogObjects(dbCatalog datatug.DbCatalog, 
 	return nil
 }
 
-func (store fsDbCatalogStore) saveDbCatalogRefs(dbCatalog datatug.DbCatalog, saverCtx saveDbServerObjContext) error {
+func (store fsDbCatalogStore) saveDbCatalogRefs(dbCatalog datatug.EnvDbCatalog, saverCtx saveDbServerObjContext) error {
 	dbObjects := make(datatug.CatalogObjectsWithRefs, 0)
 	for _, schema := range dbCatalog.Schemas {
 		for _, t := range schema.Tables {

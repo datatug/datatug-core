@@ -1,7 +1,7 @@
 package appconfig
 
 type AuthCredential struct {
-	ID    string `json:"ID"` // Like USER or service account ID
+	ID    string `json:"GetID"` // Like USER or service account ID
 	Title string `json:"Title,omitempty"`
 }
 

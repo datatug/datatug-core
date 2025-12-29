@@ -92,7 +92,7 @@ func TestDbSchema_Validate(t *testing.T) {
 }
 
 func TestDbCatalogs_GetTable(t *testing.T) {
-	v := DbCatalogs{
+	v := EnvDbCatalogs{
 		{
 			DbCatalogBase: DbCatalogBase{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "c1"}}},
 			Schemas: DbSchemas{
@@ -119,19 +119,19 @@ func TestDbSchemas_GetByID(t *testing.T) {
 }
 
 func TestDbCatalogs_GetDbByID(t *testing.T) {
-	c1 := &DbCatalog{DbCatalogBase: DbCatalogBase{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "c1"}}}}
-	v := DbCatalogs{c1}
+	c1 := &EnvDbCatalog{DbCatalogBase: DbCatalogBase{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "c1"}}}}
+	v := EnvDbCatalogs{c1}
 	assert.Equal(t, c1, v.GetDbByID("c1"))
 	assert.Nil(t, v.GetDbByID("c2"))
 }
 
 func TestDbCatalogs_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
-		v := DbCatalogs{{DbCatalogBase: DbCatalogBase{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "c1"}}, Driver: "mysql"}}}
+		v := EnvDbCatalogs{{DbCatalogBase: DbCatalogBase{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "c1"}}, Driver: "mysql"}}}
 		assert.NoError(t, v.Validate())
 	})
 	t.Run("invalid_schema", func(t *testing.T) {
-		v := DbCatalog{
+		v := EnvDbCatalog{
 			DbCatalogBase: DbCatalogBase{
 				ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "c1", Title: "T"}},
 				Driver:      "postgres",

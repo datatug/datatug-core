@@ -59,7 +59,7 @@ func TestFsQueriesStore(t *testing.T) {
 		if q == nil {
 			t.Fatal("got nil query")
 		}
-		assert.Equal(t, "query1", q.ID) // ID should be without .sql
+		assert.Equal(t, "query1", q.ID) // GetID should be without .sql
 	})
 
 	t.Run("LoadQueries", func(t *testing.T) {

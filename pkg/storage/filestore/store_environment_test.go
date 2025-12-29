@@ -35,7 +35,7 @@ func TestFsEnvironmentStore(t *testing.T) {
 	store := newFsEnvironmentStore(envID, fsEnvironmentsStore)
 	ctx := context.Background()
 
-	t.Run("ID", func(t *testing.T) {
+	t.Run("GetID", func(t *testing.T) {
 		assert.Equal(t, envID, store.ID())
 	})
 

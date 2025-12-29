@@ -23,7 +23,7 @@ type DiffDbRef struct {
 // HitAndMiss stores where entity exists and where not
 type HitAndMiss struct {
 	IsInModel bool        `json:"isInModel"`
-	ExistsIn  []DiffDbRef `json:"existsIn"` // points to DatabaseDifferences.DatabaseDiffs[]DatabaseDiff.ID
+	ExistsIn  []DiffDbRef `json:"existsIn"` // points to DatabaseDifferences.DatabaseDiffs[]DatabaseDiff.GetID
 	MissingIn []DiffDbRef `json:"missingIn"`
 }
 

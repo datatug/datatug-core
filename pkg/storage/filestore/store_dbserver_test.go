@@ -69,7 +69,7 @@ func TestDbServerStore(t *testing.T) {
 		},
 	}
 
-	t.Run("ID", func(t *testing.T) {
+	t.Run("GetID", func(t *testing.T) {
 		assert.Equal(t, dbServer, store.ID())
 	})
 

@@ -17,13 +17,13 @@ type DatabasesToCompare struct {
 // EnvToCompare defines env to compare
 type EnvToCompare struct {
 	ID        string
-	Databases datatug.DbCatalogs
+	Databases datatug.EnvDbCatalogs
 }
 
 type schemaToCompare struct { // should it be rather called `schemaToCompare`?
 	envID       string
 	dbID        string
-	schemaID    string // schema ID
+	schemaID    string // schema GetID
 	schemaModel *datatug.SchemaModel
 	dbSchemas   []*datatug.DbSchema
 }

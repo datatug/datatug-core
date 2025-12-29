@@ -21,7 +21,7 @@ func (v Environments) Validate() error {
 	return nil
 }
 
-// GetEnvByID returns Environment by ID
+// GetEnvByID returns Environment by GetID
 func (v Environments) GetEnvByID(id string) (environment *Environment) {
 	for _, environment = range v {
 		if environment.ID == id {
@@ -89,7 +89,7 @@ func (v EnvDbServers) Validate() error {
 	return nil
 }
 
-// GetByServerRef returns *EnvDbServer by ID
+// GetByServerRef returns *EnvDbServer by GetID
 func (v EnvDbServers) GetByServerRef(serverRef ServerReference) *EnvDbServer {
 	for _, item := range v {
 		if item.Driver == serverRef.Driver && item.Host == serverRef.Host && item.Port == serverRef.Port {
@@ -105,8 +105,16 @@ type EnvDbServer struct {
 	Catalogs []string `json:"catalogs,omitempty"`
 }
 
+func (v *EnvDbServer) GetID() string {
+	return v.GetID()
+}
+
+func (v *EnvDbServer) SetID(id string) {
+	panic("implement me")
+}
+
 // Validate returns error if no valid
-func (v EnvDbServer) Validate() error {
+func (v *EnvDbServer) Validate() error {
 	if err := v.ServerReference.Validate(); err != nil {
 		return err
 	}

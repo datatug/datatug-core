@@ -214,12 +214,17 @@ func loadSchemaModel(dbModelDirPath, schemaID string) (schemaModel *datatug.Sche
 	return
 }
 
-func loadEnvFile(envDirPath, envID string) (env datatug.EnvironmentSummary, err error) {
+func loadEnvFile(envDirPath, envID string) (envSummary *datatug.EnvironmentSummary, err error) {
 	filePath := path.Join(envDirPath, jsonFileName(envID, environmentFileSuffix))
-	if err = readJSONFile(filePath, true, &env); err != nil {
+	envSummary = new(datatug.EnvironmentSummary)
+	if err = readJSONFile(filePath, true, envSummary); err != nil {
 		return
 	}
-	env.ID = envID
+	if envSummary.ID == "" {
+		envSummary.ID = envID
+	} else if envSummary.ID != envID {
+		err = fmt.Errorf("env file has id not matching directory: expected=%v, actual=%v", envID, envSummary.ID)
+	}
 	return
 }
 
@@ -248,9 +253,9 @@ func (s fsProjectStore) loadEnvironment(dirPath string, env *datatug.Environment
 
 func loadDbCatalogs(dirPath string, dbServer *datatug.ProjDbServer) (err error) {
 	return loadDir(nil, dirPath, "", processDirs, func(files []os.FileInfo) {
-		dbServer.Catalogs = make(datatug.DbCatalogs, 0, len(files))
+		dbServer.Catalogs = make(datatug.EnvDbCatalogs, 0, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
-		dbCatalog := new(datatug.DbCatalog)
+		dbCatalog := new(datatug.EnvDbCatalog)
 		dbCatalog.ID = f.Name()
 		catalogPath := path.Join(dirPath, dbCatalog.ID)
 		if err = loadDbCatalog(catalogPath, dbCatalog); err != nil {
@@ -261,7 +266,7 @@ func loadDbCatalogs(dirPath string, dbServer *datatug.ProjDbServer) (err error) 
 	})
 }
 
-func loadDbCatalog(dirPath string, dbCatalog *datatug.DbCatalog) (err error) {
+func loadDbCatalog(dirPath string, dbCatalog *datatug.EnvDbCatalog) (err error) {
 	log.Printf("Loading DB catalog: %v from %v...\n", dbCatalog.ID, dirPath)
 	filePath := path.Join(dirPath, jsonFileName(dbCatalog.ID, dbCatalogFileSuffix))
 	if err = readJSONFile(filePath, false, dbCatalog); err != nil {

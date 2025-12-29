@@ -38,8 +38,8 @@ type DbCatalogCounts struct {
 	Views   int `json:"views"`
 }
 
-// DbCatalog hold info about DB database
-type DbCatalog struct {
+// EnvDbCatalog hold info about DB database
+type EnvDbCatalog struct {
 	DbCatalogBase
 	Schemas DbSchemas
 }
@@ -52,7 +52,7 @@ type ProjDbServerSummary struct {
 }
 
 // Validate returns error if not valid
-func (v DbCatalog) Validate() error {
+func (v EnvDbCatalog) Validate() error {
 	if err := v.DbCatalogBase.Validate(); err != nil {
 		return err
 	}

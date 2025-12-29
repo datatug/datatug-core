@@ -7,32 +7,23 @@ import (
 	"github.com/datatug/datatug-core/pkg/datatug2md"
 )
 
-func newFsProjectStore(projectID string, projectPath string) fsProjectStore {
-	return fsProjectStore{
-		projectID:     projectID,
-		projectPath:   projectPath,
-		readmeEncoder: datatug2md.NewEncoder(),
-		fsBoardsStore: fsBoardsStore{
-			fsProjectItemsStore: newFsProjectItemsStore[datatug.Boards, *datatug.Board, datatug.Board](
-				projectPath, BoardsFolder, boardFileSuffix,
-			),
-		},
-		fsQueriesStore: fsQueriesStore{
-			fsProjectItemsStore: newFsProjectItemsStore[datatug.QueryDefs, *datatug.QueryDef, datatug.QueryDef](
-				projectPath, QueriesFolder, querySQLFileSuffix,
-			),
-		},
-		fsEntitiesStore: fsEntitiesStore{
-			fsProjectItemsStore: newFsProjectItemsStore[datatug.Entities, *datatug.Entity, datatug.Entity](
-				projectPath, EntitiesFolder, entityFileSuffix,
-			),
-		},
-	}
-}
-
 var _ datatug.ProjectStore = (*fsProjectStore)(nil)
 
-// fsProjectStore
+func newFsProjectStore(projectID string, projectPath string) fsProjectStore {
+	return fsProjectStore{
+		projectID:                   projectID,
+		projectPath:                 projectPath,
+		readmeEncoder:               datatug2md.NewEncoder(),
+		fsBoardsStore:               newFsBoardsStore(projectPath),
+		fsQueriesStore:              newFsQueriesStore(projectPath),
+		fsEntitiesStore:             newFsEntitiesStore(projectPath),
+		fsFoldersStore:              newFsFoldersStore(projectPath),
+		fsEnvironmentsStore:         newFsEnvironmentsStore(projectPath),
+		fsEnvDbServersStore:         newFsEnvDbServersStore(projectPath),
+		fsEnvDbCatalogStore:         newFsEnvCatalogsStore(projectPath),
+		fsRecordsetDefinitionsStore: newFsRecordsetDefinitionsStore(projectPath),
+	}
+}
 
 type fsProjectStore struct {
 	projectID     string
@@ -41,6 +32,11 @@ type fsProjectStore struct {
 	fsBoardsStore
 	fsQueriesStore
 	fsEntitiesStore
+	fsFoldersStore
+	fsEnvironmentsStore
+	fsEnvDbServersStore
+	fsEnvDbCatalogStore
+	fsRecordsetDefinitionsStore
 }
 
 func (s fsProjectStore) LoadRecordsetData(ctx context.Context, id string) (datatug.Recordset, error) {
@@ -53,52 +49,9 @@ func (s fsProjectStore) LoadRecordsetDefinitions(ctx context.Context, o ...datat
 	panic("implement me")
 }
 
-func (s fsProjectStore) LoadRecordsetDefinition(ctx context.Context, id string) (*datatug.RecordsetDefinition, error) {
+func (s fsProjectStore) LoadRecordsetDefinition(ctx context.Context, id string, o ...datatug.StoreOption) (*datatug.RecordsetDefinition, error) {
 	//TODO implement me
 	panic("implement me")
-}
-
-func (s fsProjectStore) LoadFolders(ctx context.Context, o ...datatug.StoreOption) (*datatug.Folder, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s fsProjectStore) SaveFolder(ctx context.Context, path string, folder *datatug.Folder) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s fsProjectStore) DeleteFolder(ctx context.Context, id string) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s fsProjectStore) LoadQuery(ctx context.Context, id string) (*datatug.QueryDefWithFolderPath, error) {
-	return s.GetQuery(ctx, id)
-}
-
-func (s fsProjectStore) SaveQuery(ctx context.Context, query *datatug.QueryDefWithFolderPath) error {
-	return s.fsQueriesStore.saveProjectItem(ctx, &query.QueryDef)
-}
-
-func (s fsProjectStore) DeleteQuery(ctx context.Context, id string) error {
-	return s.fsQueriesStore.deleteProjectItem(ctx, id)
-}
-
-func (s fsProjectStore) LoadEntities(ctx context.Context, o ...datatug.StoreOption) (datatug.Entities, error) {
-	return s.loadEntities(ctx, o...)
-}
-
-func (s fsProjectStore) LoadEntity(ctx context.Context, id string, o ...datatug.StoreOption) (*datatug.Entity, error) {
-	return s.loadEntity(ctx, id, o...)
-}
-
-func (s fsProjectStore) SaveEntity(ctx context.Context, entity *datatug.Entity) error {
-	return s.saveEntity(ctx, entity)
-}
-
-func (s fsProjectStore) DeleteEntity(ctx context.Context, id string) error {
-	return s.deleteEntity(ctx, id)
 }
 
 func (s fsProjectStore) LoadEnvironmentSummary(ctx context.Context, id string) (*datatug.EnvironmentSummary, error) {

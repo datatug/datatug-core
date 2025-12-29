@@ -33,7 +33,7 @@ func (s fsProjectStore) loadEnvironments(_ context.Context, o ...datatug.StoreOp
 	if err != nil {
 		return
 	}
-	// Sort environments by ID for a consistent order
+	// Sort environments by GetID for a consistent order
 	sort.Slice(environments, func(i, j int) bool {
 		return strings.ToLower(environments[i].ID) < strings.ToLower(environments[j].ID)
 	})

@@ -8,7 +8,7 @@ import (
 	"github.com/strongo/validation"
 )
 
-// AutoID defines a value that indicate system to use automatically generated ID
+// AutoID defines a value that indicate system to use automatically generated GetID
 //const AutoID = "<auto/id>"
 
 // RootSharedFolderName defines name for a root shared folder
@@ -64,7 +64,7 @@ func ValidateFolderPath(folderPath string) error {
 	if strings.HasPrefix(rootFolderName, RootUserFolderPrefix) {
 		userID := rootFolderName[len(RootUserFolderPrefix):]
 		if err := validateUserID(userID); err != nil {
-			return validation.NewErrBadRecordFieldValue("folder", fmt.Sprintf("user's root folder references invalid user ID: %v", err))
+			return validation.NewErrBadRecordFieldValue("folder", fmt.Sprintf("user's root folder references invalid user GetID: %v", err))
 		}
 	} else if rootFolderName != RootSharedFolderName {
 		return validation.NewErrBadRecordFieldValue("folder", fmt.Sprintf("should start with root folder '%v'", RootSharedFolderName))
@@ -84,7 +84,7 @@ func ValidateFolderPath(folderPath string) error {
 	return nil
 }
 
-// ProjectItem base class with ID and Name
+// ProjectItem base class with GetID and Name
 type ProjectItem struct {
 	ProjItemBrief
 	UserIDs []string `json:"userIds,omitempty" firestore:"userIds,omitempty"`

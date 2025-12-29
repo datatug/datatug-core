@@ -38,7 +38,7 @@ package filestore
 //	fsDbModelsStore
 //}
 //
-//func (store fsDbModelStore) ID() string {
+//func (store fsDbModelStore) GetID() string {
 //	return store.dbModelID
 //}
 //
@@ -59,10 +59,10 @@ package filestore
 //			dbModel := dbModels[i]
 //			err := store.saveDbModel(dbModel)
 //			if err != nil {
-//				if dbModel.ID == "" {
+//				if dbModel.GetID == "" {
 //					return fmt.Errorf("failed to save db model at index %v: %w", i, err)
 //				}
-//				return fmt.Errorf("failed to save db model [%v] at index %v: %w", dbModel.ID, i, err)
+//				return fmt.Errorf("failed to save db model [%v] at index %v: %w", dbModel.GetID, i, err)
 //			}
 //			return nil
 //		}
@@ -73,7 +73,7 @@ package filestore
 //	if err = dbModel.Validate(); err != nil {
 //		return fmt.Errorf("db models is invalid: %w", err)
 //	}
-//	dirPath := path.Join(store.projectPath, DatatugFolder, DbModelsFolder, dbModel.ID)
+//	dirPath := path.Join(store.projectPath, DatatugFolder, DbModelsFolder, dbModel.GetID)
 //	if err = os.MkdirAll(dirPath, 0777); err != nil {
 //		return fmt.Errorf("failed to create db model folder: %w", err)
 //	}
@@ -83,7 +83,7 @@ package filestore
 //				ProjectItem:  dbModel.ProjectItem,
 //				Environments: dbModel.Environments,
 //			}
-//			return saveJSONFile(dirPath, jsonFileName(dbModel.ID, dbModelFileSuffix), dbModelFile)
+//			return saveJSONFile(dirPath, jsonFileName(dbModel.GetID, dbModelFileSuffix), dbModelFile)
 //		},
 //		func() error {
 //			return store.saveSchemaModels(dirPath, dbModel.Schemas)
@@ -95,7 +95,7 @@ package filestore
 //	return saveItems("schemaModel", len(schemas), func(i int) func() error {
 //		return func() error {
 //			schema := schemas[i]
-//			schemaDirPath := path.Join(dirPath, schema.ID)
+//			schemaDirPath := path.Join(dirPath, schema.GetID)
 //			if err := os.MkdirAll(schemaDirPath, 0777); err != nil {
 //				return err
 //			}
@@ -108,7 +108,7 @@ package filestore
 //	saveTables := func(plural string, tables []*datatug.TableModel) func() error {
 //		dirPath := path.Join(schemaDirPath, plural)
 //		return func() error {
-//			return saveItems(fmt.Sprintf("models of %v for schema [%v]", plural, schema.ID), len(tables), func(i int) func() error {
+//			return saveItems(fmt.Sprintf("models of %v for schema [%v]", plural, schema.GetID), len(tables), func(i int) func() error {
 //				return func() error {
 //					return store.saveTableModel(dirPath, *tables[i])
 //				}

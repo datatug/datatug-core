@@ -33,7 +33,7 @@ func (s fsProjectStore) SaveProject(ctx context.Context, project *datatug.Projec
 		func() (err error) {
 			if len(project.Entities) > 0 {
 				//log.Printf("Saving %v entities...\n", len(project.Entities))
-				if err = s.saveEntities(ctx, project.Entities); err != nil {
+				if err = s.SaveEntities(ctx, project.Entities); err != nil {
 					return fmt.Errorf("failed to save entities: %w", err)
 				}
 				//log.Printf("Saved %v entities.\n", len(project.Entities))
@@ -45,8 +45,8 @@ func (s fsProjectStore) SaveProject(ctx context.Context, project *datatug.Projec
 		func() (err error) {
 			if len(project.Environments) > 0 {
 				log.Printf("Saving %v environments...\n", len(project.Environments))
-				environmentStore := newFsEnvironmentsStore(s)
-				if err = environmentStore.saveEnvironments(ctx, *project); err != nil {
+				environmentStore := newFsEnvironmentsStore(s.projectPath)
+				if err = environmentStore.SaveEnvironments(ctx, project.Environments); err != nil {
 					return fmt.Errorf("failed to save environments: %w", err)
 				}
 				log.Printf("Saved %v environments.", len(project.Environments))
@@ -130,10 +130,10 @@ func (s fsProjectStore) saveProjectFile(project *datatug.Project) error {
 	//} else {
 	//	projFile.Access = existingProject.Access
 	//}
-	//if existingProject.ID == "" {
-	//	projFile.ID = project.ID
+	//if existingProject.GetID == "" {
+	//	projFile.GetID = project.GetID
 	//} else {
-	//	projFile.ID = existingProject.ID
+	//	projFile.GetID = existingProject.GetID
 	//}
 	for _, env := range project.Environments {
 		envBrief := datatug.ProjEnvBrief{

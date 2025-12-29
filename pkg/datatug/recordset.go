@@ -52,6 +52,8 @@ func (v RecordsetColumn) Validate() error {
 	return nil
 }
 
+type RecordsetDefinitions []*RecordsetDefinition
+
 // RecordsetDefinition describes dataset
 type RecordsetDefinition struct {
 	ProjectItem

@@ -18,7 +18,7 @@ type ProjectStoreDeprecated interface {
 	Queries() QueriesStore
 	Boards() BoardsStore
 
-	Environments() EnvironmentsStore
+	//Environments() EnvironmentsStore
 	Entities() EntitiesStore
 	DbModels() DbModelsStore
 	DbServers() DbServersStore

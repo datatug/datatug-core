@@ -26,7 +26,7 @@ func loadEnvServers(dirPath string, env *datatug.Environment) error {
 			if server.Host == "" {
 				server.Host = serverName
 			} else if server.Host != serverName {
-				return fmt.Errorf("server file ID is different from server host at index %v: %v != %v",
+				return fmt.Errorf("server file GetID is different from server host at index %v: %v != %v",
 					i, serverName, server.Host)
 			}
 		}

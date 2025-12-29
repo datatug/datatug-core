@@ -2,33 +2,42 @@ package filestore
 
 import (
 	"context"
+	"path"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
 var _ datatug.BoardsStore = (*fsBoardsStore)(nil)
 
+func newFsBoardsStore(projectPath string) fsBoardsStore {
+	return fsBoardsStore{
+		fsProjectItemsStore: newFsProjectItemsStore[datatug.Boards, *datatug.Board, datatug.Board](
+			path.Join(projectPath, BoardsFolder), boardFileSuffix,
+		),
+	}
+}
+
 type fsBoardsStore struct {
 	fsProjectItemsStore[datatug.Boards, *datatug.Board, datatug.Board]
 }
 
 func (s fsBoardsStore) LoadBoards(ctx context.Context, o ...datatug.StoreOption) (datatug.Boards, error) {
-	items, err := s.loadProjectItems(ctx, o...)
+	items, err := s.loadProjectItems(ctx, s.dirPath, o...)
 	return items, err
 }
 
 func (s fsBoardsStore) LoadBoard(ctx context.Context, id string, o ...datatug.StoreOption) (*datatug.Board, error) {
-	return s.loadProjectItem(ctx, id, s.itemFileName(id), o...)
+	return s.loadProjectItem(ctx, s.dirPath, id, s.itemFileName(id), o...)
 }
 
 func (s fsBoardsStore) SaveBoard(ctx context.Context, board *datatug.Board) error {
-	return s.saveProjectItem(ctx, board)
+	return s.saveProjectItem(ctx, s.dirPath, board)
 }
 
 func (s fsBoardsStore) saveBoards(ctx context.Context, boards datatug.Boards) error {
-	return s.saveProjectItems(ctx, BoardsFolder, boards)
+	return s.saveProjectItems(ctx, s.dirPath, boards)
 }
 
 func (s fsBoardsStore) DeleteBoard(ctx context.Context, id string) error {
-	return s.deleteProjectItem(ctx, id)
+	return s.deleteProjectItem(ctx, s.dirPath, id)
 }

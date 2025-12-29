@@ -112,7 +112,7 @@ func TestTableToReadmeFull(t *testing.T) {
 
 	dbServer := datatug.ProjDbServer{
 		ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "test-server"}},
-		Catalogs: datatug.DbCatalogs{
+		Catalogs: datatug.EnvDbCatalogs{
 			{
 				DbCatalogBase: datatug.DbCatalogBase{ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "test-catalog"}}},
 				Schemas: datatug.DbSchemas{

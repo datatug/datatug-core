@@ -37,7 +37,7 @@ func TestFsEnvServerStore(t *testing.T) {
 
 	envStore := newFsEnvironmentStore(envID, fsEnvironmentsStore)
 	envServersStore := newFsEnvServersStore(envStore)
-	store := newFsEnvServerStore(dbServer.FileName(), envServersStore)
+	store := newFsEnvDbServersStore(dbServer.FileName(), envServersStore)
 
 	t.Run("Catalogs", func(t *testing.T) {
 		assert.NotNil(t, store.Catalogs())

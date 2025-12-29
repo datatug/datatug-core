@@ -110,7 +110,7 @@ func TestDbModelEnv_Validate(t *testing.T) {
 					{ID: ""},
 				},
 			},
-			wantErr: false, // Note: DbModelEnv.Validate returns nil even if DbCatalogs.Validate fails in current implementation
+			wantErr: false, // Note: DbModelEnv.Validate returns nil even if EnvDbCatalogs.Validate fails in current implementation
 		},
 	}
 	for _, tt := range tests {

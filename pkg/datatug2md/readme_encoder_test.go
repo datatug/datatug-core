@@ -81,7 +81,7 @@ func TestEncoder_DbServerToReadme(t *testing.T) {
 func TestEncoder_DbCatalogToReadme(t *testing.T) {
 	encoder := NewEncoder()
 	dbServer := datatug.ProjDbServer{}
-	catalog := datatug.DbCatalog{}
+	catalog := datatug.EnvDbCatalog{}
 
 	w := new(bytes.Buffer)
 	err := encoder.DbCatalogToReadme(w, nil, dbServer, catalog)

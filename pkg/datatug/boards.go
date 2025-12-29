@@ -59,7 +59,7 @@ func (v ProjBoardBrief) Validate() error {
 
 //func validateBoardBriefsMappedByID(boards map[string]*ProjBoardBrief) error { // TODO: generic
 //	for id, board := range boards {
-//		if err := validateItemMappedByID(id, board.ID, board); err != nil {
+//		if err := validateItemMappedByID(id, board.GetID, board); err != nil {
 //			return err
 //		}
 //	}

@@ -34,7 +34,7 @@ func (s fsProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOptio
 			return err
 		},
 		func() error {
-			entities, err := s.loadEntities(ctx, o...)
+			entities, err := s.LoadEntities(ctx, o...)
 			if err != nil {
 				log.Printf("loadEntities failed: %v", err)
 				return err
@@ -66,7 +66,7 @@ func (s fsProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOptio
 			return nil
 		},
 	); err != nil {
-		err = fmt.Errorf("failed to load project by ID=[%v]: %w", s.projectID, err)
+		err = fmt.Errorf("failed to load project by GetID=[%v]: %w", s.projectID, err)
 		return
 	}
 	return project, err
@@ -128,12 +128,12 @@ func loadDbServer(driverDirPath, driver, serverName string) (dbServer *datatug.P
 			if dbServer.ID == "" {
 				dbServer.ID = serverName
 			} else if dbServer.ID != serverName {
-				return fmt.Errorf("dbServer.ID != serverName: %v != %v", dbServer.ID, serverName)
+				return fmt.Errorf("dbServer.GetID != serverName: %v != %v", dbServer.ID, serverName)
 			}
 			return nil
 		},
 		func() error {
-			dbCatalogsDir := path.Join(dbServerDirPath, DbCatalogsFolder)
+			dbCatalogsDir := path.Join(dbServerDirPath, EnvDbCatalogsFolder)
 			if err := loadDbCatalogs(dbCatalogsDir, dbServer); err != nil {
 				return fmt.Errorf("failed to load DB catalogs: %w", err)
 			}
@@ -169,7 +169,7 @@ func (loader fileSystemLoader) GetFolderPath(projectID string, folder ...string)
 	return path.Join(projectPath, DatatugFolder, path.Join(folder...)), nil
 }
 
-// GetProjectPath returns project projDirPath by project ID
+// GetProjectPath returns project projDirPath by project GetID
 func (loader fileSystemLoader) GetProjectPath(projectID string) (projID string, projPath string, err error) {
 	if projectID == "" && len(projectPaths) == 1 {
 		projID = storage.SingleProjectID

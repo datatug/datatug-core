@@ -12,7 +12,7 @@ import (
 // Entities is a slice of *Entity
 type Entities []*Entity
 
-// GetEntityByID return an entity by ID
+// GetEntityByID return an entity by GetID
 func (v Entities) GetEntityByID(id string) (entity *Entity) {
 	for _, entity = range v {
 		if entity.ID == id {

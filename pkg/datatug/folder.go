@@ -7,6 +7,8 @@ import (
 	"github.com/strongo/validation"
 )
 
+type Folders []*Folder
+
 // Folder keeps info about folder
 type Folder struct {
 	Name string `json:"name,omitempty" firestore:"name,omitempty"` // empty for root folders
@@ -16,6 +18,14 @@ type Folder struct {
 	//Folders map[string]*FolderItem `json:"folders,omitempty" firestore:"folders,omitempty"`
 	//Boards  map[string]*FolderItem `json:"boards,omitempty" firestore:"boards,omitempty"`
 	//Queries map[string]*FolderItem `json:"queries,omitempty" firestore:"queries,omitempty"`
+}
+
+func (f *Folder) GetID() string {
+	return f.Name
+}
+
+func (f *Folder) SetID(id string) {
+	f.Name = id
 }
 
 // FolderBrief holds brief about a folder item
@@ -58,7 +68,7 @@ func (v FolderItem) Validate() error {
 }
 
 // Validate returns error if failed
-func (v Folder) Validate() error {
+func (v *Folder) Validate() error {
 	if strings.TrimSpace(v.Name) == "" {
 		return validation.NewErrRecordIsMissingRequiredField("name")
 	}

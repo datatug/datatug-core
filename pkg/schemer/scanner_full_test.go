@@ -72,7 +72,7 @@ func TestScanCatalog_Bulk(t *testing.T) {
 	}
 
 	if catalog.ID != catalogID {
-		t.Errorf("expected catalog ID %v, got %v", catalogID, catalog.ID)
+		t.Errorf("expected catalog GetID %v, got %v", catalogID, catalog.ID)
 	}
 
 	schema := catalog.Schemas.GetByID(schemaID)

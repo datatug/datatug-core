@@ -41,8 +41,8 @@ func TestNewDbServer(t *testing.T) {
 }
 
 func TestServerReference_ID(t *testing.T) {
-	assert.Equal(t, "mysql:localhost", ServerReference{Driver: "mysql", Host: "localhost"}.ID())
-	assert.Equal(t, "mysql:localhost:3306", ServerReference{Driver: "mysql", Host: "localhost", Port: 3306}.ID())
+	assert.Equal(t, "mysql:localhost", ServerReference{Driver: "mysql", Host: "localhost"}.GetID())
+	assert.Equal(t, "mysql:localhost:3306", ServerReference{Driver: "mysql", Host: "localhost", Port: 3306}.GetID())
 }
 
 func TestServerReference_Validate(t *testing.T) {
@@ -88,7 +88,7 @@ func TestProjDbServer_Validate(t *testing.T) {
 		v := ProjDbServer{
 			ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "s1"}},
 			Server:      ServerReference{Driver: "mysql", Host: "localhost"},
-			Catalogs:    DbCatalogs{{}},
+			Catalogs:    EnvDbCatalogs{{}},
 		}
 		assert.Error(t, v.Validate())
 	})

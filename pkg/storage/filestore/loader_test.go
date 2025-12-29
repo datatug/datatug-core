@@ -110,7 +110,7 @@ func TestLoader(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create DB catalogs folder
-	dbCatalogsDir := path.Join(serverDir, DbCatalogsFolder)
+	dbCatalogsDir := path.Join(serverDir, EnvDbCatalogsFolder)
 	err = os.MkdirAll(dbCatalogsDir, 0755)
 	assert.NoError(t, err)
 
@@ -119,7 +119,7 @@ func TestLoader(t *testing.T) {
 	catalogDir := path.Join(dbCatalogsDir, catalogID)
 	err = os.MkdirAll(catalogDir, 0755)
 	assert.NoError(t, err)
-	catalog := datatug.DbCatalog{}
+	catalog := datatug.EnvDbCatalog{}
 	catalog.Driver = driver
 	catalog.ID = catalogID
 	catalogData, _ := json.Marshal(catalog)
@@ -183,7 +183,7 @@ func TestLoader(t *testing.T) {
 		_, err := loadDbModel(dbModelsDir, "invalid")
 		assert.Error(t, err)
 
-		// ID mismatch
+		// GetID mismatch
 		wrongIDDir := path.Join(dbModelsDir, "wrong")
 		err = os.MkdirAll(wrongIDDir, 0755)
 		assert.NoError(t, err)
@@ -194,14 +194,14 @@ func TestLoader(t *testing.T) {
 	})
 
 	t.Run("loadDbServer_errors", func(t *testing.T) {
-		// ID mismatch
+		// GetID mismatch
 		wrongServerDir := path.Join(serversDir, driver, "wrong")
 		err = os.MkdirAll(wrongServerDir, 0755)
 		assert.NoError(t, err)
-		err = os.WriteFile(path.Join(wrongServerDir, "postgres.wrong.dbserver.json"), dbServerData, 0644) // dbServerData has ID "" currently or from prev marshal
+		err = os.WriteFile(path.Join(wrongServerDir, "postgres.wrong.dbserver.json"), dbServerData, 0644) // dbServerData has GetID "" currently or from prev marshal
 		assert.NoError(t, err)
 
-		// Set a different ID to trigger error
+		// Set a different GetID to trigger error
 		dbServerWithID := datatug.ProjDbServer{}
 		dbServerWithID.ID = "actual_id"
 		data, _ := json.Marshal(dbServerWithID)

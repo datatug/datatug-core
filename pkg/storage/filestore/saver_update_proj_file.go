@@ -38,7 +38,7 @@ func (s fileSystemSaver) updateProjectFileDeleteEntity(id string) (err error) {
 	}
 	entities := make([]*models.ProjEntityBrief, len(projFile.Entities))
 	for _, item := range projFile.Entities {
-		if item.ID == id {
+		if item.GetID == id {
 			continue
 		}
 	}
@@ -60,7 +60,7 @@ func (s fileSystemSaver) updateProjectFileDeleteBoard(id string) (err error) {
 	}
 	items := make([]*models.ProjBoardBrief, len(projFile.Boards))
 	for _, item := range projFile.Boards {
-		if item.ID == id {
+		if item.GetID == id {
 			continue
 		}
 	}

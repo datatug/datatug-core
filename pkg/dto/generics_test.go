@@ -25,7 +25,7 @@ func TestProjectItemRef_Validate(t *testing.T) {
 		t.Run("missing_id", func(t *testing.T) {
 			v := ProjectItemRef{ProjectRef: ProjectRef{StoreID: "s1", ProjectID: "p1"}}
 			if err := v.Validate(); err == nil {
-				t.Error("Expected to get an error for validation of ProjectItemRef with missing ID")
+				t.Error("Expected to get an error for validation of ProjectItemRef with missing GetID")
 			}
 		})
 	})

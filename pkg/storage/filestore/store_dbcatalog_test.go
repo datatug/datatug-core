@@ -27,7 +27,7 @@ func TestDbCatalogStore(t *testing.T) {
 	}
 
 	catalogID := "db1"
-	catalogsDirPath := path.Join(projectPath, DatatugFolder, ServersFolder, DbFolder, dbServer.Driver, dbServer.Host, DbCatalogsFolder)
+	catalogsDirPath := path.Join(projectPath, DatatugFolder, ServersFolder, DbFolder, dbServer.Driver, dbServer.Host, EnvDbCatalogsFolder)
 	catalogPath := path.Join(catalogsDirPath, catalogID)
 	err = os.MkdirAll(catalogPath, 0755)
 	assert.NoError(t, err)
@@ -72,7 +72,7 @@ func TestDbCatalogStore(t *testing.T) {
 	})
 
 	t.Run("SaveDbCatalog", func(t *testing.T) {
-		dbCatalog := &datatug.DbCatalog{
+		dbCatalog := &datatug.EnvDbCatalog{
 			DbCatalogBase: datatug.DbCatalogBase{
 				ProjectItem: datatug.ProjectItem{
 					ProjItemBrief: datatug.ProjItemBrief{

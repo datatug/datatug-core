@@ -10,7 +10,7 @@ import (
 // DbModels is a slice of *DbModel
 type DbModels []*DbModel
 
-// GetDbModelByID return DB model by ID
+// GetDbModelByID return DB model by GetID
 func (v DbModels) GetDbModelByID(id string) (dbModel *DbModel) {
 	for _, dbModel = range v {
 		if dbModel.ID == id {
@@ -65,7 +65,7 @@ func (v DbModelEnvironments) Validate() error {
 	return nil
 }
 
-// GetByID return *DbModelEnv by ID
+// GetByID return *DbModelEnv by GetID
 func (v DbModelEnvironments) GetByID(id string) *DbModelEnv {
 	for _, v := range v {
 		if v.ID == id {
@@ -105,7 +105,7 @@ func (v DbModelDbCatalogs) Validate() error {
 	return nil
 }
 
-// GetByID returns DbModelDbCatalog by ID
+// GetByID returns DbModelDbCatalog by GetID
 func (v DbModelDbCatalogs) GetByID(id string) (dbModelDb *DbModelDbCatalog) {
 	for _, dbModelDb = range v {
 		if dbModelDb.ID == id {
@@ -146,7 +146,7 @@ func (v DbModel) Validate() error {
 // SchemaModels is a slice of *SchemaModel
 type SchemaModels []*SchemaModel
 
-// GetByID return *SchemaModel by ID
+// GetByID return *SchemaModel by GetID
 func (v SchemaModels) GetByID(id string) (schemaModel *SchemaModel) {
 	for _, schemaModel = range v {
 		if schemaModel.ID == id {

@@ -22,7 +22,7 @@ type Issues struct {
 	Schema []string `json:"schema,omitempty"`
 }
 
-// StateByEnv states by env ID
+// StateByEnv states by env GetID
 type StateByEnv map[string]*EnvState
 
 // Validate returns error if not valid

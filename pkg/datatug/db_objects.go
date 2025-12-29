@@ -88,7 +88,7 @@ func (v DbSchemas) Validate() error {
 	return nil
 }
 
-// GetByID returns schema by ID
+// GetByID returns schema by GetID
 func (v DbSchemas) GetByID(id string) *DbSchema {
 	for _, schema := range v {
 		if schema.ID == id {
@@ -123,11 +123,11 @@ func (v DbSchema) Validate() error {
 	return nil
 }
 
-// DbCatalogs is a slice of pointers to Database
-type DbCatalogs []*DbCatalog
+// EnvDbCatalogs is a slice of pointers to EnvDbCatalog
+type EnvDbCatalogs []*EnvDbCatalog
 
 // GetTable returns table
-func (v DbCatalogs) GetTable(catalog, schema, name string) *CollectionInfo {
+func (v EnvDbCatalogs) GetTable(catalog, schema, name string) *CollectionInfo {
 	for _, c := range v {
 		if c.ID == catalog {
 			for _, s := range c.Schemas {
@@ -145,7 +145,7 @@ func (v DbCatalogs) GetTable(catalog, schema, name string) *CollectionInfo {
 }
 
 // Validate returns error if failed
-func (v DbCatalogs) Validate() error {
+func (v EnvDbCatalogs) Validate() error {
 	for i, db := range v {
 		if err := db.Validate(); err != nil {
 			return fmt.Errorf("validaiton failed for db catalog at index %v: %w", i, err)
@@ -154,8 +154,8 @@ func (v DbCatalogs) Validate() error {
 	return nil
 }
 
-// GetDbByID returns Database by ID
-func (v DbCatalogs) GetDbByID(id string) *DbCatalog {
+// GetDbByID returns Database by GetID
+func (v EnvDbCatalogs) GetDbByID(id string) *EnvDbCatalog {
 	for _, db := range v {
 		if strings.EqualFold(db.ID, id) {
 			return db
@@ -565,7 +565,7 @@ func (v Collation) Validate() error {
 type CharacterSet struct {
 	Catalog string `json:"Catalog,omitempty"`
 	Schema  string `json:"Schema,omitempty"`
-	Name    string `json:"ID"`
+	Name    string `json:"GetID"`
 }
 
 // Validate returns error if not valid

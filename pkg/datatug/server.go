@@ -59,8 +59,8 @@ func NewDbServer(driver, hostWithOptionalPort, sep string) (dbServer ServerRefer
 	return
 }
 
-// ID returns string key for the server
-func (v ServerReference) ID() string {
+// GetID returns string key for the server
+func (v ServerReference) GetID() string {
 	if v.Port == 0 {
 		return fmt.Sprintf("%v:%v", v.Driver, v.Host)
 	}
@@ -97,7 +97,7 @@ func (v ServerReference) Validate() error {
 type ProjDbServer struct {
 	ProjectItem
 	Server   ServerReference `json:"server"`
-	Catalogs DbCatalogs      `json:"catalogs"`
+	Catalogs EnvDbCatalogs   `json:"catalogs"`
 }
 
 // Validate returns error if not valid
@@ -114,7 +114,7 @@ func (v ProjDbServer) Validate() error {
 	return nil
 }
 
-// ProjDbServers slice of ProjDbServer which holds ServerReference and DbCatalogs
+// ProjDbServers slice of ProjDbServer which holds ServerReference and EnvDbCatalogs
 type ProjDbServers []*ProjDbServer
 
 // Validate returns error if not valid

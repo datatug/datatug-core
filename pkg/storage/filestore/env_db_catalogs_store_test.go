@@ -38,24 +38,24 @@ func TestFsEnvCatalogStore(t *testing.T) {
 
 	envStore := newFsEnvironmentStore(envID, fsEnvironmentsStore)
 	envServersStore := newFsEnvServersStore(envStore)
-	envServerStore := newFsEnvServerStore(dbServer.FileName(), envServersStore)
+	envServerStore := newFsEnvDbServersStore(dbServer.FileName(), envServersStore)
 	envCatalogsStore := newFsEnvCatalogsStore(envServerStore)
-	store := newFsEnvCatalogStore(catalogID, envCatalogsStore)
+	store := newFsEnvCatalogsStore(catalogID, envCatalogsStore)
 
 	t.Run("Catalogs", func(t *testing.T) {
 		assert.NotNil(t, store.Catalogs())
 	})
 
 	//t.Run("LoadEnvironmentCatalog", func(t *testing.T) {
-	//	envPath := path.Join(envsDirPath, envID, ServersFolder, DbFolder, dbServer.FileName(), DbCatalogsFolder)
+	//	envPath := path.Join(envsDirPath, envID, ServersFolder, DbFolder, dbServer.FileName(), EnvDbCatalogsFolder)
 	//	err := os.MkdirAll(envPath, 0755)
 	//	assert.NoError(t, err)
 	//
-	//	envDbCatalog := datatug.DbCatalog{
+	//	envDbCatalog := datatug.EnvDbCatalog{
 	//		DbCatalogBase: datatug.DbCatalogBase{
 	//			ProjectItem: datatug.ProjectItem{
 	//				ProjItemBrief: datatug.ProjItemBrief{
-	//					ID: catalogID,
+	//					GetID: catalogID,
 	//				},
 	//			},
 	//		},
@@ -66,7 +66,7 @@ func TestFsEnvCatalogStore(t *testing.T) {
 	//
 	//	loaded, err := store.LoadEnvironmentCatalog()
 	//	assert.NoError(t, err)
-	//	assert.Equal(t, catalogID, loaded.ID)
+	//	assert.Equal(t, catalogID, loaded.GetID)
 	//})
 
 	t.Run("SaveDbCatalog", func(t *testing.T) {

@@ -98,7 +98,7 @@ func (v QueryDefBrief) Validate() error {
 
 //func validateQueryBriefsMappedByID(queries map[string]*QueryDefBrief) error {
 //	for id, query := range queries {
-//		if err := validateItemMappedByID(id, query.ID, query); err != nil {
+//		if err := validateItemMappedByID(id, query.GetID, query); err != nil {
 //			return err
 //		}
 //	}
