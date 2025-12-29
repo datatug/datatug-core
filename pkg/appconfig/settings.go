@@ -66,8 +66,10 @@ func (v ProjectConfig) Validate() error {
 
 const ConfigFileName = ".datatug.yaml"
 
+var homedirDir = homedir.Dir
+
 func GetConfigFilePath() string {
-	configFilePath, err := homedir.Dir()
+	configFilePath, err := homedirDir()
 	if err != nil {
 		panic(fmt.Errorf("failed to get user's home dir: %w", err))
 	}
@@ -87,8 +89,8 @@ func GetSettings() (settings Settings, err error) {
 		return
 	}
 	defer func() {
-		if err := f.Close(); err != nil {
-			fmt.Printf("failed to closed settings file opened for read: %v", err)
+		if closeErr := f.Close(); closeErr != nil {
+			fmt.Printf("failed to closed settings file opened for read: %v", closeErr)
 		}
 	}()
 	decoder := yaml.NewDecoder(f)
