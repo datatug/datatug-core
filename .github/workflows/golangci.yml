@@ -30,4 +30,4 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     with:
       code_coverage: true
-      min_test_coverage_percent: 74
+      min_test_coverage_percent: 88
