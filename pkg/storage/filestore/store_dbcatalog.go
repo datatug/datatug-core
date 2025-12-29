@@ -106,7 +106,7 @@ func (store fsDbCatalogStore) saveDbCatalog(dbCatalog *datatug.DbCatalog, reposi
 func (store fsDbCatalogStore) saveDbCatalogJSON(dbCatalog datatug.DbCatalog, saverCtx saveDbServerObjContext) error {
 	fileName := jsonFileName(dbCatalog.ID, dbCatalogFileSuffix)
 	dbFile := DbCatalogFile{
-		Driver:  saverCtx.dbServer.Server.Driver,
+		Driver:  dbCatalog.Driver,
 		DbModel: dbCatalog.DbModel,
 		Path:    dbCatalog.Path,
 	}

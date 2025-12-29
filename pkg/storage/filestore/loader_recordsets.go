@@ -74,6 +74,9 @@ func (loader fileSystemLoader) LoadRecordsetDefinition(projectID, recordsetID st
 		return
 	}
 	folder := filepath.Dir(recordsetID)
+	if folder == "." {
+		folder = ""
+	}
 	if len(folder) > 0 {
 		recordsetID = recordsetID[len(folder)+1:]
 	}

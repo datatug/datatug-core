@@ -69,11 +69,12 @@ func loadDir(
 					continue
 				}
 			}
+			f := file
 			k := j
 			workers = append(workers, func() error {
-				if loaderErr := loader(file, k, mutex); loaderErr != nil {
+				if loaderErr := loader(f, k, mutex); loaderErr != nil {
 					mutex.Lock()
-					errs = append(errs, storage.NewFileLoadError(file.Name(), loaderErr))
+					errs = append(errs, storage.NewFileLoadError(f.Name(), loaderErr))
 					mutex.Unlock()
 				}
 				return nil
