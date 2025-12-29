@@ -49,7 +49,7 @@ func newFsEnvironmentStore(id string, fsEnvironmentsStore fsEnvironmentsStore) f
 
 // LoadEnvironmentSummary loads environment summary
 func (store fsEnvironmentStore) LoadEnvironmentSummary() (*datatug.EnvironmentSummary, error) {
-	envSummary, err := loadEnvFile(store.envsDirPath, store.envID)
+	envSummary, err := loadEnvFile(path.Join(store.envsDirPath, store.envID), store.envID)
 	if err != nil {
 		err = fmt.Errorf("failed to load environment [%v] from project [%v]: %w", store.envID, store.projectID, err)
 		return nil, err

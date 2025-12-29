@@ -3,6 +3,7 @@ package filestore
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"sync"
@@ -27,25 +28,38 @@ func (s fsProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOptio
 	if err = parallel.Run(
 		func() error {
 			project.Environments, err = s.LoadEnvironments(ctx, o...)
+			if err != nil {
+				log.Printf("LoadEnvironments failed: %v", err)
+			}
 			return err
 		},
 		func() error {
 			entities, err := s.loadEntities(ctx, o...)
 			if err != nil {
+				log.Printf("loadEntities failed: %v", err)
 				return err
 			}
 			project.Entities = entities
 			return err
 		},
 		func() error {
-			return loadBoards(ctx, s.projectPath, project)
+			err := loadBoards(ctx, s.projectPath, project)
+			if err != nil {
+				log.Printf("loadBoards failed: %v", err)
+			}
+			return err
 		},
 		func() error {
-			return loadDbModels(ctx, s.projectPath, project)
+			err := loadDbModels(ctx, s.projectPath, project)
+			if err != nil {
+				log.Printf("loadDbModels failed: %v", err)
+			}
+			return err
 		},
 		func() error {
 			projDbServers, err := loadDbDrivers(ctx, s.projectPath)
 			if err != nil {
+				log.Printf("loadDbDrivers failed: %v", err)
 				return err
 			}
 			project.DbServers = projDbServers

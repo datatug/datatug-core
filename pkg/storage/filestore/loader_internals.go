@@ -48,6 +48,7 @@ func loadDir(
 	defer func() { _ = dir.Close() }()
 	var files []os.FileInfo
 	if files, err = dir.Readdir(0); err != nil {
+		log.Printf("failed to readdir [%v]: %v", dirPath, err)
 		return err
 	}
 	workers := make([]func() error, 0, len(files))
@@ -86,10 +87,13 @@ func loadDir(
 	if init != nil {
 		init(files)
 	}
+	log.Printf("loadDir: %v, workers: %v", dirPath, len(workers))
 	if err = parallel.Run(workers...); err != nil {
+		log.Printf("parallel.Run failed for [%v]: %v", dirPath, err)
 		return err
 	}
 	if len(errs) > 0 {
+		log.Printf("loadDir errors for [%v]: %v", dirPath, errs)
 		return storage.NewFilesLoadError(errs)
 	}
 	return
@@ -114,6 +118,7 @@ func loadBoards(_ context.Context, projPath string, project *datatug.Project) (e
 			}
 			fullFileName := path.Join(boardsDirPath, f.Name())
 			if err = readJSONFile(fullFileName, true, board); err != nil {
+				log.Printf("failed to load board from [%v]: %v", fullFileName, err)
 				return err
 			}
 			project.Boards = append(project.Boards, board)
@@ -153,6 +158,7 @@ func loadDbModel(dbModelsDirPath, id string) (dbModel *datatug.DbModel, err erro
 		func() (err error) {
 			fileName := path.Join(dbModelDirPath, jsonFileName(id, dbModelFileSuffix))
 			if err = readJSONFile(fileName, true, dbModel); err != nil {
+				log.Printf("failed to load db model from [%v]: %v", fileName, err)
 				return err
 			}
 			if dbModel.ID == "" {
@@ -219,17 +225,26 @@ func loadEnvFile(envDirPath, envID string) (env datatug.EnvironmentSummary, err 
 }
 
 func (s fsProjectStore) loadEnvironment(dirPath string, env *datatug.Environment, o ...datatug.StoreOption) (err error) {
+	log.Printf("loadEnvironment: id=%v, path=%v", env.ID, dirPath)
 	workers := []func() error{
 		func() error {
+			log.Printf("worker1: loadEnvFile: id=%v, path=%v", env.ID, dirPath)
 			envSummary, err := loadEnvFile(dirPath, env.ID)
 			if err != nil {
+				log.Printf("failed to load environment file for [%v] from [%v]: %v", env.ID, dirPath, err)
 				return err
 			}
 			env.ProjectItem = envSummary.ProjectItem
 			return nil
 		},
 		func() error {
-			return loadEnvServers(path.Join(dirPath, ServersFolder), env)
+			serversPath := path.Join(dirPath, ServersFolder)
+			log.Printf("worker2: loadEnvServers: id=%v, path=%v", env.ID, serversPath)
+			err := loadEnvServers(serversPath, env)
+			if err != nil {
+				log.Printf("failed to load environment servers for [%v]: %v", env.ID, err)
+			}
+			return err
 		},
 	}
 	if datatug.GetStoreOptions(o...).Deep() {
@@ -256,9 +271,10 @@ func loadDbCatalogs(dirPath string, dbServer *datatug.ProjDbServer) (err error) 
 }
 
 func loadDbCatalog(dirPath string, dbCatalog *datatug.DbCatalog) (err error) {
-	log.Printf("Loading DB catalog: %v...\n", dbCatalog.ID)
+	log.Printf("Loading DB catalog: %v from %v...\n", dbCatalog.ID, dirPath)
 	filePath := path.Join(dirPath, jsonFileName(dbCatalog.ID, dbCatalogFileSuffix))
 	if err = readJSONFile(filePath, false, dbCatalog); err != nil {
+		log.Printf("failed to read DB catalog file [%v]: %v", filePath, err)
 		return err
 	}
 	if err := dbCatalog.Validate(); err != nil {
@@ -269,22 +285,33 @@ func loadDbCatalog(dirPath string, dbCatalog *datatug.DbCatalog) (err error) {
 	return loadDir(nil, schemasDirPath, "", processDirs, func(files []os.FileInfo) {
 		dbCatalog.Schemas = make(datatug.DbSchemas, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
-		dbCatalog.Schemas[i], err = loadSchema(schemasDirPath, f.Name())
-		return err
+		dbSchema, err := loadSchema(schemasDirPath, f.Name())
+		if err != nil {
+			log.Printf("failed to load schema [%v] from [%v]: %v", f.Name(), schemasDirPath, err)
+			return err
+		}
+		dbCatalog.Schemas[i] = dbSchema
+		return nil
 	})
 }
 
 func loadSchema(schemasDirPath string, id string) (dbSchema *datatug.DbSchema, err error) {
-	log.Printf("Loading schema: %v...", id)
+	log.Printf("Loading schema: %v from %v...", id, schemasDirPath)
 	dbSchema = &datatug.DbSchema{}
 	dbSchema.ID = id
 	err = parallel.Run(
 		func() (err error) {
 			dbSchema.Tables, err = loadTables(schemasDirPath, dbSchema.ID, "tables")
+			if err != nil {
+				log.Printf("loadTables(tables) failed for schema [%v]: %v", id, err)
+			}
 			return
 		},
 		func() (err error) {
 			dbSchema.Views, err = loadTables(schemasDirPath, dbSchema.ID, "views")
+			if err != nil {
+				log.Printf("loadTables(views) failed for schema [%v]: %v", id, err)
+			}
 			return
 		},
 	)
@@ -348,14 +375,16 @@ func loadTables(schemasDirPath, schema, folder string) (tables datatug.Tables, e
 
 func loadTable(dirPath, schema, tableName string) (table *datatug.CollectionInfo, err error) {
 	tableDirPath := path.Join(dirPath, tableName)
+	log.Printf("loadTable: schema=%v, table=%v, dirPath=%v", schema, tableName, tableDirPath)
 
 	prefix := fmt.Sprintf("%v.%v.", schema, tableName)
+	log.Printf("loadTable: prefix=%v", prefix)
 
-	table = &datatug.CollectionInfo{
-		DBCollectionKey: datatug.NewCollectionKey(datatug.CollectionTypeTable, tableName, schema, "", nil),
-	}
+	table = &datatug.CollectionInfo{}
+	table.DBCollectionKey = datatug.NewCollectionKey(datatug.CollectionTypeTable, tableName, schema, "", nil)
 	loadTableFile := func(suffix string, required bool) (err error) {
 		filePath := path.Join(tableDirPath, prefix+suffix)
+		log.Printf("loadTableFile: path=%v, required=%v", filePath, required)
 		return readJSONFile(filePath, required, table)
 	}
 	suffixes := []string{

@@ -18,7 +18,7 @@ func (s fsBoardsStore) LoadBoards(ctx context.Context, o ...datatug.StoreOption)
 }
 
 func (s fsBoardsStore) LoadBoard(ctx context.Context, id string, o ...datatug.StoreOption) (*datatug.Board, error) {
-	return s.loadProjectItem(ctx, id, "", o...)
+	return s.loadProjectItem(ctx, id, s.itemFileName(id), o...)
 }
 
 func (s fsBoardsStore) SaveBoard(ctx context.Context, board *datatug.Board) error {

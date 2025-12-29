@@ -2,6 +2,7 @@ package filestore
 
 import (
 	"context"
+	"path"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 )
@@ -12,8 +13,8 @@ type fsQueriesStore struct {
 	fsProjectItemsStore[datatug.QueryDefs, *datatug.QueryDef, datatug.QueryDef]
 }
 
-func (s fsQueriesStore) LoadQueries(ctx context.Context, _ string) (folder *datatug.QueryFolder, err error) {
-	// folderPath is ignored as we are using fsProjectItemsStore which is flat for now or handles its own path
+func (s fsQueriesStore) LoadQueries(ctx context.Context, folderPath string) (folder *datatug.QueryFolder, err error) {
+	s.dirPath = path.Join(s.dirPath, folderPath)
 	items, err := s.loadProjectItems(ctx)
 	if err != nil {
 		return nil, err
@@ -26,7 +27,11 @@ func (s fsQueriesStore) LoadQueries(ctx context.Context, _ string) (folder *data
 }
 
 func (s fsQueriesStore) GetQuery(ctx context.Context, id string) (query *datatug.QueryDefWithFolderPath, err error) {
-	queryDef, err := s.loadProjectItem(ctx, id, "")
+	qID, _, queryFileName, queryDir, _, err := getQueryPaths(id, s.dirPath)
+	if err != nil {
+		return nil, err
+	}
+	queryDef, err := s.loadProjectItem(ctx, qID, path.Join(queryDir, queryFileName))
 	if err != nil {
 		return nil, err
 	}

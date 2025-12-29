@@ -27,16 +27,19 @@ func getQueryPaths(queryID, queriesDirPath string) (
 	queryDir = filepath.Dir(queryID)
 	qID = filepath.Base(queryID)
 	lastDotIndex := strings.LastIndex(qID, ".")
-	queryType = qID[lastDotIndex+1:]
+	if lastDotIndex == -1 {
+		return "", "", "", "", "", fmt.Errorf("queryID must have an extension: %v", queryID)
+	}
+	queryType = strings.ToLower(qID[lastDotIndex+1:])
 	qID = qID[:lastDotIndex]
-	queryFileName = jsonFileName(qID, strings.ToLower(queryType))
+	queryFileName = jsonFileName(qID, queryType)
 	queryPath = path.Join(queriesDirPath, queryDir, queryFileName)
 	return
 }
 
 func (s fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, name string) (err error) {
 	folderPath := path.Join(s.dirPath, parentPath, name)
-	if err = os.MkdirAll(folderPath, 0666); err != nil {
+	if err = os.MkdirAll(folderPath, 0777); err != nil {
 		err = fmt.Errorf("failed to create folder: %w", err)
 		return
 	}
@@ -46,7 +49,7 @@ func (s fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, name st
 			err = fmt.Errorf("failed to check README.md: %w", err)
 			return
 		}
-		if err = os.WriteFile(readmePath, []byte(fmt.Sprintf("# %v", name)), 0666); err != nil {
+		if err = os.WriteFile(readmePath, []byte(fmt.Sprintf("# %v", name)), 0644); err != nil {
 			err = fmt.Errorf("failed to write to README.md file: %w", err)
 			return
 		}
@@ -62,7 +65,7 @@ func (s fsQueriesStore) saveQuery(folderPath string, query datatug.QueryDef, isN
 	if err := query.Validate(); err != nil {
 		return fmt.Errorf("invalid query (isNew=%v): %w", isNew, err)
 	}
-	_, queryType, queryFileName, _, queryPath, err := getQueryPaths(folderPath+query.ID, s.dirPath)
+	_, queryType, queryFileName, _, queryPath, err := getQueryPaths(path.Join(folderPath, query.ID), s.dirPath)
 	if err != nil {
 		return err
 	}
@@ -72,14 +75,14 @@ func (s fsQueriesStore) saveQuery(folderPath string, query datatug.QueryDef, isN
 		query.Text = ""
 	}
 
-	if err = saveJSONFile(path.Base(queryPath), queryFileName, query); err != nil {
+	if err = saveJSONFile(path.Dir(queryPath), queryFileName, query); err != nil {
 		return fmt.Errorf("failed to save query to json file: %w", err)
 	}
 
 	if queryType == "sql" {
 		sqlFilePath := queryPath[:len(queryPath)-len(".json")]
 
-		if err = os.WriteFile(sqlFilePath, []byte(queryText), 0666); err != nil {
+		if err = os.WriteFile(sqlFilePath, []byte(queryText), 0644); err != nil {
 			return fmt.Errorf("faile to write query text to .sql file: %w", err)
 		}
 	}

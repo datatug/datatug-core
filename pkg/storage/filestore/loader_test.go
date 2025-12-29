@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -36,6 +37,11 @@ func TestLoader(t *testing.T) {
 	}
 	projData, _ := json.Marshal(projFile)
 	err = os.WriteFile(path.Join(datatugDir, ProjectSummaryFileName), projData, 0644)
+	assert.NoError(t, err)
+
+	// Create entities dir to avoid LoadEnvironments failure if it's missing (though it should be optional)
+	entitiesDir := path.Join(datatugDir, EntitiesFolder)
+	err = os.MkdirAll(entitiesDir, 0755)
 	assert.NoError(t, err)
 
 	// Create a board
@@ -103,12 +109,18 @@ func TestLoader(t *testing.T) {
 	err = os.WriteFile(path.Join(serverDir, "postgres.localhost.dbserver.json"), dbServerData, 0644)
 	assert.NoError(t, err)
 
+	// Create DB catalogs folder
+	dbCatalogsDir := path.Join(serverDir, DbCatalogsFolder)
+	err = os.MkdirAll(dbCatalogsDir, 0755)
+	assert.NoError(t, err)
+
 	// Create DB catalog
 	catalogID := "testdb"
-	catalogDir := path.Join(serverDir, DbCatalogsFolder, catalogID)
+	catalogDir := path.Join(dbCatalogsDir, catalogID)
 	err = os.MkdirAll(catalogDir, 0755)
 	assert.NoError(t, err)
 	catalog := datatug.DbCatalog{}
+	catalog.Driver = driver
 	catalog.ID = catalogID
 	catalogData, _ := json.Marshal(catalog)
 	err = os.WriteFile(path.Join(catalogDir, "testdb.db.json"), catalogData, 0644)
@@ -120,23 +132,34 @@ func TestLoader(t *testing.T) {
 	catalogSchemaDir := path.Join(catalogSchemasDir, catalogSchemaID)
 	err = os.MkdirAll(path.Join(catalogSchemaDir, "tables", "users"), 0755)
 	assert.NoError(t, err)
-	table := datatug.CollectionInfo{
-		DBCollectionKey: datatug.NewCollectionKey(datatug.CollectionTypeTable, "users", catalogSchemaID, "", nil),
+
+	schema := datatug.DbSchema{
+		ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: catalogSchemaID}},
 	}
+	schemaData, _ := json.Marshal(schema)
+	err = os.WriteFile(path.Join(catalogSchemaDir, "public.schema.json"), schemaData, 0644)
+	assert.NoError(t, err)
+
+	table := datatug.CollectionInfo{}
+	table.DbType = "BASE TABLE"
 	tableData, _ := json.Marshal(table)
 	err = os.WriteFile(path.Join(catalogSchemaDir, "tables", "users", "public.users.json"), tableData, 0644)
 	assert.NoError(t, err)
 
 	// Test LoadProject
-	//store := newFsProjectStore(projID, projPath)
-	//project, err := store.LoadProject(context.Background())
-	//assert.NoError(t, err)
-	//assert.NotNil(t, project)
-	//assert.Equal(t, "Test Project", project.Title)
-	//assert.NotEmpty(t, project.Boards)
-	//assert.NotEmpty(t, project.DbModels)
-	//assert.NotEmpty(t, project.Environments)
-	//assert.NotEmpty(t, project.DbServers)
+	t.Run("LoadProject", func(t *testing.T) {
+		store := newFsProjectStore(projID, projPath)
+		project, err := store.LoadProject(context.Background())
+		if err != nil {
+			t.Fatalf("LoadProject() failed: %v", err)
+		}
+		assert.NotNil(t, project)
+		assert.Equal(t, "Test Project", project.Title)
+		assert.NotEmpty(t, project.Boards)
+		assert.NotEmpty(t, project.DbModels)
+		assert.NotEmpty(t, project.Environments)
+		assert.NotEmpty(t, project.DbServers)
+	})
 
 	// Test loadDir errors
 	t.Run("loadDir_errors", func(t *testing.T) {
