@@ -20,50 +20,24 @@ func TestFsEnvironmentStore(t *testing.T) {
 
 	projectID := "test_p"
 	projectPath := path.Join(tmpDir, projectID)
+	datatugDir := path.Join(projectPath, DatatugFolder)
 	envID := "dev"
 
-	fsProjectStore := newFsProjectStore(projectID, projectPath)
-	envsDirPath := path.Join(projectPath, DatatugFolder, EnvironmentsFolder)
-
-	fsEnvironmentsStore := fsEnvironmentsStore{
-		fsProjectStoreRef: fsProjectStoreRef{
-			fsProjectStore: fsProjectStore,
-		},
-		envsDirPath: envsDirPath,
-	}
-
-	store := newFsEnvironmentStore(envID, fsEnvironmentsStore)
+	envsStore := newFsEnvironmentsStore(datatugDir)
+	envsDirPath := path.Join(datatugDir, EnvironmentsFolder)
 	ctx := context.Background()
-
-	t.Run("GetID", func(t *testing.T) {
-		assert.Equal(t, envID, store.ID())
-	})
-
-	t.Run("Project", func(t *testing.T) {
-		assert.NotNil(t, store.Project())
-	})
-
-	t.Run("Servers", func(t *testing.T) {
-		assert.NotNil(t, store.Servers())
-	})
-
-	t.Run("Panics", func(t *testing.T) {
-		assert.Panics(t, func() { _ = store.DeleteEnvironment() })
-		assert.Panics(t, func() { _ = store.SaveEnvironment(nil) })
-		assert.Panics(t, func() { _, _ = store.LoadEnvironmentDbSummary("db1") })
-	})
 
 	t.Run("LoadEnvironmentSummary", func(t *testing.T) {
 		envPath := path.Join(envsDirPath, envID)
-		err := os.MkdirAll(envPath, 0755)
+		err = os.MkdirAll(envPath, 0755)
 		assert.NoError(t, err)
 
 		envFile := datatug.EnvironmentFile{ID: envID}
 		data, _ := json.Marshal(envFile)
-		err = os.WriteFile(path.Join(envPath, jsonFileName(envID, environmentFileSuffix)), data, 0644)
+		err = os.WriteFile(path.Join(envPath, environmentSummaryFileName), data, 0644)
 		assert.NoError(t, err)
 
-		summary, err := store.LoadEnvironmentSummary()
+		summary, err := envsStore.LoadEnvironmentSummary(ctx, envID)
 		assert.NoError(t, err)
 		assert.NotNil(t, summary)
 		assert.Equal(t, envID, summary.ID)
@@ -102,18 +76,18 @@ func TestFsEnvironmentStore(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("saveEnvironment", func(t *testing.T) {
-		env := datatug.Environment{
+	t.Run("SaveEnvironment", func(t *testing.T) {
+		env := &datatug.Environment{
 			ProjectItem: datatug.ProjectItem{
 				ProjItemBrief: datatug.ProjItemBrief{
-					ID: envID,
+					ID: "prod",
 				},
 			},
 		}
-		err := store.saveEnvironment(ctx, env)
+		err := envsStore.SaveEnvironment(ctx, env)
 		assert.NoError(t, err)
 
-		envFilePath := path.Join(envsDirPath, envID, jsonFileName(envID, environmentFileSuffix))
+		envFilePath := path.Join(envsDirPath, envID, environmentSummaryFileName)
 		assert.FileExists(t, envFilePath)
 	})
 }

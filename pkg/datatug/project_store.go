@@ -8,7 +8,7 @@ type ProjectStore interface {
 	LoadProject(ctx context.Context, o ...StoreOption) (p *Project, err error)
 	SaveProject(ctx context.Context, p *Project) error
 
-	QueryStore
+	QueriesStore
 	BoardsStore
 	FoldersStore
 	EntitiesStore
@@ -65,8 +65,9 @@ type EntitiesStore interface {
 	DeleteEntity(ctx context.Context, id string) error
 }
 
-type QueryStore interface {
-	LoadQuery(ctx context.Context, id string) (*QueryDefWithFolderPath, error)
+type QueriesStore interface {
+	LoadQueries(ctx context.Context, folderPath string, o ...StoreOption) (folder *QueryFolder, err error)
+	LoadQuery(ctx context.Context, id string, o ...StoreOption) (*QueryDefWithFolderPath, error)
 	SaveQuery(ctx context.Context, query *QueryDefWithFolderPath) error
 	DeleteQuery(ctx context.Context, id string) error
 }
@@ -76,7 +77,7 @@ type FoldersStore interface {
 	LoadFolder(ctx context.Context, id string, o ...StoreOption) (*Folder, error)
 	SaveFolder(ctx context.Context, path string, folder *Folder) error
 	SaveFolders(ctx context.Context, path string, folders Folders) error
-	DeleteFolder(ctx context.Context, dirPath, id string) error
+	DeleteFolder(ctx context.Context, id string) error
 }
 
 type RecordsetDefinitionsStore interface {

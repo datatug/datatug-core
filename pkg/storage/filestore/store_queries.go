@@ -2,17 +2,18 @@ package filestore
 
 import (
 	"context"
+	"errors"
 	"path"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
-// var _ storage.QueriesStore = (*fsQueriesStore)(nil)
+var _ datatug.QueriesStore = (*fsQueriesStore)(nil)
 
 func newFsQueriesStore(projectPath string) fsQueriesStore {
 	return fsQueriesStore{
-		fsProjectItemsStore: newFsProjectItemsStore[datatug.QueryDefs, *datatug.QueryDef, datatug.QueryDef](
-			path.Join(projectPath, QueriesFolder), querySQLFileSuffix,
+		fsProjectItemsStore: newFileProjectItemsStore[datatug.QueryDefs, *datatug.QueryDef, datatug.QueryDef](
+			path.Join(projectPath, QueriesFolder), queryFileSuffix,
 		),
 	}
 }
@@ -21,7 +22,8 @@ type fsQueriesStore struct {
 	fsProjectItemsStore[datatug.QueryDefs, *datatug.QueryDef, datatug.QueryDef]
 }
 
-func (s fsQueriesStore) LoadQueries(ctx context.Context, folderPath string) (folder *datatug.QueryFolder, err error) {
+func (s fsQueriesStore) LoadQueries(ctx context.Context, folderPath string, o ...datatug.StoreOption) (folder *datatug.QueryFolder, err error) {
+	_ = datatug.GetStoreOptions(o...)
 	dirPath := path.Join(s.dirPath, folderPath)
 	items, err := s.loadProjectItems(ctx, dirPath)
 	if err != nil {
@@ -34,15 +36,16 @@ func (s fsQueriesStore) LoadQueries(ctx context.Context, folderPath string) (fol
 	return folder, nil
 }
 
-func (s fsQueriesStore) GetQuery(ctx context.Context, id string) (query *datatug.QueryDefWithFolderPath, err error) {
-	qID, _, queryFileName, queryDir, _, err := getQueryPaths(id, s.dirPath)
+func (s fsQueriesStore) LoadQuery(ctx context.Context, id string, o ...datatug.StoreOption) (query *datatug.QueryDefWithFolderPath, err error) {
+	ql, err := getQueryPaths(id, s.dirPath)
 	if err != nil {
 		return nil, err
 	}
-	queryDef, err := s.loadProjectItem(ctx, path.Join(queryDir, queryFileName), qID, "")
+	queryDef, err := s.loadProjectItem(ctx, path.Join(s.dirPath, ql.Folder), ql.LocalID, ql.FileName, o...)
 	if err != nil {
 		return nil, err
 	}
+	queryDef.Folder = ql.Folder
 	return &datatug.QueryDefWithFolderPath{
 		QueryDef: *queryDef,
 	}, nil
@@ -64,13 +67,10 @@ func (s fsQueriesStore) DeleteQuery(ctx context.Context, id string) (err error) 
 
 func (s fsQueriesStore) DeleteQueryFolder(_ context.Context, folderPath string) error {
 	// This might need more implementation if we support folders
-	return nil
-}
-
-func (s fsQueriesStore) LoadQuery(ctx context.Context, id string) (*datatug.QueryDefWithFolderPath, error) {
-	return s.GetQuery(ctx, id)
+	_ = folderPath
+	return errors.New("not implemented yet")
 }
 
 func (s fsQueriesStore) SaveQuery(ctx context.Context, query *datatug.QueryDefWithFolderPath) error {
-	return s.saveProjectItem(ctx, s.fsProjectItemsStore.dirPath, &query.QueryDef)
+	return s.saveProjectItem(ctx, s.dirPath, &query.QueryDef)
 }

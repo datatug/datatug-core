@@ -11,7 +11,7 @@ var _ datatug.EnvDbCatalogStore = (*fsEnvDbCatalogStore)(nil)
 
 func newFsEnvCatalogsStore(environmentsDirPath string) fsEnvDbCatalogStore {
 	s := fsEnvDbCatalogStore{
-		fsProjectItemsStore: newFsProjectItemsStore[datatug.EnvDbCatalogs, *datatug.EnvDbCatalog, datatug.EnvDbCatalog](
+		fsProjectItemsStore: newFileProjectItemsStore[datatug.EnvDbCatalogs, *datatug.EnvDbCatalog, datatug.EnvDbCatalog](
 			environmentsDirPath, dbCatalogFileSuffix),
 	}
 	s.dirPath = environmentsDirPath

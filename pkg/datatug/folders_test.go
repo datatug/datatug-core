@@ -8,18 +8,18 @@ import (
 
 func TestFolder_Validate(t *testing.T) {
 	t.Run("must_pass", func(t *testing.T) {
-		test.IsValidRecord(t, "good_folder", Folder{
+		test.IsValidRecord(t, "good_folder", &Folder{
 			Name: "good folder",
 		})
 	})
 	t.Run("must_return_error", func(t *testing.T) {
-		test.IsInvalidRecord(t, "empty_record", Folder{})
+		test.IsInvalidRecord(t, "empty_record", &Folder{})
 	})
 	t.Run("invalid_name_spaces", func(t *testing.T) {
-		test.IsInvalidRecord(t, "spaces", Folder{Name: " folder "})
+		test.IsInvalidRecord(t, "spaces", &Folder{Name: " folder "})
 	})
 	t.Run("negative_number_of", func(t *testing.T) {
-		test.IsInvalidRecord(t, "negative", Folder{Name: "f1", NumberOf: map[string]int{"x": -1}})
+		test.IsInvalidRecord(t, "negative", &Folder{Name: "f1", NumberOf: map[string]int{"x": -1}})
 	})
 	t.Run("zero_number_of_deleted", func(t *testing.T) {
 		f := Folder{Name: "f1", NumberOf: map[string]int{"x": 0}}

@@ -4,36 +4,34 @@ import (
 	"context"
 	"testing"
 
-	"github.com/datatug/datatug-core/pkg/storage"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestFsFoldersStore(t *testing.T) {
-	store := fsFoldersStore{
-		fsProjectStore: newFsProjectStore("p1", "/tmp/p1"),
-	}
+	store := newFsFoldersStore("/tmp/p1")
 	ctx := context.Background()
 
 	t.Run("CreateFolder_InvalidPath", func(t *testing.T) {
-		_, err := store.CreateFolder(ctx, storage.CreateFolderRequest{Path: ""})
-		assert.Error(t, err)
+		err := store.SaveFolders(ctx, "", datatug.Folders{
+			&datatug.Folder{Name: "folder1"},
+			&datatug.Folder{Name: "folder1/folder2"},
+		})
+		assert.NoError(t, err)
 	})
 
-	//t.Run("CreateFolder_Panic", func(t *testing.T) {
-	//	assert.Panics(t, func() {
-	//		_, _ = store.CreateFolder(ctx, storage.CreateFolderRequest{Path: "valid/path"})
-	//	})
-	//})
-
-	t.Run("GetFolder", func(t *testing.T) {
-		assert.Panics(t, func() {
-			_, _ = store.GetFolder(ctx, "path")
-		})
+	t.Run("LoadFolder", func(t *testing.T) {
+		folder, err := store.LoadFolder(ctx, "folder1")
+		assert.NoError(t, err)
+		assert.NotNil(t, folder)
 	})
 
 	t.Run("DeleteFolder", func(t *testing.T) {
-		assert.Panics(t, func() {
-			_ = store.DeleteFolder(ctx, "path")
-		})
+		deleteFolder := func(id string) {
+			err := store.DeleteFolder(ctx, "folder2")
+			assert.NoError(t, err)
+		}
+		deleteFolder("folder1/folder2")
+		deleteFolder("folder1")
 	})
 }

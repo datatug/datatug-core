@@ -25,6 +25,9 @@ const (
 )
 
 func jsonFileName(id, suffix string) string {
+	if suffix == "" {
+		return id + ".json"
+	}
 	switch suffix {
 	case
 		boardFileSuffix,
@@ -34,12 +37,10 @@ func jsonFileName(id, suffix string) string {
 		dbModelFileSuffix,
 		dbServerFileSuffix,
 		recordsetFileSuffix,
-		environmentFileSuffix,
 		entityFileSuffix,
 		serverFileSuffix,
 		columnsFileSuffix,
-		querySQLFileSuffix,
-		queryHTTPFileSuffix:
+		queryFileSuffix:
 		// OK
 	default:
 		panic(fmt.Sprintf("unknown JSON file suffix=[%v], id=[%v]", suffix, id))
@@ -67,10 +68,12 @@ const (
 	dbModelFileSuffix         = "dbmodel"
 	dbServerFileSuffix        = "dbserver"
 	recordsetFileSuffix       = "recordset"
-	environmentFileSuffix     = "env"
 	entityFileSuffix          = "entity"
 	serverFileSuffix          = "server"
 	columnsFileSuffix         = "columns"
-	querySQLFileSuffix        = "sql"
-	queryHTTPFileSuffix       = "http"
+	queryFileSuffix           = "query"
+)
+
+const (
+	environmentSummaryFileName = "environment-summary.json"
 )

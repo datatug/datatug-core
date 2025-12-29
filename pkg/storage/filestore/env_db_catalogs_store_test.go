@@ -1,11 +1,11 @@
 package filestore
 
 import (
+	"context"
 	"os"
 	"path"
 	"testing"
 
-	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,59 +19,29 @@ func TestFsEnvCatalogStore(t *testing.T) {
 	projectID := "test_p"
 	projectPath := path.Join(tmpDir, projectID)
 	envID := "dev"
-
-	dbServer := datatug.ServerReference{
-		Driver: "sqlserver",
-		Host:   "localhost",
-	}
+	serverID := "sqlserver:localhost"
 	catalogID := "db1"
 
-	fsProjectStore := newFsProjectStore(projectID, projectPath)
-	envsDirPath := path.Join(projectPath, DatatugFolder, EnvironmentsFolder)
+	store := newFsEnvCatalogsStore(path.Join(projectPath, DatatugFolder, EnvironmentsFolder))
 
-	fsEnvironmentsStore := fsEnvironmentsStore{
-		fsProjectStoreRef: fsProjectStoreRef{
-			fsProjectStore: fsProjectStore,
-		},
-		envsDirPath: envsDirPath,
-	}
-
-	envStore := newFsEnvironmentStore(envID, fsEnvironmentsStore)
-	envServersStore := newFsEnvServersStore(envStore)
-	envServerStore := newFsEnvDbServersStore(dbServer.FileName(), envServersStore)
-	envCatalogsStore := newFsEnvCatalogsStore(envServerStore)
-	store := newFsEnvCatalogsStore(catalogID, envCatalogsStore)
-
-	t.Run("Catalogs", func(t *testing.T) {
-		assert.NotNil(t, store.Catalogs())
+	t.Run("LoadEnvDbCatalogs", func(t *testing.T) {
+		ctx := context.Background()
+		items, err := store.LoadEnvDbCatalogs(ctx, envID)
+		assert.NoError(t, err)
+		assert.Empty(t, items)
 	})
 
-	//t.Run("LoadEnvironmentCatalog", func(t *testing.T) {
-	//	envPath := path.Join(envsDirPath, envID, ServersFolder, DbFolder, dbServer.FileName(), EnvDbCatalogsFolder)
-	//	err := os.MkdirAll(envPath, 0755)
-	//	assert.NoError(t, err)
-	//
-	//	envDbCatalog := datatug.EnvDbCatalog{
-	//		DbCatalogBase: datatug.DbCatalogBase{
-	//			ProjectItem: datatug.ProjectItem{
-	//				ProjItemBrief: datatug.ProjItemBrief{
-	//					GetID: catalogID,
-	//				},
-	//			},
-	//		},
-	//	}
-	//	data, _ := json.Marshal(envDbCatalog)
-	//	err = os.WriteFile(path.Join(envPath, jsonFileName(catalogID, dbCatalogFileSuffix)), data, 0644)
-	//	assert.NoError(t, err)
-	//
-	//	loaded, err := store.LoadEnvironmentCatalog()
-	//	assert.NoError(t, err)
-	//	assert.Equal(t, catalogID, loaded.GetID)
-	//})
-
-	t.Run("SaveDbCatalog", func(t *testing.T) {
+	t.Run("LoadEnvDbCatalog", func(t *testing.T) {
+		ctx := context.Background()
 		assert.Panics(t, func() {
-			_ = store.SaveDbCatalog(nil)
+			_, _ = store.LoadEnvDbCatalog(ctx, envID, serverID, catalogID)
+		})
+	})
+
+	t.Run("SaveEnvDbCatalog", func(t *testing.T) {
+		ctx := context.Background()
+		assert.Panics(t, func() {
+			_ = store.SaveEnvDbCatalog(ctx, envID, serverID, catalogID, nil)
 		})
 	})
 }

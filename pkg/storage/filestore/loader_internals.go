@@ -215,7 +215,7 @@ func loadSchemaModel(dbModelDirPath, schemaID string) (schemaModel *datatug.Sche
 }
 
 func loadEnvFile(envDirPath, envID string) (envSummary *datatug.EnvironmentSummary, err error) {
-	filePath := path.Join(envDirPath, jsonFileName(envID, environmentFileSuffix))
+	filePath := path.Join(envDirPath, envID, environmentSummaryFileName)
 	envSummary = new(datatug.EnvironmentSummary)
 	if err = readJSONFile(filePath, true, envSummary); err != nil {
 		return
@@ -228,28 +228,28 @@ func loadEnvFile(envDirPath, envID string) (envSummary *datatug.EnvironmentSumma
 	return
 }
 
-func (s fsProjectStore) loadEnvironment(dirPath string, env *datatug.Environment, o ...datatug.StoreOption) (err error) {
-	workers := []func() error{
-		func() error {
-			envSummary, err := loadEnvFile(dirPath, env.ID)
-			if err != nil {
-				return fmt.Errorf("failed to load environment file for [%v] from [%v]: %v", env.ID, dirPath, err)
-			}
-			env.ProjectItem = envSummary.ProjectItem
-			return nil
-		},
-		func() error {
-			serversPath := path.Join(dirPath, ServersFolder)
-			return loadEnvServers(serversPath, env)
-		},
-	}
-	if datatug.GetStoreOptions(o...).Deep() {
-		workers = append(workers, func() error {
-			return nil
-		})
-	}
-	return parallel.Run(workers...)
-}
+//func (s fsProjectStore) loadEnvironment(dirPath string, env *datatug.Environment, o ...datatug.StoreOption) (err error) {
+//	workers := []func() error{
+//		func() error {
+//			envSummary, err := loadEnvFile(dirPath, env.ID)
+//			if err != nil {
+//				return fmt.Errorf("failed to load environment file for [%v] from [%v]: %v", env.ID, dirPath, err)
+//			}
+//			env.ProjectItem = envSummary.ProjectItem
+//			return nil
+//		},
+//		func() error {
+//			serversPath := path.Join(dirPath, ServersFolder)
+//			return loadEnvServers(serversPath, env)
+//		},
+//	}
+//	if datatug.GetStoreOptions(o...).Deep() {
+//		workers = append(workers, func() error {
+//			return nil
+//		})
+//	}
+//	return parallel.Run(workers...)
+//}
 
 func loadDbCatalogs(dirPath string, dbServer *datatug.ProjDbServer) (err error) {
 	return loadDir(nil, dirPath, "", processDirs, func(files []os.FileInfo) {

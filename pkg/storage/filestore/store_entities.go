@@ -12,7 +12,7 @@ var _ datatug.EntitiesStore = (*fsEntitiesStore)(nil)
 
 func newFsEntitiesStore(projectPath string) fsEntitiesStore {
 	return fsEntitiesStore{
-		fsProjectItemsStore: newFsProjectItemsStore[datatug.Entities, *datatug.Entity, datatug.Entity](
+		fsProjectItemsStore: newFileProjectItemsStore[datatug.Entities, *datatug.Entity, datatug.Entity](
 			path.Join(projectPath, EntitiesFolder), entityFileSuffix,
 		),
 	}

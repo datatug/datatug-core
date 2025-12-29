@@ -19,17 +19,37 @@ type IItemPtr[T IItem] interface {
 	Validate() error
 }
 
+type ProjItemStoredAs int
+
+const (
+	ProjItemStoredAsFile ProjItemStoredAs = iota
+	ProjItemStoredAsDir
+)
+
 type fsProjectItemsStore[TSlice ~[]TItemPtr, TItemPtr IItemPtr[TItem], TItem IItem] struct {
-	dirPath        string
-	itemFileSuffix string
+	storedAs        ProjItemStoredAs
+	dirPath         string
+	itemFileSuffix  string
+	summaryFileName string
 }
 
-func newFsProjectItemsStore[TSlice ~[]TItemPtr, TItemPtr IItemPtr[TItem], TItem IItem](
+func newFileProjectItemsStore[TSlice ~[]TItemPtr, TItemPtr IItemPtr[TItem], TItem IItem](
 	dirPath, itemFileSuffix string,
 ) fsProjectItemsStore[TSlice, TItemPtr, TItem] {
 	return fsProjectItemsStore[TSlice, TItemPtr, TItem]{
+		storedAs:       ProjItemStoredAsFile,
 		dirPath:        dirPath,
 		itemFileSuffix: itemFileSuffix,
+	}
+}
+
+func newDirProjectItemsStore[TSlice ~[]TItemPtr, TItemPtr IItemPtr[TItem], TItem IItem](
+	dirPath, summaryFileName string,
+) fsProjectItemsStore[TSlice, TItemPtr, TItem] {
+	return fsProjectItemsStore[TSlice, TItemPtr, TItem]{
+		storedAs:        ProjItemStoredAsDir,
+		dirPath:         dirPath,
+		summaryFileName: summaryFileName,
 	}
 }
 
@@ -39,6 +59,20 @@ func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) loadProjectItem(
 	item TItemPtr, err error,
 ) {
 	_ = datatug.GetStoreOptions(o...)
+	if fileName == "" {
+		switch s.storedAs {
+		case ProjItemStoredAsFile:
+			if s.itemFileSuffix == "" {
+				fileName = id + ".json"
+			} else {
+				fileName = id + "." + s.itemFileSuffix + ".json"
+			}
+		case ProjItemStoredAsDir:
+			dirPath = path.Join(dirPath, id)
+			fileName = s.summaryFileName
+		}
+
+	}
 	filePath := path.Join(dirPath, fileName)
 	item = new(TItem)
 	if err = readJSONFile(filePath, true, &item); err != nil {
@@ -55,11 +89,15 @@ func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) loadProjectItems(
 ) {
 	_ = datatug.GetStoreOptions(o...)
 
-	if err = loadDir(nil, dirPath, "*.json", processFiles,
-		func(files []os.FileInfo) {
-			items = make(TSlice, 0, len(files))
-		},
-		func(f os.FileInfo, i int, mutex *sync.Mutex) error {
+	var filesMask string
+	var fsObjectType process
+	var loader func(f os.FileInfo, i int, mutex *sync.Mutex) (err error)
+
+	switch s.storedAs {
+	case ProjItemStoredAsFile:
+		filesMask = "*.json"
+		fsObjectType = processFiles
+		loader = func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 			if f.IsDir() {
 				return nil
 			}
@@ -75,15 +113,52 @@ func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) loadProjectItems(
 			items = append(items, item)
 			mutex.Unlock()
 			return nil
-		}); err != nil {
+		}
+	case ProjItemStoredAsDir:
+		fsObjectType = processDirs
+		loader = func(f os.FileInfo, i int, mutex *sync.Mutex) error {
+			if !f.IsDir() {
+				return nil
+			}
+			id := f.Name()
+			envDir := path.Join(dirPath, id)
+			var item TItemPtr
+			if item, err = s.loadProjectItem(ctx, envDir, id, environmentSummaryFileName); err != nil {
+				return err
+			}
+			mutex.Lock()
+			items = append(items, item)
+			mutex.Unlock()
+			return nil
+		}
+	}
+
+	err = loadDir(nil, dirPath, filesMask, fsObjectType,
+		func(files []os.FileInfo) {
+			items = make(TSlice, 0, len(files))
+		},
+		loader)
+
+	if err != nil {
 		return nil, err
 	}
 	return
 }
 
 func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) saveProjectItem(_ context.Context, dirPath string, item TItemPtr) error {
+	if item == nil {
+		return fmt.Errorf("an attempt to save a nil %T to %s", item, dirPath)
+	}
 	id := item.GetID()
-	fileName := jsonFileName(id, s.itemFileSuffix)
+	var fileName string
+	switch s.storedAs {
+	case ProjItemStoredAsFile:
+		fileName = jsonFileName(id, s.itemFileSuffix)
+	case ProjItemStoredAsDir:
+		dirPath = path.Join(dirPath, id)
+		fileName = s.summaryFileName
+	}
+
 	if err := saveJSONFile(dirPath, fileName, item); err != nil {
 		return fmt.Errorf("failed to save %T file: %w", item, err)
 	}

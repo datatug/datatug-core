@@ -2,6 +2,7 @@ package datatug
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/strongo/slice"
@@ -106,11 +107,13 @@ type EnvDbServer struct {
 }
 
 func (v *EnvDbServer) GetID() string {
-	return v.GetID()
+	return fmt.Sprintf("%s:%d", v.Host, v.Port)
 }
 
 func (v *EnvDbServer) SetID(id string) {
-	panic("implement me")
+	vals := strings.Split(id, ":")
+	v.Host = vals[0]
+	v.Port, _ = strconv.Atoi(vals[1])
 }
 
 // Validate returns error if no valid

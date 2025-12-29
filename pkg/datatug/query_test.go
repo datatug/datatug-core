@@ -7,7 +7,7 @@ import (
 	"github.com/datatug/datatug-core/pkg/test"
 )
 
-func newQueryDef(queryType, text string) QueryDef {
+func newQueryDef(queryType QueryType, text string) QueryDef {
 	return QueryDef{
 		ProjectItem: ProjectItem{
 			Access:  "public",

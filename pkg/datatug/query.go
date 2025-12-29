@@ -119,11 +119,19 @@ func (v QueryDefWithFolderPath) Validate() error {
 	return v.QueryDef.Validate()
 }
 
+type QueryType string
+
+const (
+	QueryTypeSQL           QueryType = "SQL"
+	QueryTypeHTTP          QueryType = "HTTP"
+	QueryTypeStructuredSQL QueryType = "StructuredSQL"
+)
+
 // QueryDef holds query data
 // For HTTP request host, port, etc, are stored in Targets property,
 type QueryDef struct {
 	ProjectItem
-	Type       string           `json:"type"` // Possible value: folder, SQL, GraphQL, HTTP, etc.
+	Type       QueryType        `json:"type"` // Possible value: folder, SQL, GraphQL, HTTP, etc.
 	Text       string           `json:"text,omitempty" yaml:"text,omitempty"`
 	Draft      bool             `json:"draft,omitempty" yaml:"draft,omitempty"`
 	Parameters Parameters       `json:"parameters,omitempty" yaml:"parameters,omitempty"`
@@ -165,7 +173,7 @@ func (v QueryDef) Validate() error {
 		//	return validation.NewErrRequestIsMissingRequiredField("text")
 		//}
 	default:
-		return validation.NewErrBadRecordFieldValue("type", "unsupported value: "+v.Type)
+		return validation.NewErrBadRecordFieldValue("type", "unsupported value: "+string(v.Type))
 	}
 	if err := v.Parameters.Validate(); err != nil {
 		return err

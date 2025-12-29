@@ -13,27 +13,32 @@ import (
 	"github.com/strongo/validation"
 )
 
-func getQueryPaths(queryID, queriesDirPath string) (
-	qID, // without directory and .json extension
-	queryType, // Usually sql or HTTP
-	queryFileName,
-	queryDir,
-	queryPath string, // Full file name
-	err error,
-) {
+type QueryLoc struct {
+	LocalID  string `json:"id"`
+	Folder   string `json:"folder"`
+	FileName string `json:"fileName"`
+	Path     string `json:"path"`
+}
+
+func getQueryPaths(queryID, queriesDirPath string) (ql QueryLoc, err error) {
+	//(
+	//qID, // without directory and .json extension
+	//queryFileName,
+	//queryDir,
+	//queryPath string, // Full file name
+	//err error,
+	//)
+
 	if strings.TrimSpace(queryID) == "" {
-		return "", "", "", "", "", validation.NewErrRequestIsMissingRequiredField("queryID")
+		err = validation.NewErrRequestIsMissingRequiredField("queryID")
+		return
 	}
-	queryDir = filepath.Dir(queryID)
-	qID = filepath.Base(queryID)
-	lastDotIndex := strings.LastIndex(qID, ".")
-	if lastDotIndex == -1 {
-		return "", "", "", "", "", fmt.Errorf("queryID must have an extension: %v", queryID)
-	}
-	queryType = strings.ToLower(qID[lastDotIndex+1:])
-	qID = qID[:lastDotIndex]
-	queryFileName = jsonFileName(qID, queryType)
-	queryPath = path.Join(queriesDirPath, queryDir, queryFileName)
+
+	ql.Folder = filepath.Dir(queryID)
+	ql.LocalID = filepath.Base(queryID)
+	//lastDotIndex := strings.LastIndex(ql.LocalID, ".")
+	//ql.LocalID = ql.LocalID[:lastDotIndex]
+	ql.FileName = jsonFileName(ql.LocalID, "")
 	return
 }
 
@@ -62,28 +67,25 @@ func (s fsQueriesStore) CreateQuery(_ context.Context, query datatug.QueryDefWit
 }
 
 func (s fsQueriesStore) saveQuery(folderPath string, query datatug.QueryDef, isNew bool) (err error) {
-	if err := query.Validate(); err != nil {
+	if err = query.Validate(); err != nil {
 		return fmt.Errorf("invalid query (isNew=%v): %w", isNew, err)
 	}
-	_, queryType, queryFileName, _, queryPath, err := getQueryPaths(path.Join(folderPath, query.ID), s.dirPath)
-	if err != nil {
+	var ql QueryLoc
+	if ql, err = getQueryPaths(path.Join(folderPath, query.ID), s.dirPath); err != nil {
 		return err
 	}
 	queryText := query.Text
-	queryType = strings.ToLower(queryType)
-	if queryType == "sql" {
-		query.Text = ""
-	}
 
-	if err = saveJSONFile(path.Dir(queryPath), queryFileName, query); err != nil {
+	if err = saveJSONFile(path.Join(s.dirPath, ql.Folder), ql.FileName, query); err != nil {
 		return fmt.Errorf("failed to save query to json file: %w", err)
 	}
 
-	if queryType == "sql" {
-		sqlFilePath := queryPath[:len(queryPath)-len(".json")]
+	if query.Text != "" {
+		fileExt := strings.ToLower(string(query.Type))
+		queryTextFilePath := path.Join(s.dirPath, ql.Folder, query.ID+"."+fileExt)
 
-		if err = os.WriteFile(sqlFilePath, []byte(queryText), 0644); err != nil {
-			return fmt.Errorf("faile to write query text to .sql file: %w", err)
+		if err = os.WriteFile(queryTextFilePath, []byte(queryText), 0644); err != nil {
+			return fmt.Errorf("failed to write query text to file %s: %w", queryTextFilePath, err)
 		}
 	}
 

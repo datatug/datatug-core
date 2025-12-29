@@ -11,7 +11,7 @@ var _ datatug.BoardsStore = (*fsBoardsStore)(nil)
 
 func newFsBoardsStore(projectPath string) fsBoardsStore {
 	return fsBoardsStore{
-		fsProjectItemsStore: newFsProjectItemsStore[datatug.Boards, *datatug.Board, datatug.Board](
+		fsProjectItemsStore: newFileProjectItemsStore[datatug.Boards, *datatug.Board, datatug.Board](
 			path.Join(projectPath, BoardsFolder), boardFileSuffix,
 		),
 	}

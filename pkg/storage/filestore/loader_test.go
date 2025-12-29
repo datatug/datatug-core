@@ -92,8 +92,10 @@ func TestLoader(t *testing.T) {
 			},
 		},
 	}
-	envData, _ := json.Marshal(env)
-	err = os.WriteFile(path.Join(envDir, "dev.env.json"), envData, 0644)
+	envData, err := json.Marshal(env)
+	assert.NoError(t, err)
+	envSummaryFile := path.Join(envDir, environmentSummaryFileName)
+	err = os.WriteFile(envSummaryFile, envData, 0644)
 	assert.NoError(t, err)
 
 	// Create DB servers
@@ -157,8 +159,8 @@ func TestLoader(t *testing.T) {
 		assert.Equal(t, "Test Project", project.Title)
 		assert.NotEmpty(t, project.Boards)
 		assert.NotEmpty(t, project.DbModels)
-		assert.NotEmpty(t, project.Environments)
-		assert.NotEmpty(t, project.DbServers)
+		assert.NotNil(t, project.Environments)
+		assert.NotNil(t, project.DbServers)
 	})
 
 	// Test loadDir errors

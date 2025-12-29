@@ -2,6 +2,7 @@ package filestore
 
 import (
 	"context"
+	"path"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/datatug2md"
@@ -18,7 +19,7 @@ func newFsProjectStore(projectID string, projectPath string) fsProjectStore {
 		fsQueriesStore:              newFsQueriesStore(projectPath),
 		fsEntitiesStore:             newFsEntitiesStore(projectPath),
 		fsFoldersStore:              newFsFoldersStore(projectPath),
-		fsEnvironmentsStore:         newFsEnvironmentsStore(projectPath),
+		fsEnvironmentsStore:         newFsEnvironmentsStore(path.Join(projectPath, DatatugFolder)),
 		fsEnvDbServersStore:         newFsEnvDbServersStore(projectPath),
 		fsEnvDbCatalogStore:         newFsEnvCatalogsStore(projectPath),
 		fsRecordsetDefinitionsStore: newFsRecordsetDefinitionsStore(projectPath),
@@ -80,7 +81,7 @@ func (s fsProjectStore) ProjectID() string {
 }
 
 func (s fsProjectStore) LoadEnvironments(ctx context.Context, o ...datatug.StoreOption) (environments datatug.Environments, err error) {
-	return s.loadEnvironments(ctx, o...) // ./environments_store.go
+	return s.fsEnvironmentsStore.LoadEnvironments(ctx, o...)
 }
 
 func (s fsProjectStore) LoadProjDbServers(ctx context.Context, o ...datatug.StoreOption) (datatug.ProjDbServers, error) {
