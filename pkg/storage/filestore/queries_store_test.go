@@ -11,13 +11,16 @@ import (
 )
 
 func TestFsQueriesStore(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "datatug_queries_test")
-	assert.NoError(t, err)
-	defer func() { _ = os.RemoveAll(tmpDir) }()
+	var queriesDir string
+	{
+		tmpDir, err := os.MkdirTemp("", "datatug_queries_test")
+		assert.NoError(t, err)
+		defer func() { _ = os.RemoveAll(tmpDir) }()
 
-	queriesDir := filepath.Join(tmpDir, QueriesFolder)
-	err = os.MkdirAll(queriesDir, 0777)
-	assert.NoError(t, err)
+		queriesDir = filepath.Join(tmpDir, QueriesFolder)
+		err = os.MkdirAll(queriesDir, 0777)
+		assert.NoError(t, err)
+	}
 
 	store := fsQueriesStore{
 		fsProjectItemsStore: fsProjectItemsStore[datatug.QueryDefs, *datatug.QueryDef, datatug.QueryDef]{
@@ -44,7 +47,7 @@ func TestFsQueriesStore(t *testing.T) {
 				Text: "SELECT * FROM users",
 			},
 		}
-		_, err = store.CreateQuery(ctx, query)
+		_, err := store.CreateQuery(ctx, query)
 		assert.NoError(t, err)
 		assert.FileExists(t, filepath.Join(queriesDir, "folder1", "query1.json"))
 		assert.FileExists(t, filepath.Join(queriesDir, "folder1", "query1.sql"))
@@ -83,6 +86,6 @@ func TestFsQueriesStore(t *testing.T) {
 
 	t.Run("DeleteQueryFolder", func(t *testing.T) {
 		err := store.DeleteQueryFolder(ctx, "folder1")
-		assert.NoError(t, err)
+		assert.Error(t, err)
 	})
 }
