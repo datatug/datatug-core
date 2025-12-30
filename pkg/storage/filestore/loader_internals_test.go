@@ -129,4 +129,11 @@ func TestLoaderInternals(t *testing.T) {
 		assert.NotNil(t, loadedTable)
 		assert.Equal(t, tableName, loadedTable.Name())
 	})
+
+	t.Run("loadTableModel", func(t *testing.T) {
+		tm, err := loadTableModel("test")
+		assert.NoError(t, err)
+		assert.NotNil(t, tm)
+		assert.Equal(t, "test", tm.Name())
+	})
 }

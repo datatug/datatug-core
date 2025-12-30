@@ -75,8 +75,8 @@ func (store fsDbServersStore) saveDbServersJSON(dbServersDirPath string, dbServe
 	return nil
 }
 
-func (store fsDbServersStore) saveDbServersReadme(dbServers datatug.ProjDbServers) error {
-	panic(fmt.Sprintf("not implemented saving of dbServers=%v", dbServers))
+func (store fsDbServersStore) saveDbServersReadme(_ datatug.ProjDbServers) error {
+	return nil
 }
 
 // SaveDbServer saves ServerReference

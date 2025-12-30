@@ -84,8 +84,18 @@ func TestFsQueriesStore(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("DeleteQueryFolder", func(t *testing.T) {
-		err := store.DeleteQueryFolder(ctx, "folder1")
-		assert.Error(t, err)
+	t.Run("SaveQuery", func(t *testing.T) {
+		query := &datatug.QueryDefWithFolderPath{
+			FolderPath: "folder1",
+			QueryDef: datatug.QueryDef{
+				ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{
+					ID: "query2", Title: "Query 2"}},
+				Type: datatug.QueryTypeSQL,
+				Text: "SELECT * FROM products",
+			},
+		}
+		err := store.SaveQuery(ctx, query)
+		assert.NoError(t, err)
+		assert.FileExists(t, filepath.Join(queriesDir, "query2.json"))
 	})
 }
