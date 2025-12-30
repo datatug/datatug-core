@@ -2,11 +2,6 @@ package datatug
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
-
-	"github.com/strongo/slice"
-	"github.com/strongo/validation"
 )
 
 // Environments is a slice of pointers to Environment
@@ -72,99 +67,4 @@ type ProjDbModelNumbers struct {
 type ProjEnvNumbers struct {
 	DbServers int `json:"dbServer"`
 	Databases int `json:"databases"`
-}
-
-// EnvDbServers is a slice of *EnvDbServer
-type EnvDbServers []*EnvDbServer
-
-// Validate returns error of failed
-func (v EnvDbServers) Validate() error {
-	if v == nil {
-		return nil
-	}
-	for i, item := range v {
-		if err := item.Validate(); err != nil {
-			return fmt.Errorf("invalid env db server at index %v: %w", i, err)
-		}
-	}
-	return nil
-}
-
-// GetByServerRef returns *EnvDbServer by GetID
-func (v EnvDbServers) GetByServerRef(serverRef ServerReference) *EnvDbServer {
-	for _, item := range v {
-		if item.Driver == serverRef.Driver && item.Host == serverRef.Host && item.Port == serverRef.Port {
-			return item
-		}
-	}
-	return nil
-}
-
-// EnvDbServer holds information about DB server in an environment
-type EnvDbServer struct {
-	ServerReference
-	Catalogs []string `json:"catalogs,omitempty"`
-}
-
-func (v *EnvDbServer) GetID() string {
-	return fmt.Sprintf("%s:%d", v.Host, v.Port)
-}
-
-func (v *EnvDbServer) SetID(id string) {
-	vals := strings.Split(id, ":")
-	v.Host = vals[0]
-	v.Port, _ = strconv.Atoi(vals[1])
-}
-
-// Validate returns error if no valid
-func (v *EnvDbServer) Validate() error {
-	if err := v.ServerReference.Validate(); err != nil {
-		return err
-	}
-
-	for i, catalogID := range v.Catalogs {
-		if strings.TrimSpace(catalogID) == "" {
-			return validation.NewErrRecordIsMissingRequiredField(fmt.Sprintf("catalogs[%v]", i))
-		}
-		if prevIndex := slice.Index(v.Catalogs[:i], catalogID); prevIndex >= 0 {
-			return validation.NewErrBadRecordFieldValue("catalogs", fmt.Sprintf("duplicate value at indexes %v & %v: %v", prevIndex, i, catalogID))
-		}
-	}
-	return nil
-}
-
-// EnvironmentSummary holds environment summary
-type EnvironmentSummary struct {
-	ProjectItem
-	Servers EnvDbServers `json:"dbServers,omitempty"`
-	//Databases []EnvDb             `json:"databases,omitempty"`
-}
-
-// Validate returns error if not valid
-func (v EnvironmentSummary) Validate() error {
-	if err := v.ProjectItem.Validate(false); err != nil {
-		return err
-	}
-	if err := v.Servers.Validate(); err != nil {
-		return validation.NewErrBadRecordFieldValue("servers", err.Error())
-	}
-	return nil
-}
-
-// EnvDb hold info about DB in specific environment
-type EnvDb struct {
-	ProjectItem
-	DbModel string          `json:"dbModel"`
-	Server  ServerReference `json:"server"`
-}
-
-// Validate returns error if not valid
-func (v EnvDb) Validate() error {
-	if err := v.ProjectItem.Validate(false); err != nil {
-		return err
-	}
-	if err := v.Server.Validate(); err != nil {
-		return validation.NewErrBadRecordFieldValue("server", err.Error())
-	}
-	return nil
 }
