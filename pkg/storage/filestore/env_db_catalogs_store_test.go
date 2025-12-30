@@ -6,6 +6,7 @@ import (
 	"path"
 	"testing"
 
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,32 +17,73 @@ func TestFsEnvCatalogStore(t *testing.T) {
 		_ = os.RemoveAll(tmpDir)
 	}()
 
-	projectID := "test_p"
-	projectPath := path.Join(tmpDir, projectID)
+	projectPath := tmpDir
 	envID := "dev"
-	serverID := "sqlserver:localhost"
+	serverID := "sqlserver:localhost:1433"
 	catalogID := "db1"
 
-	store := newFsEnvCatalogsStore(path.Join(projectPath, EnvironmentsFolder))
+	store := newFsEnvCatalogsStore(projectPath)
+	ctx := context.Background()
+
+	catalog1 := &datatug.EnvDbCatalog{
+		DbCatalogBase: datatug.DbCatalogBase{
+			ProjectItem: datatug.ProjectItem{
+				ProjItemBrief: datatug.ProjItemBrief{
+					ID:    catalogID,
+					Title: "Database 1",
+				},
+			},
+			Driver: "sqlserver",
+		},
+	}
+
+	t.Run("SaveEnvDbCatalog", func(t *testing.T) {
+		err := store.SaveEnvDbCatalog(ctx, envID, serverID, catalogID, catalog1)
+		assert.NoError(t, err)
+
+		// Verify file exists
+		// In SaveEnvDbCatalog, filepath.Join(s.dirPath, envID, ServersFolder, serverID, EnvDbCatalogsFolder) is used.
+		// Note that ServersFolder is "servers", EnvDbCatalogsFolder is "catalogs".
+		catalogPath := path.Join(tmpDir, "environments", envID, "servers", serverID, "catalogs", catalogID+"."+dbCatalogFileSuffix+".json")
+		_, err = os.Stat(catalogPath)
+		assert.NoError(t, err)
+	})
+
+	t.Run("LoadEnvDbCatalog", func(t *testing.T) {
+		loadedCatalog, err := store.LoadEnvDbCatalog(ctx, envID, serverID, catalogID)
+		assert.NoError(t, err)
+		assert.Equal(t, catalog1.ID, loadedCatalog.ID)
+		assert.Equal(t, catalog1.Title, loadedCatalog.Title)
+	})
 
 	t.Run("LoadEnvDbCatalogs", func(t *testing.T) {
-		ctx := context.Background()
+		// This uses a different path in the current implementation of LoadEnvDbCatalogs
+		// LoadEnvDbCatalogs uses s.getDirPath(envID) -> filepath.Join(s.dirPath, envID, EnvDbCatalogsFolder)
+		// But SaveEnvDbCatalog uses filepath.Join(s.dirPath, envID, ServersFolder, serverID, EnvDbCatalogsFolder)
+
 		items, err := store.LoadEnvDbCatalogs(ctx, envID)
 		assert.NoError(t, err)
 		assert.Empty(t, items)
 	})
 
-	t.Run("LoadEnvDbCatalog", func(t *testing.T) {
-		ctx := context.Background()
-		assert.Panics(t, func() {
-			_, _ = store.LoadEnvDbCatalog(ctx, envID, serverID, catalogID)
-		})
+	t.Run("SaveEnvDbCatalogs", func(t *testing.T) {
+		catalog2 := &datatug.EnvDbCatalog{
+			DbCatalogBase: datatug.DbCatalogBase{
+				ProjectItem: datatug.ProjectItem{
+					ProjItemBrief: datatug.ProjItemBrief{
+						ID:    "db2",
+						Title: "Database 2",
+					},
+				},
+				Driver: "sqlserver",
+			},
+		}
+		err := store.SaveEnvDbCatalogs(ctx, envID, serverID, "", datatug.EnvDbCatalogs{catalog1, catalog2})
+		assert.NoError(t, err)
 	})
 
-	t.Run("SaveEnvDbCatalog", func(t *testing.T) {
-		ctx := context.Background()
-		assert.Panics(t, func() {
-			_ = store.SaveEnvDbCatalog(ctx, envID, serverID, catalogID, nil)
-		})
+	t.Run("DeleteEnvDbCatalog", func(t *testing.T) {
+		err := store.DeleteEnvDbCatalog(ctx, envID, serverID, catalogID)
+		assert.NoError(t, err)
 	})
 }

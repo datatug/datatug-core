@@ -2,25 +2,63 @@ package filestore
 
 import (
 	"context"
+	"os"
+	"path"
 	"testing"
 
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFsStore_GetProjectStore(t *testing.T) {
-	store := &FsStore{
-		id: "test",
-		pathByID: map[string]string{
-			"p1": "/path/p1",
+func TestFsProjectStore(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "datatug_test_project_store")
+	assert.NoError(t, err)
+	defer func(path string) {
+		_ = os.RemoveAll(path)
+	}(tempDir)
+
+	projectID := "p1"
+	store := newFsProjectStore(projectID, tempDir)
+	ctx := context.Background()
+
+	server1 := &datatug.ProjDbServer{
+		Server: datatug.ServerReference{
+			Driver: "sqlserver",
+			Host:   "localhost",
+			Port:   1433,
 		},
 	}
-	ps := store.GetProjectStore("p1")
-	assert.NotNil(t, ps)
-	assert.Equal(t, "p1", ps.ProjectID())
-}
 
-func TestFsStore_DeleteProject(t *testing.T) {
-	store := &FsStore{}
-	err := store.DeleteProject(context.Background(), "p1")
-	assert.Error(t, err)
+	t.Run("SaveProjDbServer", func(t *testing.T) {
+		err := store.SaveProjDbServer(ctx, server1)
+		assert.NoError(t, err)
+
+		// Verify file exists
+		serverPath := path.Join(tempDir, ServersFolder, "localhost:1433."+boardFileSuffix+".json")
+		_, err = os.Stat(serverPath)
+		assert.NoError(t, err)
+	})
+
+	t.Run("LoadProjDbServerSummary", func(t *testing.T) {
+		summary, err := store.LoadProjDbServerSummary(ctx, "localhost:1433")
+		assert.NoError(t, err)
+		assert.NotNil(t, summary)
+		assert.Equal(t, server1.Server.Host, summary.DbServer.Host)
+	})
+
+	t.Run("LoadProjDbServers", func(t *testing.T) {
+		servers, err := store.LoadProjDbServers(ctx)
+		assert.NoError(t, err)
+		assert.Len(t, servers, 1)
+		assert.Equal(t, server1.Server.Host, servers[0].Server.Host)
+	})
+
+	t.Run("DeleteProjDbServer", func(t *testing.T) {
+		err := store.DeleteProjDbServer(ctx, "localhost:1433")
+		assert.NoError(t, err)
+
+		servers, err := store.LoadProjDbServers(ctx)
+		assert.NoError(t, err)
+		assert.Len(t, servers, 0)
+	})
 }

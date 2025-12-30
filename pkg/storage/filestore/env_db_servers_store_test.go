@@ -6,6 +6,7 @@ import (
 	"path"
 	"testing"
 
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,28 +17,66 @@ func TestFsEnvServerStore(t *testing.T) {
 		_ = os.RemoveAll(tmpDir)
 	}()
 
-	projectID := "test_p"
-	projectPath := path.Join(tmpDir, projectID)
+	projectPath := tmpDir
 	envID := "dev"
-	serverID := "sqlserver:localhost"
 
 	store := newFsEnvDbServersStore(projectPath)
+	ctx := context.Background()
 
-	t.Run("LoadEnvDbServers", func(t *testing.T) {
-		ctx := context.Background()
-		_, err := store.LoadEnvDbServers(ctx, envID)
-		assert.Nil(t, err)
+	server1 := &datatug.EnvDbServer{
+		ServerReference: datatug.ServerReference{
+			Driver: "sqlserver",
+			Host:   "localhost",
+			Port:   1433,
+		},
+	}
+
+	t.Run("SaveEnvDbServer", func(t *testing.T) {
+		err := store.SaveEnvDbServer(ctx, envID, server1)
+		assert.NoError(t, err)
+
+		// Verify file exists
+		serverPath := path.Join(projectPath, EnvironmentsFolder, envID, "localhost:1433."+boardFileSuffix+".json")
+		_, err = os.Stat(serverPath)
+		assert.NoError(t, err)
 	})
 
 	t.Run("LoadEnvDbServer", func(t *testing.T) {
-		ctx := context.Background()
-		_, err := store.LoadEnvDbServer(ctx, envID, serverID)
-		assert.Error(t, err)
+		loadedServer, err := store.LoadEnvDbServer(ctx, envID, "localhost:1433")
+		assert.NoError(t, err)
+		assert.Equal(t, server1.Host, loadedServer.Host)
+		assert.Equal(t, server1.Port, loadedServer.Port)
 	})
 
-	t.Run("SaveEnvDbServer", func(t *testing.T) {
-		ctx := context.Background()
-		err := store.SaveEnvDbServer(ctx, envID, nil)
-		assert.Error(t, err)
+	t.Run("LoadEnvDbServers", func(t *testing.T) {
+		servers, err := store.LoadEnvDbServers(ctx, envID)
+		assert.NoError(t, err)
+		assert.Len(t, servers, 1)
+		assert.Equal(t, server1.Host, servers[0].Host)
+	})
+
+	t.Run("SaveEnvServers", func(t *testing.T) {
+		server2 := &datatug.EnvDbServer{
+			ServerReference: datatug.ServerReference{
+				Driver: "sqlserver",
+				Host:   "remotehost",
+				Port:   1433,
+			},
+		}
+		err := store.SaveEnvServers(ctx, envID, datatug.EnvDbServers{server1, server2})
+		assert.NoError(t, err)
+
+		servers, err := store.LoadEnvDbServers(ctx, envID)
+		assert.NoError(t, err)
+		assert.Len(t, servers, 2)
+	})
+
+	t.Run("DeleteEnvDbServer", func(t *testing.T) {
+		err := store.DeleteEnvDbServer(ctx, envID, "localhost:1433")
+		assert.NoError(t, err)
+
+		servers, err := store.LoadEnvDbServers(ctx, envID)
+		assert.NoError(t, err)
+		assert.Len(t, servers, 1)
 	})
 }

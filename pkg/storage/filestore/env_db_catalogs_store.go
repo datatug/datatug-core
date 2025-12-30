@@ -23,7 +23,7 @@ type fsEnvDbCatalogStore struct {
 }
 
 func (s fsEnvDbCatalogStore) getDirPath(envID string) string {
-	return filepath.Join(s.dirPath, envID, EnvDbCatalogsFolder)
+	return filepath.Join(s.dirPath, EnvironmentsFolder, envID, EnvDbCatalogsFolder)
 }
 
 func (s fsEnvDbCatalogStore) LoadEnvDbCatalogs(ctx context.Context, envID string, o ...datatug.StoreOption) (datatug.EnvDbCatalogs, error) {
@@ -32,23 +32,29 @@ func (s fsEnvDbCatalogStore) LoadEnvDbCatalogs(ctx context.Context, envID string
 }
 
 func (s fsEnvDbCatalogStore) LoadEnvDbCatalog(ctx context.Context, envID, serverID, catalogID string, o ...datatug.StoreOption) (datatug.EnvDbCatalog, error) {
-	//TODO implement me
-	panic("implement me")
+	dirPath := filepath.Join(s.dirPath, EnvironmentsFolder, envID, ServersFolder, serverID, EnvDbCatalogsFolder)
+	item, err := s.loadProjectItem(ctx, dirPath, catalogID, "", o...)
+	if err != nil {
+		return datatug.EnvDbCatalog{}, err
+	}
+	return *item, nil
 }
 
-func (s fsEnvDbCatalogStore) SaveEnvDbCatalog(ctx context.Context, envID, serverID, catalogID string, catalogs *datatug.EnvDbCatalog) error {
-	//TODO implement me
-	panic("implement me")
+func (s fsEnvDbCatalogStore) SaveEnvDbCatalog(ctx context.Context, envID, serverID, catalogID string, catalog *datatug.EnvDbCatalog) error {
+	_ = catalogID
+	dirPath := filepath.Join(s.dirPath, EnvironmentsFolder, envID, ServersFolder, serverID, EnvDbCatalogsFolder)
+	return s.saveProjectItem(ctx, dirPath, catalog)
 }
 
 func (s fsEnvDbCatalogStore) SaveEnvDbCatalogs(ctx context.Context, envID, serverID, catalogID string, catalogs datatug.EnvDbCatalogs) error {
-	//TODO implement me
-	panic("implement me")
+	_ = catalogID
+	dirPath := filepath.Join(s.dirPath, EnvironmentsFolder, envID, ServersFolder, serverID, EnvDbCatalogsFolder)
+	return s.saveProjectItems(ctx, dirPath, catalogs)
 }
 
 func (s fsEnvDbCatalogStore) DeleteEnvDbCatalog(ctx context.Context, envID, serverID, catalogID string) error {
-	//TODO implement me
-	panic("implement me")
+	dirPath := filepath.Join(s.dirPath, EnvironmentsFolder, envID, ServersFolder, serverID, EnvDbCatalogsFolder)
+	return s.deleteProjectItem(ctx, dirPath, catalogID)
 }
 
 //// LoadEnvironmentCatalog return information about environment DB

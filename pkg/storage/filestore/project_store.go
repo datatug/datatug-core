@@ -2,6 +2,7 @@ package filestore
 
 import (
 	"context"
+	"path"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/datatug2md"
@@ -40,39 +41,44 @@ type fsProjectStore struct {
 }
 
 func (s fsProjectStore) LoadRecordsetData(ctx context.Context, id string) (datatug.Recordset, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.fsRecordsetDefinitionsStore.LoadRecordsetData(ctx, id)
 }
 
 func (s fsProjectStore) LoadRecordsetDefinitions(ctx context.Context, o ...datatug.StoreOption) ([]*datatug.RecordsetDefinition, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.fsRecordsetDefinitionsStore.LoadRecordsetDefinitions(ctx, o...)
 }
 
 func (s fsProjectStore) LoadRecordsetDefinition(ctx context.Context, id string, o ...datatug.StoreOption) (*datatug.RecordsetDefinition, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.fsRecordsetDefinitionsStore.LoadRecordsetDefinition(ctx, id, o...)
 }
 
 func (s fsProjectStore) LoadEnvironmentSummary(ctx context.Context, id string) (*datatug.EnvironmentSummary, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.fsEnvironmentsStore.LoadEnvironmentSummary(ctx, id)
 }
 
-func (s fsProjectStore) LoadProjDbServerSummary(_ context.Context, id string) (*datatug.ProjDbServerSummary, error) {
-	_ = id
-	//TODO implement me
-	panic("implement me")
+func (s fsProjectStore) LoadProjDbServerSummary(ctx context.Context, id string) (*datatug.ProjDbServerSummary, error) {
+	dirPath := path.Join(s.projectPath, ServersFolder)
+	server, err := s.fsEnvDbServersStore.loadProjectItem(ctx, dirPath, id, "")
+	if err != nil {
+		return nil, err
+	}
+	summary := &datatug.ProjDbServerSummary{
+		DbServer: server.ServerReference,
+	}
+	return summary, nil
 }
 
 func (s fsProjectStore) SaveProjDbServer(ctx context.Context, server *datatug.ProjDbServer) error {
-	//TODO implement me
-	panic("implement me")
+	dirPath := path.Join(s.projectPath, ServersFolder)
+	envDbServer := &datatug.EnvDbServer{
+		ServerReference: server.Server,
+	}
+	return s.fsEnvDbServersStore.saveProjectItem(ctx, dirPath, envDbServer)
 }
 
 func (s fsProjectStore) DeleteProjDbServer(ctx context.Context, id string) error {
-	//TODO implement me
-	panic("implement me")
+	dirPath := path.Join(s.projectPath, ServersFolder)
+	return s.fsEnvDbServersStore.deleteProjectItem(ctx, dirPath, id)
 }
 
 func (s fsProjectStore) ProjectID() string {
@@ -84,8 +90,18 @@ func (s fsProjectStore) LoadEnvironments(ctx context.Context, o ...datatug.Store
 }
 
 func (s fsProjectStore) LoadProjDbServers(ctx context.Context, o ...datatug.StoreOption) (datatug.ProjDbServers, error) {
-	//TODO implement me
-	panic("implement me")
+	dirPath := path.Join(s.projectPath, ServersFolder)
+	items, err := s.fsEnvDbServersStore.loadProjectItems(ctx, dirPath, o...)
+	if err != nil {
+		return nil, err
+	}
+	servers := make(datatug.ProjDbServers, len(items))
+	for i, item := range items {
+		servers[i] = &datatug.ProjDbServer{
+			Server: item.ServerReference,
+		}
+	}
+	return servers, nil
 }
 
 type fsProjectStoreRef struct {
