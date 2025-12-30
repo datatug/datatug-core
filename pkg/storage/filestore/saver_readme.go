@@ -8,7 +8,7 @@ import (
 )
 
 func (s fsProjectStore) writeProjectReadme(project datatug.Project) error {
-	filePath := path.Join(s.projectPath, DatatugFolder, "README.md")
+	filePath := path.Join(s.projectPath, "README.md")
 	file, _ := os.Create(filePath)
 	defer func() {
 		_ = file.Close()

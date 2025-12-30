@@ -2,7 +2,6 @@ package filestore
 
 import (
 	"context"
-	"path"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/datatug2md"
@@ -19,7 +18,7 @@ func newFsProjectStore(projectID string, projectPath string) fsProjectStore {
 		fsQueriesStore:              newFsQueriesStore(projectPath),
 		fsEntitiesStore:             newFsEntitiesStore(projectPath),
 		fsFoldersStore:              newFsFoldersStore(projectPath),
-		fsEnvironmentsStore:         newFsEnvironmentsStore(path.Join(projectPath, DatatugFolder)),
+		fsEnvironmentsStore:         newFsEnvironmentsStore(projectPath),
 		fsEnvDbServersStore:         newFsEnvDbServersStore(projectPath),
 		fsEnvDbCatalogStore:         newFsEnvCatalogsStore(projectPath),
 		fsRecordsetDefinitionsStore: newFsRecordsetDefinitionsStore(projectPath),

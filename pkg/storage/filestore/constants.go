@@ -5,12 +5,10 @@ import (
 	"strings"
 )
 
-// DatatugFolder defines a folder name in a repo where to storage DataTug project
 const (
 	BoardsFolder           = "boards"
 	ProjectSummaryFileName = "datatug-project.json"
 	DataFolder             = "data"
-	DatatugFolder          = "datatug"
 	DbFolder               = "db"
 	EnvDbCatalogsFolder    = "catalogs"
 	DbModelsFolder         = "dbmodels"
@@ -22,6 +20,7 @@ const (
 	SchemasFolder          = "schemas"
 	TablesFolder           = "tables"
 	ViewsFolder            = "views"
+	//DatatugFolder          = "datatug"
 )
 
 func jsonFileName(id, suffix string) string {

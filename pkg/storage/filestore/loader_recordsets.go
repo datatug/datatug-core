@@ -111,7 +111,7 @@ func (loader fileSystemLoader) LoadRecordsetData(projectID, datasetName, fileNam
 	if _, projPath, err = loader.GetProjectPath(projectID); err != nil {
 		return nil, err
 	}
-	filePath := path.Join(projPath, DatatugFolder, DataFolder, datasetName, fileName)
+	filePath := path.Join(projPath, DataFolder, datasetName, fileName)
 	var recordset datatug.Recordset
 	rows := make([]interface{}, 0)
 	if err := readJSONFile(filePath, true, &rows); err != nil {

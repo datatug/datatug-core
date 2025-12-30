@@ -81,7 +81,7 @@ func TestSaveProject(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify project file exists
-		assert.FileExists(t, path.Join(projectPath, DatatugFolder, ProjectSummaryFileName))
+		assert.FileExists(t, path.Join(projectPath, ProjectSummaryFileName))
 	})
 
 	t.Run("SaveProject_MissingProjectID", func(t *testing.T) {

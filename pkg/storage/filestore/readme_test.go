@@ -37,8 +37,7 @@ func TestReadme(t *testing.T) {
 	t.Run("writeProjectReadme", func(t *testing.T) {
 		projectID := "test_project"
 		projectPath := path.Join(tmpDir, projectID)
-		err := os.MkdirAll(path.Join(projectPath, DatatugFolder), 0755)
-		assert.NoError(t, err)
+		assert.NoError(t, os.MkdirAll(projectPath, 0755))
 
 		store := newFsProjectStore(projectID, projectPath)
 		project := datatug.Project{
@@ -50,7 +49,7 @@ func TestReadme(t *testing.T) {
 		}
 		err = store.writeProjectReadme(project)
 		assert.NoError(t, err)
-		assert.FileExists(t, path.Join(projectPath, DatatugFolder, "README.md"))
+		assert.FileExists(t, path.Join(projectPath, "README.md"))
 	})
 }
 

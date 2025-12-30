@@ -61,7 +61,7 @@ func TestDbSchemaSaver(t *testing.T) {
 			catalog:    catalogID,
 			dbServer:   datatug.ProjDbServer{Server: dbServer},
 			repository: &datatug.ProjectRepository{},
-			dirPath:    path.Join(projectPath, DatatugFolder, ServersFolder, DbFolder, dbServer.Driver, dbServer.Host, EnvDbCatalogsFolder, catalogID),
+			dirPath:    path.Join(projectPath, ServersFolder, DbFolder, dbServer.Driver, dbServer.Host, EnvDbCatalogsFolder, catalogID),
 		}
 
 		err := store.saveDbSchemas(schemas, ctx)

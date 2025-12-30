@@ -15,7 +15,7 @@ type fsDbCatalogsStore struct {
 
 func newFsDbCatalogsStore(fsDbServerStore fsDbServerStore) fsDbCatalogsStore {
 	return fsDbCatalogsStore{
-		catalogsDirPath: path.Join(fsDbServerStore.projectPath, DatatugFolder, ServersFolder, DbFolder, fsDbServerStore.dbServer.Driver, fsDbServerStore.dbServer.Host, EnvDbCatalogsFolder),
+		catalogsDirPath: path.Join(fsDbServerStore.projectPath, ServersFolder, DbFolder, fsDbServerStore.dbServer.Driver, fsDbServerStore.dbServer.Host, EnvDbCatalogsFolder),
 		fsDbServerStore: fsDbServerStore,
 	}
 }

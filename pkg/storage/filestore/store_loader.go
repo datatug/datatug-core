@@ -73,7 +73,7 @@ func (s fsProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOptio
 }
 
 func loadDbDrivers(_ context.Context, projPath string) (dbServers datatug.ProjDbServers, err error) {
-	dbServersPath := path.Join(projPath, DatatugFolder, ServersFolder, DbFolder)
+	dbServersPath := path.Join(projPath, ServersFolder, DbFolder)
 	if err = loadDir(nil, dbServersPath, "", processDirs, func(files []os.FileInfo) {
 		dbServers = make(datatug.ProjDbServers, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
@@ -154,7 +154,7 @@ func (s fsProjectStore) LoadProjectSummary(context.Context) (projectSummary data
 
 // LoadProjectFile loads project file
 func LoadProjectFile(projPath string) (v datatug.ProjectFile, err error) {
-	fileName := path.Join(projPath, DatatugFolder, ProjectSummaryFileName)
+	fileName := path.Join(projPath, ProjectSummaryFileName)
 	if err = readJSONFile(fileName, true, &v); os.IsNotExist(err) {
 		err = fmt.Errorf("%w: %v", datatug.ErrProjectDoesNotExist, err)
 	}
@@ -166,7 +166,7 @@ func (loader fileSystemLoader) GetFolderPath(projectID string, folder ...string)
 	if err != nil {
 		return "", err
 	}
-	return path.Join(projectPath, DatatugFolder, path.Join(folder...)), nil
+	return path.Join(projectPath, path.Join(folder...)), nil
 }
 
 // GetProjectPath returns project projDirPath by project GetID

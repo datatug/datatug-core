@@ -18,8 +18,7 @@ func TestEnvironmentsStore(t *testing.T) {
 
 	projectID := "p1"
 	projectPath := filepath.Join(tmpDir, projectID)
-	datatugDir := filepath.Join(projectPath, DatatugFolder)
-	envsDir := filepath.Join(datatugDir, EnvironmentsFolder)
+	envsDir := filepath.Join(projectPath, EnvironmentsFolder)
 	err = os.MkdirAll(envsDir, 0777)
 	assert.NoError(t, err)
 
@@ -48,7 +47,7 @@ func TestEnvironmentsStore(t *testing.T) {
 	})
 
 	t.Run("fsEnvironmentsStore", func(t *testing.T) {
-		envsStore := newFsEnvironmentsStore(datatugDir)
+		envsStore := newFsEnvironmentsStore(projectPath)
 
 		t.Run("LoadEnvironmentSummary", func(t *testing.T) {
 			summary, err := envsStore.LoadEnvironmentSummary(ctx, envID)

@@ -13,25 +13,21 @@ import (
 )
 
 func TestLoadProjectFile(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "datatug_test")
+	projectTempDir, err := os.MkdirTemp("", "datatug_test_project")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
 	defer func() {
-		_ = os.RemoveAll(tmpDir)
+		_ = os.RemoveAll(projectTempDir)
 	}()
 
 	t.Run("not_exists", func(t *testing.T) {
-		_, err := LoadProjectFile(tmpDir)
+		_, err := LoadProjectFile(projectTempDir)
 		assert.Error(t, err)
 		assert.True(t, errors.Is(err, datatug.ErrProjectDoesNotExist))
 	})
 
 	t.Run("exists", func(t *testing.T) {
-		datatugDir := filepath.Join(tmpDir, DatatugFolder)
-		err := os.MkdirAll(datatugDir, 0777)
-		assert.NoError(t, err)
-
 		projFile := datatug.ProjectFile{
 			ProjectItem: datatug.ProjectItem{
 				ProjItemBrief: datatug.ProjItemBrief{
@@ -40,27 +36,23 @@ func TestLoadProjectFile(t *testing.T) {
 			},
 		}
 		data, _ := json.Marshal(projFile)
-		err = os.WriteFile(filepath.Join(datatugDir, ProjectSummaryFileName), data, 0644)
+		err = os.WriteFile(filepath.Join(projectTempDir, ProjectSummaryFileName), data, 0644)
 		assert.NoError(t, err)
 
-		v, err := LoadProjectFile(tmpDir)
+		v, err := LoadProjectFile(projectTempDir)
 		assert.NoError(t, err)
 		assert.Equal(t, "Test Project", v.Title)
 	})
 }
 
 func TestFsProjectStore_LoadProjectSummary(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "datatug_test")
+	projTmpDir, err := os.MkdirTemp("", "datatug_test")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
 	defer func() {
-		_ = os.RemoveAll(tmpDir)
+		_ = os.RemoveAll(projTmpDir)
 	}()
-
-	datatugDir := filepath.Join(tmpDir, DatatugFolder)
-	err = os.MkdirAll(datatugDir, 0777)
-	assert.NoError(t, err)
 
 	projFile := datatug.ProjectFile{
 		ProjectItem: datatug.ProjectItem{
@@ -70,10 +62,10 @@ func TestFsProjectStore_LoadProjectSummary(t *testing.T) {
 		},
 	}
 	data, _ := json.Marshal(projFile)
-	err = os.WriteFile(filepath.Join(datatugDir, ProjectSummaryFileName), data, 0644)
+	err = os.WriteFile(filepath.Join(projTmpDir, ProjectSummaryFileName), data, 0644)
 	assert.NoError(t, err)
 
-	ps := newFsProjectStore("p1", tmpDir)
+	ps := newFsProjectStore("p1", projTmpDir)
 	summary, err := ps.LoadProjectSummary(context.Background())
 	assert.NoError(t, err)
 	assert.Equal(t, "p1", ps.projectID)

@@ -21,8 +21,7 @@ func TestProjectsLoader(t *testing.T) {
 
 	projectID := "test_project"
 	projectDir := path.Join(tmpDir, projectID)
-	datatugPath := path.Join(projectDir, DatatugFolder)
-	err = os.MkdirAll(datatugPath, 0755)
+	err = os.MkdirAll(projectDir, 0755)
 	assert.NoError(t, err)
 
 	project := datatug.Project{
@@ -38,7 +37,7 @@ func TestProjectsLoader(t *testing.T) {
 		},
 	}
 	data, _ := json.Marshal(project)
-	err = os.WriteFile(path.Join(datatugPath, ProjectSummaryFileName), data, 0644)
+	err = os.WriteFile(path.Join(projectDir, ProjectSummaryFileName), data, 0644)
 	assert.NoError(t, err)
 
 	loader := NewProjectsLoader(tmpDir)

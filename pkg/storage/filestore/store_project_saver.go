@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/parallel"
@@ -18,7 +17,7 @@ func (s fsProjectStore) SaveProject(ctx context.Context, project *datatug.Projec
 		return fmt.Errorf("project validation failed: %w", err)
 	}
 	//log.Println("GetProjectStore is valid")
-	if err = os.MkdirAll(path.Join(s.projectPath, DatatugFolder), 0777); err != nil {
+	if err = os.MkdirAll(s.projectPath, 0777); err != nil {
 		return fmt.Errorf("failed to create datatug folder: %w", err)
 	}
 	if err = parallel.Run(
@@ -93,7 +92,7 @@ func (s fsProjectStore) putProjectFile(projFile datatug.ProjectFile) error {
 	if err := projFile.Validate(); err != nil {
 		return fmt.Errorf("invalid project file: %w", err)
 	}
-	return saveJSONFile(path.Join(s.projectPath, DatatugFolder), ProjectSummaryFileName, projFile)
+	return saveJSONFile(s.projectPath, ProjectSummaryFileName, projFile)
 }
 
 //func projItemFileName(id, prefix string) string {

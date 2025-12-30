@@ -19,8 +19,7 @@ func TestLoaderRecordsets(t *testing.T) {
 
 	projectID := "test_project"
 	projectPath := path.Join(tmpDir, projectID)
-	datatugPath := path.Join(projectPath, DatatugFolder)
-	recordsetsPath := path.Join(datatugPath, DataFolder, RecordsetsFolder)
+	recordsetsPath := path.Join(projectPath, DataFolder, RecordsetsFolder)
 	err = os.MkdirAll(recordsetsPath, 0755)
 	assert.NoError(t, err)
 
@@ -86,19 +85,19 @@ func TestLoaderRecordsets(t *testing.T) {
 
 		// LoadRecordsetDefinition
 		def, err := loader.LoadRecordsetDefinition(projectID, rs1ID)
-		assert.NoError(t, err)
-		if def != nil {
+
+		if assert.NoError(t, err) {
 			assert.Equal(t, rs1ID, def.ID)
 		}
 
 		def, err = loader.LoadRecordsetDefinition(projectID, path.Join(subFolder, subRsID))
-		assert.NoError(t, err)
-		if def != nil {
+
+		if assert.NoError(t, err) {
 			assert.Equal(t, path.Join(subFolder, subRsID), def.ID)
 		}
 
 		// LoadRecordsetData
-		rsDataDir := path.Join(datatugPath, DataFolder, rs1ID)
+		rsDataDir := path.Join(projectPath, DataFolder, rs1ID)
 		err = os.MkdirAll(rsDataDir, 0755)
 		assert.NoError(t, err)
 
@@ -107,15 +106,17 @@ func TestLoaderRecordsets(t *testing.T) {
 			{"col1": "val2"},
 		}
 		rowsData, _ := json.Marshal(rows)
-		err = os.WriteFile(path.Join(rsDataDir, "data.json"), rowsData, 0644)
+		dataFilePath := path.Join(rsDataDir, "data.json")
+		err = os.WriteFile(dataFilePath, rowsData, 0644)
 		assert.NoError(t, err)
 
 		rs, err := loader.LoadRecordsetData(projectID, rs1ID, "data.json")
-		assert.NoError(t, err)
-		assert.NotNil(t, rs)
-		assert.Len(t, rs.Rows, 2)
-		assert.Equal(t, "val1", rs.Rows[0][0])
-		assert.Equal(t, "val2", rs.Rows[1][0])
+		if assert.NoError(t, err) {
+			assert.NotNil(t, rs)
+			assert.Len(t, rs.Rows, 2)
+			assert.Equal(t, "val1", rs.Rows[0][0])
+			assert.Equal(t, "val2", rs.Rows[1][0])
+		}
 
 		// LoadRecordsetData - Missing project
 		_, err = loader.LoadRecordsetData("missing", rs1ID, "data.json")
@@ -133,13 +134,14 @@ func TestLoaderRecordsets(t *testing.T) {
 
 	t.Run("LoadRecordsetData_InvalidRowType", func(t *testing.T) {
 		rs1ID := "my_recordset1"
-		rsDataDir := path.Join(datatugPath, DataFolder, rs1ID)
+		rsDataDir := path.Join(projectPath, DataFolder)
 		rowsData := []byte(`[1, 2, 3]`) // Not a slice of maps
-		err = os.WriteFile(path.Join(rsDataDir, "invalid_data.json"), rowsData, 0644)
+		err = os.WriteFile(path.Join(rsDataDir, rs1ID, "invalid_data.json"), rowsData, 0644)
 		assert.NoError(t, err)
 
 		_, err := loader.LoadRecordsetData(projectID, rs1ID, "invalid_data.json")
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "unexpected row type")
+		if assert.Error(t, err) {
+			assert.Contains(t, err.Error(), "unexpected row type")
+		}
 	})
 }

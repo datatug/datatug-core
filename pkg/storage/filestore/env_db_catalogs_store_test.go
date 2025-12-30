@@ -22,7 +22,7 @@ func TestFsEnvCatalogStore(t *testing.T) {
 	serverID := "sqlserver:localhost"
 	catalogID := "db1"
 
-	store := newFsEnvCatalogsStore(path.Join(projectPath, DatatugFolder, EnvironmentsFolder))
+	store := newFsEnvCatalogsStore(path.Join(projectPath, EnvironmentsFolder))
 
 	t.Run("LoadEnvDbCatalogs", func(t *testing.T) {
 		ctx := context.Background()

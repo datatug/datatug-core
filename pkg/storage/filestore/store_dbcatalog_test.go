@@ -27,7 +27,7 @@ func TestDbCatalogStore(t *testing.T) {
 	}
 
 	catalogID := "db1"
-	catalogsDirPath := path.Join(projectPath, DatatugFolder, ServersFolder, DbFolder, dbServer.Driver, dbServer.Host, EnvDbCatalogsFolder)
+	catalogsDirPath := path.Join(projectPath, ServersFolder, DbFolder, dbServer.Driver, dbServer.Host, EnvDbCatalogsFolder)
 	catalogPath := path.Join(catalogsDirPath, catalogID)
 	err = os.MkdirAll(catalogPath, 0755)
 	assert.NoError(t, err)

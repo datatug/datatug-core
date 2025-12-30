@@ -15,7 +15,7 @@ import (
 )
 
 func loadProjectFile(projPath string, project *datatug.Project) (err error) {
-	filePath := path.Join(projPath, DatatugFolder, ProjectSummaryFileName)
+	filePath := path.Join(projPath, ProjectSummaryFileName)
 	if err = readJSONFile(filePath, true, project); err != nil {
 		err = fmt.Errorf("failed to load project file %s: %w", filePath, err)
 	}
@@ -99,7 +99,7 @@ func loadDir(
 }
 
 func loadBoards(_ context.Context, projPath string, project *datatug.Project) (err error) {
-	boardsDirPath := path.Join(projPath, DatatugFolder, "boards")
+	boardsDirPath := path.Join(projPath, BoardsFolder)
 	if err = loadDir(nil, boardsDirPath, "*.json", processFiles,
 		func(files []os.FileInfo) {
 			project.Boards = make(datatug.Boards, 0, len(files))
@@ -129,7 +129,7 @@ func loadBoards(_ context.Context, projPath string, project *datatug.Project) (e
 }
 
 func loadDbModels(_ context.Context, projPath string, project *datatug.Project) error {
-	dbModelsDirPath := path.Join(projPath, DatatugFolder, "dbmodels")
+	dbModelsDirPath := path.Join(projPath, DbModelsFolder)
 	if err := loadDir(nil, dbModelsDirPath, "", processDirs,
 		func(files []os.FileInfo) {
 			project.DbModels = make(datatug.DbModels, 0, len(files))

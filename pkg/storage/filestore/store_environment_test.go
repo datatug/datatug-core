@@ -20,11 +20,10 @@ func TestFsEnvironmentStore(t *testing.T) {
 
 	projectID := "test_p"
 	projectPath := path.Join(tmpDir, projectID)
-	datatugDir := path.Join(projectPath, DatatugFolder)
 	envID := "dev"
 
-	envsStore := newFsEnvironmentsStore(datatugDir)
-	envsDirPath := path.Join(datatugDir, EnvironmentsFolder)
+	envsStore := newFsEnvironmentsStore(projectPath)
+	envsDirPath := path.Join(projectPath, EnvironmentsFolder)
 	ctx := context.Background()
 
 	t.Run("LoadEnvironmentSummary", func(t *testing.T) {

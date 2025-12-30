@@ -21,17 +21,15 @@ func TestFsProjectStore_ProjectID(t *testing.T) {
 }
 
 func TestFsStore_Methods(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "datatug_test_fsstore")
+	fsStoreTmpDir, err := os.MkdirTemp("", "datatug_test_fsstore")
 	assert.NoError(t, err)
 	defer func() {
-		_ = os.RemoveAll(tmpDir)
+		_ = os.RemoveAll(fsStoreTmpDir)
 	}()
 
 	projectID := "test_project"
-	projectPath := path.Join(tmpDir, projectID)
-	datatugPath := path.Join(projectPath, DatatugFolder)
-	err = os.MkdirAll(datatugPath, 0755)
-	assert.NoError(t, err)
+	projectPath := path.Join(fsStoreTmpDir, projectID)
+	assert.NoError(t, os.MkdirAll(projectPath, 0777))
 
 	project := datatug.Project{
 		ProjectItem: datatug.ProjectItem{
@@ -45,8 +43,11 @@ func TestFsStore_Methods(t *testing.T) {
 		},
 	}
 	data, _ := json.Marshal(project)
-	err = os.WriteFile(path.Join(datatugPath, ProjectSummaryFileName), data, 0644)
-	assert.NoError(t, err)
+	summaryFilePath := path.Join(projectPath, ProjectSummaryFileName)
+	err = os.WriteFile(summaryFilePath, data, 0644)
+	if !assert.NoError(t, err) {
+		return
+	}
 
 	store, err := NewStore("test_store", map[string]string{projectID: projectPath})
 	assert.NoError(t, err)

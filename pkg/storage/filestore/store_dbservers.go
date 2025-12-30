@@ -39,7 +39,7 @@ func (store fsDbServersStore) saveDbServers(ctx context.Context, dbServers datat
 		return nil
 	}
 	log.Printf("Saving %v DB servers...\n", len(project.DbServers))
-	dbServersDirPath := path.Join(store.projectPath, DatatugFolder, ServersFolder, DbFolder)
+	dbServersDirPath := path.Join(store.projectPath, ServersFolder, DbFolder)
 	err = parallel.Run(
 		func() (err error) {
 			return store.saveDbServersJSON(dbServersDirPath, dbServers)
@@ -84,7 +84,7 @@ func (store fsDbServerStore) SaveDbServer(_ context.Context, dbServer datatug.Pr
 	if err = dbServer.Validate(); err != nil {
 		return fmt.Errorf("db server is not valid: %w", err)
 	}
-	dbServerDirPath := path.Join(store.projectPath, DatatugFolder, ServersFolder, DbFolder, dbServer.Server.Driver, dbServer.Server.FileName())
+	dbServerDirPath := path.Join(store.projectPath, ServersFolder, DbFolder, dbServer.Server.Driver, dbServer.Server.FileName())
 	if err := os.MkdirAll(dbServerDirPath, 0777); err != nil {
 		return fmt.Errorf("failed to created server directory: %w", err)
 	}
