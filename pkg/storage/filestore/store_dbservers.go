@@ -38,7 +38,7 @@ func (store fsDbServersStore) saveDbServers(ctx context.Context, dbServers datat
 		log.Println("GetProjectStore have no DB servers to save.")
 		return nil
 	}
-	log.Printf("Saving %v DB servers...\n", len(project.DbServers))
+	//log.Printf("Saving %v DB servers...\n", len(project.DbServers))
 	dbServersDirPath := path.Join(store.projectPath, ServersFolder, DbFolder)
 	err = parallel.Run(
 		func() (err error) {
@@ -60,7 +60,7 @@ func (store fsDbServersStore) saveDbServers(ctx context.Context, dbServers datat
 	if err != nil {
 		return fmt.Errorf("failed to save DB servers: %w", err)
 	}
-	log.Printf("Saved %v DB servers.", len(project.DbServers))
+	//log.Printf("Saved %v DB servers.", len(project.DbServers))
 	return nil
 }
 
@@ -119,8 +119,8 @@ func (store fsDbServerStore) saveDbServerReadme(dbServer datatug.ProjDbServer, d
 }
 
 func (store fsDbServerStore) saveDbServerJSON(dbServer datatug.ProjDbServer, dbServerDirPath string, _ datatug.Project) error {
-	log.Println("store.projDirPath:", store.projectPath)
-	log.Println("dbServerDirPath:", dbServerDirPath)
+	//log.Println("store.projDirPath:", store.projectPath)
+	//log.Println("dbServerDirPath:", dbServerDirPath)
 	if err := os.MkdirAll(dbServerDirPath, 0777); err != nil {
 		return fmt.Errorf("failed to create a directory for DB server files: %w", err)
 	}
