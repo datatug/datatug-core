@@ -4,7 +4,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/datatug/datatug)](https://goreportcard.com/report/github.com/datatug/datatug)
 [![Version](https://img.shields.io/github/v/tag/datatug/datatug?filter=v*.*.*&logo=Go)](https://github.com/datatug/datatug/tags)
 [![GoDoc](https://godoc.org/github.com/datatug/datatug?status.svg)](https://godoc.org/github.com/datatug/datatug)
-
+[![Sourcegraph](https://sourcegraph.com/github.com/datatug/datatug-core/-/badge.svg)](https://sourcegraph.com/github.com/datatug/datatug-core?badge)
 
 ## Project structure
 
