@@ -2,7 +2,7 @@
 
 [![Build, Test, Vet, Lint](https://github.com/datatug/datatug/actions/workflows/golangci.yml/badge.svg)](https://github.com/datatug/datatug/actions/workflows/ci.yml)
 [![Qodana](https://github.com/datatug/datatug-core/actions/workflows/qodana_code_quality.yml/badge.svg)](https://github.com/datatug/datatug-core/actions/workflows/qodana_code_quality.yml)
-[![Coverage Status](https://coveralls.io/repos/github/datatug/datatug-core/badge.svg?branch=main&cache=1)](https://coveralls.io/github/datatug/datatug-core?branch=main)
+[![Coverage Status](https://coveralls.io/repos/github/datatug/datatug-core/badge.svg?branch=main)](https://coveralls.io/github/datatug/datatug-core?branch=main)
 [![Go Report Card](https://goreportcard.com/badge/github.com/datatug/datatug)](https://goreportcard.com/report/github.com/datatug/datatug)
 [![Version](https://img.shields.io/github/v/tag/datatug/datatug?filter=v*.*.*&logo=Go)](https://github.com/datatug/datatug/tags)
 [![GoDoc](https://godoc.org/github.com/datatug/datatug?status.svg)](https://godoc.org/github.com/datatug/datatug)
