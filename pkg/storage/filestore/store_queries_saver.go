@@ -21,6 +21,7 @@ type QueryLoc struct {
 }
 
 func getQueryPaths(queryID, queriesDirPath string) (ql QueryLoc, err error) {
+	_ = queriesDirPath
 	//(
 	//qID, // without directory and .json extension
 	//queryFileName,

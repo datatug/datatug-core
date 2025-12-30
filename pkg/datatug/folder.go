@@ -20,12 +20,12 @@ type Folder struct {
 	//Queries map[string]*FolderItem `json:"queries,omitempty" firestore:"queries,omitempty"`
 }
 
-func (f *Folder) GetID() string {
-	return f.Name
+func (v *Folder) GetID() string {
+	return v.Name
 }
 
-func (f *Folder) SetID(id string) {
-	f.Name = id
+func (v *Folder) SetID(id string) {
+	v.Name = id
 }
 
 // FolderBrief holds brief about a folder item

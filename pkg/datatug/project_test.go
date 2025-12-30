@@ -15,7 +15,8 @@ type mockProjectLoader struct {
 	envs                Environments
 }
 
-func (m mockProjectLoader) LoadEnvironments(ctx context.Context, o ...StoreOption) (Environments, error) {
+func (m mockProjectLoader) LoadEnvironments(_ context.Context, o ...StoreOption) (Environments, error) {
+	_ = GetStoreOptions(o...)
 	if m.envs != nil || m.errLoadEnvironments != nil {
 		return m.envs, m.errLoadEnvironments
 	}
@@ -23,6 +24,7 @@ func (m mockProjectLoader) LoadEnvironments(ctx context.Context, o ...StoreOptio
 }
 
 func (m mockProjectLoader) LoadProjDbServers(_ context.Context, o ...StoreOption) (ProjDbServers, error) {
+	_ = GetStoreOptions(o...)
 	return ProjDbServers{{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "s1"}}}}, nil
 }
 

@@ -38,8 +38,6 @@ func StoreFromContext(ctx context.Context) (Store, error) {
 	return store.(Store), nil
 }
 
-var ErrStoreIsNotConfigured = fmt.Errorf("store id not configured")
-
 func GetStore(ctx context.Context, id string) (Store, error) {
 	if store, ok := stores[id]; ok && store != nil {
 		return store, nil

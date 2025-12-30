@@ -80,17 +80,17 @@ func TestFsStore_Methods(t *testing.T) {
 
 func TestNewSingleProjectStore(t *testing.T) {
 	t.Run("with_id", func(t *testing.T) {
-		path := "/path/p1"
+		projPath := "/projPath/p1"
 		id := "p1"
-		store, projID := NewSingleProjectStore(path, id)
+		store, projID := NewSingleProjectStore(projPath, id)
 		assert.Equal(t, id, projID)
-		assert.Equal(t, path, store.pathByID[projID])
+		assert.Equal(t, projPath, store.pathByID[projID])
 	})
 
 	t.Run("without_id", func(t *testing.T) {
-		path := "/path/p1"
-		store, projID := NewSingleProjectStore(path, "")
+		projPath := "/projPath/p1"
+		store, projID := NewSingleProjectStore(projPath, "")
 		assert.Equal(t, storage.SingleProjectID, projID)
-		assert.Equal(t, path, store.pathByID[projID])
+		assert.Equal(t, projPath, store.pathByID[projID])
 	})
 }

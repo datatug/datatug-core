@@ -10,6 +10,28 @@ import (
 	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
+func getTableSchema(t *testing.T, scanner Scanner, catalogID, schemaID string, tableKey datatug.DBCollectionKey) (*datatug.CollectionInfo, *datatug.DbSchema) {
+	catalog, err := scanner.ScanCatalog(context.Background(), catalogID)
+	if err != nil {
+		t.Fatalf("ScanCatalog failed: %v", err)
+	}
+
+	if catalog.ID != catalogID {
+		t.Errorf("expected catalog GetID %v, got %v", catalogID, catalog.ID)
+	}
+
+	schema := catalog.Schemas.GetByID(schemaID)
+	if schema == nil {
+		t.Fatalf("schema %v not found", schemaID)
+	}
+
+	table := datatug.Tables(schema.Tables).GetByKey(tableKey)
+	if table == nil {
+		t.Fatalf("table %v not found", tableKey)
+	}
+	return table, schema
+}
+
 func TestScanCatalog_Bulk(t *testing.T) {
 	catalogID := "test_catalog"
 	schemaID := "test_schema"
@@ -66,24 +88,8 @@ func TestScanCatalog_Bulk(t *testing.T) {
 	}
 
 	scanner := NewScanner(provider)
-	catalog, err := scanner.ScanCatalog(context.Background(), catalogID)
-	if err != nil {
-		t.Fatalf("ScanCatalog failed: %v", err)
-	}
 
-	if catalog.ID != catalogID {
-		t.Errorf("expected catalog GetID %v, got %v", catalogID, catalog.ID)
-	}
-
-	schema := catalog.Schemas.GetByID(schemaID)
-	if schema == nil {
-		t.Fatalf("schema %v not found", schemaID)
-	}
-
-	table := datatug.Tables(schema.Tables).GetByKey(table1.DBCollectionKey)
-	if table == nil {
-		t.Fatalf("table %v not found", tableName)
-	}
+	table, _ := getTableSchema(t, scanner, catalogID, schemaID, table1.DBCollectionKey)
 
 	if len(table.Columns) != 1 {
 		t.Errorf("expected 1 column, got %v", len(table.Columns))
@@ -128,12 +134,8 @@ func TestScanCatalog_NonBulk(t *testing.T) {
 	}
 
 	scanner := NewScanner(provider)
-	catalog, err := scanner.ScanCatalog(context.Background(), catalogID)
-	if err != nil {
-		t.Fatalf("ScanCatalog failed: %v", err)
-	}
 
-	table := datatug.Tables(catalog.Schemas.GetByID(schemaID).Tables).GetByKey(table1.DBCollectionKey)
+	table, _ := getTableSchema(t, scanner, catalogID, schemaID, table1.DBCollectionKey)
 	if len(table.Columns) != 1 {
 		t.Errorf("expected 1 column, got %v", len(table.Columns))
 	}

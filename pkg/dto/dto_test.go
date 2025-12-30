@@ -1,9 +1,10 @@
 package dto
 
 import (
+	"testing"
+
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestCreateFolder_Validate(t *testing.T) {

@@ -27,6 +27,27 @@ func newQueryDef(queryType QueryType, text string) QueryDef {
 	}
 }
 
+func TestIsKnownQueryType(t *testing.T) {
+	tests := []struct {
+		name      string
+		queryType QueryType
+		want      bool
+	}{
+		{"SQL", QueryTypeSQL, true},
+		{"HTTP", QueryTypeHTTP, true},
+		{"StructuredSQL", QueryTypeStructuredSQL, true},
+		{"Empty", "", false},
+		{"Unknown", "Unknown", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsKnownQueryType(tt.queryType); got != tt.want {
+				t.Errorf("IsKnownQueryType() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestQueryFolders_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
 		v := QueryFolders{{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "f1"}}}}

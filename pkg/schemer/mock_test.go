@@ -78,7 +78,8 @@ func (m *mockColumnsReader) NextColumn() (Column, error) {
 	return col, nil
 }
 
-func (m *mockSchemaProvider) GetColumnsReader(c context.Context, catalog string, filter ColumnsFilter) (ColumnsReader, error) {
+func (m *mockSchemaProvider) GetColumnsReader(_ context.Context, catalog string, filter ColumnsFilter) (ColumnsReader, error) {
+	_, _ = catalog, filter
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -88,14 +89,16 @@ func (m *mockSchemaProvider) GetColumnsReader(c context.Context, catalog string,
 	return &mockColumnsReader{columns: m.columns, err: m.nextColumnErr}, nil
 }
 
-func (m *mockSchemaProvider) GetColumns(c context.Context, catalog string, filter ColumnsFilter) ([]Column, error) {
+func (m *mockSchemaProvider) GetColumns(_ context.Context, catalog string, filter ColumnsFilter) ([]Column, error) {
+	_, _ = catalog, filter
 	if m.err != nil {
 		return nil, m.err
 	}
 	return m.columns, nil
 }
 
-func (m *mockSchemaProvider) GetIndexes(c context.Context, catalog, schema, table string) (IndexesReader, error) {
+func (m *mockSchemaProvider) GetIndexes(_ context.Context, catalog, schema, table string) (IndexesReader, error) {
+	_, _, _ = catalog, schema, table
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -123,7 +126,8 @@ func (m *mockIndexesReader) NextIndex() (*Index, error) {
 	return idx, nil
 }
 
-func (m *mockSchemaProvider) GetIndexColumns(c context.Context, catalog, schema, table, index string) (IndexColumnsReader, error) {
+func (m *mockSchemaProvider) GetIndexColumns(_ context.Context, catalog, schema, table, index string) (IndexColumnsReader, error) {
+	_, _, _, _ = catalog, schema, table, index
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -151,7 +155,8 @@ func (m *mockIndexColumnsReader) NextIndexColumn() (*IndexColumn, error) {
 	return ic, nil
 }
 
-func (m *mockSchemaProvider) GetConstraints(c context.Context, catalog, schema, table string) (ConstraintsReader, error) {
+func (m *mockSchemaProvider) GetConstraints(_ context.Context, catalog, schema, table string) (ConstraintsReader, error) {
+	_, _, _ = catalog, schema, table
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -179,7 +184,7 @@ func (m *mockConstraintsReader) NextConstraint() (*Constraint, error) {
 	return cs, nil
 }
 
-func (m *mockSchemaProvider) RecordsCount(c context.Context, catalog, schema, table string) (*int, error) {
+func (m *mockSchemaProvider) RecordsCount(_ context.Context, catalog, schema, table string) (*int, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -193,14 +198,17 @@ func (m *mockSchemaProvider) RecordsCount(c context.Context, catalog, schema, ta
 	return &count, nil
 }
 
-func (m *mockSchemaProvider) GetReferrers(c context.Context, schema, table string) ([]ForeignKey, error) {
+func (m *mockSchemaProvider) GetReferrers(_ context.Context, schema, table string) ([]ForeignKey, error) {
+	_, _ = schema, table
 	return nil, nil
 }
 
-func (m *mockSchemaProvider) GetForeignKeysReader(c context.Context, schema, table string) (ForeignKeysReader, error) {
+func (m *mockSchemaProvider) GetForeignKeysReader(_ context.Context, schema, table string) (ForeignKeysReader, error) {
+	_, _ = schema, table
 	return nil, nil
 }
 
-func (m *mockSchemaProvider) GetForeignKeys(c context.Context, schema, table string) ([]ForeignKey, error) {
+func (m *mockSchemaProvider) GetForeignKeys(_ context.Context, schema, table string) ([]ForeignKey, error) {
+	_, _ = schema, table
 	return nil, nil
 }

@@ -127,6 +127,15 @@ const (
 	QueryTypeStructuredSQL QueryType = "StructuredSQL"
 )
 
+func IsKnownQueryType(queryType QueryType) bool {
+	switch queryType {
+	case QueryTypeSQL, QueryTypeHTTP, QueryTypeStructuredSQL:
+		return true
+	default:
+		return false
+	}
+}
+
 // QueryDef holds query data
 // For HTTP request host, port, etc, are stored in Targets property,
 type QueryDef struct {
