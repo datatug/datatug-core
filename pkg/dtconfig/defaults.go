@@ -1,4 +1,4 @@
-package appconfig
+package dtconfig
 
 //const (
 //	DefaultHost       = "localhost"

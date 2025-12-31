@@ -1,4 +1,4 @@
-package appconfig
+package dtconfig
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 // Settings hold DataTug executable configuration for commands like `serve`
 type Settings struct {
 	// Intentionally do not use map
-	Projects []*ProjectConfig `yaml:"projects,omitempty" json:"projects,omitempty"`
+	Projects []*ProjectRef `yaml:"projects,omitempty" json:"projects,omitempty"`
 
 	Client *ClientConfig `yaml:"client,omitempty" json:"client,omitempty"`
 	Server *ServerConfig `yaml:"server,omitempty" json:"server,omitempty"`
@@ -21,7 +21,7 @@ type Settings struct {
 	Credentials map[string][]AuthCredential `yaml:"credentials,omitempty" json:"credentials,omitempty"`
 }
 
-func (v Settings) GetProjectConfig(projectID string) *ProjectConfig {
+func (v Settings) GetProjectConfig(projectID string) *ProjectRef {
 	for _, p := range v.Projects {
 		if p.ID == projectID {
 			return p
@@ -52,15 +52,22 @@ type StoreType string
 
 //const FileStoreUrlPrefix = "file:"
 
-// ProjectConfig hold project configuration, specifically path to project directory
-type ProjectConfig struct {
+// ProjectRef hold project configuration, specifically path to project directory
+type ProjectRef struct {
 	ID    string `yaml:"id"`
 	Path  string `yaml:"path,omitempty"` // Local path
 	Url   string `yaml:"url,omitempty"`
 	Title string `yaml:"title,omitempty"`
 }
 
-func (v ProjectConfig) Validate() error {
+func (v ProjectRef) Validate() error {
+	var empty ProjectRef
+	if v == empty {
+		return fmt.Errorf("is empty")
+	}
+	if v.ID == "" && v.Path == "" && v.Url == "" {
+		return fmt.Errorf("at least one of key fields must be set: id, path, url")
+	}
 	return nil
 }
 
@@ -76,16 +83,22 @@ func GetConfigFilePath() string {
 	return path.Join(configFilePath, ConfigFileName)
 }
 
-var osOpen = func(name string) (io.ReadCloser, error) {
+var standardOsOpen = func(name string) (io.ReadCloser, error) {
 	return os.Open(name)
 }
 
-var openFile = osOpen
+var osOpen = standardOsOpen
+
+var osCreate = func(name string) (interface{ io.WriteCloser }, error) {
+	return os.Create(name)
+}
+
+var getSettings = GetSettings
 
 func GetSettings() (settings Settings, err error) {
 	configFilePath := GetConfigFilePath()
 	var f io.ReadCloser
-	if f, err = openFile(configFilePath); err != nil {
+	if f, err = osOpen(configFilePath); err != nil {
 		return
 	}
 	defer func() {
@@ -99,4 +112,50 @@ func GetSettings() (settings Settings, err error) {
 	}
 	//setDefault(&settings)
 	return
+}
+
+var saveSettings = SaveSettings
+
+func SaveSettings(settings Settings) error {
+	configFilePath := GetConfigFilePath()
+	f, err := osCreate(configFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to create settings file: %w", err)
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	if settings.Server != nil && settings.Server.IsEmpty() {
+		settings.Server = nil
+	}
+	if settings.Client != nil && settings.Client.IsEmpty() {
+		settings.Client = nil
+	}
+
+	encoder := yaml.NewEncoder(f)
+	if err = encoder.Encode(settings); err != nil {
+		return fmt.Errorf("failed to encode settings: %w", err)
+	}
+	return nil
+}
+
+func AddProjectToSettings(project ProjectRef) error {
+
+	settings, err := getSettings()
+
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to get DataTug CLI settings: %w", err)
+	}
+
+	// Check if already exists
+	for _, p := range settings.Projects {
+		if p.ID == project.ID {
+			return fmt.Errorf("project already exists, id: %s", p.ID)
+		}
+	}
+
+	settings.Projects = append(settings.Projects, &project)
+
+	return saveSettings(settings)
 }

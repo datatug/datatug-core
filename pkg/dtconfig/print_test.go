@@ -1,4 +1,4 @@
-package appconfig
+package dtconfig
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 
 func TestPrintSettings(t *testing.T) {
 	settings := Settings{
-		Projects: []*ProjectConfig{
+		Projects: []*ProjectRef{
 			{ID: "p1", Path: "/path/1"},
 		},
 	}

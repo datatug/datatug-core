@@ -1,6 +1,36 @@
 package datatug
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
+
+type Step struct {
+	Name   string
+	Status string
+}
+
+type StatusReporter func(steps []*Step)
+
+type ProjectVisibility int
+
+const (
+	PublicProject ProjectVisibility = iota
+	PrivateProject
+)
+
+func (v ProjectVisibility) Validate() error {
+	switch v {
+	case PublicProject, PrivateProject:
+		return nil
+	default:
+		return fmt.Errorf("invalid project visibility: %v", v)
+	}
+}
+
+type ProjectsStore interface {
+	CreateNewProject(ctx context.Context, id, title string, visibility ProjectVisibility, report StatusReporter) (project *Project, err error)
+}
 
 type ProjectStore interface {
 	ProjectID() string

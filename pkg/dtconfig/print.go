@@ -1,4 +1,4 @@
-package appconfig
+package dtconfig
 
 import (
 	"fmt"

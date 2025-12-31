@@ -200,7 +200,7 @@ func (v ProjectFile) Validate() error {
 	return nil
 }
 
-// ProjectCreated hold info about when & who created
+// ProjectCreated hold info about when and who created
 type ProjectCreated struct {
 	//ByName     string    `json:"byName,omitempty"`
 	//ByUsername string    `json:"byUsername,omitempty"`

@@ -1,13 +1,15 @@
-package appconfig
+package dtconfig
 
 import (
 	"bytes"
 	"errors"
 	"io"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/mitchellh/go-homedir"
+	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )
 
@@ -52,7 +54,7 @@ func TestGetSettings(t *testing.T) {
 			name: "success",
 			openFile: func(name string) (io.ReadCloser, error) {
 				settings := Settings{
-					Projects: []*ProjectConfig{
+					Projects: []*ProjectRef{
 						{
 							ID:   "project1",
 							Path: "~/datatug/project1",
@@ -63,7 +65,7 @@ func TestGetSettings(t *testing.T) {
 				return io.NopCloser(bytes.NewReader(s)), err
 			},
 			wantSettings: Settings{
-				Projects: []*ProjectConfig{
+				Projects: []*ProjectRef{
 					{
 						ID:   "project1",
 						Path: "~/datatug/project1",
@@ -75,9 +77,9 @@ func TestGetSettings(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			defer func() {
-				openFile = osOpen
+				osOpen = standardOsOpen
 			}()
-			openFile = tt.openFile
+			osOpen = tt.openFile
 			gotSettings, err := GetSettings()
 			if err != nil {
 				if tt.wantErr == nil {
@@ -147,7 +149,7 @@ func TestAuthCredential_Validate(t *testing.T) {
 
 func TestSettings_GetProjectConfig(t *testing.T) {
 	settings := Settings{
-		Projects: []*ProjectConfig{
+		Projects: []*ProjectRef{
 			{ID: "p1"},
 			{ID: "p2"},
 		},
@@ -188,8 +190,130 @@ func TestUrlConfig_IsEmpty(t *testing.T) {
 }
 
 func TestProjectConfig_Validate(t *testing.T) {
-	v := ProjectConfig{}
-	if err := v.Validate(); err != nil {
-		t.Errorf("Validate() error = %v, want nil", err)
+	tests := []struct {
+		name    string
+		p       ProjectRef
+		wantErr string
+	}{
+		{
+			name:    "empty",
+			p:       ProjectRef{},
+			wantErr: "empty",
+		},
+		{
+			name:    "title_only",
+			p:       ProjectRef{Title: "Project 1"},
+			wantErr: "at least one of key fields must be set",
+		},
+		{
+			name: "id_only",
+			p:    ProjectRef{ID: "project1"},
+		},
+		{
+			name: "full_success",
+			p: ProjectRef{
+				ID:    "project1",
+				Path:  "~/datatug/github.com/datatug/project1",
+				Url:   "http://github.com/datatug/project1",
+				Title: "Project 1",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.p.Validate()
+			if tt.wantErr == "" {
+				if err != nil {
+					t.Errorf("ProjectConfig.Validate() returned unexpected error: %v", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Errorf("ProjectConfig.Validate() expected error %s, got nil", tt.wantErr)
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("ProjectConfig.Validate() expected error to contain %v, got %v", tt.wantErr, err)
+				return
+			}
+		})
+	}
+}
+
+func TestAddProjectToSettings(t *testing.T) {
+	var savedSettings *Settings
+
+	tests := []struct {
+		name         string
+		project      ProjectRef
+		wantErr      string
+		getSettings  func() (settings Settings, err error)
+		saveSettings func(settings Settings) error
+	}{
+		{
+			name:    "add_to_empty",
+			project: ProjectRef{ID: "project1", Path: "~/datatug/project1"},
+			getSettings: func() (settings Settings, err error) {
+				return
+			},
+			saveSettings: func(settings Settings) error {
+				savedSettings = &settings
+				return nil
+			},
+		},
+		{
+			name:    "add_2nd_project",
+			project: ProjectRef{ID: "project2", Path: "~/datatug/project2"},
+			getSettings: func() (settings Settings, err error) {
+				return Settings{
+					Projects: []*ProjectRef{
+						{ID: "project1", Path: "~/datatug/project1"},
+					},
+				}, nil
+			},
+			saveSettings: func(settings Settings) error {
+				savedSettings = &settings
+				return nil
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.getSettings != nil {
+				getSettings = tt.getSettings
+				defer func() {
+					getSettings = GetSettings
+				}()
+			}
+			if tt.saveSettings != nil {
+				saveSettings = tt.saveSettings
+				defer func() {
+					saveSettings = SaveSettings
+				}()
+			}
+			savedSettings = nil
+			err := AddProjectToSettings(tt.project)
+			if tt.wantErr == "" {
+				if err != nil {
+					t.Errorf("AddProjectToSettings() unexpected error = %v", err)
+				}
+				assert.NotNil(t, savedSettings)
+				projIndex := len(savedSettings.Projects) - 1
+				assert.Equal(t, &tt.project, savedSettings.Projects[projIndex])
+				if len(savedSettings.Projects) > 1 {
+					for i, p := range savedSettings.Projects {
+						if i != projIndex {
+							assert.NotEqual(t, tt.project.ID, p.ID)
+						}
+					}
+				}
+				return
+			}
+			if err == nil {
+				t.Errorf("AddProjectToSettings() expected error, got nil")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("AddProjectToSettings() expected error = %v, got %v", tt.wantErr, err)
+			}
+		})
 	}
 }

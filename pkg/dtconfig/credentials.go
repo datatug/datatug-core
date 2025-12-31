@@ -1,4 +1,4 @@
-package appconfig
+package dtconfig
 
 type AuthCredential struct {
 	ID    string `json:"GetID"` // Like USER or service account ID
