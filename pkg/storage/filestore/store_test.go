@@ -43,7 +43,7 @@ func TestFsStore_Methods(t *testing.T) {
 		},
 	}
 	data, _ := json.Marshal(project)
-	summaryFilePath := path.Join(projectPath, ProjectSummaryFileName)
+	summaryFilePath := path.Join(projectPath, storage.ProjectSummaryFileName)
 	err = os.WriteFile(summaryFilePath, data, 0644)
 	if !assert.NoError(t, err) {
 		return

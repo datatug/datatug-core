@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +22,7 @@ func TestFsBoardsStore(t *testing.T) {
 		_ = os.RemoveAll(tmpDir)
 	}()
 
-	boardsDir := filepath.Join(tmpDir, BoardsFolder)
+	boardsDir := filepath.Join(tmpDir, storage.BoardsFolder)
 	err = os.MkdirAll(boardsDir, 0777)
 	assert.NoError(t, err)
 
@@ -44,7 +45,7 @@ func TestFsBoardsStore(t *testing.T) {
 
 	saveBoard := func(b *datatug.Board) {
 		data, _ := json.Marshal(b)
-		fileName := fmt.Sprintf("%v.%v.json", b.ID, boardFileSuffix)
+		fileName := fmt.Sprintf("%v.%v.json", b.ID, storage.BoardFileSuffix)
 		err = os.WriteFile(filepath.Join(boardsDir, fileName), data, 0644)
 		assert.NoError(t, err)
 	}

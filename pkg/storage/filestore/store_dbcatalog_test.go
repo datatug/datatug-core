@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +28,7 @@ func TestDbCatalogStore(t *testing.T) {
 	}
 
 	catalogID := "db1"
-	catalogsDirPath := path.Join(projectPath, ServersFolder, DbFolder, dbServer.Driver, dbServer.Host, EnvDbCatalogsFolder)
+	catalogsDirPath := path.Join(projectPath, storage.ServersFolder, storage.DbFolder, dbServer.Driver, dbServer.Host, storage.EnvDbCatalogsFolder)
 	catalogPath := path.Join(catalogsDirPath, catalogID)
 	err = os.MkdirAll(catalogPath, 0755)
 	assert.NoError(t, err)

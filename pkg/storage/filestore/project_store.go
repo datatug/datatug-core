@@ -6,6 +6,7 @@ import (
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/datatug2md"
+	"github.com/datatug/datatug-core/pkg/storage"
 )
 
 var _ datatug.ProjectStore = (*fsProjectStore)(nil)
@@ -57,7 +58,7 @@ func (s fsProjectStore) LoadEnvironmentSummary(ctx context.Context, id string) (
 }
 
 func (s fsProjectStore) LoadProjDbServerSummary(ctx context.Context, id string) (*datatug.ProjDbServerSummary, error) {
-	dirPath := path.Join(s.projectPath, ServersFolder)
+	dirPath := path.Join(s.projectPath, storage.ServersFolder)
 	server, err := s.fsEnvDbServersStore.loadProjectItem(ctx, dirPath, id, "")
 	if err != nil {
 		return nil, err
@@ -69,7 +70,7 @@ func (s fsProjectStore) LoadProjDbServerSummary(ctx context.Context, id string) 
 }
 
 func (s fsProjectStore) SaveProjDbServer(ctx context.Context, server *datatug.ProjDbServer) error {
-	dirPath := path.Join(s.projectPath, ServersFolder)
+	dirPath := path.Join(s.projectPath, storage.ServersFolder)
 	envDbServer := &datatug.EnvDbServer{
 		ServerReference: server.Server,
 	}
@@ -77,7 +78,7 @@ func (s fsProjectStore) SaveProjDbServer(ctx context.Context, server *datatug.Pr
 }
 
 func (s fsProjectStore) DeleteProjDbServer(ctx context.Context, id string) error {
-	dirPath := path.Join(s.projectPath, ServersFolder)
+	dirPath := path.Join(s.projectPath, storage.ServersFolder)
 	return s.fsEnvDbServersStore.deleteProjectItem(ctx, dirPath, id)
 }
 
@@ -90,7 +91,7 @@ func (s fsProjectStore) LoadEnvironments(ctx context.Context, o ...datatug.Store
 }
 
 func (s fsProjectStore) LoadProjDbServers(ctx context.Context, o ...datatug.StoreOption) (datatug.ProjDbServers, error) {
-	dirPath := path.Join(s.projectPath, ServersFolder)
+	dirPath := path.Join(s.projectPath, storage.ServersFolder)
 	items, err := s.fsEnvDbServersStore.loadProjectItems(ctx, dirPath, o...)
 	if err != nil {
 		return nil, err

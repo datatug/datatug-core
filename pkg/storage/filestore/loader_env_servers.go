@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 )
 
 func loadEnvServers(dirPath string, env *datatug.Environment) error {
@@ -14,8 +15,8 @@ func loadEnvServers(dirPath string, env *datatug.Environment) error {
 		env.DbServers = make([]*datatug.EnvDbServer, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 		fileName := f.Name()
-		serverName, suffix := getProjItemIDFromFileName(fileName)
-		if suffix != serverFileSuffix {
+		serverName, suffix := storage.GetProjItemIDFromFileName(fileName)
+		if suffix != storage.ServerFileSuffix {
 			return nil
 		}
 		servers := make([]*datatug.EnvDbServer, 0, 1)

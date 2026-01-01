@@ -10,7 +10,7 @@ type Step struct {
 	Status string
 }
 
-type StatusReporter func(steps []*Step)
+type StatusReporter func(step string, status string)
 
 type ProjectVisibility int
 

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -61,13 +62,13 @@ func TestDbSchemaSaver(t *testing.T) {
 			catalog:    catalogID,
 			dbServer:   datatug.ProjDbServer{Server: dbServer},
 			repository: &datatug.ProjectRepository{},
-			dirPath:    path.Join(projectPath, ServersFolder, DbFolder, dbServer.Driver, dbServer.Host, EnvDbCatalogsFolder, catalogID),
+			dirPath:    path.Join(projectPath, storage.ServersFolder, storage.DbFolder, dbServer.Driver, dbServer.Host, storage.EnvDbCatalogsFolder, catalogID),
 		}
 
 		err := store.saveDbSchemas(schemas, ctx)
 		assert.NoError(t, err)
 
-		tablePath := path.Join(ctx.dirPath, SchemasFolder, "dbo", TablesFolder, "table1")
+		tablePath := path.Join(ctx.dirPath, storage.SchemasFolder, "dbo", storage.TablesFolder, "table1")
 		assert.DirExists(t, tablePath)
 		assert.FileExists(t, path.Join(tablePath, "dbo.table1.json"))
 	})

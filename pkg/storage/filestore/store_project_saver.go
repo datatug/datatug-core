@@ -8,6 +8,7 @@ import (
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/parallel"
+	"github.com/datatug/datatug-core/pkg/storage"
 )
 
 // SaveProject saves project
@@ -92,7 +93,7 @@ func (s fsProjectStore) putProjectFile(projFile datatug.ProjectFile) error {
 	if err := projFile.Validate(); err != nil {
 		return fmt.Errorf("invalid project file: %w", err)
 	}
-	return saveJSONFile(s.projectPath, ProjectSummaryFileName, projFile)
+	return saveJSONFile(s.projectPath, storage.ProjectSummaryFileName, projFile)
 }
 
 //func projItemFileName(id, prefix string) string {

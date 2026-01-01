@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +19,7 @@ func TestEnvironmentsStore(t *testing.T) {
 
 	projectID := "p1"
 	projectPath := filepath.Join(tmpDir, projectID)
-	envsDir := filepath.Join(projectPath, EnvironmentsFolder)
+	envsDir := filepath.Join(projectPath, storage.EnvironmentsFolder)
 	err = os.MkdirAll(envsDir, 0777)
 	assert.NoError(t, err)
 
@@ -30,7 +31,7 @@ func TestEnvironmentsStore(t *testing.T) {
 	err = os.MkdirAll(envDir, 0777)
 	assert.NoError(t, err)
 
-	err = os.WriteFile(filepath.Join(envDir, environmentSummaryFileName), envData, 0644)
+	err = os.WriteFile(filepath.Join(envDir, storage.EnvironmentSummaryFileName), envData, 0644)
 	assert.NoError(t, err)
 
 	err = os.MkdirAll(filepath.Join(envDir, "dev", "servers"), 0777)
@@ -64,7 +65,7 @@ func TestEnvironmentsStore(t *testing.T) {
 			}
 			err := envsStore.SaveEnvironments(ctx, datatug.Environments{&env})
 			assert.NoError(t, err)
-			assert.FileExists(t, filepath.Join(envsDir, "prod", environmentSummaryFileName))
+			assert.FileExists(t, filepath.Join(envsDir, "prod", storage.EnvironmentSummaryFileName))
 		})
 	})
 }

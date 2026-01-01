@@ -1,4 +1,4 @@
-package filestore
+package storage
 
 import (
 	"fmt"
@@ -24,23 +24,23 @@ const (
 	//DatatugFolder          = "datatug"
 )
 
-func jsonFileName(id, suffix string) string {
+func JsonFileName(id, suffix string) string {
 	if suffix == "" {
 		return id + ".json"
 	}
 	switch suffix {
 	case
-		boardFileSuffix,
-		dbCatalogFileSuffix,
-		dbCatalogObjectFileSuffix,
-		dbCatalogRefsFileSuffix,
-		dbModelFileSuffix,
-		dbServerFileSuffix,
-		recordsetFileSuffix,
-		entityFileSuffix,
-		serverFileSuffix,
-		columnsFileSuffix,
-		queryFileSuffix:
+		BoardFileSuffix,
+		DbCatalogFileSuffix,
+		DbCatalogObjectFileSuffix,
+		DbCatalogRefsFileSuffix,
+		DbModelFileSuffix,
+		DbServerFileSuffix,
+		RecordsetFileSuffix,
+		EntityFileSuffix,
+		ServerFileSuffix,
+		ColumnsFileSuffix,
+		QueryFileSuffix:
 		// OK
 	default:
 		panic(fmt.Sprintf("unknown JSON file suffix=[%v], id=[%v]", suffix, id))
@@ -49,7 +49,7 @@ func jsonFileName(id, suffix string) string {
 	return fmt.Sprintf("%v.%v.json", id, suffix)
 }
 
-func getProjItemIDFromFileName(fileName string) (id string, suffix string) {
+func GetProjItemIDFromFileName(fileName string) (id string, suffix string) {
 	parts := strings.Split(fileName, ".")
 	if len(parts) < 3 {
 		return "", ""
@@ -61,19 +61,19 @@ func getProjItemIDFromFileName(fileName string) (id string, suffix string) {
 }
 
 const (
-	boardFileSuffix           = "board"
-	dbCatalogFileSuffix       = "db"
-	dbCatalogObjectFileSuffix = "objects"
-	dbCatalogRefsFileSuffix   = "refs"
-	dbModelFileSuffix         = "dbmodel"
-	dbServerFileSuffix        = "dbserver"
-	recordsetFileSuffix       = "recordset"
-	entityFileSuffix          = "entity"
-	serverFileSuffix          = "server"
-	columnsFileSuffix         = "columns"
-	queryFileSuffix           = "query"
+	BoardFileSuffix           = "board"
+	DbCatalogFileSuffix       = "db"
+	DbCatalogObjectFileSuffix = "objects"
+	DbCatalogRefsFileSuffix   = "refs"
+	DbModelFileSuffix         = "dbmodel"
+	DbServerFileSuffix        = "dbserver"
+	RecordsetFileSuffix       = "recordset"
+	EntityFileSuffix          = "entity"
+	ServerFileSuffix          = "server"
+	ColumnsFileSuffix         = "columns"
+	QueryFileSuffix           = "query"
 )
 
 const (
-	environmentSummaryFileName = "environment-summary.json"
+	EnvironmentSummaryFileName = "environment-summary.json"
 )

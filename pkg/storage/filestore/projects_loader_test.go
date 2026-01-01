@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,7 +38,7 @@ func TestProjectsLoader(t *testing.T) {
 		},
 	}
 	data, _ := json.Marshal(project)
-	err = os.WriteFile(path.Join(projectDir, ProjectSummaryFileName), data, 0644)
+	err = os.WriteFile(path.Join(projectDir, storage.ProjectSummaryFileName), data, 0644)
 	assert.NoError(t, err)
 
 	loader := NewProjectsLoader(tmpDir)

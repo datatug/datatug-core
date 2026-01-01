@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,7 +45,7 @@ func TestFsEnvCatalogStore(t *testing.T) {
 		// Verify file exists
 		// In SaveEnvDbCatalog, filepath.Join(s.dirPath, envID, ServersFolder, serverID, EnvDbCatalogsFolder) is used.
 		// Note that ServersFolder is "servers", EnvDbCatalogsFolder is "catalogs".
-		catalogPath := path.Join(tmpDir, "environments", envID, "servers", serverID, "catalogs", catalogID+"."+dbCatalogFileSuffix+".json")
+		catalogPath := path.Join(tmpDir, "environments", envID, "servers", serverID, "catalogs", catalogID+"."+storage.DbCatalogFileSuffix+".json")
 		_, err = os.Stat(catalogPath)
 		assert.NoError(t, err)
 	})

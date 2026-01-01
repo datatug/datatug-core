@@ -41,6 +41,8 @@ projects:
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			oldOsOpen := osOpen
+			defer func() { osOpen = oldOsOpen }()
 			osOpen = func(name string) (f io.ReadCloser, err error) {
 				f = io.NopCloser(strings.NewReader(tt.fileContent))
 				return

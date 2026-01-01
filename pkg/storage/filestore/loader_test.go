@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,16 +36,16 @@ func TestLoader(t *testing.T) {
 		},
 	}
 	projData, _ := json.Marshal(projFile)
-	err = os.WriteFile(path.Join(projPath, ProjectSummaryFileName), projData, 0644)
+	err = os.WriteFile(path.Join(projPath, storage.ProjectSummaryFileName), projData, 0644)
 	assert.NoError(t, err)
 
 	// Create entities dir to avoid LoadEnvironments failure if it's missing (though it should be optional)
-	entitiesDir := path.Join(tmpDir, EntitiesFolder)
+	entitiesDir := path.Join(tmpDir, storage.EntitiesFolder)
 	err = os.MkdirAll(entitiesDir, 0755)
 	assert.NoError(t, err)
 
 	// Create a board
-	boardsDir := path.Join(tmpDir, BoardsFolder)
+	boardsDir := path.Join(tmpDir, storage.BoardsFolder)
 	err = os.MkdirAll(boardsDir, 0755)
 	assert.NoError(t, err)
 	board := datatug.Board{
@@ -59,7 +60,7 @@ func TestLoader(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create a DB model
-	dbModelsDir := path.Join(tmpDir, DbModelsFolder)
+	dbModelsDir := path.Join(tmpDir, storage.DbModelsFolder)
 	modelID := "model1"
 	modelDir := path.Join(dbModelsDir, modelID)
 	err = os.MkdirAll(modelDir, 0755)
@@ -79,7 +80,7 @@ func TestLoader(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create environments
-	envsDir := path.Join(tmpDir, EnvironmentsFolder)
+	envsDir := path.Join(tmpDir, storage.EnvironmentsFolder)
 	envID := "dev"
 	envDir := path.Join(envsDir, envID)
 	err = os.MkdirAll(envDir, 0755)
@@ -93,12 +94,12 @@ func TestLoader(t *testing.T) {
 	}
 	envData, err := json.Marshal(env)
 	assert.NoError(t, err)
-	envSummaryFile := path.Join(envDir, environmentSummaryFileName)
+	envSummaryFile := path.Join(envDir, storage.EnvironmentSummaryFileName)
 	err = os.WriteFile(envSummaryFile, envData, 0644)
 	assert.NoError(t, err)
 
 	// Create DB servers
-	serversDir := path.Join(tmpDir, ServersFolder, DbFolder)
+	serversDir := path.Join(tmpDir, storage.ServersFolder, storage.DbFolder)
 	driver := "postgres"
 	serverName := "localhost"
 	serverDir := path.Join(serversDir, driver, serverName)
@@ -111,7 +112,7 @@ func TestLoader(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create DB catalogs folder
-	dbCatalogsDir := path.Join(serverDir, EnvDbCatalogsFolder)
+	dbCatalogsDir := path.Join(serverDir, storage.EnvDbCatalogsFolder)
 	err = os.MkdirAll(dbCatalogsDir, 0755)
 	assert.NoError(t, err)
 
@@ -128,7 +129,7 @@ func TestLoader(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create a table in catalog
-	catalogSchemasDir := path.Join(catalogDir, SchemasFolder)
+	catalogSchemasDir := path.Join(catalogDir, storage.SchemasFolder)
 	catalogSchemaID := "public"
 	catalogSchemaDir := path.Join(catalogSchemasDir, catalogSchemaID)
 	err = os.MkdirAll(path.Join(catalogSchemaDir, "tables", "users"), 0755)

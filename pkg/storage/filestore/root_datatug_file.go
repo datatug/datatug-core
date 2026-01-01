@@ -6,12 +6,13 @@ import (
 	"path"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"gopkg.in/yaml.v3"
 )
 
 func LoadRootDatatugFile(dir string) (repoRootFile *datatug.RepoRootFile, err error) {
 	var f io.ReadCloser
-	filePath := path.Join(dir, RepoRootDataTugFileName)
+	filePath := path.Join(dir, storage.RepoRootDataTugFileName)
 	if f, err = osOpen(filePath); err != nil {
 		return
 	}

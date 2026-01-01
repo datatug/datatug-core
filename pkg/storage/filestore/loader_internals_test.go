@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,7 +33,7 @@ func TestLoaderInternals(t *testing.T) {
 			},
 		}
 		data, _ := json.Marshal(dbModel)
-		err = os.WriteFile(path.Join(dbModelDir, dbModelID+"."+dbModelFileSuffix+".json"), data, 0666)
+		err = os.WriteFile(path.Join(dbModelDir, dbModelID+"."+storage.DbModelFileSuffix+".json"), data, 0666)
 		assert.NoError(t, err)
 
 		// Create a schema directory
@@ -64,7 +65,7 @@ func TestLoaderInternals(t *testing.T) {
 			},
 		}
 		data, _ := json.Marshal(catalog)
-		err = os.WriteFile(path.Join(catalogDir, "db1."+dbCatalogFileSuffix+".json"), data, 0666)
+		err = os.WriteFile(path.Join(catalogDir, "db1."+storage.DbCatalogFileSuffix+".json"), data, 0666)
 		assert.NoError(t, err)
 
 		// Create schemas dir

@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 )
 
 var _ datatug.QueriesStore = (*fsQueriesStore)(nil)
@@ -13,7 +14,7 @@ var _ datatug.QueriesStore = (*fsQueriesStore)(nil)
 func newFsQueriesStore(projectPath string) fsQueriesStore {
 	return fsQueriesStore{
 		fsProjectItemsStore: newFileProjectItemsStore[datatug.QueryDefs, *datatug.QueryDef, datatug.QueryDef](
-			path.Join(projectPath, QueriesFolder), queryFileSuffix,
+			path.Join(projectPath, storage.QueriesFolder), storage.QueryFileSuffix,
 		),
 	}
 }

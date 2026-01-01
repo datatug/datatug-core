@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 )
 
 var _ datatug.EnvDbServersStore = (*fsEnvDbServersStore)(nil)
@@ -13,7 +14,7 @@ var _ datatug.EnvDbServersStore = (*fsEnvDbServersStore)(nil)
 func newFsEnvDbServersStore(projectPath string) fsEnvDbServersStore {
 	return fsEnvDbServersStore{
 		fsProjectItemsStore: newFileProjectItemsStore[datatug.EnvDbServers, *datatug.EnvDbServer, datatug.EnvDbServer](
-			path.Join(projectPath, EnvironmentsFolder), boardFileSuffix,
+			path.Join(projectPath, storage.EnvironmentsFolder), storage.BoardFileSuffix,
 		),
 	}
 }
@@ -81,7 +82,7 @@ func (f fsEnvDbServersStore) DeleteEnvDbServer(ctx context.Context, envID, serve
 //	if host == "" {
 //		return errors.New("func saveEnvServerHost can not accept empty string for `host` parameter")
 //	}
-//	fileName := jsonFileName(host, serverFileSuffix)
+//	fileName := JsonFileName(host, ServerFileSuffix)
 //	if len(servers) == 0 {
 //		filePath := path.Join(dirPath, fileName)
 //		fileInfo, err := os.Stat(filePath)

@@ -104,7 +104,7 @@ func (store fsDbCatalogStore) saveDbCatalog(dbCatalog *datatug.EnvDbCatalog, rep
 }
 
 func (store fsDbCatalogStore) saveDbCatalogJSON(dbCatalog datatug.EnvDbCatalog, saverCtx saveDbServerObjContext) error {
-	fileName := jsonFileName(dbCatalog.ID, dbCatalogFileSuffix)
+	fileName := storage.JsonFileName(dbCatalog.ID, storage.DbCatalogFileSuffix)
 	dbFile := DbCatalogFile{
 		Driver:  dbCatalog.Driver,
 		DbModel: dbCatalog.DbModel,
@@ -145,7 +145,7 @@ func (store fsDbCatalogStore) saveDbCatalogObjects(dbCatalog datatug.EnvDbCatalo
 			})
 		}
 	}
-	fileName := jsonFileName(dbCatalog.ID, dbCatalogObjectFileSuffix)
+	fileName := storage.JsonFileName(dbCatalog.ID, storage.DbCatalogObjectFileSuffix)
 	if len(dbObjects) > 0 {
 		if err := saveJSONFile(saverCtx.dirPath, fileName, dbObjects); err != nil {
 			return fmt.Errorf("failed to write dbCatalog objects json to file: %w", err)
@@ -192,7 +192,7 @@ func (store fsDbCatalogStore) saveDbCatalogRefs(dbCatalog datatug.EnvDbCatalog, 
 			})
 		}
 	}
-	fileName := jsonFileName(dbCatalog.ID, dbCatalogRefsFileSuffix)
+	fileName := storage.JsonFileName(dbCatalog.ID, storage.DbCatalogRefsFileSuffix)
 	if len(dbObjects) > 0 {
 		if err := saveJSONFile(saverCtx.dirPath, fileName, dbObjects); err != nil {
 			return fmt.Errorf("failed to write dbCatalog refs json to file: %w", err)

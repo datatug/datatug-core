@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 )
 
 type IItem any
@@ -101,7 +102,7 @@ func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) loadProjectItems(
 			if f.IsDir() {
 				return nil
 			}
-			id, suffix := getProjItemIDFromFileName(f.Name())
+			id, suffix := storage.GetProjItemIDFromFileName(f.Name())
 			if suffix != s.itemFileSuffix {
 				return nil
 			}
@@ -123,7 +124,7 @@ func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) loadProjectItems(
 			id := f.Name()
 			envDir := path.Join(dirPath, id)
 			var item TItemPtr
-			if item, err = s.loadProjectItem(ctx, envDir, id, environmentSummaryFileName); err != nil {
+			if item, err = s.loadProjectItem(ctx, envDir, id, storage.EnvironmentSummaryFileName); err != nil {
 				return err
 			}
 			mutex.Lock()
@@ -153,7 +154,7 @@ func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) saveProjectItem(_ context.
 	var fileName string
 	switch s.storedAs {
 	case ProjItemStoredAsFile:
-		fileName = jsonFileName(id, s.itemFileSuffix)
+		fileName = storage.JsonFileName(id, s.itemFileSuffix)
 	case ProjItemStoredAsDir:
 		dirPath = path.Join(dirPath, id)
 		fileName = s.summaryFileName
@@ -175,7 +176,7 @@ func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) saveProjectItems(ctx conte
 }
 
 func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) itemFileName(id string) string {
-	return jsonFileName(id, s.itemFileSuffix)
+	return storage.JsonFileName(id, s.itemFileSuffix)
 }
 
 func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) itemFilePath(dirPath, id string) string {

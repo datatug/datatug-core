@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +28,7 @@ func TestFsRecordsetDefinitionsStore(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("LoadRecordsetDefinitions", func(t *testing.T) {
-		recordsetsDir := path.Join(projectPath, RecordsetsFolder)
+		recordsetsDir := path.Join(projectPath, storage.RecordsetsFolder)
 		err = os.MkdirAll(recordsetsDir, 0777)
 		assert.NoError(t, err)
 
@@ -40,7 +41,7 @@ func TestFsRecordsetDefinitionsStore(t *testing.T) {
 			},
 		}
 		data, _ := json.Marshal(rsData)
-		err = os.WriteFile(path.Join(recordsetsDir, rsID+"."+recordsetFileSuffix+".json"), data, 0666)
+		err = os.WriteFile(path.Join(recordsetsDir, rsID+"."+storage.RecordsetFileSuffix+".json"), data, 0666)
 		assert.NoError(t, err)
 
 		recordsets, err := store.LoadRecordsetDefinitions(ctx)

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/strongo/validation"
 )
 
@@ -18,7 +19,7 @@ func (loader fileSystemLoader) LoadRecordsetDefinitions(projectID string) (recor
 	if projectID == "" {
 		return nil, validation.NewErrRequestIsMissingRequiredField("projectID")
 	}
-	recordsetsDirPath, err := loader.GetFolderPath(projectID, DataFolder, RecordsetsFolder)
+	recordsetsDirPath, err := loader.GetFolderPath(projectID, storage.DataFolder, storage.RecordsetsFolder)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +71,7 @@ func (loader fileSystemLoader) loadRecordsetsDir(projectID, folder, dirPath stri
 // LoadRecordsetDefinition loads recordset definition
 func (loader fileSystemLoader) LoadRecordsetDefinition(projectID, recordsetID string) (dataset *datatug.RecordsetDefinition, err error) {
 	var recordsetsDirPath string
-	if recordsetsDirPath, err = loader.GetFolderPath(projectID, DataFolder, RecordsetsFolder); err != nil {
+	if recordsetsDirPath, err = loader.GetFolderPath(projectID, storage.DataFolder, storage.RecordsetsFolder); err != nil {
 		return
 	}
 	folder := filepath.Dir(recordsetID)
@@ -86,7 +87,7 @@ func (loader fileSystemLoader) LoadRecordsetDefinition(projectID, recordsetID st
 
 func (loader fileSystemLoader) loadRecordsetDefinition(dirPath, folder, recordsetID, projectID string) (dataset *datatug.RecordsetDefinition, err error) {
 	dataset = new(datatug.RecordsetDefinition)
-	filePath := path.Join(dirPath, recordsetID, jsonFileName(recordsetID, recordsetFileSuffix))
+	filePath := path.Join(dirPath, recordsetID, storage.JsonFileName(recordsetID, storage.RecordsetFileSuffix))
 	if err = readJSONFile(filePath, true, dataset); err != nil {
 		err = fmt.Errorf("failed to load dataset [%v] from project [%v]: %w", recordsetID, projectID, err)
 		return nil, err
@@ -111,7 +112,7 @@ func (loader fileSystemLoader) LoadRecordsetData(projectID, datasetName, fileNam
 	if _, projPath, err = loader.GetProjectPath(projectID); err != nil {
 		return nil, err
 	}
-	filePath := path.Join(projPath, DataFolder, datasetName, fileName)
+	filePath := path.Join(projPath, storage.DataFolder, datasetName, fileName)
 	var recordset datatug.Recordset
 	rows := make([]interface{}, 0)
 	if err := readJSONFile(filePath, true, &rows); err != nil {

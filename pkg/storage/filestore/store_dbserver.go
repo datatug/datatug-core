@@ -78,7 +78,7 @@ func loadDbCatalogsForDbServerSummary(dbServerPath string, dbsByEnv map[string][
 
 func loadDbCatalogSummary(catalogsDirPath, dirName string) (*datatug.DbCatalogSummary, error) {
 	dirPath := path.Join(catalogsDirPath, dirName)
-	jsonFilePath := path.Join(dirPath, jsonFileName(dirName, "db"))
+	jsonFilePath := path.Join(dirPath, storage.JsonFileName(dirName, "db"))
 	var catalogSummary datatug.DbCatalogSummary
 	if err := readJSONFile(jsonFilePath, true, &catalogSummary); err != nil {
 		return nil, fmt.Errorf("failed to read DB catalog summary from JSON file: %w", err)
@@ -104,7 +104,7 @@ func loadDbServerCatalogNamesByEnvironments(projPath string, dbServer datatug.Se
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
 		env := f.Name()
 		dbServersPath := path.Join(envsPath, env, "servers", "db")
-		filePath := path.Join(dbServersPath, jsonFileName(dbServer.FileName(), serverFileSuffix))
+		filePath := path.Join(dbServersPath, storage.JsonFileName(dbServer.FileName(), storage.ServerFileSuffix))
 		var envDbServer = new(datatug.EnvDbServer)
 		if err = readJSONFile(filePath, false, envDbServer); err != nil {
 			return err

@@ -83,7 +83,7 @@ package filestore
 //				ProjectItem:  dbModel.ProjectItem,
 //				Environments: dbModel.Environments,
 //			}
-//			return saveJSONFile(dirPath, jsonFileName(dbModel.GetID, dbModelFileSuffix), dbModelFile)
+//			return saveJSONFile(dirPath, JsonFileName(dbModel.GetID, DbModelFileSuffix), dbModelFile)
 //		},
 //		func() error {
 //			return store.saveSchemaModels(dirPath, dbModel.Schemas)
@@ -136,7 +136,7 @@ package filestore
 //
 //	workers := make([]func() error, 0, 9)
 //	if len(table.Columns) > 0 { // Saving TABLE_NAME.columns.json
-//		workers = append(workers, saveToFile(tableDirPath, jsonFileName(filePrefix, columnsFileSuffix), TableModelColumnsFile{
+//		workers = append(workers, saveToFile(tableDirPath, JsonFileName(filePrefix, ColumnsFileSuffix), TableModelColumnsFile{
 //			Columns: table.Columns,
 //		}))
 //	}

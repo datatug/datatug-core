@@ -5,6 +5,7 @@ import (
 	"path"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/strongo/validation"
 )
 
@@ -13,7 +14,7 @@ var _ datatug.EntitiesStore = (*fsEntitiesStore)(nil)
 func newFsEntitiesStore(projectPath string) fsEntitiesStore {
 	return fsEntitiesStore{
 		fsProjectItemsStore: newFileProjectItemsStore[datatug.Entities, *datatug.Entity, datatug.Entity](
-			path.Join(projectPath, EntitiesFolder), entityFileSuffix,
+			path.Join(projectPath, storage.EntitiesFolder), storage.EntityFileSuffix,
 		),
 	}
 }

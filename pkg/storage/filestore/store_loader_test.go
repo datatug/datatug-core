@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,7 +37,7 @@ func TestLoadProjectFile(t *testing.T) {
 			},
 		}
 		data, _ := json.Marshal(projFile)
-		err = os.WriteFile(filepath.Join(projectTempDir, ProjectSummaryFileName), data, 0644)
+		err = os.WriteFile(filepath.Join(projectTempDir, storage.ProjectSummaryFileName), data, 0644)
 		assert.NoError(t, err)
 
 		v, err := LoadProjectFile(projectTempDir)
@@ -62,7 +63,7 @@ func TestFsProjectStore_LoadProjectSummary(t *testing.T) {
 		},
 	}
 	data, _ := json.Marshal(projFile)
-	err = os.WriteFile(filepath.Join(projTmpDir, ProjectSummaryFileName), data, 0644)
+	err = os.WriteFile(filepath.Join(projTmpDir, storage.ProjectSummaryFileName), data, 0644)
 	assert.NoError(t, err)
 
 	ps := newFsProjectStore("p1", projTmpDir)

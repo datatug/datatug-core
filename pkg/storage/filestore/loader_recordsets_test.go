@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +20,7 @@ func TestLoaderRecordsets(t *testing.T) {
 
 	projectID := "test_project"
 	projectPath := path.Join(tmpDir, projectID)
-	recordsetsPath := path.Join(projectPath, DataFolder, RecordsetsFolder)
+	recordsetsPath := path.Join(projectPath, storage.DataFolder, storage.RecordsetsFolder)
 	err = os.MkdirAll(recordsetsPath, 0755)
 	assert.NoError(t, err)
 
@@ -54,7 +55,7 @@ func TestLoaderRecordsets(t *testing.T) {
 		}
 		data, _ := json.Marshal(rsDef)
 		// FIXED: Filename was incorrect in previous attempts
-		err = os.WriteFile(path.Join(rs1Dir, jsonFileName(rs1ID, recordsetFileSuffix)), data, 0644)
+		err = os.WriteFile(path.Join(rs1Dir, storage.JsonFileName(rs1ID, storage.RecordsetFileSuffix)), data, 0644)
 		assert.NoError(t, err)
 
 		// Nested recordset
@@ -76,7 +77,7 @@ func TestLoaderRecordsets(t *testing.T) {
 			Type: "recordset",
 		}
 		subData, _ := json.Marshal(subRsDef)
-		err = os.WriteFile(path.Join(subRsDir, jsonFileName(subRsID, recordsetFileSuffix)), subData, 0644)
+		err = os.WriteFile(path.Join(subRsDir, storage.JsonFileName(subRsID, storage.RecordsetFileSuffix)), subData, 0644)
 		assert.NoError(t, err)
 
 		defs, err := loader.LoadRecordsetDefinitions(projectID)
@@ -97,7 +98,7 @@ func TestLoaderRecordsets(t *testing.T) {
 		}
 
 		// LoadRecordsetData
-		rsDataDir := path.Join(projectPath, DataFolder, rs1ID)
+		rsDataDir := path.Join(projectPath, storage.DataFolder, rs1ID)
 		err = os.MkdirAll(rsDataDir, 0755)
 		assert.NoError(t, err)
 
@@ -134,7 +135,7 @@ func TestLoaderRecordsets(t *testing.T) {
 
 	t.Run("LoadRecordsetData_InvalidRowType", func(t *testing.T) {
 		rs1ID := "my_recordset1"
-		rsDataDir := path.Join(projectPath, DataFolder)
+		rsDataDir := path.Join(projectPath, storage.DataFolder)
 		rowsData := []byte(`[1, 2, 3]`) // Not a slice of maps
 		err = os.WriteFile(path.Join(rsDataDir, rs1ID, "invalid_data.json"), rowsData, 0644)
 		assert.NoError(t, err)

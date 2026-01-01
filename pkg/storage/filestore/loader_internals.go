@@ -15,7 +15,7 @@ import (
 )
 
 func loadProjectFile(projPath string, project *datatug.Project) (err error) {
-	filePath := path.Join(projPath, ProjectSummaryFileName)
+	filePath := path.Join(projPath, storage.ProjectSummaryFileName)
 	if err = readJSONFile(filePath, true, project); err != nil {
 		err = fmt.Errorf("failed to load project file %s: %w", filePath, err)
 	}
@@ -99,7 +99,7 @@ func loadDir(
 }
 
 func loadBoards(_ context.Context, projPath string, project *datatug.Project) (err error) {
-	boardsDirPath := path.Join(projPath, BoardsFolder)
+	boardsDirPath := path.Join(projPath, storage.BoardsFolder)
 	if err = loadDir(nil, boardsDirPath, "*.json", processFiles,
 		func(files []os.FileInfo) {
 			project.Boards = make(datatug.Boards, 0, len(files))
@@ -111,8 +111,8 @@ func loadBoards(_ context.Context, projPath string, project *datatug.Project) (e
 			board := new(datatug.Board)
 			board.ID = f.Name()
 			var suffix string
-			board.ID, suffix = getProjItemIDFromFileName(f.Name())
-			if strings.ToLower(suffix) != boardFileSuffix {
+			board.ID, suffix = storage.GetProjItemIDFromFileName(f.Name())
+			if strings.ToLower(suffix) != storage.BoardFileSuffix {
 				return nil
 			}
 			fullFileName := path.Join(boardsDirPath, f.Name())
@@ -129,7 +129,7 @@ func loadBoards(_ context.Context, projPath string, project *datatug.Project) (e
 }
 
 func loadDbModels(_ context.Context, projPath string, project *datatug.Project) error {
-	dbModelsDirPath := path.Join(projPath, DbModelsFolder)
+	dbModelsDirPath := path.Join(projPath, storage.DbModelsFolder)
 	if err := loadDir(nil, dbModelsDirPath, "", processDirs,
 		func(files []os.FileInfo) {
 			project.DbModels = make(datatug.DbModels, 0, len(files))
@@ -155,7 +155,7 @@ func loadDbModel(dbModelsDirPath, id string) (dbModel *datatug.DbModel, err erro
 	dbModel = &datatug.DbModel{}
 	return dbModel, parallel.Run(
 		func() (err error) {
-			fileName := path.Join(dbModelDirPath, jsonFileName(id, dbModelFileSuffix))
+			fileName := path.Join(dbModelDirPath, storage.JsonFileName(id, storage.DbModelFileSuffix))
 			if err = readJSONFile(fileName, true, dbModel); err != nil {
 				log.Printf("failed to load db model from [%v]: %v", fileName, err)
 				return err
@@ -215,7 +215,7 @@ func loadSchemaModel(dbModelDirPath, schemaID string) (schemaModel *datatug.Sche
 }
 
 func loadEnvFile(envDirPath, envID string) (envSummary *datatug.EnvironmentSummary, err error) {
-	filePath := path.Join(envDirPath, envID, environmentSummaryFileName)
+	filePath := path.Join(envDirPath, envID, storage.EnvironmentSummaryFileName)
 	envSummary = new(datatug.EnvironmentSummary)
 	if err = readJSONFile(filePath, true, envSummary); err != nil {
 		return
@@ -268,7 +268,7 @@ func loadDbCatalogs(dirPath string, dbServer *datatug.ProjDbServer) (err error) 
 
 func loadDbCatalog(dirPath string, dbCatalog *datatug.EnvDbCatalog) (err error) {
 	log.Printf("Loading DB catalog: %v from %v...\n", dbCatalog.ID, dirPath)
-	filePath := path.Join(dirPath, jsonFileName(dbCatalog.ID, dbCatalogFileSuffix))
+	filePath := path.Join(dirPath, storage.JsonFileName(dbCatalog.ID, storage.DbCatalogFileSuffix))
 	if err = readJSONFile(filePath, false, dbCatalog); err != nil {
 		log.Printf("failed to read DB catalog file [%v]: %v", filePath, err)
 		return err
@@ -277,7 +277,7 @@ func loadDbCatalog(dirPath string, dbCatalog *datatug.EnvDbCatalog) (err error) 
 		return fmt.Errorf("db catalog loaded from JSON file is invalid: %w", err)
 	}
 
-	schemasDirPath := path.Join(dirPath, SchemasFolder)
+	schemasDirPath := path.Join(dirPath, storage.SchemasFolder)
 	return loadDir(nil, schemasDirPath, "", processDirs, func(files []os.FileInfo) {
 		dbCatalog.Schemas = make(datatug.DbSchemas, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) error {

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +27,7 @@ func TestDbServerStore(t *testing.T) {
 		Host:   "localhost",
 	}
 
-	serverPath := path.Join(projectPath, ServersFolder, DbFolder, dbServer.Driver, dbServer.FileName())
+	serverPath := path.Join(projectPath, storage.ServersFolder, storage.DbFolder, dbServer.Driver, dbServer.FileName())
 	err = os.MkdirAll(path.Join(serverPath, "catalogs", "db1"), 0755)
 	assert.NoError(t, err)
 
@@ -45,7 +46,7 @@ func TestDbServerStore(t *testing.T) {
 
 	// Environment setup
 	envName := "dev"
-	envDbServerPath := path.Join(projectPath, EnvironmentsFolder, envName, ServersFolder, DbFolder)
+	envDbServerPath := path.Join(projectPath, storage.EnvironmentsFolder, envName, storage.ServersFolder, storage.DbFolder)
 	err = os.MkdirAll(envDbServerPath, 0755)
 	assert.NoError(t, err)
 
@@ -54,7 +55,7 @@ func TestDbServerStore(t *testing.T) {
 		Catalogs:        []string{"db1"},
 	}
 	envData, _ := json.Marshal(envDbServer)
-	err = os.WriteFile(path.Join(envDbServerPath, jsonFileName(dbServer.FileName(), serverFileSuffix)), envData, 0644)
+	err = os.WriteFile(path.Join(envDbServerPath, storage.JsonFileName(dbServer.FileName(), storage.ServerFileSuffix)), envData, 0644)
 	assert.NoError(t, err)
 
 	store := fsDbServerStore{

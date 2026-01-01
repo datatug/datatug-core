@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,14 +16,14 @@ func TestFsEntitiesStore(t *testing.T) {
 	assert.NoError(t, err)
 	defer func() { _ = os.RemoveAll(tmpDir) }()
 
-	entitiesDir := filepath.Join(tmpDir, EntitiesFolder)
+	entitiesDir := filepath.Join(tmpDir, storage.EntitiesFolder)
 	err = os.MkdirAll(entitiesDir, 0777)
 	assert.NoError(t, err)
 
 	store := fsEntitiesStore{
 		fsProjectItemsStore: fsProjectItemsStore[datatug.Entities, *datatug.Entity, datatug.Entity]{
 			dirPath:        entitiesDir,
-			itemFileSuffix: entityFileSuffix,
+			itemFileSuffix: storage.EntityFileSuffix,
 		},
 	}
 	ctx := context.Background()

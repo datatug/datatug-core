@@ -5,6 +5,7 @@ import (
 	"path"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 )
 
 var _ datatug.EnvironmentsStore = (*fsEnvironmentsStore)(nil)
@@ -12,7 +13,7 @@ var _ datatug.EnvironmentsStore = (*fsEnvironmentsStore)(nil)
 func newFsEnvironmentsStore(projectPath string) fsEnvironmentsStore {
 	return fsEnvironmentsStore{
 		fsProjectItemsStore: newDirProjectItemsStore[datatug.Environments, *datatug.Environment, datatug.Environment](
-			path.Join(projectPath, EnvironmentsFolder), environmentSummaryFileName,
+			path.Join(projectPath, storage.EnvironmentsFolder), storage.EnvironmentSummaryFileName,
 		),
 	}
 }
@@ -58,7 +59,7 @@ func (s fsEnvironmentsStore) DeleteEnvironment(ctx context.Context, id string) e
 //	}
 //	return parallel.Run(
 //		func() error {
-//			if err = saveJSONFile(dirPath, jsonFileName(env.ID, environmentFileSuffix), datatug.EnvironmentFile{ID: env.ID}); err != nil {
+//			if err = saveJSONFile(dirPath, JsonFileName(env.ID, environmentFileSuffix), datatug.EnvironmentFile{ID: env.ID}); err != nil {
 //				return fmt.Errorf("failed to write environment json to file: %w", err)
 //			}
 //			return nil

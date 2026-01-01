@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/strongo/validation"
 )
 
@@ -39,7 +40,7 @@ func getQueryPaths(queryID, queriesDirPath string) (ql QueryLoc, err error) {
 	ql.LocalID = filepath.Base(queryID)
 	//lastDotIndex := strings.LastIndex(ql.LocalID, ".")
 	//ql.LocalID = ql.LocalID[:lastDotIndex]
-	ql.FileName = jsonFileName(ql.LocalID, "")
+	ql.FileName = storage.JsonFileName(ql.LocalID, "")
 	return
 }
 

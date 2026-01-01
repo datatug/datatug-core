@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,7 +37,7 @@ func TestFsEnvServerStore(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify file exists
-		serverPath := path.Join(projectPath, EnvironmentsFolder, envID, "localhost:1433."+boardFileSuffix+".json")
+		serverPath := path.Join(projectPath, storage.EnvironmentsFolder, envID, "localhost:1433."+storage.BoardFileSuffix+".json")
 		_, err = os.Stat(serverPath)
 		assert.NoError(t, err)
 	})

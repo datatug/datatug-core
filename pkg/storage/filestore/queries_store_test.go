@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +18,7 @@ func TestFsQueriesStore(t *testing.T) {
 		assert.NoError(t, err)
 		defer func() { _ = os.RemoveAll(tmpDir) }()
 
-		queriesDir = filepath.Join(tmpDir, QueriesFolder)
+		queriesDir = filepath.Join(tmpDir, storage.QueriesFolder)
 		err = os.MkdirAll(queriesDir, 0777)
 		assert.NoError(t, err)
 	}

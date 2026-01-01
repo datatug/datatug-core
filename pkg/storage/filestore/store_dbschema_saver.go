@@ -8,6 +8,7 @@ import (
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/parallel"
+	"github.com/datatug/datatug-core/pkg/storage"
 )
 
 func (store fsDbCatalogStore) saveDbSchemas(schemas []*datatug.DbSchema, dbServerSaverCtx saveDbServerObjContext) error {
@@ -16,7 +17,7 @@ func (store fsDbCatalogStore) saveDbSchemas(schemas []*datatug.DbSchema, dbServe
 			schema := schemas[i]
 			schemaCtx := dbServerSaverCtx
 			schemaCtx.plural = "schemas"
-			schemaCtx.dirPath = path.Join(dbServerSaverCtx.dirPath, SchemasFolder, schema.ID)
+			schemaCtx.dirPath = path.Join(dbServerSaverCtx.dirPath, storage.SchemasFolder, schema.ID)
 			return store.saveDbSchema(schema, schemaCtx)
 		}
 	})
@@ -27,12 +28,12 @@ func (store fsDbCatalogStore) saveDbSchema(dbSchema *datatug.DbSchema, dbServerS
 	err := parallel.Run(
 		func() error {
 			tablesCtx := dbServerSaverCtx
-			tablesCtx.plural = TablesFolder
+			tablesCtx.plural = storage.TablesFolder
 			return store.saveTables(dbSchema.Tables, tablesCtx)
 		},
 		func() error {
 			viewsCtx := dbServerSaverCtx
-			viewsCtx.plural = ViewsFolder
+			viewsCtx.plural = storage.ViewsFolder
 			return store.saveTables(dbSchema.Views, viewsCtx)
 		},
 	)

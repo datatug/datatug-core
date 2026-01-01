@@ -73,7 +73,7 @@ func (s fsProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOptio
 }
 
 func loadDbDrivers(_ context.Context, projPath string) (dbServers datatug.ProjDbServers, err error) {
-	dbServersPath := path.Join(projPath, ServersFolder, DbFolder)
+	dbServersPath := path.Join(projPath, storage.ServersFolder, storage.DbFolder)
 	if err = loadDir(nil, dbServersPath, "", processDirs, func(files []os.FileInfo) {
 		dbServers = make(datatug.ProjDbServers, 0, len(files))
 	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
@@ -119,7 +119,7 @@ func loadDbServer(driverDirPath, driver, serverName string) (dbServer *datatug.P
 	dbServerDirPath := path.Join(driverDirPath, serverName)
 	err = parallel.Run(
 		func() error {
-			jsonFileName := jsonFileName(fmt.Sprintf("%v.%v", driver, serverName), dbServerFileSuffix)
+			jsonFileName := storage.JsonFileName(fmt.Sprintf("%v.%v", driver, serverName), storage.DbServerFileSuffix)
 			jsonFilePath := path.Join(dbServerDirPath, jsonFileName)
 			if err := readJSONFile(jsonFilePath, false, dbServer); err != nil {
 				return fmt.Errorf("failed to load db server summary file: %w", err)
@@ -133,7 +133,7 @@ func loadDbServer(driverDirPath, driver, serverName string) (dbServer *datatug.P
 			return nil
 		},
 		func() error {
-			dbCatalogsDir := path.Join(dbServerDirPath, EnvDbCatalogsFolder)
+			dbCatalogsDir := path.Join(dbServerDirPath, storage.EnvDbCatalogsFolder)
 			if err := loadDbCatalogs(dbCatalogsDir, dbServer); err != nil {
 				return fmt.Errorf("failed to load DB catalogs: %w", err)
 			}
@@ -154,7 +154,7 @@ func (s fsProjectStore) LoadProjectSummary(context.Context) (projectSummary data
 
 // LoadProjectFile loads project file
 func LoadProjectFile(projPath string) (v datatug.ProjectFile, err error) {
-	fileName := path.Join(projPath, ProjectSummaryFileName)
+	fileName := path.Join(projPath, storage.ProjectSummaryFileName)
 	if err = readJSONFile(fileName, true, &v); os.IsNotExist(err) {
 		err = fmt.Errorf("%w: %v", datatug.ErrProjectDoesNotExist, err)
 	}

@@ -5,6 +5,7 @@ import (
 	"path"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 )
 
 var _ datatug.BoardsStore = (*fsBoardsStore)(nil)
@@ -12,7 +13,7 @@ var _ datatug.BoardsStore = (*fsBoardsStore)(nil)
 func newFsBoardsStore(projectPath string) fsBoardsStore {
 	return fsBoardsStore{
 		fsProjectItemsStore: newFileProjectItemsStore[datatug.Boards, *datatug.Board, datatug.Board](
-			path.Join(projectPath, BoardsFolder), boardFileSuffix,
+			path.Join(projectPath, storage.BoardsFolder), storage.BoardFileSuffix,
 		),
 	}
 }

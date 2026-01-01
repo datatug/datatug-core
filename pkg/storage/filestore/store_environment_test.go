@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +24,7 @@ func TestFsEnvironmentStore(t *testing.T) {
 	envID := "dev"
 
 	envsStore := newFsEnvironmentsStore(projectPath)
-	envsDirPath := path.Join(projectPath, EnvironmentsFolder)
+	envsDirPath := path.Join(projectPath, storage.EnvironmentsFolder)
 	ctx := context.Background()
 
 	t.Run("LoadEnvironmentSummary", func(t *testing.T) {
@@ -33,7 +34,7 @@ func TestFsEnvironmentStore(t *testing.T) {
 
 		envFile := datatug.EnvironmentFile{ID: envID}
 		data, _ := json.Marshal(envFile)
-		err = os.WriteFile(path.Join(envPath, environmentSummaryFileName), data, 0644)
+		err = os.WriteFile(path.Join(envPath, storage.EnvironmentSummaryFileName), data, 0644)
 		assert.NoError(t, err)
 
 		summary, err := envsStore.LoadEnvironmentSummary(ctx, envID)
@@ -43,7 +44,7 @@ func TestFsEnvironmentStore(t *testing.T) {
 	})
 
 	t.Run("loadEnvServers", func(t *testing.T) {
-		envPath := path.Join(envsDirPath, envID, ServersFolder, DbFolder)
+		envPath := path.Join(envsDirPath, envID, storage.ServersFolder, storage.DbFolder)
 		err := os.MkdirAll(envPath, 0755)
 		assert.NoError(t, err)
 
@@ -86,7 +87,7 @@ func TestFsEnvironmentStore(t *testing.T) {
 		err := envsStore.SaveEnvironment(ctx, env)
 		assert.NoError(t, err)
 
-		envFilePath := path.Join(envsDirPath, envID, environmentSummaryFileName)
+		envFilePath := path.Join(envsDirPath, envID, storage.EnvironmentSummaryFileName)
 		assert.FileExists(t, envFilePath)
 	})
 }

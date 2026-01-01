@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -81,7 +82,7 @@ func TestSaveProject(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify project file exists
-		assert.FileExists(t, path.Join(projectPath, ProjectSummaryFileName))
+		assert.FileExists(t, path.Join(projectPath, storage.ProjectSummaryFileName))
 	})
 
 	t.Run("SaveProject_MissingProjectID", func(t *testing.T) {
