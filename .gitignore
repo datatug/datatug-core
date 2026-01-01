@@ -16,6 +16,7 @@
 # vendor/
 
 .output.txt
+test_output.txt
 
 .idea
 example/datatug
