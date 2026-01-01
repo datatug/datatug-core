@@ -55,3 +55,44 @@ projects:
 		})
 	}
 }
+
+func TestLoadRootDatatugFile_Error(t *testing.T) {
+	t.Run("open_error", func(t *testing.T) {
+		oldOsOpen := osOpen
+		defer func() { osOpen = oldOsOpen }()
+		osOpen = func(name string) (f io.ReadCloser, err error) {
+			return nil, fmt.Errorf("open error")
+		}
+		_, err := LoadRootDatatugFile("dir")
+		assert.Error(t, err)
+	})
+
+	t.Run("decode_error", func(t *testing.T) {
+		oldOsOpen := osOpen
+		defer func() { osOpen = oldOsOpen }()
+		osOpen = func(name string) (f io.ReadCloser, err error) {
+			return io.NopCloser(strings.NewReader("invalid yaml")), nil
+		}
+		_, err := LoadRootDatatugFile("dir")
+		assert.Error(t, err)
+	})
+
+	t.Run("close_error", func(t *testing.T) {
+		oldOsOpen := osOpen
+		defer func() { osOpen = oldOsOpen }()
+		osOpen = func(name string) (f io.ReadCloser, err error) {
+			return &errorCloser{Reader: strings.NewReader("projects: []")}, nil
+		}
+		_, err := LoadRootDatatugFile("dir")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to close")
+	})
+}
+
+type errorCloser struct {
+	io.Reader
+}
+
+func (e *errorCloser) Close() error {
+	return fmt.Errorf("close error")
+}

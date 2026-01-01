@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/datatug2md"
 	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -63,8 +64,9 @@ func TestDbServerStore(t *testing.T) {
 		fsDbServersStore: fsDbServersStore{
 			fsProjectStoreRef: fsProjectStoreRef{
 				fsProjectStore: fsProjectStore{
-					projectID:   projectID,
-					projectPath: projectPath,
+					projectID:     projectID,
+					projectPath:   projectPath,
+					readmeEncoder: datatug2md.NewEncoder(),
 				},
 			},
 		},
@@ -101,17 +103,22 @@ func TestDbServerStore(t *testing.T) {
 		t.Run("dbServer", func(t *testing.T) {
 			assert.NotNil(t, dbServersStore.dbServer(dbServer))
 		})
-	})
 
-	//t.Run("SaveDbServer", func(t *testing.T) {
-	//	project := datatug.Project{
-	//		Repository: &datatug.ProjectRepository{},
-	//	}
-	//	projDbServer := datatug.ProjDbServer{
-	//		Server: dbServer,
-	//	}
-	//	err := store.SaveDbServer(context.Background(), projDbServer, project)
-	//	assert.NoError(t, err)
-	//	assert.DirExists(t, path.Join(projectPath, DatatugFolder, ServersFolder, DbFolder, dbServer.Driver, dbServer.FileName()))
-	//})
+		t.Run("saveDbServers", func(t *testing.T) {
+			project := datatug.Project{
+				ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: projectID}},
+				DbServers: datatug.ProjDbServers{
+					{
+						Server: dbServer,
+						ProjectItem: datatug.ProjectItem{
+							ProjItemBrief: datatug.ProjItemBrief{ID: dbServer.Host, Title: "Server Title"},
+						},
+					},
+				},
+				Repository: &datatug.ProjectRepository{},
+			}
+			err := dbServersStore.saveDbServers(context.Background(), project.DbServers, project)
+			assert.NoError(t, err)
+		})
+	})
 }

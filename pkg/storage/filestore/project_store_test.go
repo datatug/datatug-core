@@ -62,4 +62,26 @@ func TestFsProjectStore(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, servers, 0)
 	})
+
+	t.Run("Recordset_not_implemented", func(t *testing.T) {
+		assert.Panics(t, func() {
+			_, _ = store.LoadRecordsetData(ctx, "r1")
+		})
+	})
+
+	t.Run("EnvironmentSummary_not_found", func(t *testing.T) {
+		_, err := store.LoadEnvironmentSummary(ctx, "e1")
+		assert.Error(t, err)
+	})
+
+	t.Run("LoadRecordsetDefinition_not_found", func(t *testing.T) {
+		_, err := store.LoadRecordsetDefinition(ctx, "r1")
+		assert.Error(t, err)
+	})
+
+	t.Run("LoadRecordsetDefinitions_not_found", func(t *testing.T) {
+		defs, err := store.LoadRecordsetDefinitions(ctx)
+		assert.NoError(t, err)
+		assert.Empty(t, defs)
+	})
 }

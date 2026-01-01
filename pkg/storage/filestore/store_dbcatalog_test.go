@@ -89,4 +89,39 @@ func TestDbCatalogStore(t *testing.T) {
 		assert.NoError(t, err)
 		assert.FileExists(t, path.Join(catalogPath, catalogID+".db.json"))
 	})
+
+	t.Run("saveDbCatalogObjects", func(t *testing.T) {
+		catalog := datatug.EnvDbCatalog{}
+		catalog.ID = catalogID
+		catalog.Schemas = datatug.DbSchemas{
+			{
+				ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "dbo"}},
+				Tables: datatug.Tables{
+					{
+						DBCollectionKey: datatug.NewTableKey("t1", "dbo", catalogID, nil),
+						TableProps:      datatug.TableProps{DbType: "BASE TABLE"},
+					},
+				},
+			},
+		}
+		err := store.saveDbCatalogObjects(catalog, saveDbServerObjContext{dirPath: catalogPath})
+		assert.NoError(t, err)
+		assert.FileExists(t, path.Join(catalogPath, catalogID+".objects.json"))
+	})
+
+	t.Run("saveDbCatalogs", func(t *testing.T) {
+		projDbServer := datatug.ProjDbServer{
+			Server: datatug.ServerReference{Driver: "sqlserver", Host: "h1"},
+			Catalogs: datatug.EnvDbCatalogs{
+				{
+					DbCatalogBase: datatug.DbCatalogBase{
+						ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "c1"}},
+						Driver:      "sqlserver",
+					},
+				},
+			},
+		}
+		err := store.saveDbCatalogs(projDbServer, &datatug.ProjectRepository{})
+		assert.NoError(t, err)
+	})
 }
