@@ -11,7 +11,7 @@ type EnvironmentSummary struct {
 
 // Validate returns error if not valid
 func (v EnvironmentSummary) Validate() error {
-	if err := v.ProjectItem.Validate(false); err != nil {
+	if err := v.ValidateWithOptions(false); err != nil {
 		return err
 	}
 	if err := v.Servers.Validate(); err != nil {

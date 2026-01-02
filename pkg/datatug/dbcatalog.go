@@ -12,7 +12,7 @@ type DbCatalogBase struct {
 
 // Validate returns error if not valid
 func (v DbCatalogBase) Validate() error {
-	if err := v.ProjectItem.Validate(false); err != nil {
+	if err := v.ValidateWithOptions(false); err != nil {
 		return err
 	}
 	if v.Driver == "" {
@@ -38,8 +38,42 @@ type DbCatalogCounts struct {
 	Views   int `json:"views"`
 }
 
-// EnvDbCatalog hold info about DB database
-type EnvDbCatalog struct {
+var _ IProjectItems[*DbCatalog] = (DbCatalogs)(nil)
+
+type DbCatalogs ProjectItems[*DbCatalog]
+
+func (v DbCatalogs) IDs() []string {
+	return ProjectItems[*DbCatalog](v).IDs()
+}
+
+func (v DbCatalogs) GetByID(id string) (t *DbCatalog) {
+	return ProjectItems[*DbCatalog](v).GetByID(id)
+}
+
+func (v DbCatalogs) Validate() error {
+	return ProjectItems[*DbCatalog](v).Validate()
+}
+
+// GetTable returns table
+func (v DbCatalogs) GetTable(catalog, schema, name string) *CollectionInfo {
+	for _, c := range v {
+		if c.ID == catalog {
+			for _, s := range c.Schemas {
+				if s.ID == schema {
+					for _, t := range s.Tables {
+						if t.Name() == name {
+							return t
+						}
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// DbCatalog hold info about DB database
+type DbCatalog struct {
 	DbCatalogBase
 	Schemas DbSchemas
 }
@@ -47,12 +81,12 @@ type EnvDbCatalog struct {
 // ProjDbServerSummary holds summary info about DB server
 type ProjDbServerSummary struct {
 	ProjectItem
-	DbServer ServerReference     `json:"dbServer"`
+	DbServer ServerRef           `json:"dbServer"`
 	Catalogs []*DbCatalogSummary `json:"databases,omitempty"`
 }
 
 // Validate returns error if not valid
-func (v EnvDbCatalog) Validate() error {
+func (v DbCatalog) Validate() error {
 	if err := v.DbCatalogBase.Validate(); err != nil {
 		return err
 	}

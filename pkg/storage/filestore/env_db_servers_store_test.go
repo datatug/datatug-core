@@ -25,7 +25,7 @@ func TestFsEnvServerStore(t *testing.T) {
 	ctx := context.Background()
 
 	server1 := &datatug.EnvDbServer{
-		ServerReference: datatug.ServerReference{
+		ServerRef: datatug.ServerRef{
 			Driver: "sqlserver",
 			Host:   "localhost",
 			Port:   1433,
@@ -37,7 +37,7 @@ func TestFsEnvServerStore(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify file exists
-		serverPath := path.Join(projectPath, storage.EnvironmentsFolder, envID, "localhost:1433."+storage.BoardFileSuffix+".json")
+		serverPath := path.Join(projectPath, storage.EnvironmentsFolder, envID, "localhost:1433."+storage.ServerFileSuffix+".json")
 		_, err = os.Stat(serverPath)
 		assert.NoError(t, err)
 	})
@@ -58,7 +58,7 @@ func TestFsEnvServerStore(t *testing.T) {
 
 	t.Run("SaveEnvServers", func(t *testing.T) {
 		server2 := &datatug.EnvDbServer{
-			ServerReference: datatug.ServerReference{
+			ServerRef: datatug.ServerRef{
 				Driver: "sqlserver",
 				Host:   "remotehost",
 				Port:   1433,

@@ -12,7 +12,7 @@ var _ datatug.EnvDbCatalogStore = (*fsEnvDbCatalogStore)(nil)
 
 func newFsEnvCatalogsStore(environmentsDirPath string) fsEnvDbCatalogStore {
 	s := fsEnvDbCatalogStore{
-		fsProjectItemsStore: newFileProjectItemsStore[datatug.EnvDbCatalogs, *datatug.EnvDbCatalog, datatug.EnvDbCatalog](
+		fsProjectItemsStore: newFileProjectItemsStore[datatug.DbCatalogs, *datatug.DbCatalog, datatug.DbCatalog](
 			environmentsDirPath, storage.DbCatalogFileSuffix),
 	}
 	s.dirPath = environmentsDirPath
@@ -20,34 +20,34 @@ func newFsEnvCatalogsStore(environmentsDirPath string) fsEnvDbCatalogStore {
 }
 
 type fsEnvDbCatalogStore struct {
-	fsProjectItemsStore[datatug.EnvDbCatalogs, *datatug.EnvDbCatalog, datatug.EnvDbCatalog]
+	fsProjectItemsStore[datatug.DbCatalogs, *datatug.DbCatalog, datatug.DbCatalog]
 }
 
 func (s fsEnvDbCatalogStore) getDirPath(envID string) string {
 	return filepath.Join(s.dirPath, storage.EnvironmentsFolder, envID, storage.EnvDbCatalogsFolder)
 }
 
-func (s fsEnvDbCatalogStore) LoadEnvDbCatalogs(ctx context.Context, envID string, o ...datatug.StoreOption) (datatug.EnvDbCatalogs, error) {
+func (s fsEnvDbCatalogStore) LoadEnvDbCatalogs(ctx context.Context, envID string, o ...datatug.StoreOption) (datatug.DbCatalogs, error) {
 	dirPath := s.getDirPath(envID)
 	return s.loadProjectItems(ctx, dirPath, o...)
 }
 
-func (s fsEnvDbCatalogStore) LoadEnvDbCatalog(ctx context.Context, envID, serverID, catalogID string, o ...datatug.StoreOption) (datatug.EnvDbCatalog, error) {
+func (s fsEnvDbCatalogStore) LoadEnvDbCatalog(ctx context.Context, envID, serverID, catalogID string, o ...datatug.StoreOption) (datatug.DbCatalog, error) {
 	dirPath := filepath.Join(s.dirPath, storage.EnvironmentsFolder, envID, storage.ServersFolder, serverID, storage.EnvDbCatalogsFolder)
 	item, err := s.loadProjectItem(ctx, dirPath, catalogID, "", o...)
 	if err != nil {
-		return datatug.EnvDbCatalog{}, err
+		return datatug.DbCatalog{}, err
 	}
 	return *item, nil
 }
 
-func (s fsEnvDbCatalogStore) SaveEnvDbCatalog(ctx context.Context, envID, serverID, catalogID string, catalog *datatug.EnvDbCatalog) error {
+func (s fsEnvDbCatalogStore) SaveEnvDbCatalog(ctx context.Context, envID, serverID, catalogID string, catalog *datatug.DbCatalog) error {
 	_ = catalogID
 	dirPath := filepath.Join(s.dirPath, storage.EnvironmentsFolder, envID, storage.ServersFolder, serverID, storage.EnvDbCatalogsFolder)
 	return s.saveProjectItem(ctx, dirPath, catalog)
 }
 
-func (s fsEnvDbCatalogStore) SaveEnvDbCatalogs(ctx context.Context, envID, serverID, catalogID string, catalogs datatug.EnvDbCatalogs) error {
+func (s fsEnvDbCatalogStore) SaveEnvDbCatalogs(ctx context.Context, envID, serverID, catalogID string, catalogs datatug.DbCatalogs) error {
 	_ = catalogID
 	dirPath := filepath.Join(s.dirPath, storage.EnvironmentsFolder, envID, storage.ServersFolder, serverID, storage.EnvDbCatalogsFolder)
 	return s.saveProjectItems(ctx, dirPath, catalogs)
@@ -67,7 +67,7 @@ func (s fsEnvDbCatalogStore) DeleteEnvDbCatalog(ctx context.Context, envID, serv
 //		return nil, err
 //	}
 //	envDb.ID = store.catalogID
-//	if err = envDb.Validate(); err != nil {
+//	if err = envDb.ValidateWithOptions(); err != nil {
 //		return nil, fmt.Errorf("loaded environmend DB catalog file is invalid: %w", err)
 //	}
 //	return

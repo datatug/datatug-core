@@ -8,6 +8,7 @@ import (
 
 // Action does something that affects context
 type Action struct {
+	ProjectItem
 	Type string      `json:"type"`
 	Data interface{} `json:"data"`
 	Next Actions     `json:"next"`
@@ -22,11 +23,11 @@ func (v Action) Validate() error {
 	default:
 		return validation.NewErrBadRecordFieldValue("type", "unsupported type: "+v.Type)
 	}
-	return nil
+	return v.ValidateWithOptions(false)
 }
 
 // Actions is slice of `Action`
-type Actions []Action
+type Actions ProjectItems[*Action]
 
 // Validate returns error if not valid
 func (v Actions) Validate() error {

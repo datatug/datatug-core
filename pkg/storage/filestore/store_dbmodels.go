@@ -70,7 +70,7 @@ package filestore
 //}
 //
 //func (store fsDbModelsStore) saveDbModel(dbModel *datatug.DbModel) (err error) {
-//	if err = dbModel.Validate(); err != nil {
+//	if err = dbModel.ValidateWithOptions(); err != nil {
 //		return fmt.Errorf("db models is invalid: %w", err)
 //	}
 //	dirPath := path.Join(store.projectPath, DatatugFolder, DbModelsFolder, dbModel.GetID)

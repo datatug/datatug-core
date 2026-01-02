@@ -49,9 +49,9 @@ type CatalogObjectsWithRefs []CatalogObjectWithRefs
 // CatalogObjectWithRefs defines ref to catalog object
 type CatalogObjectWithRefs struct {
 	CatalogObject
-	PrimaryKey   *UniqueKey         `json:"primaryKey,omitempty"`
-	ForeignKeys  ForeignKeys        `json:"foreignKeys,omitempty"`
-	ReferencedBy TableReferencedBys `json:"referencedBy,omitempty"`
+	PrimaryKey   *UniqueKey    `json:"primaryKey,omitempty"`
+	ForeignKeys  ForeignKeys   `json:"foreignKeys,omitempty"`
+	ReferencedBy ReferencedBys `json:"referencedBy,omitempty"`
 }
 
 // Validate returns error if not valid
@@ -76,7 +76,7 @@ func (v CatalogObjectsWithRefs) Validate() error {
 }
 
 // DbSchemas is a slice of *DbSchema
-type DbSchemas []*DbSchema
+type DbSchemas ProjectItems[*DbSchema]
 
 // Validate returns error if not valid
 func (v DbSchemas) Validate() error {
@@ -107,7 +107,7 @@ type DbSchema struct {
 
 // Validate returns error if not valid
 func (v DbSchema) Validate() error {
-	if err := v.ProjectItem.Validate(false); err != nil {
+	if err := v.ValidateWithOptions(false); err != nil {
 		return err
 	}
 	for i, t := range v.Tables {
@@ -118,47 +118,6 @@ func (v DbSchema) Validate() error {
 	for i, t := range v.Views {
 		if err := t.Validate(); err != nil {
 			return fmt.Errorf("invalid view at index %v: %w", i, err)
-		}
-	}
-	return nil
-}
-
-// EnvDbCatalogs is a slice of pointers to EnvDbCatalog
-type EnvDbCatalogs []*EnvDbCatalog
-
-// GetTable returns table
-func (v EnvDbCatalogs) GetTable(catalog, schema, name string) *CollectionInfo {
-	for _, c := range v {
-		if c.ID == catalog {
-			for _, s := range c.Schemas {
-				if s.ID == schema {
-					for _, t := range s.Tables {
-						if t.Name() == name {
-							return t
-						}
-					}
-				}
-			}
-		}
-	}
-	return nil
-}
-
-// Validate returns error if failed
-func (v EnvDbCatalogs) Validate() error {
-	for i, db := range v {
-		if err := db.Validate(); err != nil {
-			return fmt.Errorf("validaiton failed for db catalog at index %v: %w", i, err)
-		}
-	}
-	return nil
-}
-
-// GetDbByID returns Database by GetID
-func (v EnvDbCatalogs) GetDbByID(id string) *EnvDbCatalog {
-	for _, db := range v {
-		if strings.EqualFold(db.ID, id) {
-			return db
 		}
 	}
 	return nil
@@ -365,57 +324,17 @@ func (v Tables) GetByKey(k DBCollectionKey) *CollectionInfo {
 	return nil
 }
 
-// RecordsetBaseDef is used by: CollectionInfo, RecordsetDefinition
-type RecordsetBaseDef struct {
-	PrimaryKey    *UniqueKey  `json:"primaryKey,omitempty"`
-	ForeignKeys   ForeignKeys `json:"foreignKeys,omitempty"`
-	AlternateKeys []UniqueKey `json:"alternateKey,omitempty"`
-	ActiveIssues  *Issues     `json:"issues,omitempty"`
-}
-
-// CollectionInfo holds metadata about a collection or a table or a view
-type CollectionInfo struct {
-	RecordsetBaseDef
-	DBCollectionKey
-	TableProps
-	SQL          string             `json:"sql,omitempty"`
-	Columns      TableColumns       `json:"columns,omitempty"`
-	Indexes      []*Index           `json:"indexes,omitempty"`
-	ReferencedBy TableReferencedBys `json:"referencedBy,omitempty"`
-	RecordsCount *int               `json:"recordsCount,omitempty"`
-}
+// ReferencedBys defines slice
+type ReferencedBys []*ReferencedBy
 
 // Validate returns error if not valid
-func (v CollectionInfo) Validate() error {
-	if err := v.DBCollectionKey.Validate(); err != nil {
-		return err
-	}
-	if err := v.TableProps.Validate(); err != nil {
-		return err
-	}
-	if err := v.PrimaryKey.Validate(); err != nil {
-		return fmt.Errorf("invalid primary key: %w", err)
-	}
-	if err := v.Columns.Validate(); err != nil {
-		return err
-	}
-	if err := v.ForeignKeys.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-// TableReferencedBys defines slice
-type TableReferencedBys []*TableReferencedBy
-
-// Validate returns error if not valid
-func (v TableReferencedBys) Validate() error {
+func (v ReferencedBys) Validate() error {
 
 	return nil
 }
 
-// TableReferencedBy holds metadata about table/view that reference a table/view
-type TableReferencedBy struct {
+// ReferencedBy holds metadata about table/view that reference a table/view
+type ReferencedBy struct {
 	DBCollectionKey
 	ForeignKeys []*RefByForeignKey `json:"foreignKeys"`
 }

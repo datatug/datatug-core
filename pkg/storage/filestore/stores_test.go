@@ -86,11 +86,11 @@ func TestQueriesStore_Saver(t *testing.T) {
 		query.ID = "q1"
 		query.Title = "Query 1"
 		query.Text = "SELECT 1"
-		query.Type = "SQL"
+		query.Type = datatug.QueryTypeSQL
 		_, err := store.CreateQuery(ctx, query)
 		assert.NoError(t, err)
-		assert.FileExists(t, path.Join(tempDir, storage.QueriesFolder, "f1", "q1.json"))
-		assert.FileExists(t, path.Join(tempDir, storage.QueriesFolder, "f1", "q1.sql"))
+		assert.FileExists(t, path.Join(tempDir, storage.QueriesFolder, "f1", "q1.query.json"))
+		assert.FileExists(t, path.Join(tempDir, storage.QueriesFolder, "f1", "q1.query.sql"))
 	})
 
 	t.Run("CreateQueryFolder_exists", func(t *testing.T) {
@@ -124,7 +124,7 @@ func TestLoadEnvServers(t *testing.T) {
 	serverFile := path.Join(tempDir, serverName+"."+storage.ServerFileSuffix+".json")
 	servers := []*datatug.EnvDbServer{
 		{
-			ServerReference: datatug.ServerReference{
+			ServerRef: datatug.ServerRef{
 				Driver: "sqlserver",
 				Host:   serverName,
 			},
@@ -143,7 +143,7 @@ func TestLoadEnvServers(t *testing.T) {
 		serverFile2 := path.Join(tempDir, "s2."+storage.ServerFileSuffix+".json")
 		servers2 := []*datatug.EnvDbServer{
 			{
-				ServerReference: datatug.ServerReference{
+				ServerRef: datatug.ServerRef{
 					Driver: "sqlserver",
 					Host:   "mismatch",
 				},
@@ -154,17 +154,6 @@ func TestLoadEnvServers(t *testing.T) {
 		err = loadEnvServers(tempDir, env)
 		assert.Error(t, err)
 	})
-}
-
-func TestDbServersStore_Server(t *testing.T) {
-	s := fsProjectStore{}
-	store := newFsDbServersStore(s)
-	assert.NotNil(t, store.DbServer(datatug.ServerReference{}))
-}
-
-func TestFsDbServerStore_Catalogs(t *testing.T) {
-	s := fsDbServerStore{}
-	assert.NotNil(t, s.Catalogs())
 }
 
 func TestFoldersStore_LoadFolders(t *testing.T) {
@@ -181,11 +170,4 @@ func TestQueriesStore_DeleteQueryFolder(t *testing.T) {
 	err := store.DeleteQueryFolder(context.Background(), "f1")
 	assert.Error(t, err)
 	assert.Equal(t, "not implemented yet", err.Error())
-}
-
-func TestDbCatalogsStore_Server(t *testing.T) {
-	s := fsDbServerStore{}
-	store := newFsDbCatalogsStore(s)
-	assert.NotNil(t, store.Server())
-	assert.NotNil(t, store.DbCatalog("c1"))
 }

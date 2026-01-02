@@ -6,43 +6,11 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
-	"github.com/strongo/validation"
 )
-
-type QueryLoc struct {
-	LocalID  string `json:"id"`
-	Folder   string `json:"folder"`
-	FileName string `json:"fileName"`
-	Path     string `json:"path"`
-}
-
-func getQueryPaths(queryID, queriesDirPath string) (ql QueryLoc, err error) {
-	_ = queriesDirPath
-	//(
-	//qID, // without directory and .json extension
-	//queryFileName,
-	//queryDir,
-	//queryPath string, // Full file name
-	//err error,
-	//)
-
-	if strings.TrimSpace(queryID) == "" {
-		err = validation.NewErrRequestIsMissingRequiredField("queryID")
-		return
-	}
-
-	ql.Folder = filepath.Dir(queryID)
-	ql.LocalID = filepath.Base(queryID)
-	//lastDotIndex := strings.LastIndex(ql.LocalID, ".")
-	//ql.LocalID = ql.LocalID[:lastDotIndex]
-	ql.FileName = storage.JsonFileName(ql.LocalID, "")
-	return
-}
 
 func (s fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, name string) (err error) {
 	folderPath := path.Join(s.dirPath, parentPath, name)
@@ -72,24 +40,28 @@ func (s fsQueriesStore) saveQuery(folderPath string, query datatug.QueryDef, isN
 	if err = query.Validate(); err != nil {
 		return fmt.Errorf("invalid query (isNew=%v): %w", isNew, err)
 	}
-	var ql QueryLoc
-	if ql, err = getQueryPaths(path.Join(folderPath, query.ID), s.dirPath); err != nil {
-		return err
-	}
-	queryText := query.Text
 
-	if err = saveJSONFile(path.Join(s.dirPath, ql.Folder), ql.FileName, query); err != nil {
+	queryText := query.Text
+	query.Text = ""
+	defer func() {
+		query.Text = queryText
+	}()
+
+	queryDirPath := path.Join(s.dirPath, folderPath)
+
+	jsonFileName := fmt.Sprintf("%s.%s.json", query.ID, storage.QueryFileSuffix)
+	if err = saveJSONFile(queryDirPath, jsonFileName, query); err != nil {
 		return fmt.Errorf("failed to save query to json file: %w", err)
 	}
 
-	if query.Text != "" {
+	if queryText != "" {
 		fileExt := strings.ToLower(string(query.Type))
-		queryTextFilePath := path.Join(s.dirPath, ql.Folder, query.ID+"."+fileExt)
+		fileName := fmt.Sprintf("%s.%s.%s", query.ID, storage.QueryFileSuffix, fileExt)
+		filePath := path.Join(queryDirPath, fileName)
 
-		if err = os.WriteFile(queryTextFilePath, []byte(queryText), 0644); err != nil {
-			return fmt.Errorf("failed to write query text to file %s: %w", queryTextFilePath, err)
+		if err = os.WriteFile(filePath, []byte(queryText), 0644); err != nil {
+			return fmt.Errorf("failed to write query text to file %s: %w", filePath, err)
 		}
 	}
-
 	return nil
 }

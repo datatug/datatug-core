@@ -27,7 +27,7 @@ func (encoder) DbServerToReadme(w io.Writer, _ *datatug.ProjectRepository, dbSer
 	})
 }
 
-func (encoder) DbCatalogToReadme(w io.Writer, _ *datatug.ProjectRepository, dbServer datatug.ProjDbServer, catalog datatug.EnvDbCatalog) error {
+func (encoder) DbCatalogToReadme(w io.Writer, _ *datatug.ProjectRepository, dbServer datatug.ProjDbServer, catalog datatug.DbCatalog) error {
 	return writeReadme(w, "dbserver.md", map[string]interface{}{
 		"dbServer": dbServer,
 		"catalog":  catalog,

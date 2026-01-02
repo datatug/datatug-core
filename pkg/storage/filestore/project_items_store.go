@@ -2,9 +2,13 @@ package filestore
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
+	"slices"
+	"strings"
 	"sync"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
@@ -96,7 +100,11 @@ func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) loadProjectItems(
 
 	switch s.storedAs {
 	case ProjItemStoredAsFile:
-		filesMask = "*.json"
+		if s.itemFileSuffix == "" {
+			filesMask = "*.json"
+		} else {
+			filesMask = fmt.Sprintf("*.%s.json", s.itemFileSuffix)
+		}
 		fsObjectType = processFiles
 		loader = func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 			if f.IsDir() {
@@ -122,11 +130,13 @@ func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) loadProjectItems(
 				return nil
 			}
 			id := f.Name()
-			envDir := path.Join(dirPath, id)
+			itemDir := path.Join(dirPath, id)
 			var item TItemPtr
-			if item, err = s.loadProjectItem(ctx, envDir, id, storage.EnvironmentSummaryFileName); err != nil {
+			item, err = s.loadProjectItem(ctx, itemDir, id, fmt.Sprintf(".datatug-%s.json", s.itemFileSuffix))
+			if err != nil && !errors.Is(err, fs.ErrNotExist) {
 				return err
 			}
+			item.SetID(id)
 			mutex.Lock()
 			items = append(items, item)
 			mutex.Unlock()
@@ -140,13 +150,18 @@ func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) loadProjectItems(
 		},
 		loader)
 
+	slices.SortFunc(items, func(a, b TItemPtr) int {
+		return strings.Compare(a.GetID(), b.GetID())
+	})
+
 	if err != nil {
 		return nil, err
 	}
 	return
 }
 
-func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) saveProjectItem(_ context.Context, dirPath string, item TItemPtr) error {
+func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) saveProjectItem(_ context.Context, dirPath string, item TItemPtr, o ...datatug.StoreOption) error {
+	_ = datatug.GetStoreOptions(o...)
 	if item == nil {
 		return fmt.Errorf("an attempt to save a nil %T to %s", item, dirPath)
 	}

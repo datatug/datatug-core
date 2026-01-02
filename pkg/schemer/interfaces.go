@@ -9,7 +9,7 @@ import (
 
 // Scanner defines scanner
 type Scanner interface {
-	ScanCatalog(c context.Context, name string) (database *datatug.EnvDbCatalog, err error)
+	ScanCatalog(c context.Context, name string) (database *datatug.DbCatalog, err error)
 }
 
 // SchemaProvider provides schema info

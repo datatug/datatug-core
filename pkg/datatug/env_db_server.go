@@ -26,7 +26,7 @@ func (v EnvDbServers) Validate() error {
 }
 
 // GetByServerRef returns *EnvDbServer by GetID
-func (v EnvDbServers) GetByServerRef(serverRef ServerReference) *EnvDbServer {
+func (v EnvDbServers) GetByServerRef(serverRef ServerRef) *EnvDbServer {
 	for _, item := range v {
 		if item.Driver == serverRef.Driver && item.Host == serverRef.Host && item.Port == serverRef.Port {
 			return item
@@ -37,7 +37,7 @@ func (v EnvDbServers) GetByServerRef(serverRef ServerReference) *EnvDbServer {
 
 // EnvDbServer holds information about DB server in an environment
 type EnvDbServer struct {
-	ServerReference
+	ServerRef
 	Catalogs []string `json:"catalogs,omitempty"`
 }
 
@@ -53,7 +53,7 @@ func (v *EnvDbServer) SetID(id string) {
 
 // Validate returns error if no valid
 func (v *EnvDbServer) Validate() error {
-	if err := v.ServerReference.Validate(); err != nil {
+	if err := v.ServerRef.Validate(); err != nil {
 		return err
 	}
 

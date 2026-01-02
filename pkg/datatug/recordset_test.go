@@ -159,7 +159,7 @@ func TestRecordsetDefinition_Validate(t *testing.T) {
 				PrimaryKey: &UniqueKey{Columns: []string{"c1", "c1"}},
 			},
 		}
-		// In RecordsetDefinition.Validate, duplicate check uses v.Columns[j].Name == columnName
+		// In RecordsetDefinition.ValidateWithOptions, duplicate check uses v.Columns[j].Name == columnName
 		// Let's see if it works as intended.
 		assert.Error(t, v.Validate())
 	})

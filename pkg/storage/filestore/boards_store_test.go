@@ -27,7 +27,7 @@ func TestFsBoardsStore(t *testing.T) {
 	assert.NoError(t, err)
 
 	board1 := &datatug.Board{
-		ProjBoardBrief: datatug.ProjBoardBrief{
+		ProjectItem: datatug.ProjectItem{
 			ProjItemBrief: datatug.ProjItemBrief{
 				ID:    "b1",
 				Title: "Board 1",
@@ -35,7 +35,7 @@ func TestFsBoardsStore(t *testing.T) {
 		},
 	}
 	board2 := &datatug.Board{
-		ProjBoardBrief: datatug.ProjBoardBrief{
+		ProjectItem: datatug.ProjectItem{
 			ProjItemBrief: datatug.ProjItemBrief{
 				ID:    "b2",
 				Title: "Board 2",
@@ -74,7 +74,7 @@ func TestFsBoardsStore(t *testing.T) {
 
 	t.Run("SaveBoard", func(t *testing.T) {
 		board3 := &datatug.Board{
-			ProjBoardBrief: datatug.ProjBoardBrief{
+			ProjectItem: datatug.ProjectItem{
 				ProjItemBrief: datatug.ProjItemBrief{
 					ID:    "b3",
 					Title: "Board 3",
@@ -100,7 +100,7 @@ func TestFsBoardsStore(t *testing.T) {
 	t.Run("saveBoards", func(t *testing.T) {
 		boards := datatug.Boards{
 			{
-				ProjBoardBrief: datatug.ProjBoardBrief{
+				ProjectItem: datatug.ProjectItem{
 					ProjItemBrief: datatug.ProjItemBrief{
 						ID:    "b4",
 						Title: "Board 4",

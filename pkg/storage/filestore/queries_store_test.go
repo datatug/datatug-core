@@ -2,7 +2,9 @@ package filestore
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 
@@ -12,24 +14,18 @@ import (
 )
 
 func TestFsQueriesStore(t *testing.T) {
-	var queriesDir string
+	var projectDir string
 	{
-		tmpDir, err := os.MkdirTemp("", "datatug_queries_test")
+		var err error
+		projectDir, err = os.MkdirTemp("", "datatug_queries_test")
 		assert.NoError(t, err)
-		defer func() { _ = os.RemoveAll(tmpDir) }()
-
-		queriesDir = filepath.Join(tmpDir, storage.QueriesFolder)
-		err = os.MkdirAll(queriesDir, 0777)
-		assert.NoError(t, err)
+		defer func() { _ = os.RemoveAll(projectDir) }()
 	}
 
-	store := fsQueriesStore{
-		fsProjectItemsStore: fsProjectItemsStore[datatug.QueryDefs, *datatug.QueryDef, datatug.QueryDef]{
-			dirPath:        queriesDir,
-			itemFileSuffix: "",
-		},
-	}
+	store := newFsQueriesStore(projectDir)
 	ctx := context.Background()
+
+	queriesDir := path.Join(projectDir, storage.QueriesFolder)
 
 	t.Run("CreateQueryFolder", func(t *testing.T) {
 		err := store.CreateQueryFolder(ctx, "", "folder1")
@@ -38,65 +34,73 @@ func TestFsQueriesStore(t *testing.T) {
 		assert.FileExists(t, filepath.Join(queriesDir, "folder1", "README.md"))
 	})
 
+	const folder1 = "folder1"
+	const query1ID = "query1"
+	var query1fullID = path.Join(folder1, query1ID)
+
 	t.Run("CreateQuery_SQL", func(t *testing.T) {
 		query := datatug.QueryDefWithFolderPath{
-			FolderPath: "folder1", // Removed trailing slash
+			FolderPath: folder1, // Removed trailing slash
 			QueryDef: datatug.QueryDef{
 				ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{
-					ID: "query1", Title: "Query 1"}},
+					ID: query1ID, Title: "Query 1"}},
 				Type: datatug.QueryTypeSQL,
 				Text: "SELECT * FROM users",
 			},
 		}
 		_, err := store.CreateQuery(ctx, query)
 		assert.NoError(t, err)
-		assert.FileExists(t, filepath.Join(queriesDir, "folder1", "query1.json"))
-		assert.FileExists(t, filepath.Join(queriesDir, "folder1", "query1.sql"))
-	})
 
-	t.Run("LoadQuery", func(t *testing.T) {
-		q, err := store.LoadQuery(ctx, "folder1/query1")
-		assert.NoError(t, err)
-		assert.NotNil(t, q)
-		assert.Equal(t, "query1", q.ID)
-		assert.Equal(t, "folder1", q.Folder)
-	})
+		jsonFileName := fmt.Sprintf("%s.%s.json", query1ID, storage.QueryFileSuffix)
+		assert.FileExists(t, filepath.Join(queriesDir, folder1, jsonFileName))
 
-	t.Run("LoadQueries", func(t *testing.T) {
-		folder, err := store.LoadQueries(ctx, "folder1") // Pass folder1 here
-		assert.NoError(t, err)
-		assert.NotNil(t, folder)
-		assert.Len(t, folder.Items, 1)
-	})
+		sqlFileName := fmt.Sprintf("%s.%s.sql", query1ID, storage.QueryFileSuffix)
+		assert.FileExists(t, filepath.Join(queriesDir, folder1, sqlFileName))
 
-	t.Run("UpdateQuery", func(t *testing.T) {
-		query := datatug.QueryDef{
-			ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{
-				ID: "query1", Title: "Query 1 Updated"}},
-			Type: datatug.QueryTypeSQL,
-			Text: "SELECT 1",
-		}
-		_, err := store.UpdateQuery(ctx, query)
-		assert.NoError(t, err)
-	})
+		t.Run("LoadQuery", func(t *testing.T) {
+			q, err := store.LoadQuery(ctx, query1fullID)
+			assert.NoError(t, err)
+			assert.NotNil(t, q)
+			assert.Equal(t, query1ID, q.ID)
+			assert.Equal(t, "", q.Folder)
+		})
 
-	t.Run("DeleteQuery", func(t *testing.T) {
-		err := store.DeleteQuery(ctx, "folder1/query1.sql")
-		assert.NoError(t, err)
-	})
+		t.Run("LoadQueries", func(t *testing.T) {
+			folder, err := store.LoadQueries(ctx, folder1) // Pass folder1 here
+			assert.NoError(t, err)
+			assert.NotNil(t, folder)
+			assert.Len(t, folder.Items, 1)
+		})
 
-	t.Run("SaveQuery", func(t *testing.T) {
-		query := &datatug.QueryDefWithFolderPath{
-			FolderPath: "folder1",
-			QueryDef: datatug.QueryDef{
+		t.Run("UpdateQuery", func(t *testing.T) {
+			query := datatug.QueryDef{
 				ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{
-					ID: "query2", Title: "Query 2"}},
+					ID: query1fullID, Title: "Query 1 Updated"}},
 				Type: datatug.QueryTypeSQL,
-				Text: "SELECT * FROM products",
-			},
-		}
-		err := store.SaveQuery(ctx, query)
-		assert.NoError(t, err)
-		assert.FileExists(t, filepath.Join(queriesDir, "query2.json"))
+				Text: "SELECT 1",
+			}
+			_, err := store.UpdateQuery(ctx, query)
+			assert.NoError(t, err)
+		})
+
+		t.Run("DeleteQuery", func(t *testing.T) {
+			err := store.DeleteQuery(ctx, query1fullID)
+			assert.NoError(t, err)
+		})
+
+		t.Run("SaveQuery", func(t *testing.T) {
+			query := &datatug.QueryDefWithFolderPath{
+				FolderPath: folder1,
+				QueryDef: datatug.QueryDef{
+					ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{
+						ID: "query2", Title: "Query 2"}},
+					Type: datatug.QueryTypeSQL,
+					Text: "SELECT * FROM products",
+				},
+			}
+			err := store.SaveQuery(ctx, query)
+			assert.NoError(t, err)
+			assert.FileExists(t, filepath.Join(queriesDir, "query2.query.json"))
+		})
 	})
 }

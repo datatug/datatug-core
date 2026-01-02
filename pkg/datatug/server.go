@@ -9,7 +9,7 @@ import (
 )
 
 // ServerReferences defines slice
-type ServerReferences []ServerReference
+type ServerReferences []ServerRef
 
 // Validate returns error if not valid
 func (v ServerReferences) Validate() error {
@@ -21,8 +21,8 @@ func (v ServerReferences) Validate() error {
 	return nil
 }
 
-// ServerReference hold info about DB server
-type ServerReference struct {
+// ServerRef hold info about DB server
+type ServerRef struct {
 	Driver string `json:"driver"`
 	Host   string `json:"host,omitempty"`
 	Path   string `json:"path,omitempty"` // A path to a folder with database files - to be used by SQLite, for example.
@@ -30,24 +30,24 @@ type ServerReference struct {
 }
 
 // FileName returns a name for a file (probably should be moved to a func in filestore package)
-func (v ServerReference) FileName() string {
+func (v ServerRef) FileName() string {
 	return v.name("@")
 }
 
 // Address returns a "host:port" string
-func (v ServerReference) Address() string {
+func (v ServerRef) Address() string {
 	return v.name(":")
 }
 
-func (v ServerReference) name(sep string) string {
+func (v ServerRef) name(sep string) string {
 	if v.Port > 0 {
 		return v.Host + sep + strconv.Itoa(v.Port)
 	}
 	return v.Host
 }
 
-// NewDbServer creates ServerReference
-func NewDbServer(driver, hostWithOptionalPort, sep string) (dbServer ServerReference, err error) {
+// NewDbServer creates ServerRef
+func NewDbServer(driver, hostWithOptionalPort, sep string) (dbServer ServerRef, err error) {
 	dbServer.Driver = driver
 	i := strings.Index(hostWithOptionalPort, sep)
 	if i < 0 {
@@ -60,7 +60,7 @@ func NewDbServer(driver, hostWithOptionalPort, sep string) (dbServer ServerRefer
 }
 
 // GetID returns string key for the server
-func (v ServerReference) GetID() string {
+func (v ServerRef) GetID() string {
 	if v.Port == 0 {
 		return fmt.Sprintf("%v:%v", v.Driver, v.Host)
 	}
@@ -68,7 +68,7 @@ func (v ServerReference) GetID() string {
 }
 
 // Validate returns error if not valid
-func (v ServerReference) Validate() error {
+func (v ServerRef) Validate() error {
 	switch v.Driver {
 	case "":
 		return validation.NewErrRecordIsMissingRequiredField("driver")
@@ -96,13 +96,16 @@ func (v ServerReference) Validate() error {
 // ProjDbServer holds info about a project DB server - NOT sure if right way
 type ProjDbServer struct {
 	ProjectItem
-	Server   ServerReference `json:"server"`
-	Catalogs EnvDbCatalogs   `json:"catalogs"`
+	Server   ServerRef  `json:"server"`
+	Catalogs DbCatalogs `json:"catalogs"`
 }
 
 // Validate returns error if not valid
 func (v ProjDbServer) Validate() error {
-	if err := v.ProjectItem.Validate(false); err != nil {
+	if id := v.Server.GetID(); id != v.ID {
+		return validation.NewErrBadRecordFieldValue("id", fmt.Sprintf("expected %s, got %s", id, v.ID))
+	}
+	if err := v.ValidateWithOptions(false); err != nil {
 		return err
 	}
 	if err := v.Server.Validate(); err != nil {
@@ -114,8 +117,36 @@ func (v ProjDbServer) Validate() error {
 	return nil
 }
 
-// ProjDbServers slice of ProjDbServer which holds ServerReference and EnvDbCatalogs
-type ProjDbServers []*ProjDbServer
+var _ IProjectItems[*ProjDbDriver] = (ProjDbDrivers)(nil)
+
+type ProjDbDrivers []*ProjDbDriver
+
+func (p ProjDbDrivers) IDs() []string {
+	return ProjectItems[*ProjDbDriver](p).IDs()
+}
+
+func (p ProjDbDrivers) GetByID(id string) *ProjDbDriver {
+	return ProjectItems[*ProjDbDriver](p).GetByID(id)
+}
+
+func (p ProjDbDrivers) Validate() error {
+	return ProjectItems[*ProjDbDriver](p).Validate()
+}
+
+type ProjDbDriver struct {
+	ProjectItem
+	Servers ProjDbServers `json:"servers"`
+}
+
+func (v ProjDbDriver) Validate() error {
+	if err := v.ProjItemBrief.Validate(); err != nil {
+		return err
+	}
+	return v.Servers.Validate()
+}
+
+// ProjDbServers slice of ProjDbServer which holds ServerRef and DbCatalogs
+type ProjDbServers ProjectItems[*ProjDbServer]
 
 // Validate returns error if not valid
 func (v ProjDbServers) Validate() error {
@@ -131,7 +162,7 @@ func (v ProjDbServers) Validate() error {
 }
 
 // GetProjDbServer returns db servers
-func (v ProjDbServers) GetProjDbServer(ref ServerReference) *ProjDbServer {
+func (v ProjDbServers) GetProjDbServer(ref ServerRef) *ProjDbServer {
 	for _, item := range v {
 		if item.Server.Host == ref.Host && item.Server.Port == ref.Port && item.Server.Driver == ref.Driver {
 			return item
@@ -140,15 +171,15 @@ func (v ProjDbServers) GetProjDbServer(ref ServerReference) *ProjDbServer {
 	return nil
 }
 
-// ProjDbServerFile stores summary info about ServerReference
+// ProjDbServerFile stores summary info about ServerRef
 type ProjDbServerFile struct {
-	ServerReference
+	ServerRef
 	Catalogs []string `jsont:"catalogs,omitempty" firestore:"catalogs,omitempty"`
 }
 
 // Validate returns error if not valid
 func (v ProjDbServerFile) Validate() error {
-	if err := v.ServerReference.Validate(); err != nil {
+	if err := v.ServerRef.Validate(); err != nil {
 		return err
 	}
 	for i, catalog := range v.Catalogs {

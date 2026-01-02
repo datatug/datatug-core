@@ -17,14 +17,14 @@ type DatabasesToCompare struct {
 // EnvToCompare defines env to compare
 type EnvToCompare struct {
 	ID        string
-	Databases datatug.EnvDbCatalogs
+	Databases datatug.DbCatalogs
 }
 
 type schemaToCompare struct { // should it be rather called `schemaToCompare`?
 	envID       string
 	dbID        string
 	schemaID    string // schema GetID
-	schemaModel *datatug.SchemaModel
+	schemaModel *datatug.Schema
 	dbSchemas   []*datatug.DbSchema
 }
 
@@ -93,7 +93,7 @@ func compareSchema(target schemaToCompare) (schemaDiff datatug.SchemaDiff, err e
 		func() (err error) { // compare tables
 			schemaDiff.TablesDiff, err = compareTables(
 				target,
-				func(schemaModel *datatug.SchemaModel) datatug.TableModels {
+				func(schemaModel *datatug.Schema) datatug.TableModels {
 					return schemaModel.Tables
 				},
 				func(schema *datatug.DbSchema) datatug.Tables {
@@ -105,7 +105,7 @@ func compareSchema(target schemaToCompare) (schemaDiff datatug.SchemaDiff, err e
 		func() (err error) { // compare views
 			schemaDiff.ViewsDiff, err = compareTables(
 				target,
-				func(schemaModel *datatug.SchemaModel) datatug.TableModels {
+				func(schemaModel *datatug.Schema) datatug.TableModels {
 					return schemaModel.Views
 				},
 				func(schema *datatug.DbSchema) datatug.Tables {
@@ -118,7 +118,7 @@ func compareSchema(target schemaToCompare) (schemaDiff datatug.SchemaDiff, err e
 	return
 }
 
-func compareTables(target schemaToCompare, getTableModels func(schemaModel *datatug.SchemaModel) datatug.TableModels, getDbTables func(db *datatug.DbSchema) datatug.Tables) (tablesDiff datatug.TablesDiff, err error) {
+func compareTables(target schemaToCompare, getTableModels func(schemaModel *datatug.Schema) datatug.TableModels, getDbTables func(db *datatug.DbSchema) datatug.Tables) (tablesDiff datatug.TablesDiff, err error) {
 	var tablesToCompare []tableToCompare
 	var tableModels datatug.TableModels
 	if target.schemaModel != nil {

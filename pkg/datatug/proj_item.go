@@ -35,15 +35,16 @@ func (v *ProjItemBrief) SetID(id string) {
 	v.ID = id
 }
 
-// Validate returns error if not valid
-func (v *ProjItemBrief) Validate(isTitleRequired bool) error {
+// ValidateWithOptions returns error if not valid
+func (v *ProjItemBrief) ValidateWithOptions(isTitleRequired bool) error {
 	if v.ID == "" {
 		return validation.NewErrRecordIsMissingRequiredField("id")
 	}
 	if err := validateStringField("title", v.Title, isTitleRequired, MaxTitleLength); err != nil {
 		return err
 	}
-	if err := v.ListOfTags.Validate(); err != nil {
+	tags := v.ListOfTags
+	if err := tags.Validate(); err != nil {
 		return err
 	}
 	if v.Folder != "" {
@@ -84,6 +85,53 @@ func ValidateFolderPath(folderPath string) error {
 	return nil
 }
 
+type IProjectItem interface {
+	GetID() string
+	GetProjectItem() ProjectItem
+	Validate() error
+}
+
+type IProjectItems[T IProjectItem] interface {
+	IDs() []string
+	GetByID(id string) (t T)
+	Validate() error
+}
+
+type ProjectItems[T IProjectItem] []T
+
+func GeProjectItemByID[T IProjectItem](items ProjectItems[T], id string) (t T) {
+	for _, item := range items {
+		if item.GetID() == id {
+			return item
+		}
+	}
+	return
+}
+
+func (v ProjectItems[T]) GetByID(id string) (t T) {
+	return GeProjectItemByID(v, id)
+}
+
+// IDs returns slice of IDs of db models
+func (v ProjectItems[T]) IDs() (ids []string) {
+	ids = make([]string, len(v))
+	for i, item := range v {
+		ids[i] = item.GetID()
+	}
+	return
+}
+
+func (v ProjectItems[T]) Validate() error {
+	for i, item := range v {
+		if err := item.Validate(); err != nil {
+			return fmt.Errorf("invalid item at index %d: %w", i, err)
+		}
+	}
+	return nil
+}
+
+var _ IProjectItem = (*ProjectItem)(nil)
+
 // ProjectItem base class with GetID and Name
 type ProjectItem struct {
 	ProjItemBrief
@@ -91,9 +139,13 @@ type ProjectItem struct {
 	Access  string   `json:"access,omitempty" firestore:"access,omitempty"` // e.g. "private", "protected", "public"
 }
 
-// Validate returns error if not valid
-func (v ProjectItem) Validate(isTitleRequired bool) error {
-	if err := v.ProjItemBrief.Validate(isTitleRequired); err != nil {
+func (v ProjectItem) GetProjectItem() ProjectItem {
+	return v
+}
+
+// ValidateWithOptions returns error if not valid
+func (v ProjectItem) ValidateWithOptions(isTitleRequired bool) error {
+	if err := v.ProjItemBrief.ValidateWithOptions(isTitleRequired); err != nil {
 		return err
 	}
 	switch v.Access {

@@ -9,27 +9,27 @@ import (
 func TestProjItemBrief_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
 		v := ProjItemBrief{ID: "i1", Title: "T"}
-		assert.NoError(t, v.Validate(true))
+		assert.NoError(t, v.ValidateWithOptions(true))
 	})
 	t.Run("missing_id", func(t *testing.T) {
 		v := ProjItemBrief{Title: "T"}
-		assert.Error(t, v.Validate(true))
+		assert.Error(t, v.ValidateWithOptions(true))
 	})
 	t.Run("missing_title", func(t *testing.T) {
 		v := ProjItemBrief{ID: "i1"}
-		assert.Error(t, v.Validate(true))
+		assert.Error(t, v.ValidateWithOptions(true))
 	})
 	t.Run("valid_folder", func(t *testing.T) {
 		v := ProjItemBrief{ID: "i1", Folder: "~"}
-		assert.NoError(t, v.Validate(false))
+		assert.NoError(t, v.ValidateWithOptions(false))
 	})
 	t.Run("invalid_folder", func(t *testing.T) {
 		v := ProjItemBrief{ID: "i1", Folder: "invalid"}
-		assert.Error(t, v.Validate(false))
+		assert.Error(t, v.ValidateWithOptions(false))
 	})
 	t.Run("invalid_tags", func(t *testing.T) {
 		v := ProjItemBrief{ID: "i1", ListOfTags: ListOfTags{Tags: []string{""}}}
-		assert.Error(t, v.Validate(false))
+		assert.Error(t, v.ValidateWithOptions(false))
 	})
 }
 
@@ -69,19 +69,19 @@ func TestValidateFolderPath(t *testing.T) {
 func TestProjectItem_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
 		v := ProjectItem{ProjItemBrief: ProjItemBrief{ID: "i1"}, Access: "public", UserIDs: []string{"u1"}}
-		assert.NoError(t, v.Validate(false))
+		assert.NoError(t, v.ValidateWithOptions(false))
 	})
 	t.Run("invalid_access", func(t *testing.T) {
 		v := ProjectItem{ProjItemBrief: ProjItemBrief{ID: "i1"}, Access: "unknown"}
-		assert.Error(t, v.Validate(false))
+		assert.Error(t, v.ValidateWithOptions(false))
 	})
 	t.Run("invalid_user_id", func(t *testing.T) {
 		v := ProjectItem{ProjItemBrief: ProjItemBrief{ID: "i1"}, UserIDs: []string{""}}
-		assert.Error(t, v.Validate(false))
+		assert.Error(t, v.ValidateWithOptions(false))
 	})
 	t.Run("duplicate_user_id", func(t *testing.T) {
 		v := ProjectItem{ProjItemBrief: ProjItemBrief{ID: "i1"}, UserIDs: []string{"u1", "u1"}}
-		assert.Error(t, v.Validate(false))
+		assert.Error(t, v.ValidateWithOptions(false))
 	})
 }
 

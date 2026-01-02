@@ -1,6 +1,9 @@
 package storage
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 func NewFileLoadError(fileName string, err error) FileLoadError {
 	return FileLoadError{
@@ -41,7 +44,14 @@ func (e FilesLoadError) Errors() []FileLoadError {
 }
 
 func (e FilesLoadError) Error() string {
-	return fmt.Sprintf("%d files failed to load", len(e.errs))
+	if len(e.errs) == 1 {
+		return fmt.Sprintf("1 file failed to load: %s", e.errs[0].Error())
+	}
+	errs := make([]string, len(e.errs))
+	for i, err := range e.errs {
+		errs[i] = err.Error()
+	}
+	return fmt.Sprintf("%d files failed to load:\n\t%s", len(e.errs), strings.Join(errs, "\n\t"))
 }
 
 func (e FilesLoadError) String() string {

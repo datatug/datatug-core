@@ -16,13 +16,13 @@ func TestServerReferences_Validate(t *testing.T) {
 }
 
 func TestServerReference_FileName(t *testing.T) {
-	assert.Equal(t, "localhost", ServerReference{Host: "localhost"}.FileName())
-	assert.Equal(t, "localhost@3306", ServerReference{Host: "localhost", Port: 3306}.FileName())
+	assert.Equal(t, "localhost", ServerRef{Host: "localhost"}.FileName())
+	assert.Equal(t, "localhost@3306", ServerRef{Host: "localhost", Port: 3306}.FileName())
 }
 
 func TestServerReference_Address(t *testing.T) {
-	assert.Equal(t, "localhost", ServerReference{Host: "localhost"}.Address())
-	assert.Equal(t, "localhost:3306", ServerReference{Host: "localhost", Port: 3306}.Address())
+	assert.Equal(t, "localhost", ServerRef{Host: "localhost"}.Address())
+	assert.Equal(t, "localhost:3306", ServerRef{Host: "localhost", Port: 3306}.Address())
 }
 
 func TestNewDbServer(t *testing.T) {
@@ -41,41 +41,41 @@ func TestNewDbServer(t *testing.T) {
 }
 
 func TestServerReference_ID(t *testing.T) {
-	assert.Equal(t, "mysql:localhost", ServerReference{Driver: "mysql", Host: "localhost"}.GetID())
-	assert.Equal(t, "mysql:localhost:3306", ServerReference{Driver: "mysql", Host: "localhost", Port: 3306}.GetID())
+	assert.Equal(t, "mysql:localhost", ServerRef{Driver: "mysql", Host: "localhost"}.GetID())
+	assert.Equal(t, "mysql:localhost:3306", ServerRef{Driver: "mysql", Host: "localhost", Port: 3306}.GetID())
 }
 
 func TestServerReference_Validate(t *testing.T) {
 	t.Run("missing_driver", func(t *testing.T) {
-		assert.Error(t, ServerReference{Host: "localhost"}.Validate())
+		assert.Error(t, ServerRef{Host: "localhost"}.Validate())
 	})
 	t.Run("sqlite_with_host", func(t *testing.T) {
-		assert.Error(t, ServerReference{Driver: "sqlite3", Host: "localhost"}.Validate())
+		assert.Error(t, ServerRef{Driver: "sqlite3", Host: "localhost"}.Validate())
 	})
 	t.Run("sqlite_with_port", func(t *testing.T) {
-		assert.Error(t, ServerReference{Driver: "sqlite3", Port: 123}.Validate())
+		assert.Error(t, ServerRef{Driver: "sqlite3", Port: 123}.Validate())
 	})
 	t.Run("unknown_driver", func(t *testing.T) {
-		assert.Error(t, ServerReference{Driver: "unknown", Host: "localhost"}.Validate())
+		assert.Error(t, ServerRef{Driver: "unknown", Host: "localhost"}.Validate())
 	})
 	t.Run("missing_host", func(t *testing.T) {
-		assert.Error(t, ServerReference{Driver: "mysql"}.Validate())
+		assert.Error(t, ServerRef{Driver: "mysql"}.Validate())
 	})
 	t.Run("negative_port", func(t *testing.T) {
-		assert.Error(t, ServerReference{Driver: "mysql", Host: "localhost", Port: -1}.Validate())
+		assert.Error(t, ServerRef{Driver: "mysql", Host: "localhost", Port: -1}.Validate())
 	})
 }
 
 func TestProjDbServer_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
 		v := ProjDbServer{
-			ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "s1"}},
-			Server:      ServerReference{Driver: "mysql", Host: "localhost"},
+			ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "mysql:localhost"}},
+			Server:      ServerRef{Driver: "mysql", Host: "localhost"},
 		}
 		assert.NoError(t, v.Validate())
 	})
 	t.Run("invalid_project_item", func(t *testing.T) {
-		v := ProjDbServer{Server: ServerReference{Driver: "mysql", Host: "localhost"}}
+		v := ProjDbServer{Server: ServerRef{Driver: "mysql", Host: "localhost"}}
 		assert.Error(t, v.Validate())
 	})
 	t.Run("invalid_server", func(t *testing.T) {
@@ -87,8 +87,8 @@ func TestProjDbServer_Validate(t *testing.T) {
 	t.Run("invalid_catalogs", func(t *testing.T) {
 		v := ProjDbServer{
 			ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "s1"}},
-			Server:      ServerReference{Driver: "mysql", Host: "localhost"},
-			Catalogs:    EnvDbCatalogs{{}},
+			Server:      ServerRef{Driver: "mysql", Host: "localhost"},
+			Catalogs:    DbCatalogs{{}},
 		}
 		assert.Error(t, v.Validate())
 	})
@@ -97,8 +97,8 @@ func TestProjDbServer_Validate(t *testing.T) {
 func TestProjDbServers_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
 		v := ProjDbServers{{
-			ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "s1"}},
-			Server:      ServerReference{Driver: "mysql", Host: "localhost"},
+			ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "mysql:localhost"}},
+			Server:      ServerRef{Driver: "mysql", Host: "localhost"},
 		}}
 		assert.NoError(t, v.Validate())
 	})
@@ -113,17 +113,17 @@ func TestProjDbServers_Validate(t *testing.T) {
 }
 
 func TestProjDbServers_GetProjDbServer(t *testing.T) {
-	ref := ServerReference{Driver: "mysql", Host: "localhost", Port: 3306}
+	ref := ServerRef{Driver: "mysql", Host: "localhost", Port: 3306}
 	s1 := &ProjDbServer{Server: ref}
 	v := ProjDbServers{s1}
 	assert.Equal(t, s1, v.GetProjDbServer(ref))
-	assert.Nil(t, v.GetProjDbServer(ServerReference{Driver: "mysql", Host: "other"}))
+	assert.Nil(t, v.GetProjDbServer(ServerRef{Driver: "mysql", Host: "other"}))
 }
 
 func TestProjDbServerFile_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
 		v := ProjDbServerFile{
-			ServerReference: ServerReference{Driver: "mysql", Host: "localhost"},
+			ServerRef: ServerRef{Driver: "mysql", Host: "localhost"},
 		}
 		assert.NoError(t, v.Validate())
 	})
@@ -133,8 +133,8 @@ func TestProjDbServerFile_Validate(t *testing.T) {
 	})
 	t.Run("invalid_catalog", func(t *testing.T) {
 		v := ProjDbServerFile{
-			ServerReference: ServerReference{Driver: "mysql", Host: "localhost"},
-			Catalogs:        []string{""},
+			ServerRef: ServerRef{Driver: "mysql", Host: "localhost"},
+			Catalogs:  []string{""},
 		}
 		assert.Error(t, v.Validate())
 	})

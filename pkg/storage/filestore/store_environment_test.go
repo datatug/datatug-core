@@ -44,13 +44,13 @@ func TestFsEnvironmentStore(t *testing.T) {
 	})
 
 	t.Run("loadEnvServers", func(t *testing.T) {
-		envPath := path.Join(envsDirPath, envID, storage.ServersFolder, storage.DbFolder)
+		envPath := path.Join(envsDirPath, envID, storage.ServersFolder, storage.DbsFolder)
 		err := os.MkdirAll(envPath, 0755)
 		assert.NoError(t, err)
 
 		servers := []*datatug.EnvDbServer{
 			{
-				ServerReference: datatug.ServerReference{Driver: "sqlserver", Host: "localhost"},
+				ServerRef: datatug.ServerRef{Driver: "sqlserver", Host: "localhost"},
 			},
 		}
 		data, _ := json.Marshal(servers)
@@ -66,7 +66,7 @@ func TestFsEnvironmentStore(t *testing.T) {
 		// Test mismatching host
 		servers2 := []*datatug.EnvDbServer{
 			{
-				ServerReference: datatug.ServerReference{Driver: "sqlserver", Host: "mismatch"},
+				ServerRef: datatug.ServerRef{Driver: "sqlserver", Host: "mismatch"},
 			},
 		}
 		data2, _ := json.Marshal(servers2)

@@ -8,7 +8,7 @@ import (
 )
 
 // Boards is a slice of *Board
-type Boards []*Board
+type Boards ProjectItems[*Board]
 
 // Validate returns error if failed
 func (v Boards) Validate() error {
@@ -22,13 +22,13 @@ func (v Boards) Validate() error {
 
 // Board is holding all details about board
 type Board struct {
-	ProjBoardBrief
+	ProjectItem
 	Rows BoardRows `json:"rows,omitempty" firestore:"rows,omitempty"`
 }
 
 // Validate returns error if failed
 func (v *Board) Validate() error {
-	if err := v.ProjBoardBrief.Validate(); err != nil {
+	if err := v.ValidateWithOptions(true); err != nil {
 		return err
 	}
 	if err := v.Rows.Validate(); err != nil {
@@ -46,7 +46,7 @@ type ProjBoardBrief struct {
 }
 
 func (v ProjBoardBrief) Validate() error {
-	if err := v.ProjItemBrief.Validate(true); err != nil {
+	if err := v.ValidateWithOptions(true); err != nil {
 		return err
 	}
 	for i, p := range v.Parameters {
@@ -150,13 +150,13 @@ func (v BoardWidget) Validate() (err error) {
 	switch v.Name {
 	case "":
 		return validation.NewErrRecordIsMissingRequiredField("name")
-	case "SQL":
+	case string(QueryTypeSQL): // Why switching name on a query type? Temporary demo hack?
 		if widget, ok = v.Data.(*SQLWidgetDef); !ok {
 			if widget, err = newWidgetDef(&SQLWidgetDef{}, v.Data); err != nil {
 				return err
 			}
 		}
-	case "HTTP":
+	case string(QueryTypeHTTP):
 		if widget, ok = v.Data.(*HTTPWidgetDef); !ok {
 			if widget, err = newWidgetDef(&HTTPWidgetDef{}, v.Data); err != nil {
 				return err
@@ -208,7 +208,7 @@ type SQLWidgetDef struct {
 	SQL SQLWidgetSettings `json:"sql"`
 }
 
-// SQLWidgetSettings holds settings for an SQL widget
+// SQLWidgetSettings holds settings for an DLL widget
 type SQLWidgetSettings struct {
 	Query string `json:"query"`
 }

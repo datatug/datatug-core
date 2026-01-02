@@ -45,7 +45,7 @@ type ProjectStore interface {
 	EnvironmentsStore
 	EnvDbServersStore
 	EnvDbCatalogStore
-	ProjDbServersStore
+	ProjDbDriversStore
 	RecordsetDefinitionsStore
 }
 
@@ -67,11 +67,19 @@ type EnvDbServersStore interface {
 }
 
 type EnvDbCatalogStore interface {
-	LoadEnvDbCatalogs(ctx context.Context, envID string, o ...StoreOption) (EnvDbCatalogs, error)
-	LoadEnvDbCatalog(ctx context.Context, envID, serverID, catalogID string, o ...StoreOption) (EnvDbCatalog, error)
-	SaveEnvDbCatalog(ctx context.Context, envID, serverID, catalogID string, catalogs *EnvDbCatalog) error
-	SaveEnvDbCatalogs(ctx context.Context, envID, serverID, catalogID string, catalogs EnvDbCatalogs) error
+	LoadEnvDbCatalogs(ctx context.Context, envID string, o ...StoreOption) (DbCatalogs, error)
+	LoadEnvDbCatalog(ctx context.Context, envID, serverID, catalogID string, o ...StoreOption) (DbCatalog, error)
+	SaveEnvDbCatalog(ctx context.Context, envID, serverID, catalogID string, catalogs *DbCatalog) error
+	SaveEnvDbCatalogs(ctx context.Context, envID, serverID, catalogID string, catalogs DbCatalogs) error
 	DeleteEnvDbCatalog(ctx context.Context, envID, serverID, catalogID string) error
+}
+
+type DbModelsStore interface {
+	LoadDbModels(ctx context.Context, o ...StoreOption) (DbModels, error)
+	LoadDbModel(ctx context.Context, id string, o ...StoreOption) (*DbModel, error)
+	SaveDbModel(ctx context.Context, dbModel *DbModel) error
+	SaveDbModels(ctx context.Context, dbModels DbModels) error
+	DeleteDbModel(ctx context.Context, id string) error
 }
 
 type BoardsStore interface {
@@ -81,11 +89,35 @@ type BoardsStore interface {
 	DeleteBoard(ctx context.Context, id string) error
 }
 
+type DbSchemasStore interface {
+	LoadDbSchemas(ctx context.Context, o ...StoreOption) (DbSchemas, error)
+	LoadDbSchema(ctx context.Context, id string, o ...StoreOption) (*DbSchema, error)
+	SaveDbSchema(ctx context.Context, board *DbSchema) error
+	DeleteDbSchema(ctx context.Context, id string) error
+}
+
+type ProjDbDriversStore interface {
+	LoadProjDbDrivers(ctx context.Context, o ...StoreOption) (ProjDbDrivers, error)
+	LoadProjDbDriver(ctx context.Context, id string, o ...StoreOption) (*ProjDbDriver, error)
+	SaveProjDbDriver(ctx context.Context, dbDriver *ProjDbDriver, o ...StoreOption) error
+	DeleteProjDbDriver(ctx context.Context, id string) error
+	DbServersStore(dbDriver string) ProjDbServersStore
+}
+
 type ProjDbServersStore interface {
+	DriverID() string
+	CatalogsStore(serverRef ServerRef) DbCatalogsStore
 	LoadProjDbServers(ctx context.Context, o ...StoreOption) (ProjDbServers, error)
-	LoadProjDbServerSummary(ctx context.Context, id string) (*ProjDbServerSummary, error)
-	SaveProjDbServer(ctx context.Context, server *ProjDbServer) error
-	DeleteProjDbServer(ctx context.Context, id string) error
+	LoadProjDbServer(ctx context.Context, serverID string, o ...StoreOption) (*ProjDbServer, error)
+	SaveProjDbServer(ctx context.Context, server *ProjDbServer, o ...StoreOption) error
+	DeleteProjDbServer(ctx context.Context, serverID string) error
+}
+
+type DbCatalogsStore interface {
+	Server() ServerRef
+	LoadDbCatalogs(ctx context.Context, o ...StoreOption) (DbCatalogs, error)
+	SaveDbCatalog(ctx context.Context, dbCatalog *DbCatalog) error
+	DeleteDbCatalog(ctx context.Context, id string) error
 }
 
 type EntitiesStore interface {
@@ -96,8 +128,8 @@ type EntitiesStore interface {
 }
 
 type QueriesStore interface {
-	LoadQueries(ctx context.Context, folderPath string, o ...StoreOption) (folder *QueryFolder, err error)
-	LoadQuery(ctx context.Context, id string, o ...StoreOption) (*QueryDefWithFolderPath, error)
+	LoadQueries(ctx context.Context, folderPath string, o ...StoreOption) (folder *QueriesFolder, err error)
+	LoadQuery(ctx context.Context, id string, o ...StoreOption) (*QueryDef, error)
 	SaveQuery(ctx context.Context, query *QueryDefWithFolderPath) error
 	DeleteQuery(ctx context.Context, id string) error
 }

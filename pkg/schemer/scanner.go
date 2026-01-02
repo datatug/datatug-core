@@ -21,8 +21,8 @@ type scanner struct {
 	schemaProvider SchemaProvider
 }
 
-func (s scanner) ScanCatalog(c context.Context, name string) (dbCatalog *datatug.EnvDbCatalog, err error) {
-	dbCatalog = new(datatug.EnvDbCatalog)
+func (s scanner) ScanCatalog(c context.Context, name string) (dbCatalog *datatug.DbCatalog, err error) {
+	dbCatalog = new(datatug.DbCatalog)
 	dbCatalog.ID = name
 	if err = s.scanTables(c, dbCatalog); err != nil {
 		return dbCatalog, fmt.Errorf("failed to get Tables & views: %w", err)
@@ -31,7 +31,7 @@ func (s scanner) ScanCatalog(c context.Context, name string) (dbCatalog *datatug
 	return
 }
 
-func (s scanner) scanTables(c context.Context, catalog *datatug.EnvDbCatalog) error {
+func (s scanner) scanTables(c context.Context, catalog *datatug.DbCatalog) error {
 	var tables []*datatug.CollectionInfo
 	tablesReader, err := s.schemaProvider.GetCollections(c, NewSchemaKey(catalog.ID, ""))
 	if err != nil {

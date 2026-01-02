@@ -21,7 +21,7 @@ func TestBoards_Validate(t *testing.T) {
 			name: "valid",
 			v: Boards{
 				&Board{
-					ProjBoardBrief: ProjBoardBrief{
+					ProjectItem: ProjectItem{
 						ProjItemBrief: ProjItemBrief{ID: "b1", Title: "Board 1"},
 					},
 				},
@@ -32,7 +32,7 @@ func TestBoards_Validate(t *testing.T) {
 			name: "invalid_item",
 			v: Boards{
 				&Board{
-					ProjBoardBrief: ProjBoardBrief{
+					ProjectItem: ProjectItem{
 						ProjItemBrief: ProjItemBrief{ID: ""},
 					},
 				},
@@ -43,7 +43,7 @@ func TestBoards_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("Boards.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Boards.ValidateWithOptions() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -58,7 +58,7 @@ func TestBoard_Validate(t *testing.T) {
 		{
 			name: "valid",
 			v: Board{
-				ProjBoardBrief: ProjBoardBrief{
+				ProjectItem: ProjectItem{
 					ProjItemBrief: ProjItemBrief{ID: "b1", Title: "Board 1"},
 				},
 			},
@@ -67,7 +67,7 @@ func TestBoard_Validate(t *testing.T) {
 		{
 			name: "invalid_brief",
 			v: Board{
-				ProjBoardBrief: ProjBoardBrief{
+				ProjectItem: ProjectItem{
 					ProjItemBrief: ProjItemBrief{ID: ""},
 				},
 			},
@@ -76,7 +76,7 @@ func TestBoard_Validate(t *testing.T) {
 		{
 			name: "invalid_card_cols",
 			v: Board{
-				ProjBoardBrief: ProjBoardBrief{ProjItemBrief: ProjItemBrief{ID: "b1", Title: "Board 1"}},
+				ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "b1", Title: "Board 1"}},
 				Rows: BoardRows{
 					{Cards: BoardCards{{ID: "c1", Cols: -1}}},
 				},
@@ -87,7 +87,7 @@ func TestBoard_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("Board.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Board.ValidateWithOptions() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -208,7 +208,7 @@ func TestBoardWidget_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("BoardWidget.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("BoardWidget.ValidateWithOptions() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -245,7 +245,7 @@ func TestWidgetBase_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.v.Validate(tt.isTitleRequired); (err != nil) != tt.wantErr {
-				t.Errorf("WidgetBase.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("WidgetBase.ValidateWithOptions() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -276,7 +276,7 @@ func TestHTTPHeaderItem_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("HTTPHeaderItem.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("HTTPHeaderItem.ValidateWithOptions() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -302,7 +302,7 @@ func TestHTTPHeaders_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("HTTPHeaders.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("HTTPHeaders.ValidateWithOptions() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -393,7 +393,7 @@ func TestHTTPRequest_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("HTTPRequest.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("HTTPRequest.ValidateWithOptions() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -433,7 +433,7 @@ func TestProjBoardBrief_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("ProjBoardBrief.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ProjBoardBrief.ValidateWithOptions() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -468,7 +468,7 @@ func TestBoardRows_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("BoardRows.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("BoardRows.ValidateWithOptions() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -513,7 +513,7 @@ func TestBoardCard_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("BoardCard.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("BoardCard.ValidateWithOptions() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

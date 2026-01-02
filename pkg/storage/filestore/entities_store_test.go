@@ -30,7 +30,7 @@ func TestFsEntitiesStore(t *testing.T) {
 
 	t.Run("saveEntity", func(t *testing.T) {
 		entity := &datatug.Entity{
-			ProjEntityBrief: datatug.ProjEntityBrief{ProjItemBrief: datatug.ProjItemBrief{ID: "entity1"}},
+			ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "entity1"}},
 		}
 		err := store.SaveEntity(ctx, entity)
 		assert.NoError(t, err)
@@ -56,7 +56,7 @@ func TestFsEntitiesStore(t *testing.T) {
 
 	t.Run("saveEntities", func(t *testing.T) {
 		entities := datatug.Entities{
-			{ProjEntityBrief: datatug.ProjEntityBrief{ProjItemBrief: datatug.ProjItemBrief{ID: "entity2"}}},
+			{ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "entity2"}}},
 		}
 		err := store.SaveEntities(ctx, entities)
 		assert.NoError(t, err)

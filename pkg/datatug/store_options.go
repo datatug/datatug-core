@@ -8,17 +8,31 @@ func GetStoreOptions(opts ...StoreOption) (o StoreOptions) {
 }
 
 type StoreOptions struct {
-	deep bool
+	depth int
 }
 
-func (o StoreOptions) Deep() bool {
-	return o.deep
+func (o StoreOptions) ToSlice() (options []StoreOption) {
+	if o.depth != 0 {
+		options = append(options, Depth(o.depth))
+	}
+	return
+}
+
+func (o StoreOptions) Depth() int {
+	return o.depth
+}
+
+func (o StoreOptions) Next() StoreOptions {
+	if o.depth > 0 {
+		o.depth--
+	}
+	return o
 }
 
 type StoreOption func(op *StoreOptions)
 
-func Deep() StoreOption {
+func Depth(depth int) StoreOption {
 	return func(op *StoreOptions) {
-		op.deep = true
+		op.depth = depth
 	}
 }

@@ -7,51 +7,54 @@ import (
 )
 
 func TestEntities_GetEntityByID(t *testing.T) {
-	v := Entities{{ProjEntityBrief: ProjEntityBrief{ProjItemBrief: ProjItemBrief{ID: "e1"}}}}
-	assert.NotNil(t, v.GetEntityByID("e1"))
-	assert.Nil(t, v.GetEntityByID("e2"))
+	v := Entities{{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "e1"}}}}
+	assert.NotNil(t, v.GetByID("e1"))
+	assert.Nil(t, v.GetByID("e2"))
 }
 
 func TestEntities_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
-		v := Entities{{ProjEntityBrief: ProjEntityBrief{ProjItemBrief: ProjItemBrief{ID: "e1"}}}}
+		v := Entities{{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "e1"}}}}
 		assert.NoError(t, v.Validate())
 	})
 	t.Run("invalid", func(t *testing.T) {
-		v := Entities{{ProjEntityBrief: ProjEntityBrief{ProjItemBrief: ProjItemBrief{ID: ""}}}}
+		v := Entities{{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: ""}}}}
 		assert.Error(t, v.Validate())
 	})
 }
 
 func TestEntities_IDs(t *testing.T) {
-	v := Entities{{ProjEntityBrief: ProjEntityBrief{ProjItemBrief: ProjItemBrief{ID: "e1"}}}, {ProjEntityBrief: ProjEntityBrief{ProjItemBrief: ProjItemBrief{ID: "e2"}}}}
+	v := Entities{
+		{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "e1"}}},
+		{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "e2"}}},
+	}
 	assert.Equal(t, []string{"e1", "e2"}, v.IDs())
 	assert.Empty(t, Entities{}.IDs())
 }
 
 func TestEntity_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
-		v := Entity{ProjEntityBrief: ProjEntityBrief{ProjItemBrief: ProjItemBrief{ID: "e1"}}}
+		v := Entity{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "e1"}}}
 		assert.NoError(t, v.Validate())
 	})
 	t.Run("invalid_fields", func(t *testing.T) {
 		v := Entity{
-			ProjEntityBrief: ProjEntityBrief{ProjItemBrief: ProjItemBrief{ID: "e1"}},
-			Fields:          EntityFields{{ID: ""}},
+			ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "e1"}},
+			Fields:      EntityFields{{ID: ""}},
 		}
 		assert.Error(t, v.Validate())
 	})
 	t.Run("invalid_tables", func(t *testing.T) {
 		v := Entity{
-			ProjEntityBrief: ProjEntityBrief{ProjItemBrief: ProjItemBrief{ID: "e1"}},
-			Tables:          TableKeys{NewTableKey("t1", "s1", "c1", nil)},
+			ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "e1"}},
+			Tables:      TableKeys{NewTableKey("t1", "s1", "c1", nil)},
 		}
 		assert.NoError(t, v.Validate())
 	})
 	t.Run("invalid_tags", func(t *testing.T) {
 		v := Entity{
-			ProjEntityBrief: ProjEntityBrief{ProjItemBrief: ProjItemBrief{ID: "e1"}},
-			ListOfTags:      ListOfTags{Tags: []string{""}},
+			ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "e1"}},
+			ListOfTags:  ListOfTags{Tags: []string{""}},
 		}
 		assert.Error(t, v.Validate())
 	})

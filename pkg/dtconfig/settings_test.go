@@ -143,7 +143,7 @@ func TestOsOpen(t *testing.T) {
 func TestAuthCredential_Validate(t *testing.T) {
 	v := AuthCredential{}
 	if err := v.Validate(); err != nil {
-		t.Errorf("Validate() error = %v, want nil", err)
+		t.Errorf("ValidateWithOptions() error = %v, want nil", err)
 	}
 }
 
@@ -224,15 +224,15 @@ func TestProjectConfig_Validate(t *testing.T) {
 			err := tt.p.Validate()
 			if tt.wantErr == "" {
 				if err != nil {
-					t.Errorf("ProjectConfig.Validate() returned unexpected error: %v", err)
+					t.Errorf("ProjectConfig.ValidateWithOptions() returned unexpected error: %v", err)
 				}
 				return
 			}
 			if err == nil {
-				t.Errorf("ProjectConfig.Validate() expected error %s, got nil", tt.wantErr)
+				t.Errorf("ProjectConfig.ValidateWithOptions() expected error %s, got nil", tt.wantErr)
 			}
 			if !strings.Contains(err.Error(), tt.wantErr) {
-				t.Errorf("ProjectConfig.Validate() expected error to contain %v, got %v", tt.wantErr, err)
+				t.Errorf("ProjectConfig.ValidateWithOptions() expected error to contain %v, got %v", tt.wantErr, err)
 				return
 			}
 		})

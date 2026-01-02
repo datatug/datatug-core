@@ -97,7 +97,7 @@ func TestTableToReadmeFull(t *testing.T) {
 				IsPrimaryKey: true,
 			},
 		},
-		ReferencedBy: datatug.TableReferencedBys{
+		ReferencedBy: datatug.ReferencedBys{
 			{
 				DBCollectionKey: datatug.NewTableKey("ref_table", "dbo", "test-catalog", nil),
 				ForeignKeys: []*datatug.RefByForeignKey{
@@ -112,7 +112,7 @@ func TestTableToReadmeFull(t *testing.T) {
 
 	dbServer := datatug.ProjDbServer{
 		ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "test-server"}},
-		Catalogs: datatug.EnvDbCatalogs{
+		Catalogs: datatug.DbCatalogs{
 			{
 				DbCatalogBase: datatug.DbCatalogBase{ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "test-catalog"}}},
 				Schemas: datatug.DbSchemas{
@@ -166,7 +166,7 @@ func TestTableToReadmeFull(t *testing.T) {
 		tableWithUnknownRefBy := &datatug.CollectionInfo{
 			DBCollectionKey: datatug.NewTableKey("table_unknown_ref_by", "dbo", "test-catalog", nil),
 			TableProps:      datatug.TableProps{DbType: "BASE TABLE"},
-			ReferencedBy: datatug.TableReferencedBys{
+			ReferencedBy: datatug.ReferencedBys{
 				{
 					DBCollectionKey: datatug.NewTableKey("unknown", "dbo", "test-catalog", nil),
 				},
@@ -252,7 +252,7 @@ func TestTableToReadmeFull(t *testing.T) {
 			RecordsetBaseDef: datatug.RecordsetBaseDef{
 				PrimaryKey: &datatug.UniqueKey{Name: "PK_B", Columns: []string{"id"}},
 			},
-			ReferencedBy: datatug.TableReferencedBys{
+			ReferencedBy: datatug.ReferencedBys{
 				{
 					DBCollectionKey: datatug.NewTableKey("tableA", "dbo", "test-catalog", nil),
 					ForeignKeys: []*datatug.RefByForeignKey{
@@ -261,7 +261,7 @@ func TestTableToReadmeFull(t *testing.T) {
 				},
 			},
 		}
-		tableA.ReferencedBy = datatug.TableReferencedBys{
+		tableA.ReferencedBy = datatug.ReferencedBys{
 			{
 				DBCollectionKey: datatug.NewTableKey("tableB", "dbo", "test-catalog", nil),
 				ForeignKeys: []*datatug.RefByForeignKey{
@@ -290,7 +290,7 @@ func TestTableToReadmeFull(t *testing.T) {
 			RecordsetBaseDef: datatug.RecordsetBaseDef{
 				PrimaryKey: &datatug.UniqueKey{Name: "PK", Columns: []string{"col1"}},
 			},
-			ReferencedBy: datatug.TableReferencedBys{
+			ReferencedBy: datatug.ReferencedBys{
 				{
 					DBCollectionKey: datatug.NewTableKey("tableWithRefBy", "dbo", "test-catalog", nil),
 					ForeignKeys: []*datatug.RefByForeignKey{
@@ -348,7 +348,7 @@ func TestTableToReadmeFull(t *testing.T) {
 			RecordsetBaseDef: datatug.RecordsetBaseDef{
 				PrimaryKey: &datatug.UniqueKey{Name: "PK_D", Columns: []string{"id"}},
 			},
-			ReferencedBy: datatug.TableReferencedBys{
+			ReferencedBy: datatug.ReferencedBys{
 				{
 					DBCollectionKey: datatug.NewTableKey("tableC", "dbo", "test-catalog", nil),
 					ForeignKeys: []*datatug.RefByForeignKey{
@@ -363,7 +363,7 @@ func TestTableToReadmeFull(t *testing.T) {
 			RecordsetBaseDef: datatug.RecordsetBaseDef{
 				PrimaryKey: &datatug.UniqueKey{Name: "PK_E", Columns: []string{"id"}},
 			},
-			ReferencedBy: datatug.TableReferencedBys{
+			ReferencedBy: datatug.ReferencedBys{
 				{
 					DBCollectionKey: datatug.NewTableKey("tableD", "dbo", "test-catalog", nil),
 					ForeignKeys: []*datatug.RefByForeignKey{
@@ -386,7 +386,7 @@ func TestTableToReadmeFull(t *testing.T) {
 			RecordsetBaseDef: datatug.RecordsetBaseDef{
 				PrimaryKey: &datatug.UniqueKey{Name: "PK", Columns: []string{"id"}},
 			},
-			ReferencedBy: datatug.TableReferencedBys{
+			ReferencedBy: datatug.ReferencedBys{
 				{
 					DBCollectionKey: datatug.NewTableKey("self_ref", "dbo", "test-catalog", nil),
 					ForeignKeys: []*datatug.RefByForeignKey{
@@ -411,7 +411,7 @@ func TestTableToReadmeFull(t *testing.T) {
 			RecordsetBaseDef: datatug.RecordsetBaseDef{
 				PrimaryKey: &datatug.UniqueKey{Name: "PK", Columns: []string{"id"}},
 			},
-			ReferencedBy: datatug.TableReferencedBys{
+			ReferencedBy: datatug.ReferencedBys{
 				{
 					DBCollectionKey: datatug.NewTableKey("other_table", "dbo", "test-catalog", nil),
 					ForeignKeys: []*datatug.RefByForeignKey{

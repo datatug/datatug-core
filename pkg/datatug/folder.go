@@ -79,7 +79,7 @@ func (v *Folder) Validate() error {
 	//validateMapOfItems := func(itemsType string, items map[string]*FolderBrief) error {
 	//	names := make([]string, 0, len(items))
 	//	for id, item := range items {
-	//		if err := item.Validate(); err != nil {
+	//		if err := item.ValidateWithOptions(); err != nil {
 	//			return validation.NewErrBadRecordFieldValue(fmt.Sprintf("%v[%v]", itemsType, id), err.Error())
 	//		}
 	//		for _, name := range names {
@@ -113,7 +113,7 @@ func (v *Folder) Validate() error {
 }
 
 //func validateItemMappedByID(mapID, itemID string, item validatable) error {
-//	if err := item.Validate(); err != nil {
+//	if err := item.ValidateWithOptions(); err != nil {
 //		return validation.NewErrBadRecordFieldValue(mapID+"["+itemID+"]", err.Error())
 //	}
 //	return nil

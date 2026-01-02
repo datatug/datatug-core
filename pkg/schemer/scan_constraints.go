@@ -75,14 +75,14 @@ func processConstraint(catalog string, table *datatug.CollectionInfo, constraint
 				if refTable == nil {
 					return fmt.Errorf("reference table not found: %v.%v.%v", constraint.RefTableCatalog, constraint.RefTableSchema, constraint.RefTableName)
 				}
-				var refByTable *datatug.TableReferencedBy
+				var refByTable *datatug.ReferencedBy
 				for _, refByTable = range refTable.ReferencedBy {
 					if refByTable.Catalog() == catalog && refByTable.Schema() == constraint.SchemaName && refByTable.Name() == constraint.TableName {
 						break
 					}
 				}
 				if refByTable == nil || refByTable.Catalog() != catalog || refByTable.Schema() != constraint.SchemaName || refByTable.Name() != constraint.TableName {
-					refByTable = &datatug.TableReferencedBy{DBCollectionKey: table.DBCollectionKey, ForeignKeys: make([]*datatug.RefByForeignKey, 0, 1)}
+					refByTable = &datatug.ReferencedBy{DBCollectionKey: table.DBCollectionKey, ForeignKeys: make([]*datatug.RefByForeignKey, 0, 1)}
 					refTable.ReferencedBy = append(refTable.ReferencedBy, refByTable)
 				}
 				for _, fk2 := range refByTable.ForeignKeys {

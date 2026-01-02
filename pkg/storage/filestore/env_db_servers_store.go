@@ -14,7 +14,7 @@ var _ datatug.EnvDbServersStore = (*fsEnvDbServersStore)(nil)
 func newFsEnvDbServersStore(projectPath string) fsEnvDbServersStore {
 	return fsEnvDbServersStore{
 		fsProjectItemsStore: newFileProjectItemsStore[datatug.EnvDbServers, *datatug.EnvDbServer, datatug.EnvDbServer](
-			path.Join(projectPath, storage.EnvironmentsFolder), storage.BoardFileSuffix,
+			path.Join(projectPath, storage.EnvironmentsFolder), storage.ServerFileSuffix,
 		),
 	}
 }

@@ -10,17 +10,17 @@ import (
 // TableFile hold summary on table or view
 type TableFile struct {
 	datatug.TableProps
-	PrimaryKey   *datatug.UniqueKey           `json:"primaryKey,omitempty"`
-	ForeignKeys  []*datatug.ForeignKey        `json:"foreignKeys,omitempty"`
-	ReferencedBy []*datatug.TableReferencedBy `json:"referencedBy,omitempty"`
-	Columns      []*datatug.ColumnInfo        `json:"columns,omitempty"`
-	Indexes      []*datatug.Index             `json:"indexes,omitempty"`
+	PrimaryKey   *datatug.UniqueKey      `json:"primaryKey,omitempty"`
+	ForeignKeys  []*datatug.ForeignKey   `json:"foreignKeys,omitempty"`
+	ReferencedBy []*datatug.ReferencedBy `json:"referencedBy,omitempty"`
+	Columns      []*datatug.ColumnInfo   `json:"columns,omitempty"`
+	Indexes      []*datatug.Index        `json:"indexes,omitempty"`
 }
 
 // TableRefsByFile info to be stored about reference in a JSON file
 type TableRefsByFile struct {
 	datatug.DBCollectionKey
-	ReferencedBy []*datatug.TableReferencedBy `json:"referencedBy"`
+	ReferencedBy []*datatug.ReferencedBy `json:"referencedBy"`
 }
 
 // TableForeignKeysFile info to be stored about FK in a JSON file
@@ -75,7 +75,7 @@ type DbModelFile struct {
 
 // Validate returns error if not valid
 func (v DbModelFile) Validate() error {
-	if err := v.ProjectItem.Validate(false); err != nil {
+	if err := v.ValidateWithOptions(false); err != nil {
 		return err
 	}
 	if err := v.Environments.Validate(); err != nil {

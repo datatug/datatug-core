@@ -35,7 +35,7 @@ func TestCompareDatabases(t *testing.T) {
 			Environments: []EnvToCompare{
 				{
 					ID: "e1",
-					Databases: datatug.EnvDbCatalogs{
+					Databases: datatug.DbCatalogs{
 						{
 							DbCatalogBase: datatug.DbCatalogBase{
 								ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "c1"}},
@@ -88,7 +88,7 @@ func TestCompareDatabases(t *testing.T) {
 			Environments: []EnvToCompare{
 				{
 					ID: "e1",
-					Databases: datatug.EnvDbCatalogs{
+					Databases: datatug.DbCatalogs{
 						{
 							Schemas: datatug.DbSchemas{
 								{

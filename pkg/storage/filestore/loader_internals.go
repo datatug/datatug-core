@@ -1,12 +1,10 @@
 package filestore
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
 	"path"
-	"strings"
 	"sync"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
@@ -48,7 +46,7 @@ func loadDir(
 	defer func() { _ = dir.Close() }()
 	var files []os.FileInfo
 	if files, err = dir.Readdir(0); err != nil {
-		log.Printf("failed to readdir [%v]: %v", dirPath, err)
+		//log.Printf("failed to readdir [%v]: %v", dirPath, err)
 		return err
 	}
 	workers := make([]func() error, 0, len(files))
@@ -98,58 +96,6 @@ func loadDir(
 	return
 }
 
-func loadBoards(_ context.Context, projPath string, project *datatug.Project) (err error) {
-	boardsDirPath := path.Join(projPath, storage.BoardsFolder)
-	if err = loadDir(nil, boardsDirPath, "*.json", processFiles,
-		func(files []os.FileInfo) {
-			project.Boards = make(datatug.Boards, 0, len(files))
-		},
-		func(f os.FileInfo, i int, _ *sync.Mutex) error {
-			if f.IsDir() {
-				return nil
-			}
-			board := new(datatug.Board)
-			board.ID = f.Name()
-			var suffix string
-			board.ID, suffix = storage.GetProjItemIDFromFileName(f.Name())
-			if strings.ToLower(suffix) != storage.BoardFileSuffix {
-				return nil
-			}
-			fullFileName := path.Join(boardsDirPath, f.Name())
-			if err = readJSONFile(fullFileName, true, board); err != nil {
-				log.Printf("failed to load board from [%v]: %v", fullFileName, err)
-				return err
-			}
-			project.Boards = append(project.Boards, board)
-			return nil
-		}); err != nil {
-		return err
-	}
-	return err
-}
-
-func loadDbModels(_ context.Context, projPath string, project *datatug.Project) error {
-	dbModelsDirPath := path.Join(projPath, storage.DbModelsFolder)
-	if err := loadDir(nil, dbModelsDirPath, "", processDirs,
-		func(files []os.FileInfo) {
-			project.DbModels = make(datatug.DbModels, 0, len(files))
-		},
-		func(f os.FileInfo, i int, _ *sync.Mutex) (err error) {
-			if !f.IsDir() {
-				return nil
-			}
-			var dbModel *datatug.DbModel
-			if dbModel, err = loadDbModel(dbModelsDirPath, f.Name()); err != nil {
-				return err
-			}
-			project.DbModels = append(project.DbModels, dbModel)
-			return nil
-		}); err != nil {
-		return fmt.Errorf("failed to load DB models: %w", err)
-	}
-	return nil
-}
-
 func loadDbModel(dbModelsDirPath, id string) (dbModel *datatug.DbModel, err error) {
 	dbModelDirPath := path.Join(dbModelsDirPath, id)
 	dbModel = &datatug.DbModel{}
@@ -157,23 +103,23 @@ func loadDbModel(dbModelsDirPath, id string) (dbModel *datatug.DbModel, err erro
 		func() (err error) {
 			fileName := path.Join(dbModelDirPath, storage.JsonFileName(id, storage.DbModelFileSuffix))
 			if err = readJSONFile(fileName, true, dbModel); err != nil {
-				log.Printf("failed to load db model from [%v]: %v", fileName, err)
+				//log.Printf("failed to load db model from [%v]: %v", fileName, err)
 				return err
 			}
 			if dbModel.ID == "" {
 				dbModel.ID = id
 			} else if dbModel.ID != id {
-				return fmt.Errorf("dbmodel file has id not matching directory: expected=%v, actual=%v", id, dbModel.ID)
+				return fmt.Errorf("dbModel file has id not matching directory: expected=%v, actual=%v", id, dbModel.ID)
 			}
 			return err
 		},
 		func() (err error) {
 			return loadDir(nil, dbModelDirPath, "", processDirs,
 				func(files []os.FileInfo) {
-					dbModel.Schemas = make([]*datatug.SchemaModel, 0, len(files))
+					dbModel.Schemas = make([]*datatug.Schema, 0, len(files))
 				},
 				func(f os.FileInfo, i int, _ *sync.Mutex) (err error) {
-					var schemaModel *datatug.SchemaModel
+					var schemaModel *datatug.Schema
 					if schemaModel, err = loadSchemaModel(dbModelDirPath, f.Name()); err != nil {
 						return err
 					}
@@ -184,8 +130,8 @@ func loadDbModel(dbModelsDirPath, id string) (dbModel *datatug.DbModel, err erro
 	)
 }
 
-func loadSchemaModel(dbModelDirPath, schemaID string) (schemaModel *datatug.SchemaModel, err error) {
-	schemaModel = &datatug.SchemaModel{}
+func loadSchemaModel(dbModelDirPath, schemaID string) (schemaModel *datatug.Schema, err error) {
+	schemaModel = &datatug.Schema{}
 	schemaModel.ID = schemaID
 	schemaDirPath := path.Join(dbModelDirPath, schemaID)
 
@@ -228,34 +174,11 @@ func loadEnvFile(envDirPath, envID string) (envSummary *datatug.EnvironmentSumma
 	return
 }
 
-//func (s fsProjectStore) loadEnvironment(dirPath string, env *datatug.Environment, o ...datatug.StoreOption) (err error) {
-//	workers := []func() error{
-//		func() error {
-//			envSummary, err := loadEnvFile(dirPath, env.ID)
-//			if err != nil {
-//				return fmt.Errorf("failed to load environment file for [%v] from [%v]: %v", env.ID, dirPath, err)
-//			}
-//			env.ProjectItem = envSummary.ProjectItem
-//			return nil
-//		},
-//		func() error {
-//			serversPath := path.Join(dirPath, ServersFolder)
-//			return loadEnvServers(serversPath, env)
-//		},
-//	}
-//	if datatug.GetStoreOptions(o...).Deep() {
-//		workers = append(workers, func() error {
-//			return nil
-//		})
-//	}
-//	return parallel.Run(workers...)
-//}
-
 func loadDbCatalogs(dirPath string, dbServer *datatug.ProjDbServer) (err error) {
 	return loadDir(nil, dirPath, "", processDirs, func(files []os.FileInfo) {
-		dbServer.Catalogs = make(datatug.EnvDbCatalogs, 0, len(files))
+		dbServer.Catalogs = make(datatug.DbCatalogs, 0, len(files))
 	}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
-		dbCatalog := new(datatug.EnvDbCatalog)
+		dbCatalog := new(datatug.DbCatalog)
 		dbCatalog.ID = f.Name()
 		catalogPath := path.Join(dirPath, dbCatalog.ID)
 		if err = loadDbCatalog(catalogPath, dbCatalog); err != nil {
@@ -266,8 +189,8 @@ func loadDbCatalogs(dirPath string, dbServer *datatug.ProjDbServer) (err error) 
 	})
 }
 
-func loadDbCatalog(dirPath string, dbCatalog *datatug.EnvDbCatalog) (err error) {
-	log.Printf("Loading DB catalog: %v from %v...\n", dbCatalog.ID, dirPath)
+func loadDbCatalog(dirPath string, dbCatalog *datatug.DbCatalog) (err error) {
+	//log.Printf("Loading DB catalog: %v from %v...\n", dbCatalog.ID, dirPath)
 	filePath := path.Join(dirPath, storage.JsonFileName(dbCatalog.ID, storage.DbCatalogFileSuffix))
 	if err = readJSONFile(filePath, false, dbCatalog); err != nil {
 		log.Printf("failed to read DB catalog file [%v]: %v", filePath, err)
@@ -292,7 +215,7 @@ func loadDbCatalog(dirPath string, dbCatalog *datatug.EnvDbCatalog) (err error) 
 }
 
 func loadSchema(schemasDirPath string, id string) (dbSchema *datatug.DbSchema, err error) {
-	log.Printf("Loading schema: %v from %v...", id, schemasDirPath)
+	//log.Printf("Loading schema: %v from %v...", id, schemasDirPath)
 	dbSchema = &datatug.DbSchema{}
 	dbSchema.ID = id
 	err = parallel.Run(
@@ -317,7 +240,7 @@ func loadSchema(schemasDirPath string, id string) (dbSchema *datatug.DbSchema, e
 	if err = dbSchema.Validate(); err != nil {
 		return nil, fmt.Errorf("loaded db schema is invalid: %w", err)
 	}
-	log.Println("Successfully loaded schema:", dbSchema.ID, "; tables:", len(dbSchema.Tables), "; views:", len(dbSchema.Views))
+	//log.Println("Successfully loaded schema:", dbSchema.ID, "; tables:", len(dbSchema.Tables), "; views:", len(dbSchema.Views))
 	return
 }
 
@@ -371,16 +294,16 @@ func loadTables(schemasDirPath, schema, folder string) (tables datatug.Tables, e
 
 func loadTable(dirPath, schema, tableName string) (table *datatug.CollectionInfo, err error) {
 	tableDirPath := path.Join(dirPath, tableName)
-	log.Printf("loadTable: schema=%v, table=%v, dirPath=%v", schema, tableName, tableDirPath)
+	//log.Printf("loadTable: schema=%v, table=%v, dirPath=%v", schema, tableName, tableDirPath)
 
 	prefix := fmt.Sprintf("%v.%v.", schema, tableName)
-	log.Printf("loadTable: prefix=%v", prefix)
+	//log.Printf("loadTable: prefix=%v", prefix)
 
 	table = &datatug.CollectionInfo{}
 	table.DBCollectionKey = datatug.NewCollectionKey(datatug.CollectionTypeTable, tableName, schema, "", nil)
 	loadTableFile := func(suffix string, required bool) (err error) {
 		filePath := path.Join(tableDirPath, prefix+suffix)
-		log.Printf("loadTableFile: path=%v, required=%v", filePath, required)
+		//log.Printf("loadTableFile: path=%v, required=%v", filePath, required)
 		return readJSONFile(filePath, required, table)
 	}
 	suffixes := []string{

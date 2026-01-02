@@ -57,7 +57,7 @@ func TestSaveProject(t *testing.T) {
 		},
 		Entities: datatug.Entities{
 			{
-				ProjEntityBrief: datatug.ProjEntityBrief{
+				ProjectItem: datatug.ProjectItem{
 					ProjItemBrief: datatug.ProjItemBrief{
 						ID:    "entity1",
 						Title: "Entity 1",
@@ -67,7 +67,7 @@ func TestSaveProject(t *testing.T) {
 		},
 		Boards: datatug.Boards{
 			{
-				ProjBoardBrief: datatug.ProjBoardBrief{
+				ProjectItem: datatug.ProjectItem{
 					ProjItemBrief: datatug.ProjItemBrief{
 						ID:    "board1",
 						Title: "Board 1",

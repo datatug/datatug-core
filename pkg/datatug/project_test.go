@@ -52,14 +52,6 @@ func TestProject_GetEnvironments(t *testing.T) {
 	})
 }
 
-func TestProject_GetDbServers(t *testing.T) {
-	p := NewProject("p1", func(p *Project) ProjectStore { return &mockProjectLoader{} })
-	servers, err := p.GetDbServers(context.Background())
-	assert.NoError(t, err)
-	assert.Len(t, servers, 1)
-	assert.Equal(t, "s1", servers[0].ID)
-}
-
 func TestProject_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
 		p := Project{
@@ -93,7 +85,7 @@ func TestProject_Validate(t *testing.T) {
 	t.Run("invalid_entities", func(t *testing.T) {
 		p := Project{
 			ProjectItem: ProjectItem{Access: "public"},
-			Entities:    Entities{{ProjEntityBrief: ProjEntityBrief{ProjItemBrief: ProjItemBrief{ID: ""}}}},
+			Entities:    Entities{{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: ""}}}},
 		}
 		assert.Error(t, p.Validate())
 	})
@@ -107,14 +99,19 @@ func TestProject_Validate(t *testing.T) {
 	t.Run("invalid_boards", func(t *testing.T) {
 		p := Project{
 			ProjectItem: ProjectItem{Access: "public"},
-			Boards:      Boards{{ProjBoardBrief: ProjBoardBrief{ProjItemBrief: ProjItemBrief{ID: ""}}}},
+			Boards:      Boards{{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: ""}}}},
 		}
 		assert.Error(t, p.Validate())
 	})
 	t.Run("invalid_db_servers", func(t *testing.T) {
 		p := Project{
 			ProjectItem: ProjectItem{Access: "public"},
-			DbServers:   ProjDbServers{{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: ""}}}},
+		}
+		p.DBs = ProjDbDrivers{
+			{
+				ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "sqlite"}},
+				Servers:     ProjDbServers{{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: ""}}}},
+			},
 		}
 		assert.Error(t, p.Validate())
 	})

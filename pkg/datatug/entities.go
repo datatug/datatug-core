@@ -9,17 +9,17 @@ import (
 	"github.com/strongo/validation"
 )
 
-// Entities is a slice of *Entity
-type Entities []*Entity
+var _ IProjectItems[*Entity] = (Entities)(nil)
 
-// GetEntityByID return an entity by GetID
-func (v Entities) GetEntityByID(id string) (entity *Entity) {
-	for _, entity = range v {
-		if entity.ID == id {
-			return
-		}
-	}
-	return nil
+// Entities is a slice of *Entity
+type Entities ProjectItems[*Entity]
+
+func (v Entities) GetByID(id string) *Entity {
+	return ProjectItems[*Entity](v).GetByID(id)
+}
+
+func (v Entities) IDs() []string {
+	return ProjectItems[*Entity](v).IDs()
 }
 
 // Validate returns error if failed
@@ -32,18 +32,6 @@ func (v Entities) Validate() error {
 	return nil
 }
 
-// IDs returns slice of IDs of db models
-func (v Entities) IDs() (ids []string) {
-	if len(v) == 0 {
-		return
-	}
-	ids = make([]string, len(v))
-	for i, item := range v {
-		ids[i] = item.ID
-	}
-	return
-}
-
 // ProjEntityBrief hold brief info about entity in project file
 type ProjEntityBrief struct {
 	ProjItemBrief
@@ -51,7 +39,8 @@ type ProjEntityBrief struct {
 
 // Entity hold full info about entity
 type Entity struct {
-	ProjEntityBrief
+	ProjectItem
+	//ProjEntityBrief
 	ListOfTags
 	Fields EntityFields `json:"fields,omitempty" firestore:"fields,omitempty"`
 	Tables TableKeys    `json:"tables,omitempty" firestore:"tables,omitempty"`
@@ -59,7 +48,7 @@ type Entity struct {
 
 // Validate returns error if not valid
 func (v Entity) Validate() error {
-	if err := v.ProjEntityBrief.Validate(false); err != nil {
+	if err := v.ValidateWithOptions(false); err != nil {
 		return err
 	}
 	if err := v.Fields.Validate(); err != nil {

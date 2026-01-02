@@ -11,7 +11,7 @@ import (
 type GetServerDatabasesRequest struct {
 	Project     string `json:"proj"`
 	Environment string `json:"env"`
-	datatug.ServerReference
+	datatug.ServerRef
 	Credentials *datatug.Credentials `json:"credentials"`
 }
 

@@ -8,8 +8,8 @@ import (
 
 func TestDbModels_GetDbModelByID(t *testing.T) {
 	models := DbModels{{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "m1"}}}}
-	assert.NotNil(t, models.GetDbModelByID("m1"))
-	assert.Nil(t, models.GetDbModelByID("m2"))
+	assert.NotNil(t, ProjectItems[*DbModel](models).GetByID("m1"))
+	assert.Nil(t, ProjectItems[*DbModel](models).GetByID("m2"))
 }
 
 func TestDbModels_Validate(t *testing.T) {
@@ -37,7 +37,7 @@ func TestDbModels_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("DbModels.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("DbModels.ValidateWithOptions() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -74,7 +74,7 @@ func TestDbModelEnvironments_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("DbModelEnvironments.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("DbModelEnvironments.ValidateWithOptions() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -110,13 +110,13 @@ func TestDbModelEnv_Validate(t *testing.T) {
 					{ID: ""},
 				},
 			},
-			wantErr: false, // Note: DbModelEnv.Validate returns nil even if EnvDbCatalogs.Validate fails in current implementation
+			wantErr: false, // Note: DbModelEnv.ValidateWithOptions returns nil even if DbCatalogs.ValidateWithOptions fails in current implementation
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("DbModelEnv.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("DbModelEnv.ValidateWithOptions() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -142,7 +142,7 @@ func TestDbModelDbCatalogs_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("DbModelDbCatalogs.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("DbModelDbCatalogs.ValidateWithOptions() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -174,7 +174,7 @@ func TestDbModel_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("DbModel.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("DbModel.ValidateWithOptions() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -189,29 +189,29 @@ func TestSchemaModels_GetByID(t *testing.T) {
 func TestSchemaModel_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		v       SchemaModel
+		v       Schema
 		wantErr bool
 	}{
 		{
 			name:    "valid",
-			v:       SchemaModel{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "s1"}}},
+			v:       Schema{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "s1"}}},
 			wantErr: false,
 		},
 		{
 			name:    "invalid_table",
-			v:       SchemaModel{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "s1"}}, Tables: TableModels{{DBCollectionKey: NewTableKey("t1", "s1", "c1", nil), Columns: ColumnModels{{}}}}},
+			v:       Schema{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "s1"}}, Tables: TableModels{{DBCollectionKey: NewTableKey("t1", "s1", "c1", nil), Columns: ColumnModels{{}}}}},
 			wantErr: true,
 		},
 		{
 			name:    "invalid_view",
-			v:       SchemaModel{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "s1"}}, Views: TableModels{{DBCollectionKey: NewTableKey("v1", "s1", "c1", nil), Columns: ColumnModels{{}}}}},
+			v:       Schema{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "s1"}}, Views: TableModels{{DBCollectionKey: NewTableKey("v1", "s1", "c1", nil), Columns: ColumnModels{{}}}}},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("SchemaModel.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Schema.ValidateWithOptions() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

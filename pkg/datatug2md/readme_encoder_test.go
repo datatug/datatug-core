@@ -23,7 +23,7 @@ func TestEncoder_ProjectSummaryToReadme(t *testing.T) {
 			{ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "env1"}}},
 		},
 		Boards: datatug.Boards{
-			{ProjBoardBrief: datatug.ProjBoardBrief{ProjItemBrief: datatug.ProjItemBrief{ID: "board1", Title: "Board 1"}}},
+			{ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "board1", Title: "Board 1"}}},
 		},
 	}
 
@@ -61,7 +61,7 @@ func TestEncoder_EnvironmentsToReadme(t *testing.T) {
 func TestEncoder_DbServerToReadme(t *testing.T) {
 	encoder := NewEncoder()
 	dbServer := datatug.ProjDbServer{
-		Server: datatug.ServerReference{
+		Server: datatug.ServerRef{
 			Driver: "sqlserver",
 			Host:   "localhost",
 		},
@@ -81,7 +81,7 @@ func TestEncoder_DbServerToReadme(t *testing.T) {
 func TestEncoder_DbCatalogToReadme(t *testing.T) {
 	encoder := NewEncoder()
 	dbServer := datatug.ProjDbServer{}
-	catalog := datatug.EnvDbCatalog{}
+	catalog := datatug.DbCatalog{}
 
 	w := new(bytes.Buffer)
 	err := encoder.DbCatalogToReadme(w, nil, dbServer, catalog)

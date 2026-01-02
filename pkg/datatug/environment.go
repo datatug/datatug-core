@@ -4,8 +4,10 @@ import (
 	"fmt"
 )
 
+var _ IProjectItems[*Environment] = (Environments)(nil)
+
 // Environments is a slice of pointers to Environment
-type Environments []*Environment
+type Environments ProjectItems[*Environment]
 
 // Validate returns error if failed
 func (v Environments) Validate() error {
@@ -17,14 +19,12 @@ func (v Environments) Validate() error {
 	return nil
 }
 
-// GetEnvByID returns Environment by GetID
-func (v Environments) GetEnvByID(id string) (environment *Environment) {
-	for _, environment = range v {
-		if environment.ID == id {
-			return environment
-		}
-	}
-	return nil
+func (v Environments) GetByID(id string) *Environment {
+	return ProjectItems[*Environment](v).GetByID(id)
+}
+
+func (v Environments) IDs() []string {
+	return ProjectItems[*Environment](v).IDs()
 }
 
 // Environment holds information about environment
@@ -35,7 +35,7 @@ type Environment struct {
 
 // Validate returns error if failed
 func (v Environment) Validate() error {
-	if err := v.ProjectItem.Validate(false); err != nil {
+	if err := v.ValidateWithOptions(false); err != nil {
 		return err
 	}
 	if err := v.DbServers.Validate(); err != nil {

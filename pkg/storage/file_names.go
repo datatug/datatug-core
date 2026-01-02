@@ -10,7 +10,7 @@ const (
 	BoardsFolder            = "boards"
 	ProjectSummaryFileName  = "datatug-project.json"
 	DataFolder              = "data"
-	DbFolder                = "db"
+	DbsFolder               = "dbs"
 	EnvDbCatalogsFolder     = "catalogs"
 	DbModelsFolder          = "dbmodels"
 	EntitiesFolder          = "entities"
@@ -19,8 +19,8 @@ const (
 	RecordsetsFolder        = "recordsets"
 	ServersFolder           = "servers"
 	SchemasFolder           = "schemas"
-	TablesFolder            = "tables"
-	ViewsFolder             = "views"
+	//TablesFolder            = "tables"
+	//ViewsFolder             = "views"
 	//DatatugFolder          = "datatug"
 )
 
@@ -66,12 +66,13 @@ const (
 	DbCatalogObjectFileSuffix = "objects"
 	DbCatalogRefsFileSuffix   = "refs"
 	DbModelFileSuffix         = "dbmodel"
-	DbServerFileSuffix        = "dbserver"
-	RecordsetFileSuffix       = "recordset"
-	EntityFileSuffix          = "entity"
-	ServerFileSuffix          = "server"
-	ColumnsFileSuffix         = "columns"
-	QueryFileSuffix           = "query"
+	//DbSchemaFileSuffix        = "schema"
+	DbServerFileSuffix  = "dbserver"
+	RecordsetFileSuffix = "recordset"
+	EntityFileSuffix    = "entity"
+	ServerFileSuffix    = "server"
+	ColumnsFileSuffix   = "columns"
+	QueryFileSuffix     = "query"
 )
 
 const (

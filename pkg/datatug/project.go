@@ -25,7 +25,7 @@ type Project struct {
 	store    ProjectStore
 	Created  *ProjectCreated `json:"created,omitempty" firestore:"created,omitempty"`
 	Boards   Boards          `json:"boards,omitempty" firestore:"boards,omitempty"`
-	Queries  *QueryFolder    `json:"queries,omitempty" firestore:"queries,omitempty"`
+	Queries  *QueriesFolder  `json:"queries,omitempty" firestore:"queries,omitempty"`
 	Entities Entities        `json:"entities,omitempty" firestore:"entities,omitempty"`
 
 	// Use GetEnvironments to get the latest
@@ -33,12 +33,10 @@ type Project struct {
 
 	DbModels DbModels `json:"dbModels,omitempty" firestore:"dbModels,omitempty"`
 
-	// Use GetDbServers to get the latest
-	DbServers ProjDbServers `json:"dbServers,omitempty" firestore:"dbServers,omitempty"`
+	DBs ProjDbDrivers `json:"dbs,omitempty" firestore:"dbs,omitempty"`
 
-	DbDifferences DatabaseDifferences `json:"dbDifferences,omitempty" firestore:"dbDifferences,omitempty"`
-	Actions       Actions             `json:"actions,omitempty" firestore:"actions,omitempty"`
-	Repository    *ProjectRepository  `json:"repository,omitempty" firestore:"repository,omitempty"`
+	Actions    Actions            `json:"actions,omitempty" firestore:"actions,omitempty"`
+	Repository *ProjectRepository `json:"repository,omitempty" firestore:"repository,omitempty"`
 }
 
 func (p *Project) GetEnvironments(ctx context.Context) (environments Environments, err error) {
@@ -50,11 +48,11 @@ func (p *Project) GetEnvironments(ctx context.Context) (environments Environment
 	return p.Environments, nil
 }
 
-func (p *Project) GetDbServers(ctx context.Context) (dbServers ProjDbServers, err error) {
-	if p.DbServers == nil {
-		p.DbServers, err = p.store.LoadProjDbServers(ctx)
+func (p *Project) GetDBs(ctx context.Context, o ...StoreOption) (dbs ProjDbDrivers, err error) {
+	if p.DBs == nil {
+		p.DBs, err = p.store.LoadProjDbDrivers(ctx, o...)
 	}
-	return p.DbServers, err
+	return p.DBs, err
 }
 
 // Validate returns error if not valid
@@ -72,25 +70,30 @@ func (p *Project) Validate() error {
 	if l := len(p.Title); l > 100 {
 		return validation.NewErrBadRecordFieldValue("title", "too long title (max 100): "+strconv.Itoa(l))
 	}
-	log.Println("Validating environments...")
+
+	//log.Println("Validating environments...")
 	if err := p.Environments.Validate(); err != nil {
 		return fmt.Errorf("validation failed for project environments: %w", err)
 	}
-	log.Println("Validating entities...")
+
+	//log.Println("Validating entities...")
 	if err := p.Entities.Validate(); err != nil {
 		return fmt.Errorf("validation failed for project entities: %w", err)
 	}
-	log.Println("Validating DB models...")
+
+	//log.Println("Validating DB models...")
 	if err := p.DbModels.Validate(); err != nil {
 		return fmt.Errorf("validation failed for project db models: %w", err)
 	}
-	log.Println("Validating boards...")
+	//log.Println("Validating boards...")
+
 	if err := p.Boards.Validate(); err != nil {
 		return fmt.Errorf("validation failed for project boards: %w", err)
 	}
 	log.Println("Validating DB servers...")
-	if err := p.DbServers.Validate(); err != nil {
-		return fmt.Errorf("validation failed for project db servers: %w", err)
+
+	if err := p.DBs.Validate(); err != nil {
+		return fmt.Errorf("validation failed for project dbs: %w", err)
 	}
 	log.Println("Validating actions...")
 	if err := p.Actions.Validate(); err != nil {
@@ -110,7 +113,7 @@ type ProjectBrief struct {
 
 // Validate returns error if not valid
 func (v *ProjectBrief) Validate() error {
-	if err := v.ProjectItem.Validate(true); err != nil {
+	if err := v.ValidateWithOptions(true); err != nil {
 		return err
 	}
 	switch v.Access {
@@ -165,7 +168,7 @@ type ProjectFile struct {
 // Validate returns error if not valid
 func (v ProjectFile) Validate() error {
 	// Do not check GetID or title as they can be nil for project
-	//if err := v.ProjectItem.Validate(); err != nil {
+	//if err := v.ValidateWithOptions(); err != nil {
 	//	return err
 	//}
 	if v.Created == nil {
@@ -183,17 +186,17 @@ func (v ProjectFile) Validate() error {
 		return validation.NewErrBadRecordFieldValue("access", "expected 'private', 'protected' or 'public', got: "+v.Access)
 	}
 	for _, entity := range v.Entities {
-		if err := entity.Validate(false); err != nil {
+		if err := entity.ValidateWithOptions(false); err != nil {
 			return err
 		}
 	}
 	for _, dbModel := range v.DbModels {
-		if err := dbModel.Validate(false); err != nil {
+		if err := dbModel.ValidateWithOptions(false); err != nil {
 			return err
 		}
 	}
 	for _, env := range v.Environments {
-		if err := env.Validate(false); err != nil {
+		if err := env.ValidateWithOptions(false); err != nil {
 			return err
 		}
 	}

@@ -8,16 +8,14 @@ import (
 )
 
 // DbModels is a slice of *DbModel
-type DbModels []*DbModel
+type DbModels ProjectItems[*DbModel]
 
-// GetDbModelByID return DB model by GetID
-func (v DbModels) GetDbModelByID(id string) (dbModel *DbModel) {
-	for _, dbModel = range v {
-		if dbModel.ID == id {
-			return
-		}
-	}
-	return nil
+func (v DbModels) IDs() []string {
+	return ProjectItems[*DbModel](v).IDs()
+}
+
+func (v DbModels) GetByID(id string) *DbModel {
+	return ProjectItems[*DbModel](v).GetByID(id)
 }
 
 // Validate returns error if failed
@@ -28,18 +26,6 @@ func (v DbModels) Validate() error {
 		}
 	}
 	return nil
-}
-
-// IDs returns slice of IDs of db models
-func (v DbModels) IDs() (ids []string) {
-	if len(v) == 0 {
-		return
-	}
-	ids = make([]string, len(v))
-	for i, dbModel := range v {
-		ids[i] = dbModel.ID
-	}
-	return
 }
 
 // DbModel holds a model of a database
@@ -130,7 +116,7 @@ func (v DbModelDbCatalog) Validate() error {
 
 // Validate returns error if not valid
 func (v DbModel) Validate() error {
-	if err := v.ProjectItem.Validate(false); err != nil {
+	if err := v.ValidateWithOptions(false); err != nil {
 		return err
 	}
 	log.Printf("Validating %v schemas for Db model [%v]", len(v.Schemas), v.ID)
@@ -143,11 +129,11 @@ func (v DbModel) Validate() error {
 	return nil
 }
 
-// SchemaModels is a slice of *SchemaModel
-type SchemaModels []*SchemaModel
+// SchemaModels is a slice of *Schema
+type SchemaModels []*Schema
 
-// GetByID return *SchemaModel by GetID
-func (v SchemaModels) GetByID(id string) (schemaModel *SchemaModel) {
+// GetByID return *Schema by GetID
+func (v SchemaModels) GetByID(id string) (schemaModel *Schema) {
 	for _, schemaModel = range v {
 		if schemaModel.ID == id {
 			return
@@ -156,16 +142,16 @@ func (v SchemaModels) GetByID(id string) (schemaModel *SchemaModel) {
 	return nil
 }
 
-// SchemaModel holds model for a DB schema
-type SchemaModel struct {
+// Schema holds model for a DB schema
+type Schema struct {
 	ProjectItem
 	Tables TableModels `json:"tables"`
 	Views  TableModels `json:"views"`
 }
 
 // Validate returns error if not valid
-func (v SchemaModel) Validate() error {
-	if err := v.ProjectItem.Validate(false); err != nil {
+func (v Schema) Validate() error {
+	if err := v.ValidateWithOptions(false); err != nil {
 		return err
 	}
 	log.Printf("Validating %v tables for scheme %v\n", len(v.Tables), v.ID)

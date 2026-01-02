@@ -92,7 +92,7 @@ func TestDbSchema_Validate(t *testing.T) {
 }
 
 func TestDbCatalogs_GetTable(t *testing.T) {
-	v := EnvDbCatalogs{
+	v := DbCatalogs{
 		{
 			DbCatalogBase: DbCatalogBase{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "c1"}}},
 			Schemas: DbSchemas{
@@ -119,19 +119,19 @@ func TestDbSchemas_GetByID(t *testing.T) {
 }
 
 func TestDbCatalogs_GetDbByID(t *testing.T) {
-	c1 := &EnvDbCatalog{DbCatalogBase: DbCatalogBase{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "c1"}}}}
-	v := EnvDbCatalogs{c1}
-	assert.Equal(t, c1, v.GetDbByID("c1"))
-	assert.Nil(t, v.GetDbByID("c2"))
+	c1 := &DbCatalog{DbCatalogBase: DbCatalogBase{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "c1"}}}}
+	v := DbCatalogs{c1}
+	assert.Equal(t, c1, v.GetByID("c1"))
+	assert.Nil(t, v.GetByID("c2"))
 }
 
 func TestDbCatalogs_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
-		v := EnvDbCatalogs{{DbCatalogBase: DbCatalogBase{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "c1"}}, Driver: "mysql"}}}
+		v := DbCatalogs{{DbCatalogBase: DbCatalogBase{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "c1"}}, Driver: "mysql"}}}
 		assert.NoError(t, v.Validate())
 	})
 	t.Run("invalid_schema", func(t *testing.T) {
-		v := EnvDbCatalog{
+		v := DbCatalog{
 			DbCatalogBase: DbCatalogBase{
 				ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "c1", Title: "T"}},
 				Driver:      "postgres",
@@ -145,7 +145,7 @@ func TestDbCatalogs_Validate(t *testing.T) {
 func TestTableKeys_Validate(t *testing.T) {
 	v := TableKeys{NewTableKey("t1", "s1", "c1", nil)}
 	assert.NoError(t, v.Validate())
-	// TableKey.Validate always returns nil, so we can't easily test invalid case unless we mock it
+	// TableKey.ValidateWithOptions always returns nil, so we can't easily test invalid case unless we mock it
 }
 
 func TestTableProps_Validate(t *testing.T) {
@@ -272,7 +272,7 @@ func TestTables_GetByKey(t *testing.T) {
 }
 
 func TestTableReferencedBys_Validate(t *testing.T) {
-	v := TableReferencedBys{}
+	v := ReferencedBys{}
 	assert.NoError(t, v.Validate())
 }
 

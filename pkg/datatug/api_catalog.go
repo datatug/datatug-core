@@ -5,7 +5,7 @@ type ApiService struct {
 }
 
 func (v ApiService) Validate() error {
-	if err := v.ProjectItem.Validate(true); err != nil {
+	if err := v.ValidateWithOptions(true); err != nil {
 		return err
 	}
 	return nil
@@ -27,7 +27,7 @@ type ApiEndpoint struct {
 }
 
 func (v ApiEndpoint) Validate() error {
-	if err := v.ProjectItem.Validate(false); err != nil {
+	if err := v.ValidateWithOptions(false); err != nil {
 		return err
 	}
 	return nil

@@ -33,7 +33,7 @@ func TestDbCatalogBase_Validate(t *testing.T) {
 
 func TestDbCatalog_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
-		v := EnvDbCatalog{
+		v := DbCatalog{
 			DbCatalogBase: DbCatalogBase{
 				ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "c1"}},
 				Driver:      "mysql",
@@ -42,11 +42,11 @@ func TestDbCatalog_Validate(t *testing.T) {
 		assert.NoError(t, v.Validate())
 	})
 	t.Run("invalid_base", func(t *testing.T) {
-		v := EnvDbCatalog{}
+		v := DbCatalog{}
 		assert.Error(t, v.Validate())
 	})
 	t.Run("invalid_schemas", func(t *testing.T) {
-		v := EnvDbCatalog{
+		v := DbCatalog{
 			DbCatalogBase: DbCatalogBase{
 				ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "c1"}},
 				Driver:      "mysql",

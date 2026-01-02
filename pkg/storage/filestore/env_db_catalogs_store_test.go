@@ -26,7 +26,7 @@ func TestFsEnvCatalogStore(t *testing.T) {
 	store := newFsEnvCatalogsStore(projectPath)
 	ctx := context.Background()
 
-	catalog1 := &datatug.EnvDbCatalog{
+	catalog1 := &datatug.DbCatalog{
 		DbCatalogBase: datatug.DbCatalogBase{
 			ProjectItem: datatug.ProjectItem{
 				ProjItemBrief: datatug.ProjItemBrief{
@@ -68,7 +68,7 @@ func TestFsEnvCatalogStore(t *testing.T) {
 	})
 
 	t.Run("SaveEnvDbCatalogs", func(t *testing.T) {
-		catalog2 := &datatug.EnvDbCatalog{
+		catalog2 := &datatug.DbCatalog{
 			DbCatalogBase: datatug.DbCatalogBase{
 				ProjectItem: datatug.ProjectItem{
 					ProjItemBrief: datatug.ProjItemBrief{
@@ -79,7 +79,7 @@ func TestFsEnvCatalogStore(t *testing.T) {
 				Driver: "sqlserver",
 			},
 		}
-		err := store.SaveEnvDbCatalogs(ctx, envID, serverID, "", datatug.EnvDbCatalogs{catalog1, catalog2})
+		err := store.SaveEnvDbCatalogs(ctx, envID, serverID, "", datatug.DbCatalogs{catalog1, catalog2})
 		assert.NoError(t, err)
 	})
 

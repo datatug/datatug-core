@@ -76,13 +76,13 @@ func (s fsProjectStore) SaveProject(ctx context.Context, project *datatug.Projec
 			}
 			return nil
 		},
-		func() (err error) {
-			dbServersStore := newFsDbServersStore(s)
-			if err = dbServersStore.saveDbServers(ctx, project.DbServers, *project); err != nil {
-				return fmt.Errorf("failed to save DB servers: %w", err)
-			}
-			return nil
-		},
+		//func() (err error) {
+		//	dbServersStore := newFsProjDbServersStore(s.projectPath)
+		//	if err = dbServersStore.saveDbServers(ctx, project.DbServers, *project); err != nil {
+		//		return fmt.Errorf("failed to save DB servers: %w", err)
+		//	}
+		//	return nil
+		//},
 	); err != nil {
 		return err
 	}
@@ -192,19 +192,19 @@ func (s fsProjectStore) saveProjectFile(project *datatug.Project) error {
 //	return err
 //}
 
-func saveToFile(tableDirPath, fileName string, data interface{ Validate() error }) func() error {
-	return func() (err error) {
-		if err = saveJSONFile(tableDirPath, fileName, data); err != nil {
-			return fmt.Errorf("failed to write json to file %v: %w", fileName, err)
-		}
-		return nil
-	}
-}
-
-type saveDbServerObjContext struct {
-	dirPath    string
-	catalog    string
-	plural     string
-	dbServer   datatug.ProjDbServer
-	repository *datatug.ProjectRepository
-}
+//func saveToFile(tableDirPath, fileName string, data interface{ Validate() error }) func() error {
+//	return func() (err error) {
+//		if err = saveJSONFile(tableDirPath, fileName, data); err != nil {
+//			return fmt.Errorf("failed to write json to file %v: %w", fileName, err)
+//		}
+//		return nil
+//	}
+//}
+//
+//type saveDbServerObjContext struct {
+//	dirPath    string
+//	catalog    string
+//	plural     string
+//	dbServer   datatug.ProjDbServer
+//	repository *datatug.ProjectRepository
+//}

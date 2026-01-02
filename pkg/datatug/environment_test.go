@@ -20,8 +20,8 @@ func TestEnvironments_Validate(t *testing.T) {
 func TestEnvironments_GetEnvByID(t *testing.T) {
 	e1 := &Environment{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "e1"}}}
 	v := Environments{e1}
-	assert.Equal(t, e1, v.GetEnvByID("e1"))
-	assert.Nil(t, v.GetEnvByID("e2"))
+	assert.Equal(t, e1, v.GetByID("e1"))
+	assert.Nil(t, v.GetByID("e2"))
 }
 
 func TestEnvironment_Validate(t *testing.T) {

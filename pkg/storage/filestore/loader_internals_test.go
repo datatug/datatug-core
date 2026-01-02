@@ -1,7 +1,6 @@
 package filestore
 
 import (
-	"context"
 	"encoding/json"
 	"os"
 	"path"
@@ -12,6 +11,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func setupDbModel(t *testing.T, dbModelsDir, dbModelID string) (dbModel datatug.DbModel) {
+	dbModelDir := path.Join(dbModelsDir, dbModelID)
+	err := os.MkdirAll(dbModelDir, 0777)
+	assert.NoError(t, err)
+
+	dbModel.ID = dbModelID
+	data, _ := json.Marshal(dbModel)
+	err = os.WriteFile(path.Join(dbModelDir, dbModelID+"."+storage.DbModelFileSuffix+".json"), data, 0666)
+	assert.NoError(t, err)
+
+	return dbModel
+}
+
 func TestLoaderInternals(t *testing.T) {
 	t.Run("loadDbModel", func(t *testing.T) {
 		tempDir, err := os.MkdirTemp("", "datatug_test_loadDbModel")
@@ -19,25 +31,12 @@ func TestLoaderInternals(t *testing.T) {
 		defer func() { _ = os.RemoveAll(tempDir) }()
 
 		dbModelsDir := path.Join(tempDir, "dbmodels")
-		dbModelID := "model1"
-		dbModelDir := path.Join(dbModelsDir, dbModelID)
-		err = os.MkdirAll(dbModelDir, 0777)
-		assert.NoError(t, err)
-
-		dbModel := datatug.DbModel{
-			ProjectItem: datatug.ProjectItem{
-				ProjItemBrief: datatug.ProjItemBrief{
-					ID: dbModelID,
-				},
-			},
-		}
-		data, _ := json.Marshal(dbModel)
-		err = os.WriteFile(path.Join(dbModelDir, dbModelID+"."+storage.DbModelFileSuffix+".json"), data, 0666)
-		assert.NoError(t, err)
+		const dbModelID = "model1"
+		setupDbModel(t, dbModelsDir, dbModelID)
 
 		// Create a schema directory
 		schemaID := "schema1"
-		err = os.MkdirAll(path.Join(dbModelDir, schemaID), 0777)
+		err = os.MkdirAll(path.Join(dbModelsDir, dbModelID, schemaID), 0777)
 		assert.NoError(t, err)
 
 		loadedModel, err := loadDbModel(dbModelsDir, dbModelID)
@@ -57,7 +56,7 @@ func TestLoaderInternals(t *testing.T) {
 		err = os.MkdirAll(catalogDir, 0777)
 		assert.NoError(t, err)
 
-		catalog := datatug.EnvDbCatalog{
+		catalog := datatug.DbCatalog{
 			DbCatalogBase: datatug.DbCatalogBase{
 				ProjectItem: datatug.ProjectItem{
 					ProjItemBrief: datatug.ProjItemBrief{
@@ -76,7 +75,7 @@ func TestLoaderInternals(t *testing.T) {
 		err = os.MkdirAll(path.Join(schemasDir, "dbo"), 0777)
 		assert.NoError(t, err)
 
-		loadedCatalog := &datatug.EnvDbCatalog{}
+		loadedCatalog := &datatug.DbCatalog{}
 		loadedCatalog.ID = "db1"
 		err = loadDbCatalog(catalogDir, loadedCatalog)
 		assert.NoError(t, err)
@@ -149,67 +148,6 @@ func TestLoaderInternals(t *testing.T) {
 		assert.Equal(t, "test", tm.Name())
 	})
 
-	t.Run("loadBoards", func(t *testing.T) {
-		tempDir, err := os.MkdirTemp("", "datatug_test_loadBoards")
-		assert.NoError(t, err)
-		defer func() { _ = os.RemoveAll(tempDir) }()
-
-		boardsDir := path.Join(tempDir, "boards")
-		err = os.MkdirAll(boardsDir, 0777)
-		assert.NoError(t, err)
-
-		boardID := "board1"
-		boardFile := path.Join(boardsDir, boardID+"."+storage.BoardFileSuffix+".json")
-		board := datatug.Board{
-			ProjBoardBrief: datatug.ProjBoardBrief{
-				ProjItemBrief: datatug.ProjItemBrief{
-					ID: boardID,
-				},
-			},
-		}
-		data, _ := json.Marshal(board)
-		err = os.WriteFile(boardFile, data, 0666)
-		assert.NoError(t, err)
-
-		project := &datatug.Project{}
-		err = loadBoards(context.TODO(), tempDir, project)
-		assert.NoError(t, err)
-		assert.Len(t, project.Boards, 1)
-		assert.Equal(t, boardID, project.Boards[0].ID)
-	})
-
-	t.Run("loadDbModels", func(t *testing.T) {
-		tempDir, err := os.MkdirTemp("", "datatug_test_loadDbModels")
-		assert.NoError(t, err)
-		defer func() { _ = os.RemoveAll(tempDir) }()
-
-		dbModelsDir := path.Join(tempDir, "dbmodels")
-		err = os.MkdirAll(dbModelsDir, 0777)
-		assert.NoError(t, err)
-
-		modelID := "model2"
-		modelDir := path.Join(dbModelsDir, modelID)
-		err = os.MkdirAll(modelDir, 0777)
-		assert.NoError(t, err)
-
-		model := datatug.DbModel{
-			ProjectItem: datatug.ProjectItem{
-				ProjItemBrief: datatug.ProjItemBrief{
-					ID: modelID,
-				},
-			},
-		}
-		data, _ := json.Marshal(model)
-		err = os.WriteFile(path.Join(modelDir, modelID+"."+storage.DbModelFileSuffix+".json"), data, 0666)
-		assert.NoError(t, err)
-
-		project := &datatug.Project{}
-		err = loadDbModels(context.TODO(), tempDir, project)
-		assert.NoError(t, err)
-		assert.Len(t, project.DbModels, 1)
-		assert.Equal(t, modelID, project.DbModels[0].ID)
-	})
-
 	t.Run("loadDbCatalogs", func(t *testing.T) {
 		tempDir, err := os.MkdirTemp("", "datatug_test_loadDbCatalogs")
 		assert.NoError(t, err)
@@ -224,7 +162,7 @@ func TestLoaderInternals(t *testing.T) {
 		err = os.MkdirAll(catalogDir, 0777)
 		assert.NoError(t, err)
 
-		catalog := datatug.EnvDbCatalog{
+		catalog := datatug.DbCatalog{
 			DbCatalogBase: datatug.DbCatalogBase{
 				ProjectItem: datatug.ProjectItem{
 					ProjItemBrief: datatug.ProjItemBrief{

@@ -73,9 +73,9 @@ FROM %s.%s
 				fmt.Sprintf("**%v**", strings.Join(fk.Columns, "**, **")),
 				fk.RefTable.Schema(), fk.RefTable.Schema(), fk.RefTable.Name(),
 				fk.RefTable.Schema(), fk.RefTable.Name(),
-			) + "\n  <br>&nbsp;&nbsp;SQL *to* JOIN: " + strings.Join(joins, " | ")
+			) + "\n  <br>&nbsp;&nbsp;DLL *to* JOIN: " + strings.Join(joins, " | ")
 		}
-		//<br>&nbsp;&nbsp;&nbsp;&nbsp;SQL to JOIN: [LEFT](left) | [INNER](inner) | [RIGHT](right)
+		//<br>&nbsp;&nbsp;&nbsp;&nbsp;DLL to JOIN: [LEFT](left) | [INNER](inner) | [RIGHT](right)
 		foreignKeys = strings.Join(fks, "\n")
 	}
 
@@ -98,7 +98,7 @@ FROM %s.%s
 			catalog:   catalog,
 			dbServer:  dbServer,
 			processed: make(map[string]*datatug.CollectionInfo),
-			process: func(parent *datatug.CollectionInfo, refBy *datatug.TableReferencedBy, level, index int) {
+			process: func(parent *datatug.CollectionInfo, refBy *datatug.ReferencedBy, level, index int) {
 				line := writeRefByToMarkDownListTree(repoID, projectID, dbServer.ID, catalog, parent, refBy, level, index)
 				refBys = append(refBys, line)
 			}}
@@ -237,7 +237,7 @@ type refByWalker struct {
 	catalog   string
 	dbServer  datatug.ProjDbServer
 	processed map[string]*datatug.CollectionInfo
-	process   func(parent *datatug.CollectionInfo, refBy *datatug.TableReferencedBy, level, index int)
+	process   func(parent *datatug.CollectionInfo, refBy *datatug.ReferencedBy, level, index int)
 }
 
 func (*refByWalker) getTableID(schema, name string) string {
@@ -267,7 +267,7 @@ func (walker *refByWalker) walkReferencedBy(table *datatug.CollectionInfo, level
 	return nil
 }
 
-func writeRefByToMarkDownListTree(repoID, projectID, server, catalog string, parent *datatug.CollectionInfo, refBy *datatug.TableReferencedBy, level, index int) string {
+func writeRefByToMarkDownListTree(repoID, projectID, server, catalog string, parent *datatug.CollectionInfo, refBy *datatug.ReferencedBy, level, index int) string {
 	joinSQL := strings.TrimSpace(fmt.Sprintf(`
 USE %s
 SELECT

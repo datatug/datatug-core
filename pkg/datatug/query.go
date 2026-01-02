@@ -9,7 +9,7 @@ import (
 )
 
 // QueryFolders defines slice
-type QueryFolders []*QueryFolder
+type QueryFolders []*QueriesFolder
 
 // Validate returns error if not valid
 func (v QueryFolders) Validate() error {
@@ -21,8 +21,8 @@ func (v QueryFolders) Validate() error {
 	return nil
 }
 
-// QueryFolder defines folder
-type QueryFolder struct {
+// QueriesFolder defines folder
+type QueriesFolder struct {
 	ProjectItem
 	Folders QueryFolders `json:"folders,omitempty" yaml:"folders,omitempty"`
 	Items   QueryDefs    `json:"items,omitempty" yaml:"items,omitempty"`
@@ -37,7 +37,7 @@ type QueryFolderBrief struct {
 
 // Validate returns error if not valid
 func (v QueryFolderBrief) Validate() error {
-	if err := v.ProjItemBrief.Validate(true); err != nil {
+	if err := v.ValidateWithOptions(true); err != nil {
 		return err
 	}
 	for i, folder := range v.Folders {
@@ -54,8 +54,8 @@ func (v QueryFolderBrief) Validate() error {
 }
 
 // Validate returns error if not valid
-func (v QueryFolder) Validate() error {
-	if err := v.ProjectItem.Validate(false); err != nil {
+func (v QueriesFolder) Validate() error {
+	if err := v.ValidateWithOptions(false); err != nil {
 		return err
 	}
 	if err := v.Folders.Validate(); err != nil {
@@ -82,12 +82,12 @@ func (v QueryDefs) Validate() error {
 
 type QueryDefBrief struct {
 	ProjItemBrief
-	Type  string `json:"type"` // Possible value: folder, SQL, GraphQL, etc.
+	Type  string `json:"type"` // Possible value: folder, DLL, GraphQL, etc.
 	Draft bool   `json:"draft,omitempty" yaml:"draft,omitempty"`
 }
 
 func (v QueryDefBrief) Validate() error {
-	if err := v.ProjItemBrief.Validate(true); err != nil {
+	if err := v.ValidateWithOptions(true); err != nil {
 		return err
 	}
 	if strings.TrimSpace(v.Type) == "" {
@@ -140,7 +140,7 @@ func IsKnownQueryType(queryType QueryType) bool {
 // For HTTP request host, port, etc, are stored in Targets property,
 type QueryDef struct {
 	ProjectItem
-	Type       QueryType        `json:"type"` // Possible value: folder, SQL, GraphQL, HTTP, etc.
+	Type       QueryType        `json:"type"` // Possible value: folder, DLL, GraphQL, HTTP, etc.
 	Text       string           `json:"text,omitempty" yaml:"text,omitempty"`
 	Draft      bool             `json:"draft,omitempty" yaml:"draft,omitempty"`
 	Parameters Parameters       `json:"parameters,omitempty" yaml:"parameters,omitempty"`
@@ -161,7 +161,7 @@ type QueryDefTarget struct {
 
 // Validate returns error if not valid
 func (v QueryDef) Validate() error {
-	if err := v.ProjectItem.Validate(true); err != nil {
+	if err := v.ValidateWithOptions(true); err != nil {
 		return err
 	}
 	switch v.Type {
