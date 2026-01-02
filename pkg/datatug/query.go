@@ -82,7 +82,7 @@ func (v QueryDefs) Validate() error {
 
 type QueryDefBrief struct {
 	ProjItemBrief
-	Type  string `json:"type"` // Possible value: folder, DLL, GraphQL, etc.
+	Type  string `json:"type"` // Possible value: folder, DDL, GraphQL, etc.
 	Draft bool   `json:"draft,omitempty" yaml:"draft,omitempty"`
 }
 
@@ -140,7 +140,7 @@ func IsKnownQueryType(queryType QueryType) bool {
 // For HTTP request host, port, etc, are stored in Targets property,
 type QueryDef struct {
 	ProjectItem
-	Type       QueryType        `json:"type"` // Possible value: folder, DLL, GraphQL, HTTP, etc.
+	Type       QueryType        `json:"type"` // Possible value: folder, DDL, GraphQL, HTTP, etc.
 	Text       string           `json:"text,omitempty" yaml:"text,omitempty"`
 	Draft      bool             `json:"draft,omitempty" yaml:"draft,omitempty"`
 	Parameters Parameters       `json:"parameters,omitempty" yaml:"parameters,omitempty"`

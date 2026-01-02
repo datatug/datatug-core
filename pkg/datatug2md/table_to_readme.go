@@ -73,9 +73,9 @@ FROM %s.%s
 				fmt.Sprintf("**%v**", strings.Join(fk.Columns, "**, **")),
 				fk.RefTable.Schema(), fk.RefTable.Schema(), fk.RefTable.Name(),
 				fk.RefTable.Schema(), fk.RefTable.Name(),
-			) + "\n  <br>&nbsp;&nbsp;DLL *to* JOIN: " + strings.Join(joins, " | ")
+			) + "\n  <br>&nbsp;&nbsp;DDL *to* JOIN: " + strings.Join(joins, " | ")
 		}
-		//<br>&nbsp;&nbsp;&nbsp;&nbsp;DLL to JOIN: [LEFT](left) | [INNER](inner) | [RIGHT](right)
+		//<br>&nbsp;&nbsp;&nbsp;&nbsp;DDL to JOIN: [LEFT](left) | [INNER](inner) | [RIGHT](right)
 		foreignKeys = strings.Join(fks, "\n")
 	}
 

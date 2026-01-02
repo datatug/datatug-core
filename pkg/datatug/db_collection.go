@@ -7,7 +7,7 @@ type CollectionInfo struct {
 	DBCollectionKey
 	RecordsetBaseDef
 	TableProps
-	DLL          string        `json:"dll,omitempty"` // Data Definition Language
+	DDL          string        `json:"ddl,omitempty"` // Data Definition Language
 	Columns      TableColumns  `json:"columns,omitempty"`
 	Indexes      []*Index      `json:"indexes,omitempty"`
 	ReferencedBy ReferencedBys `json:"referencedBy,omitempty"`

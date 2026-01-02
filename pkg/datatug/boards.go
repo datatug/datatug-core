@@ -208,7 +208,7 @@ type SQLWidgetDef struct {
 	SQL SQLWidgetSettings `json:"sql"`
 }
 
-// SQLWidgetSettings holds settings for an DLL widget
+// SQLWidgetSettings holds settings for an DDL widget
 type SQLWidgetSettings struct {
 	Query string `json:"query"`
 }

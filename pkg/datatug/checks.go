@@ -68,7 +68,7 @@ func (v Checks) Validate() error {
 	return nil
 }
 
-// SQLCheck holds and DLL that verifies data
+// SQLCheck holds and DDL that verifies data
 type SQLCheck struct {
 	Query string `json:"query"`
 }
