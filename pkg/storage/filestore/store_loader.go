@@ -64,7 +64,7 @@ func (s fsProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOptio
 				if err != nil {
 					return fmt.Errorf("failed to load db servers: %w", err)
 				}
-				project.DBs = projDbDrivers
+				project.DbDrivers = projDbDrivers
 				return nil
 			},
 		); err != nil {

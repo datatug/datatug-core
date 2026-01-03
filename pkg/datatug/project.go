@@ -33,7 +33,7 @@ type Project struct {
 
 	DbModels DbModels `json:"dbModels,omitempty" firestore:"dbModels,omitempty"`
 
-	DBs ProjDbDrivers `json:"dbs,omitempty" firestore:"dbs,omitempty"`
+	DbDrivers ProjDbDrivers `json:"dbDrivers,omitempty" firestore:"dbDrivers,omitempty"`
 
 	Actions    Actions            `json:"actions,omitempty" firestore:"actions,omitempty"`
 	Repository *ProjectRepository `json:"repository,omitempty" firestore:"repository,omitempty"`
@@ -49,10 +49,39 @@ func (p *Project) GetEnvironments(ctx context.Context) (environments Environment
 }
 
 func (p *Project) GetDBs(ctx context.Context, o ...StoreOption) (dbs ProjDbDrivers, err error) {
-	if p.DBs == nil {
-		p.DBs, err = p.store.LoadProjDbDrivers(ctx, o...)
+	if p.DbDrivers == nil {
+		p.DbDrivers, err = p.store.LoadProjDbDrivers(ctx, o...)
 	}
-	return p.DBs, err
+	return p.DbDrivers, err
+}
+
+func (p *Project) GetProjDbServer(ctx context.Context, serverRef ServerRef) (server *ProjDbServer, err error) {
+	var dbs ProjDbDrivers
+	if dbs, err = p.GetDBs(ctx); err != nil {
+		return
+	}
+	for _, db := range dbs {
+		if db.ID == serverRef.Driver {
+			return db.Servers.GetProjDbServer(serverRef), nil
+		}
+	}
+	return nil, nil
+}
+func (p *Project) AddProjDbServer(ctx context.Context, dbServer *ProjDbServer) (err error) {
+	var dbs ProjDbDrivers
+	if dbs, err = p.GetDBs(ctx); err != nil {
+		return
+	}
+	driverID := dbServer.Server.Driver
+	db := dbs.GetByID(driverID)
+	if db == nil {
+		db = new(ProjDbDriver)
+		db.ID = driverID
+		p.DbDrivers = append(p.DbDrivers, db)
+	}
+	db.Servers = append(db.Servers, dbServer)
+	p.DbDrivers = append(p.DbDrivers, db)
+	return
 }
 
 // Validate returns error if not valid
@@ -92,7 +121,7 @@ func (p *Project) Validate() error {
 	}
 	log.Println("Validating DB servers...")
 
-	if err := p.DBs.Validate(); err != nil {
+	if err := p.DbDrivers.Validate(); err != nil {
 		return fmt.Errorf("validation failed for project dbs: %w", err)
 	}
 	log.Println("Validating actions...")

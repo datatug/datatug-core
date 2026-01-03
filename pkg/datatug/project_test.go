@@ -107,7 +107,7 @@ func TestProject_Validate(t *testing.T) {
 		p := Project{
 			ProjectItem: ProjectItem{Access: "public"},
 		}
-		p.DBs = ProjDbDrivers{
+		p.DbDrivers = ProjDbDrivers{
 			{
 				ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "sqlite"}},
 				Servers:     ProjDbServers{{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: ""}}}},

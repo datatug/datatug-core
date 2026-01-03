@@ -163,7 +163,7 @@ func TestFsProjectStore_LoadProject(t *testing.T) {
 	project, err = ps.LoadProject(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, project)
-	assert.Len(t, project.DBs, 1)
-	assert.Len(t, project.DBs[0].Servers, 1)
-	assert.Equal(t, server1name, project.DBs[0].Servers[0].ID)
+	assert.Len(t, project.DbDrivers, 1)
+	assert.Len(t, project.DbDrivers[0].Servers, 1)
+	assert.Equal(t, server1name, project.DbDrivers[0].Servers[0].ID)
 }
