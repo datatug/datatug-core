@@ -23,7 +23,7 @@ func (l projectsLoader) LoadProject(_ context.Context, projectID string) (projec
 	})
 	project.ID = projectID
 	if err = loadProjectFile(projectDir, project); err != nil {
-		err = fmt.Errorf("failed to load project: %w", err)
+		err = fmt.Errorf("failed to load project file: %w", err)
 	}
 	return
 }

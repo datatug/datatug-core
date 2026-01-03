@@ -22,7 +22,7 @@ func (s fsProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOptio
 	opts := datatug.GetStoreOptions(o...)
 	project := new(datatug.Project)
 	if err := loadProjectFile(s.projectPath, project); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load project file: %w", err)
 	}
 	if opts.Depth() == 0 || opts.Depth() > 1 {
 		o = opts.Next().ToSlice()
