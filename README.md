@@ -8,6 +8,8 @@
 [![GoDoc](https://godoc.org/github.com/datatug/datatug?status.svg)](https://godoc.org/github.com/datatug/datatug)
 [![Sourcegraph](https://sourcegraph.com/github.com/datatug/datatug-core/-/badge.svg)](https://sourcegraph.com/github.com/datatug/datatug-core?badge)
 
+This is mostly used by https://github.com/datatug/datatug-cli.
+
 ## Project structure
 
 - [pkg](pkg) - source codes for core packages
