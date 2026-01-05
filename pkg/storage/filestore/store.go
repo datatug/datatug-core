@@ -63,6 +63,10 @@ func newStore(id string, pathByID map[string]string) *FsStore {
 	}
 }
 
+func NewProjectStore(id, path string) datatug.ProjectStore {
+	return newFsProjectStore(id, path)
+}
+
 // NewSingleProjectStore creates an instance of storage that implements storage.Store for a single project
 func NewSingleProjectStore(projectPath, projectID string) (storeInterface *FsStore, projID string) {
 	if projectID == "" {

@@ -3,6 +3,7 @@ package filestore
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path"
 	"testing"
@@ -93,4 +94,29 @@ func TestNewSingleProjectStore(t *testing.T) {
 		assert.Equal(t, storage.SingleProjectID, projID)
 		assert.Equal(t, projPath, store.pathByID[projID])
 	})
+}
+
+func TestNewProjectStore(t *testing.T) {
+	type args struct {
+		id   string
+		path string
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "p1",
+			args: args{id: "p1", path: "/projPath/p1"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := NewProjectStore(tt.args.id, tt.args.path)
+			assert.NotNil(t, store)
+			_, err := store.LoadProjectFile(context.Background())
+			assert.Error(t, err)
+			assert.True(t, errors.Is(err, datatug.ErrProjectDoesNotExist), err)
+		})
+	}
 }

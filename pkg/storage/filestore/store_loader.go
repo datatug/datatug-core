@@ -77,11 +77,11 @@ func (s fsProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOptio
 }
 
 // LoadProjectSummary loads project summary
-func (s fsProjectStore) LoadProjectSummary(context.Context) (projectSummary datatug.ProjectSummary, err error) {
-	if projectSummary.ProjectFile, err = LoadProjectFile(s.projectPath); err != nil {
-		return projectSummary, fmt.Errorf("failed to load project file: %w", err)
+func (s fsProjectStore) LoadProjectFile(context.Context) (projectFile datatug.ProjectFile, err error) {
+	if projectFile, err = LoadProjectFile(s.projectPath); err != nil {
+		return projectFile, fmt.Errorf("failed to load project file: %w", err)
 	}
-	projectSummary.ID = s.projectID
+	projectFile.ID = s.projectID
 	return
 }
 

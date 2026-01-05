@@ -135,33 +135,33 @@ func (s fsProjectStore) saveProjectFile(project *datatug.Project) error {
 	//} else {
 	//	projFile.GetID = existingProject.GetID
 	//}
-	for _, env := range project.Environments {
-		envBrief := datatug.ProjEnvBrief{
-			ProjectItem: env.ProjectItem,
-			//NumberOf: models.ProjEnvNumbers{
-			//	DbServers: len(env.DbServers),
-			//},
-		}
-		//for _, dbServer := range env.DbServers {
-		//	envBrief.NumberOf.Catalogs += len(dbServer.Catalogs)
-		//}
-		projFile.Environments = append(projFile.Environments, &envBrief)
-	}
-	for _, dbModel := range project.DbModels {
-		brief := datatug.ProjDbModelBrief{
-			ProjectItem: dbModel.ProjectItem,
-			NumberOf: datatug.ProjDbModelNumbers{
-				Schemas: len(dbModel.Schemas),
-			},
-		}
-		for _, schema := range dbModel.Schemas {
-			brief.NumberOf.Tables = len(schema.Tables)
-			brief.NumberOf.Views = len(schema.Views)
-		}
-		projFile.DbModels = append(projFile.DbModels,
-			&brief,
-		)
-	}
+	//for _, env := range project.Environments {
+	//	envBrief := datatug.ProjEnvBrief{
+	//		ProjectItem: env.ProjectItem,
+	//		NumberOf: models.ProjEnvNumbers{
+	//			DbServers: len(env.DbServers),
+	//		},
+	//	}
+	//	for _, dbServer := range env.DbServers {
+	//		envBrief.NumberOf.Catalogs += len(dbServer.Catalogs)
+	//	}
+	//	projFile.Environments = append(projFile.Environments, &envBrief)
+	//}
+	//for _, dbModel := range project.DbModels {
+	//	brief := datatug.ProjDbModelBrief{
+	//		ProjectItem: dbModel.ProjectItem,
+	//		NumberOf: datatug.ProjDbModelNumbers{
+	//			Schemas: len(dbModel.Schemas),
+	//		},
+	//	}
+	//	for _, schema := range dbModel.Schemas {
+	//		brief.NumberOf.Tables = len(schema.Tables)
+	//		brief.NumberOf.Views = len(schema.Views)
+	//	}
+	//	projFile.DbModels = append(projFile.DbModels,
+	//		&brief,
+	//	)
+	//}
 	if err := s.writeProjectReadme(*project); err != nil {
 		return fmt.Errorf("failed to write project doc file: %w", err)
 	}

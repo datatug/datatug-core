@@ -34,7 +34,8 @@ type ProjectsStore interface {
 
 type ProjectStore interface {
 	ProjectID() string
-	LoadProjectSummary(ctx context.Context) (ProjectSummary, error)
+	LoadProjectFile(ctx context.Context) (ProjectFile, error)
+	//LoadProjectSummary(ctx context.Context) (ProjectSummary, error)
 	LoadProject(ctx context.Context, o ...StoreOption) (p *Project, err error)
 	SaveProject(ctx context.Context, p *Project) error
 

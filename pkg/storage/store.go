@@ -14,7 +14,10 @@ type Store interface {
 	GetProjectStore(projectID string) datatug.ProjectStore
 
 	// CreateProject creates a new DataTug project
-	CreateProject(ctx context.Context, request dto.CreateProjectRequest) (summary *datatug.ProjectSummary, err error)
+	CreateProject(ctx context.Context, request dto.CreateProjectRequest) (
+		projectSummary *datatug.ProjectSummary, // In case if we clone or create from a template
+		err error,
+	)
 	DeleteProject(ctx context.Context, id string) error
 
 	// GetProjects returns list of projects
@@ -37,11 +40,11 @@ type noOpStore struct {
 }
 
 // CreateProject - noOpStore panics in all methods
-func (n noOpStore) CreateProject(_ context.Context, _ dto.CreateProjectRequest) (summary *datatug.ProjectSummary, err error) {
+func (n noOpStore) CreateProject(_ context.Context, _ dto.CreateProjectRequest) (*datatug.ProjectSummary, error) {
 	panic("implement me")
 }
 
-func (n noOpStore) GetProjects(_ context.Context) (projectBriefs []datatug.ProjectBrief, err error) {
+func (n noOpStore) GetProjects(_ context.Context) ([]datatug.ProjectBrief, error) {
 	panic("implement me")
 }
 

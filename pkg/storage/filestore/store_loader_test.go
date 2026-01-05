@@ -67,7 +67,7 @@ func TestFsProjectStore_LoadProjectSummary(t *testing.T) {
 	assert.NoError(t, err)
 
 	ps := newFsProjectStore("p1", projTmpDir)
-	summary, err := ps.LoadProjectSummary(context.Background())
+	summary, err := ps.LoadProjectFile(context.Background())
 	assert.NoError(t, err)
 	assert.Equal(t, "p1", ps.projectID)
 	assert.Equal(t, "p1", summary.ID)

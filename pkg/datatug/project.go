@@ -161,9 +161,11 @@ func (v *ProjectBrief) Validate() error {
 	return nil
 }
 
-// ProjectSummary hold project summary - TODO: document why we need it in addition to ProjectFile
+// ProjectSummary hold project summary - this is to be used in Firestore to minimize reads
+// Locally we'd produce it from ProjectFile and shallow scan of nested dirs.
 type ProjectSummary struct {
 	ProjectFile
+	Entities []*ProjEntityBrief `json:"entities,omitempty" firestore:"entities,omitempty"`
 }
 
 // ProjectRepository defines project repository
@@ -188,10 +190,10 @@ func (v *ProjectRepository) Validate() error {
 type ProjectFile struct {
 	Created *ProjectCreated `json:"created,omitempty" firestore:"created,omitempty"`
 	ProjectItem
-	Repository   *ProjectRepository  `json:"repository,omitempty" firestore:"repository,omitempty"`
-	DbModels     []*ProjDbModelBrief `json:"dbModels,omitempty" firestore:"dbModels,omitempty"`
-	Entities     []*ProjEntityBrief  `json:"entities,omitempty" firestore:"entities,omitempty"`
-	Environments []*ProjEnvBrief     `json:"environments,omitempty" firestore:"environments,omitempty"`
+	Repository *ProjectRepository `json:"repository,omitempty" firestore:"repository,omitempty"`
+	//DbModels     []*ProjDbModelBrief `json:"dbModels,omitempty" firestore:"dbModels,omitempty"`
+	//Entities     []*ProjEntityBrief  `json:"entities,omitempty" firestore:"entities,omitempty"`
+	//Environments []*ProjEnvBrief     `json:"environments,omitempty" firestore:"environments,omitempty"`
 }
 
 // Validate returns error if not valid
@@ -214,21 +216,21 @@ func (v ProjectFile) Validate() error {
 	default:
 		return validation.NewErrBadRecordFieldValue("access", "expected 'private', 'protected' or 'public', got: "+v.Access)
 	}
-	for _, entity := range v.Entities {
-		if err := entity.ValidateWithOptions(false); err != nil {
-			return err
-		}
-	}
-	for _, dbModel := range v.DbModels {
-		if err := dbModel.ValidateWithOptions(false); err != nil {
-			return err
-		}
-	}
-	for _, env := range v.Environments {
-		if err := env.ValidateWithOptions(false); err != nil {
-			return err
-		}
-	}
+	//for _, entity := range v.Entities {
+	//	if err := entity.ValidateWithOptions(false); err != nil {
+	//		return err
+	//	}
+	//}
+	//for _, dbModel := range v.DbModels {
+	//	if err := dbModel.ValidateWithOptions(false); err != nil {
+	//		return err
+	//	}
+	//}
+	//for _, env := range v.Environments {
+	//	if err := env.ValidateWithOptions(false); err != nil {
+	//		return err
+	//	}
+	//}
 	return nil
 }
 
