@@ -20,7 +20,7 @@ type fileSystemLoader struct {
 // LoadProject loads project
 func (s fsProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOption) (*datatug.Project, error) {
 	opts := datatug.GetStoreOptions(o...)
-	project := new(datatug.Project)
+	project := datatug.NewProjectWithStore(s.projectID, s)
 	if err := loadProjectFile(s.projectPath, project); err != nil {
 		return nil, fmt.Errorf("failed to load project file: %w", err)
 	}

@@ -31,7 +31,7 @@ func (m mockProjectLoader) LoadProjDbServers(_ context.Context, o ...StoreOption
 func TestProject_GetEnvironments(t *testing.T) {
 	ctx := context.Background()
 	t.Run("success", func(t *testing.T) {
-		p := NewProject("p1", func(p *Project) ProjectStore { return &mockProjectLoader{} })
+		p := NewProjectWithStoreFactory("p1", func(p *Project) ProjectStore { return &mockProjectLoader{} })
 		envs, err := p.GetEnvironments(ctx)
 		assert.NoError(t, err)
 		assert.Len(t, envs, 1)

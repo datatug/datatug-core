@@ -10,12 +10,19 @@ import (
 	"github.com/strongo/validation"
 )
 
-func NewProject(id string, newStore func(p *Project) ProjectStore) (p *Project) {
+func NewProjectWithStoreFactory(id string, newStore func(p *Project) ProjectStore) (p *Project) {
 	p = new(Project)
 	p.ID = id
 	if newStore != nil {
 		p.store = newStore(p)
 	}
+	return
+}
+
+func NewProjectWithStore(id string, store ProjectStore) (p *Project) {
+	p = new(Project)
+	p.ID = id
+	p.store = store
 	return
 }
 
