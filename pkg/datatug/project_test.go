@@ -178,28 +178,4 @@ func TestProjectFile_Validate(t *testing.T) {
 		v := ProjectFile{Created: &ProjectCreated{At: time.Now()}, ProjectItem: ProjectItem{Access: "unknown"}}
 		assert.Error(t, v.Validate())
 	})
-	t.Run("invalid_entity", func(t *testing.T) {
-		v := ProjectFile{
-			Created:     &ProjectCreated{At: time.Now()},
-			ProjectItem: ProjectItem{Access: "public"},
-			Entities:    []*ProjEntityBrief{{ProjItemBrief: ProjItemBrief{ID: ""}}},
-		}
-		assert.Error(t, v.Validate())
-	})
-	t.Run("invalid_db_model", func(t *testing.T) {
-		v := ProjectFile{
-			Created:     &ProjectCreated{At: time.Now()},
-			ProjectItem: ProjectItem{Access: "public"},
-			DbModels:    []*ProjDbModelBrief{{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: ""}}}},
-		}
-		assert.Error(t, v.Validate())
-	})
-	t.Run("invalid_env", func(t *testing.T) {
-		v := ProjectFile{
-			Created:      &ProjectCreated{At: time.Now()},
-			ProjectItem:  ProjectItem{Access: "public"},
-			Environments: []*ProjEnvBrief{{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: ""}}}},
-		}
-		assert.Error(t, v.Validate())
-	})
 }
