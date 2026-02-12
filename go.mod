@@ -2,7 +2,7 @@ module github.com/datatug/datatug-core
 
 go 1.24.3
 
-toolchain go1.25.7
+toolchain go1.26.0
 
 require (
 	github.com/dal-go/dalgo v0.41.1
