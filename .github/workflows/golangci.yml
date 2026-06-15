@@ -2,8 +2,8 @@ name: Go CI
 
 on:
   push:
-    branches-ignore:
-      - renovate/**
+    branches:
+      - main
     paths:
       - 'go.*'
       - '**/*.go'
