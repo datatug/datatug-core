@@ -5,7 +5,7 @@ go 1.24.3
 toolchain go1.26.4
 
 require (
-	github.com/dal-go/dalgo v0.62.8
+	github.com/dal-go/dalgo v0.62.9
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/stretchr/testify v1.11.1
@@ -16,7 +16,7 @@ require (
 )
 
 require (
-	github.com/RoaringBitmap/roaring/v2 v2.18.2 // indirect
+	github.com/RoaringBitmap/roaring/v2 v2.19.0 // indirect
 	github.com/bits-and-blooms/bitset v1.24.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
