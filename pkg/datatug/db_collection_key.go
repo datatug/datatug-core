@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/dal-go/dalgo/dal"
+	"github.com/dal-go/record"
 )
 
 type CollectionType string
@@ -34,7 +35,7 @@ type DBCollectionKey struct { // TODO: Should we rename back to the `CollectionK
 	Ref     dal.CollectionRef
 }
 
-func NewCollectionKey(t CollectionType, name, schema, catalog string, parent *dal.Key) DBCollectionKey {
+func NewCollectionKey(t CollectionType, name, schema, catalog string, parent *record.Key) DBCollectionKey {
 	if !IsKnownCollectionType(t) {
 		panic(fmt.Sprintf("unknown collection type: %s", t))
 	}
@@ -46,11 +47,11 @@ func NewCollectionKey(t CollectionType, name, schema, catalog string, parent *da
 	}
 }
 
-func NewTableKey(name, schema, catalog string, parent *dal.Key) DBCollectionKey {
+func NewTableKey(name, schema, catalog string, parent *record.Key) DBCollectionKey {
 	return NewCollectionKey(CollectionTypeTable, name, schema, catalog, parent)
 }
 
-func NewViewKey(name, schema, catalog string, parent *dal.Key) DBCollectionKey {
+func NewViewKey(name, schema, catalog string, parent *record.Key) DBCollectionKey {
 	return NewCollectionKey(CollectionTypeView, name, schema, catalog, parent)
 }
 
