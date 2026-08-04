@@ -3,7 +3,7 @@ package schemer
 import (
 	"context"
 
-	"github.com/dal-go/dalgo/dal"
+	"github.com/dal-go/record"
 	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
@@ -37,15 +37,15 @@ const (
 	SchemasCollection  = "schemas"
 )
 
-func NewSchemaKey(catalog, schema string) *dal.Key {
-	catalogKey := dal.NewKeyWithID(CatalogsCollection, catalog)
-	return dal.NewKeyWithParentAndID(catalogKey, SchemasCollection, schema)
+func NewSchemaKey(catalog, schema string) *record.Key {
+	catalogKey := record.NewKeyWithID(CatalogsCollection, catalog)
+	return record.NewKeyWithParentAndID(catalogKey, SchemasCollection, schema)
 }
 
 // CollectionsProvider provides Tables
 type CollectionsProvider interface {
 	// GetCollections returns root collections if parentKey is nil or sub-collection if parenKey is provided
-	GetCollections(c context.Context /*db *sql.DB,*/, parentKey *dal.Key) (CollectionsReader, error)
+	GetCollections(c context.Context /*db *sql.DB,*/, parentKey *record.Key) (CollectionsReader, error)
 }
 
 // CollectionsReader reads collection info

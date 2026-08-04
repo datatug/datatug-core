@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/dal-go/dalgo/dal"
+	"github.com/dal-go/record"
 	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
@@ -32,7 +32,7 @@ type mockSchemaProvider struct {
 
 func (m *mockSchemaProvider) IsBulkProvider() bool { return m.isBulk }
 
-func (m *mockSchemaProvider) GetCollections(_ context.Context, _ *dal.Key) (CollectionsReader, error) {
+func (m *mockSchemaProvider) GetCollections(_ context.Context, _ *record.Key) (CollectionsReader, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
