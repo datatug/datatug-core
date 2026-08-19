@@ -5,19 +5,19 @@ go 1.24.3
 toolchain go1.26.6
 
 require (
-	github.com/dal-go/dalgo v0.64.6
+	github.com/dal-go/dalgo v0.64.7
 	github.com/dal-go/record v0.1.2
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
-	github.com/stretchr/testify v1.11.1
-	github.com/strongo/slice v0.3.5
+	github.com/stretchr/testify v1.12.0
+	github.com/strongo/slice v0.3.6
 	github.com/strongo/validation v0.0.10
 	go.uber.org/mock v0.6.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
-	github.com/RoaringBitmap/roaring/v2 v2.24.0 // indirect
+	github.com/RoaringBitmap/roaring/v2 v2.25.0 // indirect
 	github.com/bits-and-blooms/bitset v1.24.6 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
