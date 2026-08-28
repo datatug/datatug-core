@@ -5,13 +5,13 @@ go 1.26.0
 toolchain go1.27.0
 
 require (
-	github.com/dal-go/dalgo v0.66.1
+	github.com/dal-go/dalgo v0.74.1
 	github.com/dal-go/record v0.1.3
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/stretchr/testify v1.12.1
-	github.com/strongo/slice v0.3.7
-	github.com/strongo/validation v0.0.10
+	github.com/strongo/slice v0.3.9
+	github.com/strongo/validation v0.0.12
 	go.uber.org/mock v0.6.0
 	gopkg.in/yaml.v3 v3.0.1
 )
