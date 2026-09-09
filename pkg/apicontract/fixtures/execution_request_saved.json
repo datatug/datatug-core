@@ -1,0 +1,20 @@
+{
+  "project": "demo-project-1",
+  "environment": "local",
+  "securityContextId": "sc-abc123",
+  "queryId": "customers/customer-purchases-by-genre",
+  "parameters": {
+    "CustomerId": {
+      "type": "integer",
+      "value": "5"
+    }
+  },
+  "bindingOrigins": [
+    {
+      "parameterId": "CustomerId",
+      "origin": "selection",
+      "factId": "f1"
+    }
+  ],
+  "mode": "live"
+}

@@ -1,0 +1,46 @@
+{
+  "recordset": {
+    "columns": [
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "currency",
+        "type": "string"
+      }
+    ],
+    "rows": [
+      [
+        {
+          "type": "string",
+          "value": "Brazil"
+        },
+        {
+          "type": "string",
+          "value": "BRL"
+        }
+      ]
+    ]
+  },
+  "limitations": [],
+  "bindingsApplied": [
+    {
+      "parameterId": "name",
+      "value": {
+        "type": "string",
+        "value": "Brazil"
+      },
+      "origin": "manual",
+      "originEvidence": "client-reported"
+    }
+  ],
+  "provenance": {
+    "source": "country-facts",
+    "mode": "snapshot",
+    "snapshotId": "snap-2026-09-09",
+    "observedAt": "2026-08-01T00:00:00Z",
+    "executionProfile": "protected"
+  },
+  "truncated": false
+}

@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "SOURCE_UNAVAILABLE",
+    "message": "live HTTP source did not respond",
+    "requestId": "req-0012"
+  }
+}

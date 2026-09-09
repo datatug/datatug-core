@@ -1,0 +1,19 @@
+{
+  "related": [
+    {
+      "lookupId": "l-invoices-by-customer",
+      "label": "Invoices",
+      "source": "chinook-local",
+      "collection": "Invoice",
+      "count": 7
+    },
+    {
+      "lookupId": "l-support-notes-by-customer",
+      "label": "Support notes",
+      "source": "support-notes",
+      "collection": "support-notes",
+      "count": null
+    }
+  ],
+  "truncated": false
+}

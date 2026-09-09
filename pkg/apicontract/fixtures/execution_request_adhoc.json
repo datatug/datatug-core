@@ -1,0 +1,10 @@
+{
+  "project": "demo-project-1",
+  "environment": "local",
+  "securityContextId": "sc-abc123",
+  "source": "chinook-local",
+  "dtql": "select:\n  from: Customer\n",
+  "parameters": {},
+  "bindingOrigins": [],
+  "mode": "live"
+}

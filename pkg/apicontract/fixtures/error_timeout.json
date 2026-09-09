@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "TIMEOUT",
+    "message": "execution exceeded the configured time budget",
+    "requestId": "req-0013"
+  }
+}

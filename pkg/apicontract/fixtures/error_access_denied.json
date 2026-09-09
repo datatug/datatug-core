@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "ACCESS_DENIED",
+    "message": "the current principal may not read this source",
+    "requestId": "req-0007"
+  }
+}

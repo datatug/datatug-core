@@ -1,0 +1,70 @@
+{
+  "recordset": {
+    "columns": [
+      {
+        "name": "GenreName",
+        "type": "string"
+      },
+      {
+        "name": "TracksPurchased",
+        "type": "integer"
+      },
+      {
+        "name": "TotalSpent",
+        "type": "decimal"
+      }
+    ],
+    "rows": [
+      [
+        {
+          "type": "string",
+          "value": "Rock"
+        },
+        {
+          "type": "integer",
+          "value": "15"
+        },
+        {
+          "type": "decimal",
+          "value": "14.85"
+        }
+      ],
+      [
+        {
+          "type": "string",
+          "value": "Metal"
+        },
+        {
+          "type": "integer",
+          "value": "6"
+        },
+        {
+          "type": "decimal",
+          "value": "5.94"
+        }
+      ]
+    ]
+  },
+  "limitations": [],
+  "bindingsApplied": [
+    {
+      "parameterId": "CustomerId",
+      "value": {
+        "type": "integer",
+        "value": "5"
+      },
+      "origin": "selection",
+      "originEvidence": "client-reported",
+      "factId": "f1"
+    }
+  ],
+  "provenance": {
+    "source": "chinook-local",
+    "collection": "Invoice",
+    "queryId": "customers/customer-purchases-by-genre",
+    "mode": "live",
+    "observedAt": "2026-09-09T12:00:00Z",
+    "executionProfile": "protected"
+  },
+  "truncated": false
+}

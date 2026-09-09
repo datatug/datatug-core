@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "UNSUPPORTED_PROTECTED_EXECUTION",
+    "message": "native SQL cannot be protected; no opaque-query grant for this principal",
+    "requestId": "req-0008"
+  }
+}

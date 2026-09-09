@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "RESPONSE_TOO_LARGE",
+    "message": "response exceeded the 2 MiB bound",
+    "requestId": "req-0011"
+  }
+}

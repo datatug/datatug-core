@@ -1,0 +1,14 @@
+{
+  "version": "0.25.0",
+  "principal": {
+    "id": "local-owner",
+    "roles": [],
+    "groups": []
+  },
+  "securityContextId": "sc-abc123",
+  "projects": [],
+  "capabilities": {
+    "protectedQueries": false,
+    "opaqueReadOnly": false
+  }
+}

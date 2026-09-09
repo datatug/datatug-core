@@ -1,0 +1,52 @@
+{
+  "recordset": {
+    "columns": [
+      {
+        "name": "CustomerId",
+        "type": "integer"
+      },
+      {
+        "name": "FirstName",
+        "type": "string"
+      },
+      {
+        "name": "Country",
+        "type": "string"
+      }
+    ],
+    "rows": [
+      [
+        {
+          "type": "integer",
+          "value": "1"
+        },
+        {
+          "type": "string",
+          "value": "Luis"
+        },
+        {
+          "type": "string",
+          "value": "Canada"
+        }
+      ]
+    ]
+  },
+  "limitations": [
+    {
+      "policy": "support/customers-support",
+      "rowsFiltered": true,
+      "hiddenColumns": [
+        "Email"
+      ]
+    }
+  ],
+  "bindingsApplied": [],
+  "provenance": {
+    "source": "chinook-local",
+    "collection": "Customer",
+    "mode": "live",
+    "observedAt": "2026-09-09T12:05:00Z",
+    "executionProfile": "protected"
+  },
+  "truncated": false
+}

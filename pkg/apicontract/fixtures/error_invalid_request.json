@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "request body could not be parsed",
+    "requestId": "req-0001"
+  }
+}

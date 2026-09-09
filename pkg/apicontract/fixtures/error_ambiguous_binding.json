@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "AMBIGUOUS_BINDING",
+    "message": "parameter CustomerId has more than one candidate value",
+    "field": "CustomerId",
+    "requestId": "req-0004"
+  }
+}
