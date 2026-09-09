@@ -23,6 +23,13 @@ func (v Boards) Validate() error {
 // Board is holding all details about board
 type Board struct {
 	ProjectItem
+
+	// Parameters mirrors ProjBoardBrief.Parameters so the brief and the full board stay in step.
+	Parameters Parameters `json:"parameters,omitempty" firestore:"parameters,omitempty"`
+
+	// RequiredParams mirrors ProjBoardBrief.RequiredParams so the brief and the full board stay in step.
+	RequiredParams [][]string `json:"requiredParams,omitempty" firestore:"requiredParams,omitempty"`
+
 	Rows BoardRows `json:"rows,omitempty" firestore:"rows,omitempty"`
 }
 
@@ -30,6 +37,11 @@ type Board struct {
 func (v *Board) Validate() error {
 	if err := v.ValidateWithOptions(true); err != nil {
 		return err
+	}
+	for i, p := range v.Parameters {
+		if err := p.Validate(); err != nil {
+			return validation.NewErrBadRecordFieldValue("parameters", fmt.Sprintf("invalid parameter #%v: %v", i+1, err))
+		}
 	}
 	if err := v.Rows.Validate(); err != nil {
 		return validation.NewErrBadRecordFieldValue("rows", err.Error())

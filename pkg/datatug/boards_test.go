@@ -1,6 +1,7 @@
 package datatug
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -83,6 +84,36 @@ func TestBoard_Validate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "valid_parameters",
+			v: Board{
+				ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "b1", Title: "Board 1"}},
+				Parameters: Parameters{
+					{ID: "p1", Type: "string"},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid_parameter_missing_id",
+			v: Board{
+				ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "b1", Title: "Board 1"}},
+				Parameters: Parameters{
+					{ID: "", Type: "string"},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid_parameter_missing_type",
+			v: Board{
+				ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "p1", Title: "Board 1"}},
+				Parameters: Parameters{
+					{ID: "p1", Type: ""},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -91,6 +122,31 @@ func TestBoard_Validate(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestBoard_JSONRoundTrip proves that Parameters and RequiredParams survive a
+// board.json marshal/unmarshal round trip instead of being silently dropped.
+func TestBoard_JSONRoundTrip(t *testing.T) {
+	original := Board{
+		ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "b1", Title: "Board 1"}},
+		Parameters: Parameters{
+			{ID: "p1", Type: "string", Title: "Param 1"},
+			{ID: "p2", Type: "integer", IsRequired: true},
+		},
+		RequiredParams: [][]string{
+			{"p1"},
+			{"p2", "p1"},
+		},
+	}
+
+	data, err := json.Marshal(original)
+	assert.NoError(t, err)
+
+	var roundTripped Board
+	assert.NoError(t, json.Unmarshal(data, &roundTripped))
+
+	assert.Equal(t, original.Parameters, roundTripped.Parameters)
+	assert.Equal(t, original.RequiredParams, roundTripped.RequiredParams)
 }
 
 func TestBoardWidget_Validate(t *testing.T) {
