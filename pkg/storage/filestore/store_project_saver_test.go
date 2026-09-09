@@ -90,3 +90,44 @@ func TestSaveProject(t *testing.T) {
 		assert.Error(t, err)
 	})
 }
+
+// TestSaveProject_PersistsDbModels proves SaveProject actually writes
+// project.DbModels to disk and that they round-trip back through
+// LoadDbModels - the DB-models block used to be a no-op stub
+// ("IS NOT IMPLEMENTED YET") despite fsDbModelsStore.SaveDbModels already
+// being implemented and embedded on the store.
+func TestSaveProject_PersistsDbModels(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "datatug_test_save_dbmodels")
+	assert.NoError(t, err)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	const projectID = "p1"
+	projectPath := path.Join(tmpDir, projectID)
+	store := newFsProjectStore(projectID, projectPath)
+
+	project := &datatug.Project{
+		ProjectItem: datatug.ProjectItem{
+			Access:        "private",
+			ProjItemBrief: datatug.ProjItemBrief{ID: projectID},
+		},
+		Created: &datatug.ProjectCreated{At: time.Now()},
+		DbModels: datatug.DbModels{
+			{
+				ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "chinook", Title: "Chinook"}},
+			},
+		},
+	}
+
+	err = store.SaveProject(context.Background(), project)
+	assert.NoError(t, err)
+
+	modelFile := path.Join(projectPath, storage.DbModelsFolder, "chinook", storage.JsonFileName("chinook", storage.DbModelFileSuffix))
+	assert.FileExists(t, modelFile)
+
+	loaded, err := newFsDbModelsStore(projectPath).LoadDbModels(context.Background())
+	assert.NoError(t, err)
+	if assert.Len(t, loaded, 1) {
+		assert.Equal(t, "chinook", loaded[0].ID)
+		assert.Equal(t, "Chinook", loaded[0].Title)
+	}
+}

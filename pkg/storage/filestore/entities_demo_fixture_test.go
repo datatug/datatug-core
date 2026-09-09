@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -24,15 +23,16 @@ const demoProjectsRepoPath = "/home/ai/projects/datatug/datatug-demo-projects"
 // loads datatug-demo-projects/demo-project-1 - the project whose per-entity-
 // directory layout (see store_entities.go) motivated this fix - end to end:
 // every entity loads, the mappings declared in datatug-demo-projects PR #9
-// are present, and Project.Validate() passes.
+// are present, the demo's board1 board and chinook DB model load with their
+// content, and Project.Validate() passes.
+//
+// This test only ever reads the sibling checkout - it must never mutate it
+// (a "git pull" here previously did; a test is not the place to fetch
+// changes into a repository other tooling/sessions may be using).
 func TestFsEntitiesStore_DemoProject1Fixture(t *testing.T) {
 	demoProjectDir := filepath.Join(demoProjectsRepoPath, "demo-project-1")
 	if _, err := os.Stat(demoProjectDir); err != nil {
 		t.Skipf("skipping: sibling checkout not found at %s: %v", demoProjectDir, err)
-	}
-
-	if out, err := exec.Command("git", "-C", demoProjectsRepoPath, "pull", "--ff-only", "-q").CombinedOutput(); err != nil {
-		t.Logf("warning: git pull in %s failed, running against the checkout as-is: %v\n%s", demoProjectsRepoPath, err, out)
 	}
 
 	tmpDir, err := os.MkdirTemp("", "datatug_demo_project_1_fixture")
@@ -73,6 +73,15 @@ func TestFsEntitiesStore_DemoProject1Fixture(t *testing.T) {
 		datatug.PhysicalRef{Source: "chinook", Collection: "Invoice", Column: "InvoiceId"})
 	assert.Contains(t, fieldByID("Country", "Name").Mappings,
 		datatug.PhysicalRef{Source: "chinook", Collection: "Customer", Column: "Country"})
+
+	if assert.Len(t, project.Boards, 1) {
+		assert.Equal(t, "board1", project.Boards[0].ID)
+		assert.Equal(t, "1st board", project.Boards[0].Title)
+	}
+
+	if assert.Len(t, project.DbModels, 1) {
+		assert.Equal(t, "chinook", project.DbModels[0].ID)
+	}
 
 	assert.NoError(t, project.Validate())
 }
