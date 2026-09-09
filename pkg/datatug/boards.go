@@ -220,15 +220,71 @@ type SQLWidgetDef struct {
 	SQL SQLWidgetSettings `json:"sql"`
 }
 
-// SQLWidgetSettings holds settings for an DDL widget
+// SQLWidgetSettings binds a SQL widget to a query in the project's query
+// library. It deliberately carries no query text and no execution target of
+// its own: the text and the target come from the referenced QueryDef, and the
+// environment is the viewer's choice at view time. Founder ruling 2026-09-09
+// ("I'm Ok with the suggested option 1"). The field shape below is the coding
+// agent's design, not the founder's.
 type SQLWidgetSettings struct {
-	Query string `json:"query"`
+	// QueryID references a QueryDef by id within the same project.
+	QueryID string `json:"queryId"`
+	// Parameters binds the referenced query's parameters.
+	Parameters WidgetParameterBindings `json:"parameters,omitempty"`
 }
 
 // Validate returns error if not valid
 func (v SQLWidgetSettings) Validate() error {
-	if v.Query == "" {
-		return validation.NewErrRecordIsMissingRequiredField("query")
+	if v.QueryID == "" {
+		return validation.NewErrRecordIsMissingRequiredField("queryId")
+	}
+	if err := v.Parameters.Validate(); err != nil {
+		return validation.NewErrBadRecordFieldValue("parameters", err.Error())
+	}
+	return nil
+}
+
+// WidgetParameterBindings is a slice of WidgetParameterBinding.
+type WidgetParameterBindings []WidgetParameterBinding
+
+// Validate returns error if not valid
+func (v WidgetParameterBindings) Validate() error {
+	seen := make(map[string]bool, len(v))
+	for i, binding := range v {
+		if err := binding.Validate(); err != nil {
+			return fmt.Errorf("invalid binding at index %v: %w", i, err)
+		}
+		if seen[binding.ID] {
+			return fmt.Errorf("invalid binding at index %v: duplicate binding for parameter id=%v", i, binding.ID)
+		}
+		seen[binding.ID] = true
+	}
+	return nil
+}
+
+// WidgetParameterBinding binds one parameter of the referenced query to either
+// a constant value or one of the board's own parameters.
+type WidgetParameterBinding struct {
+	// ID is the id of the referenced query's parameter.
+	ID string `json:"id"`
+	// Value is a constant value for the parameter, e.g. recorded by
+	// "pin this result to a board". Mutually exclusive with BoardParameterID.
+	Value interface{} `json:"value,omitempty"`
+	// BoardParameterID takes the value from the board parameter with this id,
+	// so a viewer changing a board parameter re-runs the widget's query.
+	// Mutually exclusive with Value.
+	BoardParameterID string `json:"boardParameterId,omitempty"`
+}
+
+// Validate returns error if not valid. Neither Value nor BoardParameterID
+// being set is VALID: it means "use the query parameter's own default",
+// i.e. ParameterDef.DefaultValue for the referenced query parameter.
+func (v WidgetParameterBinding) Validate() error {
+	if v.ID == "" {
+		return validation.NewErrRecordIsMissingRequiredField("id")
+	}
+	if v.Value != nil && v.BoardParameterID != "" {
+		return validation.NewErrBadRecordFieldValue("boardParameterId", "value and boardParameterId are mutually exclusive")
 	}
 	return nil
 }
