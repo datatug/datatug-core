@@ -27,6 +27,8 @@ github.com/dal-go/dalgo v0.79.3 h1:awEX08IaxK135rrftqutBbdi/fWwAMx756YWgF2+W44=
 github.com/dal-go/dalgo v0.79.3/go.mod h1:p0VdxLWu+Z/+kNYj7EdZHR+k3LzlpaUBo8atVeUiKBs=
 github.com/dal-go/dalgo v0.79.4 h1:gP+s77B8OWKhLN733O9g0QK2XB1tgePfnQYo3qtYGPQ=
 github.com/dal-go/dalgo v0.79.4/go.mod h1:t7F7LJGIHd4DOtQ0pJiGdGdznaqM70lfS9PVG9iSZOU=
+github.com/dal-go/dalgo v0.79.5 h1:mvWbKgtj3HyILrQgK8qwDvuHNPPDKQFulKU5IMNpHkM=
+github.com/dal-go/dalgo v0.79.5/go.mod h1:u7sD8jlXshi2qHrlPUm9GzR2uyPRaBI4Ro9ef5+WFzY=
 github.com/dal-go/record v0.1.2 h1:cDy296wwG3r2T+vy0yVJBouJ936oISiqiNB7G3ef5Og=
 github.com/dal-go/record v0.1.2/go.mod h1:quwsVJTT0f6y3Mhx+yHpTobY7luX1M6kyO6fdJ/AFYE=
 github.com/dal-go/record v0.1.3 h1:K85k/kSX08lTefMiMmPpC12nmCY2TVJk7+ZyC5PD9XU=
@@ -70,6 +72,8 @@ github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWD
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
 github.com/strongo/random v0.0.1 h1:OZHJBb/3uEa7OX8L2Dv2pLnSeewRmXMyTACoeto6O8I=
 github.com/strongo/random v0.0.1/go.mod h1:/pSI+SjBNLBkjljNtVdYr6ERddA+LqSa87o0/s+9iuU=
+github.com/strongo/random v0.0.2 h1:lnISBL6GM6xkWCJDRZRoOXaOUoytg76IyWkx6CLUHKg=
+github.com/strongo/random v0.0.2/go.mod h1:V/TldevwaA3XYhJApc5kQUmpAVUZhoEcsdl5m1+emx4=
 github.com/strongo/slice v0.3.5 h1:8qbn5ll6DBf0eIZ2KtQm1xbmKOr5+FgXZIShz3Qg5to=
 github.com/strongo/slice v0.3.5/go.mod h1:Tymvuhp8oV6T4vswWR4F/JmGFxOcMWFTM5qp0WlV0sk=
 github.com/strongo/slice v0.3.6 h1:rB5bvpnaZYMb/mUWRLwxcE7yiCxvE/AI9frf0qrEw24=
