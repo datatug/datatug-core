@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/datatug/datatug-core/pkg/test"
+	"github.com/stretchr/testify/assert"
 )
 
 func newQueryDef(queryType QueryType, text string) QueryDef {
@@ -36,6 +37,7 @@ func TestIsKnownQueryType(t *testing.T) {
 		{"SQL", QueryTypeSQL, true},
 		{"HTTP", QueryTypeHTTP, true},
 		{"StructuredSQL", QueryTypeStructuredSQL, true},
+		{"DTQL", QueryTypeDTQL, true},
 		{"Empty", "", false},
 		{"Unknown", "Unknown", false},
 	}
@@ -115,6 +117,10 @@ func TestQueryDef_Validate(t *testing.T) {
 		queryDef := newQueryDef("SQL", "select * from users")
 		test.IsValidRecord(t, "sql", queryDef)
 	})
+	t.Run("must_pass_dtql", func(t *testing.T) {
+		queryDef := newQueryDef(QueryTypeDTQL, "")
+		test.IsValidRecord(t, "dtql", queryDef)
+	})
 	t.Run("must_return_error", func(t *testing.T) {
 		test.IsInvalidRecord(t, "empty_record", QueryDef{})
 	})
@@ -138,6 +144,44 @@ func TestQueryDef_Validate(t *testing.T) {
 		v := newQueryDef("SQL", "SELECT 1")
 		v.Parameters = Parameters{{ID: ""}}
 		test.IsInvalidRecord(t, "invalid", v)
+	})
+	t.Run("target_with_password", func(t *testing.T) {
+		v := newQueryDef("SQL", "SELECT 1")
+		v.Targets = []QueryDefTarget{{Host: "db.example.com", Credentials: Credentials{Password: "s3cr3t"}}}
+		test.IsInvalidRecord(t, "invalid", v)
+	})
+	t.Run("target_with_url_embedded_credentials", func(t *testing.T) {
+		v := newQueryDef("SQL", "SELECT 1")
+		v.Targets = []QueryDefTarget{{Host: "user:pass@db.example.com"}}
+		test.IsInvalidRecord(t, "invalid", v)
+	})
+	t.Run("target_without_credentials", func(t *testing.T) {
+		v := newQueryDef("SQL", "SELECT 1")
+		v.Targets = []QueryDefTarget{{Host: "db.example.com", Driver: "postgres"}}
+		test.IsValidRecord(t, "valid", v)
+	})
+}
+
+func TestQueryDefTarget_Validate(t *testing.T) {
+	t.Run("valid_empty", func(t *testing.T) {
+		v := QueryDefTarget{}
+		assert.NoError(t, v.Validate())
+	})
+	t.Run("valid_with_username_only", func(t *testing.T) {
+		v := QueryDefTarget{Credentials: Credentials{Username: "reader"}}
+		assert.NoError(t, v.Validate())
+	})
+	t.Run("invalid_password", func(t *testing.T) {
+		v := QueryDefTarget{Credentials: Credentials{Password: "s3cr3t"}}
+		assert.Error(t, v.Validate())
+	})
+	t.Run("invalid_host_with_embedded_credentials", func(t *testing.T) {
+		v := QueryDefTarget{Host: "admin:hunter2@db.example.com"}
+		assert.Error(t, v.Validate())
+	})
+	t.Run("invalid_catalog_with_embedded_credentials", func(t *testing.T) {
+		v := QueryDefTarget{Catalog: "postgres://admin:hunter2@db.example.com/mydb"}
+		assert.Error(t, v.Validate())
 	})
 }
 

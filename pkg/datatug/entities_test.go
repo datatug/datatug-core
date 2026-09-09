@@ -117,6 +117,63 @@ func TestEntityField_Validate(t *testing.T) {
 	})
 }
 
+func TestPhysicalRef_Validate(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		v := PhysicalRef{Source: "chinook", Collection: "Customer", Column: "CustomerId"}
+		assert.NoError(t, v.Validate())
+	})
+	t.Run("missing_source", func(t *testing.T) {
+		v := PhysicalRef{Collection: "Customer", Column: "CustomerId"}
+		assert.Error(t, v.Validate())
+	})
+	t.Run("missing_collection", func(t *testing.T) {
+		v := PhysicalRef{Source: "chinook", Column: "CustomerId"}
+		assert.Error(t, v.Validate())
+	})
+	t.Run("missing_column", func(t *testing.T) {
+		v := PhysicalRef{Source: "chinook", Collection: "Customer"}
+		assert.Error(t, v.Validate())
+	})
+}
+
+func TestPhysicalRefs_Validate(t *testing.T) {
+	t.Run("valid_empty", func(t *testing.T) {
+		var v PhysicalRefs
+		assert.NoError(t, v.Validate())
+	})
+	t.Run("valid_multiple_sources", func(t *testing.T) {
+		v := PhysicalRefs{
+			{Source: "chinook", Collection: "Customer", Column: "CustomerId"},
+			{Source: "support-notes", Collection: "Customer", Column: "CustomerId"},
+		}
+		assert.NoError(t, v.Validate())
+	})
+	t.Run("invalid_ref", func(t *testing.T) {
+		v := PhysicalRefs{{Source: "chinook"}}
+		assert.Error(t, v.Validate())
+	})
+	t.Run("duplicate_source_and_collection", func(t *testing.T) {
+		v := PhysicalRefs{
+			{Source: "chinook", Collection: "Customer", Column: "CustomerId"},
+			{Source: "chinook", Collection: "Customer", Column: "Id"},
+		}
+		assert.Error(t, v.Validate())
+	})
+}
+
+func TestEntityField_Validate_Mappings(t *testing.T) {
+	t.Run("valid_with_mappings", func(t *testing.T) {
+		v := EntityField{ID: "f1", Type: "string", Mappings: PhysicalRefs{
+			{Source: "chinook", Collection: "Customer", Column: "CustomerId"},
+		}}
+		assert.NoError(t, v.Validate())
+	})
+	t.Run("invalid_mappings", func(t *testing.T) {
+		v := EntityField{ID: "f1", Type: "string", Mappings: PhysicalRefs{{Source: "chinook"}}}
+		assert.Error(t, v.Validate())
+	})
+}
+
 func TestEntityFieldRef_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
 		v := EntityFieldRef{Entity: "e1", Field: "f1"}

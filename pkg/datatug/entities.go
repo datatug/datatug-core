@@ -110,6 +110,10 @@ type EntityField struct {
 	Title        string         `json:"title,omitempty" firestore:"title,omitempty"`
 	IsKeyField   bool           `json:"isKeyField,omitempty" firestore:"isKeyField,omitempty"`
 	NamePatterns StringPatterns `json:"namePatterns" firestore:"namePattern"`
+	// Mappings holds declared physical columns this field maps to. Declared
+	// mappings are authoritative; when empty, a resolver may derive one from
+	// NamePatterns and must label it "inferred".
+	Mappings PhysicalRefs `json:"mappings,omitempty" firestore:"mappings,omitempty"`
 }
 
 // Validate returns error if not valid
@@ -125,6 +129,50 @@ func (v EntityField) Validate() error {
 	}
 	if err := v.NamePatterns.Validate(); err != nil {
 		return validation.NewErrBadRecordFieldValue("namePatterns", err.Error())
+	}
+	if err := v.Mappings.Validate(); err != nil {
+		return validation.NewErrBadRecordFieldValue("mappings", err.Error())
+	}
+	return nil
+}
+
+// PhysicalRef references a physical column an entity field maps to.
+type PhysicalRef struct {
+	Source     string `json:"source" firestore:"source"`
+	Collection string `json:"collection" firestore:"collection"`
+	Column     string `json:"column" firestore:"column"`
+}
+
+// Validate returns error if not valid
+func (v PhysicalRef) Validate() error {
+	if strings.TrimSpace(v.Source) == "" {
+		return validation.NewErrRecordIsMissingRequiredField("source")
+	}
+	if strings.TrimSpace(v.Collection) == "" {
+		return validation.NewErrRecordIsMissingRequiredField("collection")
+	}
+	if strings.TrimSpace(v.Column) == "" {
+		return validation.NewErrRecordIsMissingRequiredField("column")
+	}
+	return nil
+}
+
+// PhysicalRefs is a slice of PhysicalRef
+type PhysicalRefs []PhysicalRef
+
+// Validate returns error if not valid: every ref must be valid and, since a
+// field can only mean one thing per table, unique per source+collection.
+func (v PhysicalRefs) Validate() error {
+	seen := make(map[string]struct{}, len(v))
+	for i, ref := range v {
+		if err := ref.Validate(); err != nil {
+			return fmt.Errorf("mappings[%v]: %w", i, err)
+		}
+		key := ref.Source + "\x00" + ref.Collection
+		if _, ok := seen[key]; ok {
+			return fmt.Errorf("mappings[%v]: duplicate mapping for source=%v, collection=%v", i, ref.Source, ref.Collection)
+		}
+		seen[key] = struct{}{}
 	}
 	return nil
 }

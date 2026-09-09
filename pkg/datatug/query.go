@@ -2,6 +2,7 @@ package datatug
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -125,11 +126,13 @@ const (
 	QueryTypeSQL           QueryType = "SQL"
 	QueryTypeHTTP          QueryType = "HTTP"
 	QueryTypeStructuredSQL QueryType = "StructuredSQL"
+	// QueryTypeDTQL is a query executed through DALgo's dtql.Deserialize -> policy path.
+	QueryTypeDTQL QueryType = "DTQL"
 )
 
 func IsKnownQueryType(queryType QueryType) bool {
 	switch queryType {
-	case QueryTypeSQL, QueryTypeHTTP, QueryTypeStructuredSQL:
+	case QueryTypeSQL, QueryTypeHTTP, QueryTypeStructuredSQL, QueryTypeDTQL:
 		return true
 	default:
 		return false
@@ -159,6 +162,28 @@ type QueryDefTarget struct {
 	Credentials
 }
 
+// embeddedURLCredentialsPattern matches a userinfo component (user:pass@) as
+// found in connection-string style URLs, e.g. "postgres://user:pass@host/db".
+var embeddedURLCredentialsPattern = regexp.MustCompile(`\S+:\S+@`)
+
+// Validate returns error if not valid. QueryDefTarget is persisted to
+// git-tracked project files, so it must never carry credential material: a
+// non-empty password, or a user:pass@ userinfo component embedded in any of
+// its connection-string-like fields.
+func (v QueryDefTarget) Validate() error {
+	if v.Password != "" {
+		return validation.NewErrBadRecordFieldValue("password", "must not store credentials in a query target; connect using environment-level secrets instead")
+	}
+	for _, f := range []struct{ name, value string }{
+		{"driver", v.Driver}, {"catalog", v.Catalog}, {"protocol", v.Protocol}, {"host", v.Host},
+	} {
+		if embeddedURLCredentialsPattern.MatchString(f.value) {
+			return validation.NewErrBadRecordFieldValue(f.name, "must not embed credentials (user:pass@) in a URL")
+		}
+	}
+	return nil
+}
+
 // Validate returns error if not valid
 func (v QueryDef) Validate() error {
 	if err := v.ValidateWithOptions(true); err != nil {
@@ -177,12 +202,17 @@ func (v QueryDef) Validate() error {
 				return validation.NewErrBadRecordFieldValue(fmt.Sprintf("targets[%v]", i), "for HTTP queries catalog should be empty, got: %v"+target.Catalog)
 			}
 		}
-	case "SQL", "GraphQL":
+	case "SQL", "GraphQL", "DTQL":
 		//if strings.TrimSpace(v.Text) == "" {
 		//	return validation.NewErrRequestIsMissingRequiredField("text")
 		//}
 	default:
 		return validation.NewErrBadRecordFieldValue("type", "unsupported value: "+string(v.Type))
+	}
+	for i, target := range v.Targets {
+		if err := target.Validate(); err != nil {
+			return fmt.Errorf("targets[%v]: %w", i, err)
+		}
 	}
 	if err := v.Parameters.Validate(); err != nil {
 		return err

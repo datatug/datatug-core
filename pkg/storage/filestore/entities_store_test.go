@@ -61,4 +61,26 @@ func TestFsEntitiesStore(t *testing.T) {
 		err := store.SaveEntities(ctx, entities)
 		assert.NoError(t, err)
 	})
+
+	t.Run("saveAndLoadEntity_withMappings", func(t *testing.T) {
+		entity := &datatug.Entity{
+			ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "customer"}},
+			Fields: datatug.EntityFields{
+				{
+					ID:   "id",
+					Type: "string",
+					Mappings: datatug.PhysicalRefs{
+						{Source: "chinook", Collection: "Customer", Column: "CustomerId"},
+						{Source: "support-notes", Collection: "Customer", Column: "CustomerId"},
+					},
+				},
+			},
+		}
+		err := store.SaveEntity(ctx, entity)
+		assert.NoError(t, err)
+
+		loaded, err := store.LoadEntity(ctx, "customer")
+		assert.NoError(t, err)
+		assert.Equal(t, entity.Fields, loaded.Fields)
+	})
 }

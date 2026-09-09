@@ -103,4 +103,31 @@ func TestFsQueriesStore(t *testing.T) {
 			assert.FileExists(t, filepath.Join(queriesDir, "query2.query.json"))
 		})
 	})
+
+	t.Run("CreateQuery_DTQL", func(t *testing.T) {
+		const dtqlQueryID = "customer-invoices"
+		query := datatug.QueryDefWithFolderPath{
+			FolderPath: folder1,
+			QueryDef: datatug.QueryDef{
+				ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{
+					ID: dtqlQueryID, Title: "Customer invoices"}},
+				Type: datatug.QueryTypeDTQL,
+				Text: "select:\n  from: Invoice\n",
+			},
+		}
+		_, err := store.CreateQuery(ctx, query)
+		assert.NoError(t, err)
+
+		jsonFileName := fmt.Sprintf("%s.%s.json", dtqlQueryID, storage.QueryFileSuffix)
+		assert.FileExists(t, filepath.Join(queriesDir, folder1, jsonFileName))
+
+		// DTQL body follows the same "<id>.query.<lowercase type>" convention as
+		// SQL/HTTP query text sidecars - see pkg/datatug/doc.go.
+		dtqlFileName := fmt.Sprintf("%s.%s.dtql", dtqlQueryID, storage.QueryFileSuffix)
+		assert.FileExists(t, filepath.Join(queriesDir, folder1, dtqlFileName))
+
+		q, err := store.LoadQuery(ctx, path.Join(folder1, dtqlQueryID))
+		assert.NoError(t, err)
+		assert.Equal(t, datatug.QueryTypeDTQL, q.Type)
+	})
 }

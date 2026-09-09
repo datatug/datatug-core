@@ -122,6 +122,44 @@ func TestProject_Validate(t *testing.T) {
 		}
 		assert.Error(t, p.Validate())
 	})
+	t.Run("nil_queries", func(t *testing.T) {
+		p := Project{ProjectItem: ProjectItem{Access: "public"}}
+		assert.NoError(t, p.Validate())
+	})
+	t.Run("valid_queries", func(t *testing.T) {
+		p := Project{
+			ProjectItem: ProjectItem{Access: "public"},
+			Queries: &QueriesFolder{
+				Items: QueryDefs{{
+					ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "q1", Title: "Q1"}},
+					Type:        QueryTypeSQL,
+				}},
+			},
+		}
+		assert.NoError(t, p.Validate())
+	})
+	t.Run("invalid_queries_item", func(t *testing.T) {
+		p := Project{
+			ProjectItem: ProjectItem{Access: "public"},
+			Queries: &QueriesFolder{
+				Items: QueryDefs{{
+					ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "q1", Title: "Q1"}},
+					Type:        QueryTypeSQL,
+					Targets:     []QueryDefTarget{{Credentials: Credentials{Password: "s3cr3t"}}},
+				}},
+			},
+		}
+		assert.Error(t, p.Validate())
+	})
+	t.Run("invalid_queries_subfolder", func(t *testing.T) {
+		p := Project{
+			ProjectItem: ProjectItem{Access: "public"},
+			Queries: &QueriesFolder{
+				Folders: QueryFolders{{}},
+			},
+		}
+		assert.Error(t, p.Validate())
+	})
 }
 
 func TestProjectBrief_Validate(t *testing.T) {
