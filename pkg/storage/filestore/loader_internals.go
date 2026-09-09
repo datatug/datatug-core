@@ -160,20 +160,6 @@ func loadSchemaModel(dbModelDirPath, schemaID string) (schemaModel *datatug.Sche
 	return
 }
 
-func loadEnvFile(envDirPath, envID string) (envSummary *datatug.EnvironmentSummary, err error) {
-	filePath := path.Join(envDirPath, envID, storage.EnvironmentSummaryFileName)
-	envSummary = new(datatug.EnvironmentSummary)
-	if err = readJSONFile(filePath, true, envSummary); err != nil {
-		return
-	}
-	if envSummary.ID == "" {
-		envSummary.ID = envID
-	} else if envSummary.ID != envID {
-		err = fmt.Errorf("env file has id not matching directory: expected=%v, actual=%v", envID, envSummary.ID)
-	}
-	return
-}
-
 func loadDbCatalogs(dirPath string, dbServer *datatug.ProjDbServer) (err error) {
 	return loadDir(nil, dirPath, "", processDirs, func(files []os.FileInfo) {
 		dbServer.Catalogs = make(datatug.DbCatalogs, 0, len(files))

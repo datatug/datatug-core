@@ -20,11 +20,24 @@ import (
 const demoProjectsRepoPath = "/home/ai/projects/datatug/datatug-demo-projects"
 
 // TestFsEntitiesStore_DemoProject1Fixture proves this package's filestore
-// loads datatug-demo-projects/demo-project-1 - the project whose per-entity-
-// directory layout (see store_entities.go) motivated this fix - end to end:
-// every entity loads, the mappings declared in datatug-demo-projects PR #9
-// are present, the demo's board1 board and chinook DB model load with their
-// content, and Project.Validate() passes.
+// loads datatug-demo-projects/demo-project-1 - the project whose per-item-
+// directory layouts (entities, boards, dbmodels, environments) motivated
+// these fixes - end to end: every entity loads, the mappings declared in
+// datatug-demo-projects PR #9 are present, the demo's board1 board and
+// chinook DB model load with their content, every environment loads and
+// "local" resolves its "chinook-local" database catalog by id.
+//
+// Project.Validate() is deliberately NOT asserted to pass here (see S35's
+// PR body/report): datatug-demo-projects' environments/*/*.env.json files
+// all declare `"driver":"sqlite3","host":"localhost"`, and ServerRef.Validate
+// correctly rejects any non-empty Host for the file-based sqlite3 driver
+// (Host must be empty; use Path for the file location) - a real, pre-existing
+// data issue in a different repository, not something this stream can or
+// should paper over by weakening validation. Before the environments dual-
+// layout fix, this went unnoticed because LoadEnvironments silently found
+// zero environments (the exact bug S35 fixes) - Project.Validate() passed
+// only because there was nothing to validate. This test asserts the specific
+// expected error instead, so a real regression here would still be caught.
 //
 // This test only ever reads the sibling checkout - it must never mutate it
 // (a "git pull" here previously did; a test is not the place to fetch
@@ -83,7 +96,28 @@ func TestFsEntitiesStore_DemoProject1Fixture(t *testing.T) {
 		assert.Equal(t, "chinook", project.DbModels[0].ID)
 	}
 
-	assert.NoError(t, project.Validate())
+	wantEnvIDs := []string{"dev", "local", "prod", "QA", "UAT"}
+	assert.ElementsMatch(t, wantEnvIDs, project.Environments.IDs())
+
+	local := project.Environments.GetByID("local")
+	require.NotNil(t, local)
+	if assert.Len(t, local.DbServers, 1) {
+		assert.Equal(t, "sqlite3", local.DbServers[0].Driver)
+		assert.Contains(t, local.DbServers[0].Catalogs, "chinook-local",
+			"the local environment must resolve its chinook-local database catalog")
+	}
+
+	catalogs, err := newFsEnvCatalogsStore(dst).LoadEnvDbCatalogs(ctx, "local")
+	require.NoError(t, err)
+	if assert.Len(t, catalogs, 1) {
+		assert.Equal(t, "chinook-local", catalogs[0].ID)
+	}
+
+	err = project.Validate()
+	if assert.Error(t, err, "see this test's doc comment: datatug-demo-projects' env files declare a non-empty sqlite3 host, which ServerRef.Validate correctly rejects") {
+		assert.ErrorContains(t, err, "cannot be used with sqlite3")
+		assert.ErrorContains(t, err, "localhost")
+	}
 }
 
 // copyDir recursively copies src to dst, preserving the directory structure.

@@ -55,6 +55,16 @@ func TestServerReference_Validate(t *testing.T) {
 	t.Run("sqlite_with_port", func(t *testing.T) {
 		assert.Error(t, ServerRef{Driver: "sqlite3", Port: 123}.Validate())
 	})
+	// Regression test for #307: sqlite3 is file-based, so a ServerRef with an
+	// empty Host and Port must validate - the "sqlite3" case used to fall
+	// through into the generic "host is required" check below it instead of
+	// returning, so no sqlite3 ServerRef could ever validate.
+	t.Run("sqlite_file_based_with_empty_host_is_valid", func(t *testing.T) {
+		assert.NoError(t, ServerRef{Driver: "sqlite3"}.Validate())
+	})
+	t.Run("sqlite_file_based_with_path_and_empty_host_is_valid", func(t *testing.T) {
+		assert.NoError(t, ServerRef{Driver: "sqlite3", Path: "/var/data/chinook.sqlite"}.Validate())
+	})
 	t.Run("unknown_driver", func(t *testing.T) {
 		assert.Error(t, ServerRef{Driver: "unknown", Host: "localhost"}.Validate())
 	})
