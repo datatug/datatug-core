@@ -3,8 +3,19 @@
   "environment": "local",
   "securityContextId": "sc-abc123",
   "source": "chinook-local",
-  "dtql": "select:\n  from: Customer\n",
-  "parameters": {},
-  "bindingOrigins": [],
+  "dtql": "from:\n  name: Customer\ncolumns:\n  - field: CustomerId\n  - field: FirstName\n  - field: LastName\n  - field: Email\nwhere:\n  op: ==\n  left:\n    field: CustomerId\n  right:\n    param: Customer.ID\n",
+  "parameters": {
+    "Customer.ID": {
+      "type": "integer",
+      "value": "5"
+    }
+  },
+  "bindingOrigins": [
+    {
+      "parameterId": "Customer.ID",
+      "origin": "selection",
+      "factId": "f1"
+    }
+  ],
   "mode": "live"
 }

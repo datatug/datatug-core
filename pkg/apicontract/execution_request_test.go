@@ -48,7 +48,7 @@ func TestExecutionRequest_Validate_Saved(t *testing.T) {
 func TestExecutionRequest_Validate_AdHocDTQLRequiresSource(t *testing.T) {
 	r := ExecutionRequest{
 		Project: "p1", Environment: "local", SecurityContextID: "sc1",
-		DTQL: "select:\n  from: Customer\n",
+		DTQL: "from:\n  name: Customer\n",
 		Mode: "live",
 	}
 	if err := r.Validate(); err == nil {
@@ -67,7 +67,7 @@ func TestExecutionRequest_Validate_ExactlyOneOfQueryIDOrDTQL(t *testing.T) {
 	}
 
 	both := validExecutionRequestSaved()
-	both.DTQL = "select:\n  from: Customer\n"
+	both.DTQL = "from:\n  name: Customer\n"
 	both.Source = "chinook"
 	if err := both.Validate(); err == nil {
 		t.Error("expected an error: both queryId and dtql set")
