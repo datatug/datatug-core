@@ -79,6 +79,7 @@ func (v ServerRef) Validate() error {
 		if v.Port != 0 {
 			return validation.NewErrBadRecordFieldValue("port", "cannot be used with sqlite3, got: "+strconv.Itoa(v.Port))
 		}
+		return nil // sqlite3 is file-based: no host/port required or allowed (fixes #307)
 	case "sqlserver", "mysql", "oracle":
 		//
 	default:

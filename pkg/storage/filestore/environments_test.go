@@ -65,7 +65,9 @@ func TestEnvironmentsStore(t *testing.T) {
 			}
 			err := envsStore.SaveEnvironments(ctx, datatug.Environments{&env})
 			assert.NoError(t, err)
-			assert.FileExists(t, filepath.Join(envsDir, "prod", storage.EnvironmentSummaryFileName))
+			// A brand-new environment defaults to the demo's own filename
+			// ("<id>.env.json"), matching datatug-demo-projects.
+			assert.FileExists(t, filepath.Join(envsDir, "prod", "prod.env.json"))
 		})
 	})
 }

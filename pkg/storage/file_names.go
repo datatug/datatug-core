@@ -38,6 +38,7 @@ func JsonFileName(id, suffix string) string {
 		DbServerFileSuffix,
 		RecordsetFileSuffix,
 		EntityFileSuffix,
+		EnvFileSuffix,
 		ServerFileSuffix,
 		ColumnsFileSuffix,
 		QueryFileSuffix:
@@ -70,9 +71,14 @@ const (
 	DbServerFileSuffix  = "dbserver"
 	RecordsetFileSuffix = "recordset"
 	EntityFileSuffix    = "entity"
-	ServerFileSuffix    = "server"
-	ColumnsFileSuffix   = "columns"
-	QueryFileSuffix     = "query"
+	// EnvFileSuffix is the suffix datatug-demo-projects and datatug-cli use
+	// for an environment's own file: "<id>.env.json", one per environment
+	// directory - the layout LoadEnvironment(s) must also accept alongside
+	// the legacy EnvironmentSummaryFileName.
+	EnvFileSuffix     = "env"
+	ServerFileSuffix  = "server"
+	ColumnsFileSuffix = "columns"
+	QueryFileSuffix   = "query"
 )
 
 const (
