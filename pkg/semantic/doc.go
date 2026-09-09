@@ -18,4 +18,11 @@
 // anywhere in the project, and the result is labelled Inferred. See
 // [Resolve] for the full tie-break rule when more than one field could claim
 // the same column.
+//
+// [RelatedLookups] and [Applicable] build on the same [SemanticValue] shape a
+// [Resolution] plus its cell value produces: the former finds every other
+// collection reachable from a selected value (foreign keys in both
+// directions, plus the same field mapped elsewhere); the latter matches the
+// project's library queries against the values on hand and reports a
+// human-readable resolution chain for each bound parameter.
 package semantic
