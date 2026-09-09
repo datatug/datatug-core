@@ -117,6 +117,18 @@ func (p *Project) Validate() error {
 		return fmt.Errorf("validation failed for project entities: %w", err)
 	}
 
+	// The top-level Queries folder is the project's implicit root and, like
+	// other root folders in this package, carries no ID of its own - only its
+	// contents (nested folders & query definitions) are validated.
+	if p.Queries != nil {
+		if err := p.Queries.Folders.Validate(); err != nil {
+			return fmt.Errorf("validation failed for project queries: %w", err)
+		}
+		if err := p.Queries.Items.Validate(); err != nil {
+			return fmt.Errorf("validation failed for project queries: %w", err)
+		}
+	}
+
 	//log.Println("Validating DB models...")
 	if err := p.DbModels.Validate(); err != nil {
 		return fmt.Errorf("validation failed for project db models: %w", err)
