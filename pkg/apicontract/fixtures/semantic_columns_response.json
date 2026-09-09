@@ -1,0 +1,22 @@
+{
+  "columns": [
+    {
+      "column": "CustomerId",
+      "entity": "Customer",
+      "field": "ID",
+      "provenance": "declared"
+    },
+    {
+      "column": "Country",
+      "entity": "Country",
+      "field": "Name",
+      "provenance": "declared"
+    },
+    {
+      "column": "FirstName",
+      "entity": "Customer",
+      "field": "FirstName",
+      "provenance": "inferred"
+    }
+  ]
+}

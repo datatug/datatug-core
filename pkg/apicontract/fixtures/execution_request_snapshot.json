@@ -1,0 +1,20 @@
+{
+  "project": "demo-project-1",
+  "environment": "local",
+  "securityContextId": "sc-abc123",
+  "queryId": "reference/country-facts",
+  "parameters": {
+    "name": {
+      "type": "string",
+      "value": "Brazil"
+    }
+  },
+  "bindingOrigins": [
+    {
+      "parameterId": "name",
+      "origin": "manual"
+    }
+  ],
+  "mode": "snapshot",
+  "snapshotId": "snap-2026-09-09"
+}

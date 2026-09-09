@@ -1,0 +1,20 @@
+{
+  "version": "0.25.0",
+  "principal": {
+    "id": "boss",
+    "roles": [
+      "admin"
+    ],
+    "groups": []
+  },
+  "securityContextId": "sc-abc123",
+  "projects": [
+    {
+      "id": "demo-project-1"
+    }
+  ],
+  "capabilities": {
+    "protectedQueries": true,
+    "opaqueReadOnly": true
+  }
+}

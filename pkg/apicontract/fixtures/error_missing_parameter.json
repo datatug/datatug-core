@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "MISSING_PARAMETER",
+    "message": "parameter CustomerId is required",
+    "field": "CustomerId",
+    "requestId": "req-0003"
+  }
+}

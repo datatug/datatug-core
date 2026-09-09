@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "UNAUTHENTICATED",
+    "message": "no principal is configured for this server",
+    "requestId": "req-0006"
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "applicable": [
+    {
+      "queryId": "customer-invoices",
+      "targets": [
+        {
+          "source": "chinook-local",
+          "label": "Local Chinook"
+        }
+      ],
+      "selectedSource": "chinook-local",
+      "bindings": [
+        {
+          "parameterId": "CustomerId",
+          "value": {
+            "type": "integer",
+            "value": "5"
+          },
+          "origin": "selection",
+          "originEvidence": "client-reported",
+          "factId": "f1"
+        }
+      ],
+      "chain": [
+        {
+          "parameterId": "CustomerId",
+          "factId": "f1",
+          "explanation": "declared mapping Customer.ID"
+        }
+      ],
+      "missing": [],
+      "ambiguous": [],
+      "state": "runnable"
+    }
+  ],
+  "notYet": [
+    {
+      "queryId": "customer-purchases-by-genre",
+      "targets": [
+        {
+          "source": "chinook-local",
+          "label": "Local Chinook"
+        }
+      ],
+      "bindings": [],
+      "chain": [
+        {
+          "parameterId": "CustomerId",
+          "explanation": "no selected or context fact for Customer.ID"
+        }
+      ],
+      "missing": [
+        "CustomerId"
+      ],
+      "ambiguous": [],
+      "state": "needs-input"
+    },
+    {
+      "queryId": "orphaned-source-query",
+      "targets": [],
+      "bindings": [],
+      "chain": [],
+      "missing": [],
+      "ambiguous": [],
+      "state": "source-unavailable"
+    },
+    {
+      "queryId": "reference-lookup",
+      "targets": [
+        {
+          "source": "src-a",
+          "label": "Source A"
+        },
+        {
+          "source": "src-b",
+          "label": "Source B"
+        }
+      ],
+      "bindings": [],
+      "chain": [],
+      "missing": [],
+      "ambiguous": [
+        {
+          "parameterId": "CountryName",
+          "factIds": [
+            "f2",
+            "f3"
+          ]
+        }
+      ],
+      "state": "needs-target"
+    }
+  ]
+}

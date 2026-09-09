@@ -1,0 +1,17 @@
+{
+  "error": {
+    "code": "TARGET_REQUIRED",
+    "message": "choose a source for this query",
+    "requestId": "req-0005",
+    "targets": [
+      {
+        "source": "chinook-local",
+        "label": "Local Chinook"
+      },
+      {
+        "source": "chinook-prod",
+        "label": "Prod Chinook"
+      }
+    ]
+  }
+}

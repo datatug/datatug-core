@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "STALE_CONTEXT",
+    "message": "securityContextId no longer matches the current session",
+    "requestId": "req-0010"
+  }
+}
