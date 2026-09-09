@@ -26,7 +26,8 @@ func TestEntitiesStore(t *testing.T) {
 		err := store.SaveEntity(ctx, entity)
 		assert.NoError(t, err)
 
-		entityPath := path.Join(tempDir, storage.EntitiesFolder, "e1."+storage.EntityFileSuffix+".json")
+		// A brand-new entity defaults to the nested per-entity-directory layout.
+		entityPath := path.Join(tempDir, storage.EntitiesFolder, "e1", "e1."+storage.EntityFileSuffix+".json")
 		assert.FileExists(t, entityPath)
 	})
 
@@ -46,7 +47,7 @@ func TestEntitiesStore(t *testing.T) {
 	t.Run("DeleteEntity", func(t *testing.T) {
 		err := store.DeleteEntity(ctx, "e1")
 		assert.NoError(t, err)
-		entityPath := path.Join(tempDir, storage.EntitiesFolder, "e1."+storage.EntityFileSuffix+".json")
+		entityPath := path.Join(tempDir, storage.EntitiesFolder, "e1", "e1."+storage.EntityFileSuffix+".json")
 		_, err = os.Stat(entityPath)
 		assert.True(t, os.IsNotExist(err))
 
