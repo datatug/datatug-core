@@ -56,12 +56,15 @@ func (s fsProjectStore) SaveProject(ctx context.Context, project *datatug.Projec
 			return nil
 		},
 		func() (err error) {
-			log.Printf("Saving %v DB models IS NOT IMPLEMENTED YET\n", len(project.DbModels))
-			//dbModelsStore := newFsDbModelsStore(s)
-			//if err = dbModelsStore.saveDbModels(project.DbModels); err != nil {
-			//	return fmt.Errorf("failed to save DB models: %w", err)
-			//}
-			//log.Printf("Saved %v DB models.", len(project.DbModels))
+			if len(project.DbModels) > 0 {
+				log.Printf("Saving %v DB models...\n", len(project.DbModels))
+				if err = s.SaveDbModels(ctx, project.DbModels); err != nil {
+					return fmt.Errorf("failed to save DB models: %w", err)
+				}
+				log.Printf("Saved %v DB models.", len(project.DbModels))
+			} else {
+				log.Println("No DB models to save.")
+			}
 			return nil
 		},
 		func() (err error) {
