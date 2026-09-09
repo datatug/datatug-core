@@ -79,6 +79,18 @@ func (s fsProjectStore) SaveProject(ctx context.Context, project *datatug.Projec
 			}
 			return nil
 		},
+		func() (err error) {
+			if project.Queries != nil {
+				log.Println("Saving queries...")
+				if err = s.saveQueriesTree(ctx, "", project.Queries); err != nil {
+					return fmt.Errorf("failed to save queries: %w", err)
+				}
+				log.Println("Saved queries.")
+			} else {
+				log.Println("No queries to save.")
+			}
+			return nil
+		},
 		//func() (err error) {
 		//	dbServersStore := newFsProjDbServersStore(s.projectPath)
 		//	if err = dbServersStore.saveDbServers(ctx, project.DbServers, *project); err != nil {

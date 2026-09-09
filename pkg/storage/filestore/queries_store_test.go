@@ -11,6 +11,7 @@ import (
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFsQueriesStore(t *testing.T) {
@@ -63,13 +64,17 @@ func TestFsQueriesStore(t *testing.T) {
 			assert.NotNil(t, q)
 			assert.Equal(t, query1ID, q.ID)
 			assert.Equal(t, "", q.Folder)
+			// The saver strips Text out of the JSON sidecar into its own
+			// "<id>.query.<type>" file; the loader must read it back.
+			assert.Equal(t, "SELECT * FROM users", q.Text)
 		})
 
 		t.Run("LoadQueries", func(t *testing.T) {
 			folder, err := store.LoadQueries(ctx, folder1) // Pass folder1 here
 			assert.NoError(t, err)
 			assert.NotNil(t, folder)
-			assert.Len(t, folder.Items, 1)
+			require.Len(t, folder.Items, 1)
+			assert.Equal(t, "SELECT * FROM users", folder.Items[0].Text)
 		})
 
 		t.Run("UpdateQuery", func(t *testing.T) {
@@ -129,5 +134,38 @@ func TestFsQueriesStore(t *testing.T) {
 		q, err := store.LoadQuery(ctx, path.Join(folder1, dtqlQueryID))
 		assert.NoError(t, err)
 		assert.Equal(t, datatug.QueryTypeDTQL, q.Type)
+		assert.Equal(t, "select:\n  from: Invoice\n", q.Text)
+	})
+
+	t.Run("LoadQuery_without_text_sidecar", func(t *testing.T) {
+		query := datatug.QueryDefWithFolderPath{
+			FolderPath: folder1,
+			QueryDef: datatug.QueryDef{
+				ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{
+					ID: "no-text-query", Title: "No text"}},
+				Type: datatug.QueryTypeSQL,
+			},
+		}
+		_, err := store.CreateQuery(ctx, query)
+		require.NoError(t, err)
+
+		q, err := store.LoadQuery(ctx, path.Join(folder1, "no-text-query"))
+		assert.NoError(t, err)
+		assert.Equal(t, "", q.Text)
+	})
+
+	// A query.json written without a "type" field (not reachable through
+	// CreateQuery/SaveQuery - QueryDef.Validate requires Type) must not make
+	// readQueryTextSidecar try to read a "<id>.query." file with an empty
+	// extension.
+	t.Run("LoadQuery_without_type", func(t *testing.T) {
+		require.NoError(t, os.MkdirAll(filepath.Join(queriesDir, folder1), 0777))
+		require.NoError(t, os.WriteFile(
+			filepath.Join(queriesDir, folder1, "untyped-query.query.json"),
+			[]byte(`{"id":"untyped-query","title":"Untyped"}`), 0644))
+
+		q, err := store.LoadQuery(ctx, path.Join(folder1, "untyped-query"))
+		assert.NoError(t, err)
+		assert.Equal(t, "", q.Text)
 	})
 }

@@ -21,23 +21,28 @@ const demoProjectsRepoPath = "/home/ai/projects/datatug/datatug-demo-projects"
 
 // TestFsEntitiesStore_DemoProject1Fixture proves this package's filestore
 // loads datatug-demo-projects/demo-project-1 - the project whose per-item-
-// directory layouts (entities, boards, dbmodels, environments) motivated
-// these fixes - end to end: every entity loads, the mappings declared in
-// datatug-demo-projects PR #9 are present, the demo's board1 board and
-// chinook DB model load with their content, every environment loads and
-// "local" resolves its "chinook-local" database catalog by id.
+// directory layouts (entities, boards, dbmodels, environments, queries)
+// motivated these fixes - end to end: every entity loads, the mappings
+// declared in datatug-demo-projects PR #9 are present, the demo's board1
+// board and chinook DB model load with their content, every environment
+// loads and "local" resolves its "chinook-local" database catalog by id,
+// and all 5 of the demo's queries (DTQL customer-invoices, SQL
+// customer-purchases-by-genre/invoice-lines, HTTP country-facts/
+// currency-rate) load through Project.Queries with their text bodies - S44
+// found LoadProject never populated Project.Queries at all, so
+// Project.Validate() could never apply QueryDefTarget.Validate()'s
+// committed-credential check (v0.17.0/#302) to a single query.
 //
-// Project.Validate() is deliberately NOT asserted to pass here (see S35's
-// PR body/report): datatug-demo-projects' environments/*/*.env.json files
-// all declare `"driver":"sqlite3","host":"localhost"`, and ServerRef.Validate
-// correctly rejects any non-empty Host for the file-based sqlite3 driver
-// (Host must be empty; use Path for the file location) - a real, pre-existing
-// data issue in a different repository, not something this stream can or
-// should paper over by weakening validation. Before the environments dual-
-// layout fix, this went unnoticed because LoadEnvironments silently found
-// zero environments (the exact bug S35 fixes) - Project.Validate() passed
-// only because there was nothing to validate. This test asserts the specific
-// expected error instead, so a real regression here would still be caught.
+// Project.Validate() is asserted to fully pass: S35 found datatug-demo-
+// projects' environments/*/*.env.json files declaring
+// `"driver":"sqlite3","host":"localhost"`, which ServerRef.Validate
+// correctly rejected (Host must be empty for the file-based sqlite3 driver;
+// use Path for the file location) - a real, pre-existing data issue in a
+// different repository. That issue has since been fixed upstream (lane S42,
+// datatug-demo-projects PR #11/#12) by dropping the sqlite3 host from the
+// demo's environment configs, so Project.Validate() on the real demo
+// project now succeeds end to end, including the Queries credential check
+// this stream (S44) makes reachable.
 //
 // This test only ever reads the sibling checkout - it must never mutate it
 // (a "git pull" here previously did; a test is not the place to fetch
@@ -113,11 +118,66 @@ func TestFsEntitiesStore_DemoProject1Fixture(t *testing.T) {
 		assert.Equal(t, "chinook-local", catalogs[0].ID)
 	}
 
-	err = project.Validate()
-	if assert.Error(t, err, "see this test's doc comment: datatug-demo-projects' env files declare a non-empty sqlite3 host, which ServerRef.Validate correctly rejects") {
-		assert.ErrorContains(t, err, "cannot be used with sqlite3")
-		assert.ErrorContains(t, err, "localhost")
+	// S44: Project.Queries must now actually load (LoadProject previously
+	// never populated it at all, so Project.Validate() could never apply
+	// QueryDefTarget.Validate()'s committed-credential check to a query).
+	require.NotNil(t, project.Queries)
+	var findQuery func(folder *datatug.QueriesFolder, id string) *datatug.QueryDef
+	findQuery = func(folder *datatug.QueriesFolder, id string) *datatug.QueryDef {
+		for _, item := range folder.Items {
+			if item.ID == id {
+				return item
+			}
+		}
+		for _, sub := range folder.Folders {
+			if q := findQuery(sub, id); q != nil {
+				return q
+			}
+		}
+		return nil
 	}
+
+	customerInvoices := findQuery(project.Queries, "customer-invoices")
+	require.NotNil(t, customerInvoices, "customer-invoices not found")
+	assert.Equal(t, datatug.QueryTypeDTQL, customerInvoices.Type)
+	assert.Contains(t, customerInvoices.Text, "from:\n  name: Invoice")
+
+	customerPurchases := findQuery(project.Queries, "customer-purchases-by-genre")
+	require.NotNil(t, customerPurchases, "customer-purchases-by-genre not found")
+	assert.Equal(t, datatug.QueryTypeSQL, customerPurchases.Type)
+	assert.Contains(t, customerPurchases.Text, "GenreName")
+
+	invoiceLines := findQuery(project.Queries, "invoice-lines")
+	require.NotNil(t, invoiceLines, "invoice-lines not found")
+	assert.Equal(t, datatug.QueryTypeSQL, invoiceLines.Type)
+	assert.Contains(t, invoiceLines.Text, "InvoiceLineId")
+
+	countryFacts := findQuery(project.Queries, "country-facts")
+	require.NotNil(t, countryFacts, "country-facts not found")
+	assert.Equal(t, datatug.QueryTypeHTTP, countryFacts.Type)
+	assert.Contains(t, countryFacts.Text, "countriesnow.space")
+
+	currencyRate := findQuery(project.Queries, "currency-rate")
+	require.NotNil(t, currencyRate, "currency-rate not found")
+	assert.Equal(t, datatug.QueryTypeHTTP, currencyRate.Type)
+	assert.Contains(t, currencyRate.Text, "frankfurter.dev")
+
+	// Injecting a user:pass@ URL into a *copy* of a loaded query must make
+	// Project.Validate() fail - proving Queries is now actually reached by
+	// validation, not just loaded.
+	corrupted := *customerInvoices
+	corrupted.Targets = []datatug.QueryDefTarget{{Host: "user:pass@evil.example.com"}}
+	corruptedProject := &datatug.Project{
+		ProjectItem: datatug.ProjectItem{Access: "public"},
+		Queries:     &datatug.QueriesFolder{Items: datatug.QueryDefs{&corrupted}},
+	}
+	corruptErr := corruptedProject.Validate()
+	if assert.Error(t, corruptErr, "a query target embedding user:pass@ in a URL must fail Project.Validate()") {
+		assert.ErrorContains(t, corruptErr, "user:pass@")
+	}
+
+	err = project.Validate()
+	assert.NoError(t, err, "the real demo project must fully validate now that S42 fixed the sqlite3 host issue upstream")
 }
 
 // copyDir recursively copies src to dst, preserving the directory structure.

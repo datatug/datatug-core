@@ -67,6 +67,14 @@ func (s fsProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOptio
 				project.DbDrivers = projDbDrivers
 				return nil
 			},
+			func() error {
+				queries, err := s.loadQueriesTree(ctx, "")
+				if err != nil {
+					return fmt.Errorf("failed to load queries: %w", err)
+				}
+				project.Queries = queries
+				return nil
+			},
 		); err != nil {
 			err = fmt.Errorf("failed to load project by GetID=[%v]: %w", s.projectID, err)
 			return nil, err
