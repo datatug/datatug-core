@@ -108,6 +108,126 @@ func TestScanCatalog_Bulk(t *testing.T) {
 	}
 }
 
+// TestScanCatalog_BulkFanOutRace exercises scanTables' bulk fan-out (columns,
+// constraints, indexes - scanner.go's 3 concurrent workers around lines
+// 45/51/57) against >=2 tables so all three closures do real concurrent work
+// against a SortedTables cursor that spans multiple rows. Before the fix, all
+// three closures wrote `err = ...` to the same outer variable and
+// `go test -race -count=1 ./pkg/schemer/...` reliably reported:
+//
+//	WARNING: DATA RACE
+//	Write at 0x... by goroutine ...:
+//	  github.com/datatug/datatug-core/pkg/schemer.scanner.scanTables.func1()
+//	      .../pkg/schemer/scanner.go:45 ...
+//	Previous write at 0x... by goroutine ...:
+//	  github.com/datatug/datatug-core/pkg/schemer.scanner.scanTables.func2()
+//	      .../pkg/schemer/scanner.go:51 ...
+//
+// This test must stay race-clean at -count=20.
+func TestScanCatalog_BulkFanOutRace(t *testing.T) {
+	catalogID := "test_catalog"
+	schemaID := "test_schema"
+
+	table1 := &datatug.CollectionInfo{
+		DBCollectionKey: datatug.NewTableKey("table_one", schemaID, catalogID, nil),
+		TableProps:      datatug.TableProps{DbType: "BASE TABLE"},
+	}
+	table2 := &datatug.CollectionInfo{
+		DBCollectionKey: datatug.NewTableKey("table_two", schemaID, catalogID, nil),
+		TableProps:      datatug.TableProps{DbType: "BASE TABLE"},
+	}
+
+	provider := &mockSchemaProvider{
+		isBulk:      true,
+		collections: []*datatug.CollectionInfo{table1, table2},
+		columns: []Column{
+			{
+				TableRef:   TableRef{SchemaName: schemaID, TableName: "table_one"},
+				ColumnInfo: datatug.ColumnInfo{DbColumnProps: datatug.DbColumnProps{Name: "col1"}},
+			},
+			{
+				TableRef:   TableRef{SchemaName: schemaID, TableName: "table_two"},
+				ColumnInfo: datatug.ColumnInfo{DbColumnProps: datatug.DbColumnProps{Name: "col1"}},
+			},
+		},
+		indexes: []*Index{
+			{
+				TableRef: TableRef{SchemaName: schemaID, TableName: "table_one"},
+				Index:    &datatug.Index{Name: "idx1"},
+			},
+			{
+				TableRef: TableRef{SchemaName: schemaID, TableName: "table_two"},
+				Index:    &datatug.Index{Name: "idx1"},
+			},
+		},
+		indexCols: []*IndexColumn{
+			{
+				TableRef:    TableRef{SchemaName: schemaID, TableName: "table_one"},
+				IndexName:   "idx1",
+				IndexColumn: &datatug.IndexColumn{Name: "col1"},
+			},
+			{
+				TableRef:    TableRef{SchemaName: schemaID, TableName: "table_two"},
+				IndexName:   "idx1",
+				IndexColumn: &datatug.IndexColumn{Name: "col1"},
+			},
+		},
+		constraints: []*Constraint{
+			{
+				TableRef:   TableRef{SchemaName: schemaID, TableName: "table_one"},
+				Constraint: &datatug.Constraint{Name: "pk1", Type: "PRIMARY KEY"},
+				ColumnName: "col1",
+			},
+			{
+				TableRef:   TableRef{SchemaName: schemaID, TableName: "table_two"},
+				Constraint: &datatug.Constraint{Name: "pk2", Type: "PRIMARY KEY"},
+				ColumnName: "col1",
+			},
+		},
+		recordsCount: map[string]int{
+			catalogID + "." + schemaID + ".table_one": 10,
+			catalogID + "." + schemaID + ".table_two": 20,
+		},
+	}
+
+	scanner := NewScanner(provider)
+
+	catalog, err := scanner.ScanCatalog(context.Background(), catalogID)
+	if err != nil {
+		t.Fatalf("ScanCatalog failed: %v", err)
+	}
+	tables := datatug.Tables(catalog.Schemas.GetByID(schemaID).Tables)
+	table1Result := tables.GetByKey(table1.DBCollectionKey)
+	if table1Result == nil {
+		t.Fatalf("table_one not found")
+	}
+	table2Result := tables.GetByKey(table2.DBCollectionKey)
+	if table2Result == nil {
+		t.Fatalf("table_two not found")
+	}
+
+	for _, tt := range []struct {
+		name  string
+		table *datatug.CollectionInfo
+	}{
+		{"table_one", table1Result},
+		{"table_two", table2Result},
+	} {
+		if len(tt.table.Columns) != 1 {
+			t.Errorf("%s: expected 1 column, got %v", tt.name, len(tt.table.Columns))
+		}
+		if len(tt.table.Indexes) != 1 {
+			t.Errorf("%s: expected 1 index, got %v", tt.name, len(tt.table.Indexes))
+		}
+		if tt.table.PrimaryKey == nil {
+			t.Errorf("%s: expected primary key, got nil", tt.name)
+		}
+		if tt.table.RecordsCount == nil {
+			t.Errorf("%s: expected records count, got nil", tt.name)
+		}
+	}
+}
+
 func TestScanCatalog_NonBulk(t *testing.T) {
 	catalogID := "test_catalog"
 	schemaID := "test_schema"
