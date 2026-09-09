@@ -131,3 +131,54 @@ func TestSaveProject_PersistsDbModels(t *testing.T) {
 		assert.Equal(t, "Chinook", loaded[0].Title)
 	}
 }
+
+// TestSaveProject_PersistsQueries proves SaveProject writes project.Queries
+// to disk (folders and items) and that they round-trip back through
+// LoadProject - "the query saver must round-trip".
+func TestSaveProject_PersistsQueries(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "datatug_test_save_queries")
+	assert.NoError(t, err)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	const projectID = "p1"
+	projectPath := path.Join(tmpDir, projectID)
+	store := newFsProjectStore(projectID, projectPath)
+
+	project := &datatug.Project{
+		ProjectItem: datatug.ProjectItem{
+			Access:        "private",
+			ProjItemBrief: datatug.ProjItemBrief{ID: projectID},
+		},
+		Created: &datatug.ProjectCreated{At: time.Now()},
+		Queries: &datatug.QueriesFolder{
+			Folders: datatug.QueryFolders{
+				{
+					ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "customers"}},
+					Items: datatug.QueryDefs{
+						{
+							ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "customer-invoices", Title: "Customer invoices"}},
+							Type:        datatug.QueryTypeSQL,
+							Text:        "SELECT 1",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err = store.SaveProject(context.Background(), project)
+	assert.NoError(t, err)
+
+	queryFile := path.Join(projectPath, storage.QueriesFolder, "customers", "customer-invoices.query.json")
+	assert.FileExists(t, queryFile)
+
+	loadedProject, err := store.LoadProject(context.Background())
+	assert.NoError(t, err)
+	if assert.NotNil(t, loadedProject.Queries) && assert.Len(t, loadedProject.Queries.Folders, 1) {
+		customers := loadedProject.Queries.Folders[0]
+		if assert.Len(t, customers.Items, 1) {
+			assert.Equal(t, "customer-invoices", customers.Items[0].ID)
+			assert.Equal(t, "SELECT 1", customers.Items[0].Text)
+		}
+	}
+}

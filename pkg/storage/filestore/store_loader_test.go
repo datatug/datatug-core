@@ -159,6 +159,16 @@ func TestFsProjectStore_LoadProject(t *testing.T) {
 
 	assert.NoError(t, err)
 
+	_, err = ps.CreateQuery(context.Background(), datatug.QueryDefWithFolderPath{
+		FolderPath: "customers",
+		QueryDef: datatug.QueryDef{
+			ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "customer-invoices", Title: "Customer invoices"}},
+			Type:        datatug.QueryTypeSQL,
+			Text:        "SELECT * FROM Invoice WHERE CustomerId = @CustomerId",
+		},
+	})
+	assert.NoError(t, err)
+
 	var project *datatug.Project
 	project, err = ps.LoadProject(context.Background())
 	assert.NoError(t, err)
@@ -166,4 +176,13 @@ func TestFsProjectStore_LoadProject(t *testing.T) {
 	assert.Len(t, project.DbDrivers, 1)
 	assert.Len(t, project.DbDrivers[0].Servers, 1)
 	assert.Equal(t, server1name, project.DbDrivers[0].Servers[0].ID)
+
+	if assert.NotNil(t, project.Queries) && assert.Len(t, project.Queries.Folders, 1) {
+		customers := project.Queries.Folders[0]
+		assert.Equal(t, "customers", customers.ID)
+		if assert.Len(t, customers.Items, 1) {
+			assert.Equal(t, "customer-invoices", customers.Items[0].ID)
+			assert.Equal(t, "SELECT * FROM Invoice WHERE CustomerId = @CustomerId", customers.Items[0].Text)
+		}
+	}
 }

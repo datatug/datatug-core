@@ -3,12 +3,35 @@ package filestore
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
 	"path"
 	"strings"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
 )
+
+// readQueryTextSidecar reads a query's body sidecar file, following the same
+// "<id>.query.<lowercase type>" convention saveQuery writes (see
+// pkg/datatug/doc.go): the JSON sidecar never carries Text (the saver strips
+// it before writing), so the loader must read the body back separately.
+// Returns ("", nil) when there is no sidecar - not every query has a text
+// body (e.g. one with only structured parameters/recordsets so far).
+func readQueryTextSidecar(dirPath string, query *datatug.QueryDef) (string, error) {
+	if query.Type == "" {
+		return "", nil
+	}
+	fileName := fmt.Sprintf("%s.%s.%s", query.ID, storage.QueryFileSuffix, strings.ToLower(string(query.Type)))
+	data, err := os.ReadFile(path.Join(dirPath, fileName))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+		return "", err
+	}
+	return string(data), nil
+}
 
 func newFsQueriesStore(projectPath string) fsQueriesStore {
 	return fsQueriesStore{
@@ -31,6 +54,13 @@ func (s fsQueriesStore) LoadQueries(ctx context.Context, folderPath string, o ..
 	if err != nil {
 		return nil, err
 	}
+	for _, item := range items {
+		text, err := readQueryTextSidecar(dirPath, item)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load text sidecar for query[%s]: %w", item.ID, err)
+		}
+		item.Text = text
+	}
 	folder = &datatug.QueriesFolder{
 		Items: make(datatug.QueryDefs, len(items)),
 	}
@@ -42,9 +72,17 @@ func (s fsQueriesStore) LoadQuery(ctx context.Context, id string, o ...datatug.S
 	ids := strings.Split(id, "/")
 	folder := path.Join(ids[:len(ids)-1]...)
 	dirPath := path.Join(s.dirPath, folder)
-	id = ids[len(ids)-1]
-	query, err = s.loadProjectItem(ctx, dirPath, id, "", o...)
-	return query, err
+	itemID := ids[len(ids)-1]
+	query, err = s.loadProjectItem(ctx, dirPath, itemID, "", o...)
+	if err != nil {
+		return nil, err
+	}
+	text, err := readQueryTextSidecar(dirPath, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load text sidecar for query[%s]: %w", id, err)
+	}
+	query.Text = text
+	return query, nil
 }
 
 func (s fsQueriesStore) UpdateQuery(ctx context.Context, query datatug.QueryDef) (q *datatug.QueryDefWithFolderPath, err error) {
