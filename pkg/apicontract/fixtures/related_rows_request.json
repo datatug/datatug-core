@@ -1,0 +1,11 @@
+{
+  "project": "demo-project-1",
+  "environment": "local",
+  "securityContextId": "sc-abc123",
+  "lookupId": "l-invoices-by-customer",
+  "value": {
+    "type": "integer",
+    "value": "5"
+  },
+  "limit": 100
+}

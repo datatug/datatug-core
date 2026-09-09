@@ -1,0 +1,23 @@
+{
+  "project": "demo-project-1",
+  "environment": "local",
+  "securityContextId": "sc-abc123",
+  "fact": {
+    "id": "f1",
+    "entity": "Customer",
+    "field": "ID",
+    "value": {
+      "type": "integer",
+      "value": "5"
+    },
+    "origin": "selection",
+    "physical": {
+      "source": "chinook-local",
+      "collection": "Customer",
+      "column": "CustomerId"
+    },
+    "mapping": "declared",
+    "enabled": true
+  },
+  "limit": 25
+}

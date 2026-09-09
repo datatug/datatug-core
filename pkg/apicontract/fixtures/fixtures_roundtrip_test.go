@@ -75,6 +75,10 @@ func TestFixtures_RoundTrip(t *testing.T) {
 	t.Run("execution_request_adhoc.json", func(t *testing.T) { roundTrip[apicontract.ExecutionRequest](t, "execution_request_adhoc.json") })
 	t.Run("execution_request_snapshot.json", func(t *testing.T) { roundTrip[apicontract.ExecutionRequest](t, "execution_request_snapshot.json") })
 
+	t.Run("applicable_request.json", func(t *testing.T) { roundTrip[apicontract.ApplicableRequest](t, "applicable_request.json") })
+	t.Run("related_request.json", func(t *testing.T) { roundTrip[apicontract.RelatedRequest](t, "related_request.json") })
+	t.Run("related_rows_request.json", func(t *testing.T) { roundTrip[apicontract.RelatedRowsRequest](t, "related_rows_request.json") })
+
 	t.Run("result_live.json", func(t *testing.T) { roundTrip[apicontract.Result](t, "result_live.json") })
 	t.Run("result_restricted.json", func(t *testing.T) { roundTrip[apicontract.Result](t, "result_restricted.json") })
 	t.Run("result_generic_policy_no_visible_names.json", func(t *testing.T) {

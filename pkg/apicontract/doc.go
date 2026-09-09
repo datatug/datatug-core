@@ -16,4 +16,12 @@
 // pkg/apicontract/fixtures holds the frozen JSON fixtures generated from
 // these types - one file per envelope/error case the appendix's "Acceptance
 // and migration" section requires coverage for.
+//
+// Every POST endpoint in the appendix's "Endpoint table" has a request
+// envelope type here: ExecutionRequest (exec/run_query), ApplicableRequest
+// (queries/applicable), RelatedRequest (semantic/related) and
+// RelatedRowsRequest (semantic/related/rows). Each flattens its Scope
+// fields (project/environment/securityContextId) into its own top level,
+// never nesting them under a "scope" key - confirmed against the live
+// server (Task 12 lane S77).
 package apicontract
