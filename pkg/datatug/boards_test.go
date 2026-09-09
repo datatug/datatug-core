@@ -169,7 +169,7 @@ func TestBoardWidget_Validate(t *testing.T) {
 			name: "sql_valid_pointer",
 			v: BoardWidget{
 				Name: "SQL",
-				Data: &SQLWidgetDef{SQL: SQLWidgetSettings{Query: "SELECT 1"}},
+				Data: &SQLWidgetDef{SQL: SQLWidgetSettings{QueryID: "q1"}},
 			},
 			wantErr: false,
 		},
@@ -178,7 +178,7 @@ func TestBoardWidget_Validate(t *testing.T) {
 			v: BoardWidget{
 				Name: "SQL",
 				Data: map[string]interface{}{
-					"sql": map[string]interface{}{"query": "SELECT 1"},
+					"sql": map[string]interface{}{"queryId": "q1"},
 				},
 			},
 			wantErr: false,
@@ -207,7 +207,7 @@ func TestBoardWidget_Validate(t *testing.T) {
 				Name: "tabs",
 				Data: &TabsWidgetDef{
 					Tabs: []TabWidget{
-						{Title: "Tab 1", Widget: BoardWidget{Name: "SQL", Data: &SQLWidgetDef{SQL: SQLWidgetSettings{Query: "SELECT 1"}}}},
+						{Title: "Tab 1", Widget: BoardWidget{Name: "SQL", Data: &SQLWidgetDef{SQL: SQLWidgetSettings{QueryID: "q1"}}}},
 					},
 				},
 			},
@@ -221,7 +221,7 @@ func TestBoardWidget_Validate(t *testing.T) {
 					"tabs": []interface{}{
 						map[string]interface{}{
 							"title":  "Tab 1",
-							"widget": map[string]interface{}{"name": "SQL", "data": map[string]interface{}{"sql": map[string]interface{}{"query": "SELECT 1"}}},
+							"widget": map[string]interface{}{"name": "SQL", "data": map[string]interface{}{"sql": map[string]interface{}{"queryId": "q1"}}},
 						},
 					},
 				},
@@ -509,7 +509,7 @@ func TestBoardRows_Validate(t *testing.T) {
 		{
 			name: "valid",
 			v: BoardRows{
-				{Cards: BoardCards{{ID: "c1", Widget: &BoardWidget{Name: "SQL", Data: &SQLWidgetDef{SQL: SQLWidgetSettings{Query: "SELECT 1"}}}}}},
+				{Cards: BoardCards{{ID: "c1", Widget: &BoardWidget{Name: "SQL", Data: &SQLWidgetDef{SQL: SQLWidgetSettings{QueryID: "q1"}}}}}},
 			},
 			wantErr: false,
 		},
@@ -542,7 +542,7 @@ func TestBoardCard_Validate(t *testing.T) {
 				ID: "c1",
 				Widget: &BoardWidget{
 					Name: "SQL",
-					Data: &SQLWidgetDef{SQL: SQLWidgetSettings{Query: "SELECT 1"}},
+					Data: &SQLWidgetDef{SQL: SQLWidgetSettings{QueryID: "q1"}},
 				},
 			},
 			wantErr: false,
@@ -580,7 +580,7 @@ func TestTabsWidgetDef_Validate(t *testing.T) {
 		v := TabsWidgetDef{
 			WidgetBase: WidgetBase{Title: "Tabs"},
 			Tabs: []TabWidget{
-				{Title: "Tab 1", Widget: BoardWidget{Name: "SQL", Data: &SQLWidgetDef{SQL: SQLWidgetSettings{Query: "SELECT 1"}}}},
+				{Title: "Tab 1", Widget: BoardWidget{Name: "SQL", Data: &SQLWidgetDef{SQL: SQLWidgetSettings{QueryID: "q1"}}}},
 			},
 		}
 		assert.NoError(t, v.Validate())
@@ -596,23 +596,182 @@ func TestTabsWidgetDef_Validate(t *testing.T) {
 func TestSQLWidgetDef_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
 		v := SQLWidgetDef{
-			SQL: SQLWidgetSettings{Query: "SELECT 1"},
+			SQL: SQLWidgetSettings{QueryID: "q1"},
 		}
 		assert.NoError(t, v.Validate())
 	})
 	t.Run("invalid_base", func(t *testing.T) {
 		v := SQLWidgetDef{
 			WidgetBase: WidgetBase{Parameters: Parameters{{ID: ""}}},
-			SQL:        SQLWidgetSettings{Query: "SELECT 1"},
+			SQL:        SQLWidgetSettings{QueryID: "q1"},
 		}
 		assert.Error(t, v.Validate())
 	})
 	t.Run("invalid_sql", func(t *testing.T) {
 		v := SQLWidgetDef{
-			SQL: SQLWidgetSettings{Query: ""},
+			SQL: SQLWidgetSettings{QueryID: ""},
 		}
 		assert.Error(t, v.Validate())
 	})
+}
+
+func TestSQLWidgetSettings_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		v       SQLWidgetSettings
+		wantErr bool
+	}{
+		{
+			name:    "valid_query_id_only",
+			v:       SQLWidgetSettings{QueryID: "q1"},
+			wantErr: false,
+		},
+		{
+			name: "valid_query_id_and_value_binding",
+			v: SQLWidgetSettings{
+				QueryID:    "q1",
+				Parameters: WidgetParameterBindings{{ID: "p1", Value: "2026"}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid_query_id_and_board_parameter_binding",
+			v: SQLWidgetSettings{
+				QueryID:    "q1",
+				Parameters: WidgetParameterBindings{{ID: "p1", BoardParameterID: "year"}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid_binding_with_neither_value_nor_board_parameter_id",
+			v: SQLWidgetSettings{
+				QueryID:    "q1",
+				Parameters: WidgetParameterBindings{{ID: "p1"}},
+			},
+			wantErr: false,
+		},
+		{
+			name:    "missing_query_id",
+			v:       SQLWidgetSettings{},
+			wantErr: true,
+		},
+		{
+			name: "invalid_binding_missing_id",
+			v: SQLWidgetSettings{
+				QueryID:    "q1",
+				Parameters: WidgetParameterBindings{{ID: "", Value: "2026"}},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("SQLWidgetSettings.Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestWidgetParameterBindings_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		v       WidgetParameterBindings
+		wantErr bool
+	}{
+		{
+			name:    "empty",
+			v:       WidgetParameterBindings{},
+			wantErr: false,
+		},
+		{
+			name:    "valid",
+			v:       WidgetParameterBindings{{ID: "p1", Value: "2026"}, {ID: "p2", BoardParameterID: "region"}},
+			wantErr: false,
+		},
+		{
+			name:    "invalid_item",
+			v:       WidgetParameterBindings{{ID: ""}},
+			wantErr: true,
+		},
+		{
+			name:    "duplicate_binding_ids",
+			v:       WidgetParameterBindings{{ID: "p1", Value: "a"}, {ID: "p1", Value: "b"}},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("WidgetParameterBindings.Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestWidgetParameterBinding_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		v       WidgetParameterBinding
+		wantErr bool
+	}{
+		{
+			name:    "valid_value_only",
+			v:       WidgetParameterBinding{ID: "p1", Value: "2026"},
+			wantErr: false,
+		},
+		{
+			name:    "valid_board_parameter_id_only",
+			v:       WidgetParameterBinding{ID: "p1", BoardParameterID: "year"},
+			wantErr: false,
+		},
+		{
+			name:    "valid_neither_set_uses_query_parameter_default",
+			v:       WidgetParameterBinding{ID: "p1"},
+			wantErr: false,
+		},
+		{
+			name:    "missing_id",
+			v:       WidgetParameterBinding{Value: "2026"},
+			wantErr: true,
+		},
+		{
+			name:    "both_value_and_board_parameter_id",
+			v:       WidgetParameterBinding{ID: "p1", Value: "2026", BoardParameterID: "year"},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.v.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("WidgetParameterBinding.Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// TestSQLWidgetDef_JSONRoundTrip proves that a SQLWidgetDef with a queryId and
+// both binding kinds (constant value and board-parameter reference) survives
+// a marshal/unmarshal round trip, instead of the removed inline Query field.
+func TestSQLWidgetDef_JSONRoundTrip(t *testing.T) {
+	original := SQLWidgetDef{
+		WidgetBase: WidgetBase{Title: "Revenue by region"},
+		SQL: SQLWidgetSettings{
+			QueryID: "q1",
+			Parameters: WidgetParameterBindings{
+				{ID: "p1", Value: "2026"},
+				{ID: "p2", BoardParameterID: "region"},
+			},
+		},
+	}
+
+	data, err := json.Marshal(original)
+	assert.NoError(t, err)
+
+	var roundTripped SQLWidgetDef
+	assert.NoError(t, json.Unmarshal(data, &roundTripped))
+
+	assert.Equal(t, original, roundTripped)
 }
 
 func TestHTTPWidgetDef_Validate(t *testing.T) {
