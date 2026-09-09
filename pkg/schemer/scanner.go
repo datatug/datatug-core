@@ -40,20 +40,28 @@ func (s scanner) scanTables(c context.Context, catalog *datatug.DbCatalog) error
 	deadline, isDeadlineSet := c.Deadline()
 	var workers []func() error
 	if s.schemaProvider.IsBulkProvider() {
+		// This fan-out is fixed at exactly 3 workers (not per-table), so each
+		// gets its own named-return `err` instead of the outer function's `err`:
+		// previously all three closures wrote `err = ...` to that single shared
+		// variable and ran concurrently via parallel.Run, which is a data race
+		// (WARNING: DATA RACE at scanner.go:45/51/57). A mutex isn't needed here
+		// because the worker count never varies with input size - see
+		// pkg/storage/filestore/loader_internals.go's loadDir-based fan-outs for
+		// the dynamic-count case, where a mutex is threaded through instead.
 		workers = append(workers,
-			func() error {
+			func() (err error) {
 				if err = s.scanColumnsInBulk(c, catalog.ID, SortedTables{Tables: tables}); err != nil {
 					return fmt.Errorf("failed to retrieve columns metadata: %w", err)
 				}
 				return nil
 			},
-			func() error {
+			func() (err error) {
 				if err = s.scanConstraintsInBulk(c, catalog.ID, SortedTables{Tables: tables}); err != nil {
 					return fmt.Errorf("failed to retrieve constraints metadata: %w", err)
 				}
 				return nil
 			},
-			func() error {
+			func() (err error) {
 				if err = s.scanIndexesInBulk(c, catalog.ID, SortedTables{Tables: tables}); err != nil {
 					return fmt.Errorf("failed to retrieve indexes metadata: %w", err)
 				}
