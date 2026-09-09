@@ -118,12 +118,17 @@ func loadDbModel(dbModelsDirPath, id string) (dbModel *datatug.DbModel, err erro
 				func(files []os.FileInfo) {
 					dbModel.Schemas = make([]*datatug.Schema, 0, len(files))
 				},
-				func(f os.FileInfo, i int, _ *sync.Mutex) (err error) {
+				func(f os.FileInfo, i int, mutex *sync.Mutex) (err error) {
 					var schemaModel *datatug.Schema
 					if schemaModel, err = loadSchemaModel(dbModelDirPath, f.Name()); err != nil {
 						return err
 					}
+					// loadDir fans this loader out across a goroutine per schema dir;
+					// dbModel.Schemas is shared, so the append must be guarded by the
+					// mutex loadDir already threads through for exactly this purpose.
+					mutex.Lock()
 					dbModel.Schemas = append(dbModel.Schemas, schemaModel)
+					mutex.Unlock()
 					return nil
 				})
 		},
@@ -147,30 +152,51 @@ func loadSchemaModel(dbModelDirPath, schemaID string) (schemaModel *datatug.Sche
 		})
 		return
 	}
+	// Each goroutine writes into its own local slice; schemaModel.Tables is only
+	// assembled after parallel.Run returns, so the two workers never touch the same
+	// memory concurrently and no mutex is needed. (Previously both closures wrote
+	// directly to the shared schemaModel.Tables field: besides being a data race,
+	// whichever goroutine finished last silently clobbered the other's results, so
+	// the loaded schema was missing either its tables or its views nondeterministically.)
+	var baseTables, views datatug.TableModels
 	err = parallel.Run(
 		func() (err error) {
-			schemaModel.Tables, err = loadTableModels("tables", "BASE TABLE")
+			baseTables, err = loadTableModels("tables", "BASE TABLE")
 			return
 		},
 		func() (err error) {
-			schemaModel.Tables, err = loadTableModels("views", "VIEW")
+			views, err = loadTableModels("views", "VIEW")
 			return
 		},
 	)
-	return
+	if err != nil {
+		return nil, err
+	}
+	schemaModel.Tables = make(datatug.TableModels, 0, len(baseTables)+len(views))
+	schemaModel.Tables = append(schemaModel.Tables, baseTables...)
+	schemaModel.Tables = append(schemaModel.Tables, views...)
+	return schemaModel, nil
 }
 
 func loadDbCatalogs(dirPath string, dbServer *datatug.ProjDbServer) (err error) {
 	return loadDir(nil, dirPath, "", processDirs, func(files []os.FileInfo) {
 		dbServer.Catalogs = make(datatug.DbCatalogs, 0, len(files))
-	}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
+	}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 		dbCatalog := new(datatug.DbCatalog)
 		dbCatalog.ID = f.Name()
 		catalogPath := path.Join(dirPath, dbCatalog.ID)
-		if err = loadDbCatalog(catalogPath, dbCatalog); err != nil {
+		// loader has no named return, so `err =` here would have written the
+		// outer loadDbCatalogs named return from every worker goroutine at once;
+		// use := to give each worker its own local error.
+		if err := loadDbCatalog(catalogPath, dbCatalog); err != nil {
 			return err
 		}
+		// loadDir fans this loader out across a goroutine per catalog dir;
+		// dbServer.Catalogs is shared, so the append must be guarded by the
+		// mutex loadDir already threads through for exactly this purpose.
+		mutex.Lock()
 		dbServer.Catalogs = append(dbServer.Catalogs, dbCatalog)
+		mutex.Unlock()
 		return nil
 	})
 }
@@ -259,7 +285,7 @@ func loadTables(schemasDirPath, schema, folder string) (tables datatug.Tables, e
 	err = loadDir(nil, dirPath, "", processDirs,
 		func(files []os.FileInfo) {
 			tables = make(datatug.Tables, 0, len(files))
-		}, func(f os.FileInfo, i int, _ *sync.Mutex) error {
+		}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 			if !f.IsDir() {
 				return nil
 			}
@@ -268,7 +294,12 @@ func loadTables(schemasDirPath, schema, folder string) (tables datatug.Tables, e
 			if err != nil {
 				return fmt.Errorf("failed to load table [%v].[%v]: %w", schema, name, err)
 			}
+			// loadDir fans this loader out across a goroutine per table dir;
+			// tables is shared, so the append must be guarded by the mutex
+			// loadDir already threads through for exactly this purpose.
+			mutex.Lock()
 			tables = append(tables, table)
+			mutex.Unlock()
 			return nil
 		})
 	if err != nil {
