@@ -180,7 +180,7 @@ func TestFsQueriesStore_SaveQueriesTree(t *testing.T) {
 					{
 						ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "customer-invoices", Title: "Customer invoices"}},
 						Type:        datatug.QueryTypeDTQL,
-						Text:        "select:\n  from: Invoice\n",
+						Text:        "from:\n  name: Invoice\n",
 						Parameters: datatug.Parameters{
 							{ID: "CustomerId", Type: "integer", IsRequired: true, Meta: &datatug.EntityFieldRef{Entity: "Customer", Field: "ID"}},
 						},
@@ -206,7 +206,7 @@ func TestFsQueriesStore_SaveQueriesTree(t *testing.T) {
 	invoices := customers.Items[0]
 	assert.Equal(t, "customer-invoices", invoices.ID)
 	assert.Equal(t, datatug.QueryTypeDTQL, invoices.Type)
-	assert.Equal(t, "select:\n  from: Invoice\n", invoices.Text)
+	assert.Equal(t, "from:\n  name: Invoice\n", invoices.Text)
 	require.Len(t, invoices.Parameters, 1)
 	assert.Equal(t, "CustomerId", invoices.Parameters[0].ID)
 }

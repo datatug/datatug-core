@@ -117,7 +117,7 @@ func TestFsQueriesStore(t *testing.T) {
 				ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{
 					ID: dtqlQueryID, Title: "Customer invoices"}},
 				Type: datatug.QueryTypeDTQL,
-				Text: "select:\n  from: Invoice\n",
+				Text: "from:\n  name: Invoice\n",
 			},
 		}
 		_, err := store.CreateQuery(ctx, query)
@@ -134,7 +134,7 @@ func TestFsQueriesStore(t *testing.T) {
 		q, err := store.LoadQuery(ctx, path.Join(folder1, dtqlQueryID))
 		assert.NoError(t, err)
 		assert.Equal(t, datatug.QueryTypeDTQL, q.Type)
-		assert.Equal(t, "select:\n  from: Invoice\n", q.Text)
+		assert.Equal(t, "from:\n  name: Invoice\n", q.Text)
 	})
 
 	t.Run("LoadQuery_without_text_sidecar", func(t *testing.T) {
