@@ -109,6 +109,15 @@ func ensureQueryTxnDir(queriesRoot string) (string, error) {
 			}
 			return "", fmt.Errorf("failed to create query transaction directory: %w", err)
 		}
+		// The lock file and any transaction artifact are internal
+		// bookkeeping, never a query asset a capture/commit should show -
+		// a "*" .gitignore here excludes the whole directory (itself
+		// included) from `git status` in the project's own repo, verified
+		// empirically: a .gitignore whose own directory is "*"-ignored
+		// also ignores itself. Best-effort: a project that isn't a Git
+		// repository, or one where this write fails, still works fine
+		// without it.
+		_ = os.WriteFile(path.Join(txnDir, ".gitignore"), []byte("*\n"), 0o600)
 		return txnDir, nil
 	default:
 		return "", err

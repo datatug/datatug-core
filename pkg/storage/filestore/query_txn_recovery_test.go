@@ -207,6 +207,61 @@ func TestRecovery_NestedFolderPathIsRederivedFromJournal(t *testing.T) {
 	}
 }
 
+// TestRecovery_ProjectLevelLoadRecoversWithoutExposingReservedNamespace
+// seeds an interrupted transaction under the reserved ".dt-query-txn"
+// namespace, then proves a project-level load (loadQueriesTree, the same
+// entry point LoadProject uses) both recovers it and never lists the
+// namespace itself as a user query folder.
+func TestRecovery_ProjectLevelLoadRecoversWithoutExposingReservedNamespace(t *testing.T) {
+	_, queriesDir := newTestQueriesStore(t)
+	txnDir, err := ensureQueryTxnDir(queriesDir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// An ordinary query folder, so the tree has something else to find too.
+	if err := os.MkdirAll(filepath.Join(queriesDir, "customers"), 0o777); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(queriesDir, "customers", "c1.query.json"),
+		[]byte(`{"id":"c1","title":"C1","type":"SQL"}`+"\n"), 0o644); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	jsonBytes := []byte(`{"id":"q1","title":"Q1","type":"DTQL"}` + "\n")
+	bodyBytes := []byte("recovered body")
+	if err := writeStagedFile(txnDir, queryTxnStagedJSON, jsonBytes); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := writeStagedFile(txnDir, queryTxnStagedBody, bodyBytes); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	writeTestJournal(t, txnDir, queryTxnJournal{
+		FolderPath: "", ID: "q1", Operation: queryTxnOpPut,
+		JSONFileName: "q1.query.json", JSONHash: hashBytes(jsonBytes),
+		BodyFileName: "q1.query.dtql", BodyHash: hashBytes(bodyBytes),
+	})
+
+	fresh := newFsQueriesStore(filepath.Dir(queriesDir))
+	tree, err := fresh.loadQueriesTree(context.Background(), "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if tree == nil {
+		t.Fatal("expected a non-nil tree")
+	}
+	if len(tree.Items) != 1 || tree.Items[0].ID != "q1" || tree.Items[0].Text != "recovered body" {
+		t.Fatalf("expected the recovered query at the root, got items: %+v", tree.Items)
+	}
+	for _, f := range tree.Folders {
+		if f.ID == reservedQueryTxnDirName {
+			t.Fatalf("expected the reserved transaction namespace never to appear as a folder, got folders: %+v", tree.Folders)
+		}
+	}
+	if len(tree.Folders) != 1 || tree.Folders[0].ID != "customers" {
+		t.Fatalf("expected exactly the ordinary 'customers' folder, got: %+v", tree.Folders)
+	}
+}
+
 func fileExistsAt(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
