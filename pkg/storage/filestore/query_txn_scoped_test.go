@@ -214,23 +214,48 @@ func TestStuckWrites_WhenEverySlotIsHeld_RefuseWritesButNotReads(t *testing.T) {
 }
 
 func TestQueryNameKey_MatchesEverySpellingAFileSystemMayMerge(t *testing.T) {
-	for _, pair := range [][2]string{
-		{"q", "Q"},
-		{"Customer-Invoices", "customer-invoices"},
-		{"café", "café"}, // composed and decomposed
-		{"Kq", "kq"},      // Kelvin sign
+	// Every pair a supported file system may resolve to one file shares a
+	// key, so no spelling can slip past a stuck write. The APFS and HFS+
+	// notes were measured on this machine (/private/tmp and a scratch HFS+
+	// volume); the NTFS and ext4-casefold ones follow their published
+	// tables - NTFS's $UpCase and Unicode simple case folding. Where only
+	// one file system merges a pair the key still merges it: the key may be
+	// coarser than the file system underneath it, never finer.
+	for _, tc := range []struct{ why, a, b string }{
+		{"ASCII case: APFS, HFS+, NTFS, ext4", "q", "Q"},
+		{"ASCII case, longer", "Customer-Invoices", "customer-invoices"},
+		{"composed and decomposed e-acute: APFS, HFS+", "caf\u00e9", "cafe\u0301"},
+		{"Kelvin sign: APFS", "\u212aq", "kq"},
+		{"long s: APFS", "\u017fum", "sum"},
+		{"angstrom sign: APFS", "\u212bx", "\u00c5x"},
+		{"dotless i: NTFS $UpCase folds it onto I", "\u0131d", "id"},
+		{"dotted capital I: merged onto the same letter", "\u0130d", "id"},
+		{"zero-width non-joiner: HFS+", "rev\u200cenue", "revenue"},
+		{"byte-order mark: HFS+", "rev\ufeffenue", "revenue"},
+		{"inhibit symmetric swapping: HFS+", "rev\u206aenue", "revenue"},
+		{"zero-width space", "rev\u200benue", "revenue"},
+		{"soft hyphen", "rev\u00adenue", "revenue"},
+		{"combining grapheme joiner", "rev\u034fenue", "revenue"},
+		{"variation selector", "revenue\ufe00", "revenue"},
+		{"language tag", "revenue\U000e0001", "revenue"},
 	} {
-		if queryNameKey(pair[0]) != queryNameKey(pair[1]) {
-			t.Errorf("expected %q and %q to share a key, got %q and %q", pair[0], pair[1], queryNameKey(pair[0]), queryNameKey(pair[1]))
+		if queryNameKey(tc.a) != queryNameKey(tc.b) {
+			t.Errorf("%s: expected %q and %q to share a key, got %q and %q",
+				tc.why, tc.a, tc.b, queryNameKey(tc.a), queryNameKey(tc.b))
 		}
 	}
-	for _, pair := range [][2]string{{"q", "q2"}, {"a", "b"}, {"café", "cafe"}} {
+	// Names no supported file system merges keep distinct keys, so a stuck
+	// write never refuses half the project.
+	for _, pair := range [][2]string{{"q", "q2"}, {"a", "b"}, {"caf\u00e9", "cafe"}, {"revenue", "revenues"}} {
 		if queryNameKey(pair[0]) == queryNameKey(pair[1]) {
 			t.Errorf("expected %q and %q to have different keys, both got %q", pair[0], pair[1], queryNameKey(pair[0]))
 		}
 	}
 	if queryPathKey("Sub/Folder") != queryPathKey("sub/folder") || queryPathKey("a/b") == queryPathKey("a/c") || queryPathKey("") != "" {
 		t.Error("expected queryPathKey to apply queryNameKey per segment")
+	}
+	if queryPathKey("re\u200cf/sub") != queryPathKey("ref/sub") {
+		t.Error("expected queryPathKey to drop default-ignorable code points per segment")
 	}
 }
 

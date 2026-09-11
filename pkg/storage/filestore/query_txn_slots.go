@@ -368,15 +368,36 @@ func (st stuckQueryTxn) sharesAFileWith(dir, id string) bool {
 }
 
 // queryNameKey is a deliberately coarse key for a query ID or folder
-// segment: two names a case- or normalization-insensitive file system may
-// treat as one always get the same key. ASCII letters are lower-cased (and
-// a character whose case fold is an ASCII letter, such as the Kelvin sign,
-// becomes that letter), and every run of other characters - together with
-// an ASCII letter a combining mark follows, as in a decomposed "é" -
-// becomes a single "*". So "Q" and "q", or a composed and a decomposed
-// "café", share a key; so, over-matching, do "café" and "cafè".
+// segment: two names any file system this store supports may resolve to
+// one file always get the same key, so the key can never be finer than the
+// file system underneath it. In order:
+//
+//   - default-ignorable code points are dropped (isIgnorableRune), because
+//     HFS+ ignores them when it compares names - "rev<U+200C>enue" and
+//     "revenue" are one file there, and now one key. Dropping them also
+//     merges a name carrying a combining grapheme joiner with the name
+//     without it.
+//   - ASCII letters are lower-cased, as is any character whose case fold
+//     is an ASCII letter (the Kelvin sign, the long s) or that NTFS's
+//     uppercase table folds onto one (ntfsASCIIFold: the dotless and the
+//     dotted i, which Unicode's own simple fold leaves alone).
+//   - every run of other characters - together with an ASCII letter a
+//     combining mark follows, as in a decomposed "é" - becomes a single
+//     "*", which absorbs the normalization and case differences APFS,
+//     HFS+ and ext4's casefold resolve away.
+//
+// So "Q" and "q", a composed and a decomposed "café", and "revenue" with
+// or without a zero-width non-joiner all share a key; so, over-matching,
+// do "café" and "cafè". Over-matching only refuses a few more IDs while a
+// write is stuck, whereas a key finer than the file system would let an
+// alias spelling reach a half-installed pair.
 func queryNameKey(name string) string {
-	runes := []rune(name)
+	runes := make([]rune, 0, len(name))
+	for _, r := range name {
+		if !isIgnorableRune(r) {
+			runes = append(runes, r)
+		}
+	}
 	var b strings.Builder
 	pending := false // a run of other characters not yet written as "*"
 	for i, r := range runes {
@@ -409,11 +430,21 @@ func queryPathKey(folderPath string) string {
 	return strings.Join(segments, "/")
 }
 
-// asciiFoldOf returns the lower-case ASCII character r is or case-folds
-// to, if any.
+// ntfsASCIIFold holds the characters NTFS's $UpCase table folds onto an
+// ASCII letter although Unicode's default simple case folding does not:
+// the dotless i uppercases to "I" there. The dotted capital I is merged
+// onto the same letter, since the key may be coarser than a file system
+// but never finer.
+var ntfsASCIIFold = map[rune]rune{0x0130: 'i', 0x0131: 'i'}
+
+// asciiFoldOf returns the lower-case ASCII character r is, case-folds to,
+// or that a supported file system's own table folds it onto, if any.
 func asciiFoldOf(r rune) (rune, bool) {
 	if r < utf8.RuneSelf {
 		return unicode.ToLower(r), true
+	}
+	if a, ok := ntfsASCIIFold[r]; ok {
+		return a, true
 	}
 	for f := unicode.SimpleFold(r); f != r; f = unicode.SimpleFold(f) {
 		if f < utf8.RuneSelf {

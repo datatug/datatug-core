@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -176,6 +177,31 @@ func TestStuckWrite_CoversItsFolderUnderAnAliasSpelling(t *testing.T) {
 			_, err = ps.LoadQueries(ctx, tc.alias)
 			requireStuck(t, "LoadQueries("+tc.alias+")", err)
 		})
+	}
+}
+
+// The name key must never be finer than the file system underneath it. On
+// HFS+ "rev<U+200C>enue" is the very same file as "revenue" - measured on
+// a scratch HFS+ volume, along with U+FEFF and U+206A - so a stuck write of
+// "revenue" has to cover those spellings too, or one of them would read
+// straight through to the half-installed pair. The legacy read path is what
+// can still address such a name: the revisioned path refuses an invisible
+// character in an id outright.
+func TestStuckWrite_CoversAnIDSpelledWithAnInvisibleCharacter(t *testing.T) {
+	ctx := context.Background()
+	ps, _ := seedStuckMix(t, "", "revenue")
+	for _, alias := range []string{
+		"revenue",
+		"REVENUE",
+		"rev\u200cenue", // zero-width non-joiner, merged by HFS+
+		"rev\ufeffenue", // byte-order mark, merged by HFS+
+		"rev\u206aenue", // inhibit symmetric swapping, merged by HFS+
+		"rev\u200benue", // zero-width space
+		"rev\u00adenue", // soft hyphen
+		"rev\u034fenue", // combining grapheme joiner
+	} {
+		_, err := ps.LoadQuery(ctx, alias)
+		requireStuck(t, "LoadQuery("+strconv.Quote(alias)+")", err)
 	}
 }
 

@@ -51,6 +51,27 @@ var windowsReservedNames = func() map[string]bool {
 	return names
 }()
 
+// isIgnorableRune reports whether r is a default-ignorable code point: a
+// format character (Cf - the soft hyphen, the zero-width space and
+// joiners, the byte-order mark, the Mongolian and the bidi format
+// controls), a variation selector, or one of the rest of the Unicode
+// property (the Hangul fillers, the combining grapheme joiner). HFS+ drops
+// them when it compares names, so a name holding one can be the very same
+// file as the name without it.
+//
+// It is deliberately a superset of Default_Ignorable_Code_Point: the
+// property subtracts a few Cf characters meant to stay visible - the
+// prepended concatenation marks, the interlinear annotation anchors, the
+// Egyptian hieroglyph format controls - and this keeps them, since none of
+// them belongs in a file name either. It is the same predicate
+// datatug-cli's querywrite.SegmentReason applies, so the two validators
+// accept the same names.
+func isIgnorableRune(r rune) bool {
+	return unicode.Is(unicode.Cf, r) ||
+		unicode.Is(unicode.Other_Default_Ignorable_Code_Point, r) ||
+		unicode.Is(unicode.Variation_Selector, r)
+}
+
 // unsafeNameRuneReason reports why r may not appear in a query folder
 // segment or ID, or ("", false) when it may. Control characters (Unicode
 // category Cc: C0, DEL and C1) can corrupt terminal output, logs and git
