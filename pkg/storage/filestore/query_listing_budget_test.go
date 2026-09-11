@@ -32,7 +32,7 @@ func newBudgetTestProject(t *testing.T, budget int64, queries map[string]string)
 			t.Fatalf("unexpected error creating %s: %v", fullID, err)
 		}
 	}
-	ps.fsQueriesStore.listingBudget = budget
+	ps.listingBudget = budget
 	return ps, filepath.Join(projectDir, "queries")
 }
 
@@ -70,7 +70,7 @@ func TestLoadQueries_RefusesAListingOverItsByteBudget(t *testing.T) {
 	}
 
 	// Within the budget, the same listing works.
-	ps.fsQueriesStore.listingBudget = 1 << 20
+	ps.listingBudget = 1 << 20
 	folder, err := ps.LoadQueries(ctx, "")
 	if err != nil || len(folder.Items) != 2 {
 		t.Fatalf("expected both queries within a larger budget, got %v (err %v)", folder, err)
