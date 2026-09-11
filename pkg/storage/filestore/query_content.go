@@ -78,7 +78,7 @@ func queryTypeFileExtension(queryType datatug.QueryType) (string, error) {
 			return "", fmt.Errorf("query type %q cannot name a body sidecar file: only ASCII letters, digits, '_' and '-' are allowed", t)
 		}
 	}
-	return strings.ToLower(t), nil
+	return queryBodyFileExt(queryType), nil
 }
 
 // isQueryTypeByte reports whether c may appear in a query type used as a
@@ -98,6 +98,16 @@ func queryBodyFileName(id string, queryType datatug.QueryType) (string, error) {
 		return "", err
 	}
 	return id + "." + storage.QueryFileSuffix + "." + ext, nil
+}
+
+// queryBodyFileExt returns the type-derived part of queryBodyFileName - the
+// "<lowercase type>" in "<id>.query.<lowercase type>" - which, unlike the
+// full file name, never depends on how the id was spelled to find the
+// sidecar (see computeQueryRevision). It does not validate the type: call
+// it only for a type queryTypeFileExtension (or queryBodyFileName) has
+// already accepted.
+func queryBodyFileExt(queryType datatug.QueryType) string {
+	return strings.ToLower(string(queryType))
 }
 
 // checkQueryBodyFileName verifies that name is exactly the body sidecar

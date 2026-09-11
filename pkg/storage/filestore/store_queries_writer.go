@@ -73,7 +73,7 @@ func (s fsQueriesStore) stageAndInstallQueryPair(g queryLockGuard, folderPath st
 	if err := completeQueryTransaction(s.dirPath, g.txnDir); err != nil {
 		return "", err
 	}
-	return computeQueryRevision(jsonBytes, bodyFileName, bodyBytes), nil
+	return computeQueryRevision(jsonBytes, queryBodyFileExt(query.Type), bodyBytes), nil
 }
 
 // deleteQueryPairIfExists removes id's pair (its JSON metadata, and its

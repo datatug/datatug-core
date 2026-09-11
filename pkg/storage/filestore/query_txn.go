@@ -603,11 +603,12 @@ type currentQueryPair struct {
 	//
 	// revision is set whenever exists is true, complete or not: an
 	// incomplete pair still has a revision, computed the same framed way
-	// but over an empty body file name/bytes (the "no body sidecar exists"
+	// but over an empty body extension/bytes (the "no body sidecar exists"
 	// sentinel - see computeQueryRevision), so it can never collide with a
 	// complete pair's revision even when that complete pair's own body
 	// happens to be empty content (a real, present, empty-content sidecar
-	// carries its real file name in the hash; a missing one never does).
+	// carries its non-empty type-derived extension in the hash; a missing
+	// one never does).
 	// This is what lets a caller that only ever saw the incomplete state
 	// through LoadQueryRevision still supply a meaningful, verifiable
 	// PutQuery IfMatch/DeleteQueryRevision expected revision for it - see
@@ -624,6 +625,10 @@ type currentQueryPair struct {
 // recorded Type (queryBodyFileName), not from any caller-supplied
 // expectation, since recovery and revisioned reads must agree with
 // whatever a previous writer - revisioned or legacy - actually persisted.
+// The revision it computes depends only on the bytes it reads, never on
+// how id is spelled: a file system that resolves differently-spelled ids to
+// the same files yields one revision for them all (see
+// computeQueryRevision).
 func readCurrentQueryPair(dir, id string) (currentQueryPair, error) {
 	jsonPath := path.Join(dir, storage.JsonFileName(id, storage.QueryFileSuffix))
 	jsonBytes, exists, err := readRegularFileCapped(jsonPath, maxQueryFileSize)
@@ -660,6 +665,6 @@ func readCurrentQueryPair(dir, id string) (currentQueryPair, error) {
 	cur.complete = true
 	cur.bodyFileName = bodyFileName
 	cur.bodyBytes = bodyBytes
-	cur.revision = computeQueryRevision(jsonBytes, bodyFileName, bodyBytes)
+	cur.revision = computeQueryRevision(jsonBytes, queryBodyFileExt(meta.Type), bodyBytes)
 	return cur, nil
 }
