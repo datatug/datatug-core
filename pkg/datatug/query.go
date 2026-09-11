@@ -163,17 +163,18 @@ type QueryDefTarget struct {
 
 // Validate returns error if not valid. QueryDefTarget is persisted to
 // git-tracked project files, so it must never carry credential material: a
-// non-empty password, or a password embedded in any of its
-// connection-string-like fields in any syntax embeddedCredentialReason
-// recognizes (query_credentials.go). A username alone is allowed.
+// non-empty password, or a secret embedded in any of its
+// connection-string-like fields (driver, catalog, protocol, host, and the
+// username itself) in any syntax EmbeddedCredentialReason recognizes
+// (query_credentials.go). A username alone is allowed.
 func (v QueryDefTarget) Validate() error {
 	if v.Password != "" {
 		return validation.NewErrBadRecordFieldValue("password", "must not store credentials in a query target; connect using environment-level secrets instead")
 	}
 	for _, f := range []struct{ name, value string }{
-		{"driver", v.Driver}, {"catalog", v.Catalog}, {"protocol", v.Protocol}, {"host", v.Host},
+		{"driver", v.Driver}, {"catalog", v.Catalog}, {"protocol", v.Protocol}, {"host", v.Host}, {"username", v.Username},
 	} {
-		if reason, found := embeddedCredentialReason(f.value); found {
+		if reason, found := EmbeddedCredentialReason(f.value); found {
 			return validation.NewErrBadRecordFieldValue(f.name, reason+"; connect using environment-level secrets instead")
 		}
 	}
@@ -197,6 +198,12 @@ func (v QueryDef) Validate() error {
 			if target.Catalog != "" {
 				return validation.NewErrBadRecordFieldValue(fmt.Sprintf("targets[%v]", i), "for HTTP queries catalog should be empty, got: %v"+target.Catalog)
 			}
+		}
+		// An HTTP query's text is a request - a URL, headers and a body -
+		// persisted to git-tracked files like the rest of the query, so it
+		// is screened like any other connection string.
+		if reason, found := EmbeddedCredentialReason(v.Text); found {
+			return validation.NewErrBadRecordFieldValue("text", reason+"; reference a secret (for example {{token}} or $TOKEN) instead")
 		}
 	case "SQL", "GraphQL", "DTQL":
 		//if strings.TrimSpace(v.Text) == "" {
