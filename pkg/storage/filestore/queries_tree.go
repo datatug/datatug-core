@@ -32,13 +32,14 @@ import (
 func (s fsQueriesStore) loadQueriesTree(ctx context.Context, relFolderPath string) (folder *datatug.QueriesFolder, err error) {
 	err = s.withQueryReadLock(ctx, func(g queryLockGuard) error {
 		var lockedErr error
-		folder, lockedErr = s.loadQueriesTreeLocked(ctx, g, relFolderPath)
+		// One byte budget for the whole walk (maxQueryListingBytes).
+		folder, lockedErr = s.loadQueriesTreeLocked(ctx, g, relFolderPath, s.newListingBudget())
 		return lockedErr
 	})
 	return folder, err
 }
 
-func (s fsQueriesStore) loadQueriesTreeLocked(ctx context.Context, g queryLockGuard, relFolderPath string) (*datatug.QueriesFolder, error) {
+func (s fsQueriesStore) loadQueriesTreeLocked(ctx context.Context, g queryLockGuard, relFolderPath string, budget *queryReadBudget) (*datatug.QueriesFolder, error) {
 	if relFolderPath == "" {
 		// A symlinked queries root would redirect the whole walk. Below it,
 		// os.ReadDir reports a symlinked sub-folder as a non-directory,
@@ -57,7 +58,7 @@ func (s fsQueriesStore) loadQueriesTreeLocked(ctx context.Context, g queryLockGu
 		return nil, err
 	}
 
-	own, err := s.loadQueriesLocked(ctx, relFolderPath)
+	own, err := s.loadQueriesLocked(ctx, relFolderPath, budget)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load queries in %s: %w", relFolderPath, err)
 	}
@@ -78,7 +79,7 @@ func (s fsQueriesStore) loadQueriesTreeLocked(ctx context.Context, g queryLockGu
 			// the tree is never silently hidden.
 			continue
 		}
-		sub, err := s.loadQueriesTreeLocked(ctx, g, path.Join(relFolderPath, de.Name()))
+		sub, err := s.loadQueriesTreeLocked(ctx, g, path.Join(relFolderPath, de.Name()), budget)
 		if err != nil {
 			return nil, err
 		}

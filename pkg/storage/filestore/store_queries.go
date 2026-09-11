@@ -20,7 +20,11 @@ import (
 // JSON metadata that could not safely name a file (a type is project
 // content, and "/../../x" would otherwise address a file outside the
 // project).
-func readQueryTextSidecar(dirPath string, query *datatug.QueryDef) (string, error) {
+//
+// budget, when not nil, is the calling listing's byte budget
+// (maxQueryListingBytes): the body's size is charged to it before the file
+// is opened.
+func readQueryTextSidecar(dirPath string, query *datatug.QueryDef, budget *queryReadBudget) (string, error) {
 	if query.Type == "" {
 		return "", nil
 	}
@@ -28,7 +32,7 @@ func readQueryTextSidecar(dirPath string, query *datatug.QueryDef) (string, erro
 	if err != nil {
 		return "", err
 	}
-	data, exists, err := readRegularFileCapped(path.Join(dirPath, fileName), maxQueryFileSize)
+	data, exists, err := readRegularFileBudgeted(path.Join(dirPath, fileName), maxQueryFileSize, budget)
 	if err != nil || !exists {
 		return "", err
 	}
@@ -42,13 +46,28 @@ func newFsQueriesStore(projectPath string) fsQueriesStore {
 	// Legacy query loads read metadata only from regular files within the
 	// read cap (readQueryItemJSON), like every other query-store read.
 	items.readItemJSON = readQueryItemJSON
-	return fsQueriesStore{fsProjectItemsStore: items}
+	return fsQueriesStore{fsProjectItemsStore: items, listingBudget: maxQueryListingBytes}
 }
 
 var _ datatug.QueriesStore = (*fsQueriesStore)(nil)
 
 type fsQueriesStore struct {
 	fsProjectItemsStore[datatug.QueryDefs, *datatug.QueryDef, datatug.QueryDef]
+
+	// listingBudget is the byte budget of one listing call
+	// (maxQueryListingBytes; tests lower it).
+	listingBudget int64
+}
+
+// newListingBudget returns a fresh budget for one listing call. It is
+// created inside the read closure, so a read that withQueryReadLock runs
+// again under the lock starts from a full budget.
+func (s fsQueriesStore) newListingBudget() *queryReadBudget {
+	limit := s.listingBudget
+	if limit <= 0 { // a zero-value store gets the default, never an empty budget
+		limit = maxQueryListingBytes
+	}
+	return &queryReadBudget{remaining: limit, limit: limit}
 }
 
 // LoadQueries implements datatug.QueriesStore. Once a project has ever
@@ -71,7 +90,7 @@ func (s fsQueriesStore) LoadQueries(ctx context.Context, folderPath string, o ..
 		if lockedErr != nil {
 			return lockedErr
 		}
-		folder, lockedErr = s.loadQueriesLocked(ctx, relFolderPath, o...)
+		folder, lockedErr = s.loadQueriesLocked(ctx, relFolderPath, s.newListingBudget(), o...)
 		return lockedErr
 	})
 	return folder, err
@@ -79,25 +98,31 @@ func (s fsQueriesStore) LoadQueries(ctx context.Context, folderPath string, o ..
 
 // loadQueriesLocked is LoadQueries' body, callable by a caller that already
 // holds the query store lock - loadQueriesTreeLocked's per-folder walk -
-// without reacquiring it (the lock is not reentrant).
-func (s fsQueriesStore) loadQueriesLocked(ctx context.Context, folderPath string, o ...datatug.StoreOption) (folder *datatug.QueriesFolder, err error) {
+// without reacquiring it (the lock is not reentrant). Every metadata and
+// body file it reads is charged to budget (maxQueryListingBytes) before it
+// is opened.
+func (s fsQueriesStore) loadQueriesLocked(ctx context.Context, folderPath string, budget *queryReadBudget, o ...datatug.StoreOption) (folder *datatug.QueriesFolder, err error) {
 	_ = datatug.GetStoreOptions(o...)
 	dirPath := path.Join(s.dirPath, folderPath)
-	items, err := s.loadProjectItems(ctx, dirPath)
+	items := s.fsProjectItemsStore // a copy: its reader is bound to this call's budget
+	items.readItemJSON = func(filePath string, dst any) error {
+		return readQueryItemJSONBudgeted(filePath, dst, budget)
+	}
+	loaded, err := items.loadProjectItems(ctx, dirPath)
 	if err != nil {
 		return nil, err
 	}
-	for _, item := range items {
-		text, err := readQueryTextSidecar(dirPath, item)
+	for _, item := range loaded {
+		text, err := readQueryTextSidecar(dirPath, item, budget)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load text sidecar for query[%s]: %w", item.ID, err)
 		}
 		item.Text = text
 	}
 	folder = &datatug.QueriesFolder{
-		Items: make(datatug.QueryDefs, len(items)),
+		Items: make(datatug.QueryDefs, len(loaded)),
 	}
-	copy(folder.Items, items)
+	copy(folder.Items, loaded)
 	return folder, nil
 }
 
@@ -132,7 +157,7 @@ func (s fsQueriesStore) loadQueryLocked(ctx context.Context, id string, o ...dat
 	if err != nil {
 		return nil, err
 	}
-	text, err := readQueryTextSidecar(dirPath, query)
+	text, err := readQueryTextSidecar(dirPath, query, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load text sidecar for query[%s]: %w", id, err)
 	}

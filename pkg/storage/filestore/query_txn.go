@@ -99,6 +99,13 @@
 //     written as given. Reading such a legacy record still works, because
 //     LoadQuery and LoadQueries apply only the containment rules
 //     (validateQueryReadSegmentReason).
+//   - Read bounds. Each query file is read only when it is a regular file
+//     within maxQueryFileSize (16 MiB). A listing call - LoadQueries, or
+//     LoadProject's query tree, which shares one budget across every
+//     folder - also stops at maxQueryListingBytes (256 MiB) of query files
+//     in total, checking each file's size before opening it, and fails with
+//     errQueryListingTooLarge. Memory a call holds is a small multiple of
+//     the bytes it reads.
 //   - Concurrent tampering. Containment is proven against what is on disk
 //     when each step runs: no symlinked segment, regular target files, and
 //     names derived from the ID. Locations are resolved again after the

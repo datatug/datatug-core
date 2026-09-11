@@ -3,22 +3,40 @@ package filestore
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"runtime"
+	"sync"
 )
 
 const (
-	// maxQueryFileSize caps every query metadata or body file the query
+	// maxQueryFileSize caps each query metadata or body file the query
 	// store reads or writes: 16 MiB. That is orders of magnitude above any
 	// real query definition or body (the demo projects' largest is a few
-	// KB), yet small enough that a pathological file cannot exhaust memory
-	// on a read - the capture endpoint exposes these reads over HTTP. Every
+	// KB). It bounds what one file can make a read hold; what a call that
+	// reads many files may hold is bounded by maxQueryListingBytes. Every
 	// write refuses content above it before staging, so a transaction never
 	// commits a file that a later read or recovery would refuse.
 	maxQueryFileSize = 16 << 20
+
+	// maxQueryListingBytes caps the total bytes of query files - metadata
+	// and bodies together - that one listing call reads: LoadQueries (one
+	// folder) and LoadProject's query tree (every folder, one budget for the
+	// whole walk). The capture endpoint serves these reads over HTTP, and a
+	// git repository of identical 16 MiB bodies compresses to almost
+	// nothing, so the per-file cap alone would let one call read an
+	// unbounded total. Each file's size is checked against what is left of
+	// the budget before the file is opened (queryReadBudget); once a file
+	// would take the call past it, the call is refused with
+	// errQueryListingTooLarge. A call that reads one query (LoadQuery,
+	// LoadQueryRevision) reads at most two files, each within
+	// maxQueryFileSize, and needs no budget. What a call holds in memory is
+	// a small multiple of the bytes it reads (the decoded metadata and the
+	// body as a string), not the bytes alone.
+	maxQueryListingBytes = 256 << 20
 
 	// maxQueryTxnJournalSize bounds the transaction journal (the plan's
 	// "durable bounded journal"). A journal holds one validated query
@@ -70,6 +88,44 @@ func lstatRegularFile(filePath string) (info os.FileInfo, exists bool, err error
 // read. The read itself is limited to maxSize+1 bytes, so a file that grows
 // while it is read is refused rather than read without bound.
 func readRegularFileCapped(filePath string, maxSize int64) (data []byte, exists bool, err error) {
+	return readRegularFileBudgeted(filePath, maxSize, nil)
+}
+
+// errQueryListingTooLarge is wrapped by the error a listing call returns
+// once the query files it reads would pass its maxQueryListingBytes budget.
+var errQueryListingTooLarge = errors.New("the query files are too large to list in one call")
+
+// queryReadBudget is one listing call's byte budget (maxQueryListingBytes),
+// shared by the parallel readers of that call. A nil budget is unlimited;
+// the per-file cap still applies.
+type queryReadBudget struct {
+	mu        sync.Mutex
+	remaining int64
+	limit     int64
+}
+
+// take charges n bytes read from filePath to the budget, refusing - and
+// charging nothing - when fewer than n bytes are left.
+func (b *queryReadBudget) take(filePath string, n int64) error {
+	if b == nil {
+		return nil
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if n > b.remaining {
+		return fmt.Errorf("%w: reading %s (%d bytes) would pass the %d-byte budget for one listing, with %d bytes left; refusing to read it",
+			errQueryListingTooLarge, filePath, n, b.limit, b.remaining)
+	}
+	b.remaining -= n
+	return nil
+}
+
+// readRegularFileBudgeted is readRegularFileCapped that also charges the
+// file to budget (nil: no budget): its size is charged after the Lstat and
+// before the open, so a file that would pass the budget is never read; if
+// the file grew between the Lstat and the read (it is still within
+// maxSize), the extra bytes are charged too.
+func readRegularFileBudgeted(filePath string, maxSize int64, budget *queryReadBudget) (data []byte, exists bool, err error) {
 	info, exists, err := lstatRegularFile(filePath)
 	if err != nil || !exists {
 		return nil, exists, err
@@ -77,6 +133,16 @@ func readRegularFileCapped(filePath string, maxSize int64) (data []byte, exists 
 	if info.Size() > maxSize {
 		return nil, true, fmt.Errorf("%s is %d bytes, over the %d-byte limit; refusing to read it", filePath, info.Size(), maxSize)
 	}
+	if err := budget.take(filePath, info.Size()); err != nil {
+		return nil, true, err
+	}
+	defer func() {
+		if err == nil && int64(len(data)) > info.Size() {
+			if err = budget.take(filePath, int64(len(data))-info.Size()); err != nil {
+				data = nil
+			}
+		}
+	}()
 	f, err := os.OpenFile(filePath, os.O_RDONLY|openNoFollowFlags, 0)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -110,7 +176,13 @@ func readRegularFileCapped(filePath string, maxSize int64) (data []byte, exists 
 // symlink, FIFO or device. A missing file keeps readJSONFile's error shape
 // (an *fs.PathError wrapping fs.ErrNotExist).
 func readQueryItemJSON(filePath string, dst any) error {
-	b, exists, err := readRegularFileCapped(filePath, maxQueryFileSize)
+	return readQueryItemJSONBudgeted(filePath, dst, nil)
+}
+
+// readQueryItemJSONBudgeted is readQueryItemJSON charging the file to a
+// listing call's budget (see maxQueryListingBytes); nil means none.
+func readQueryItemJSONBudgeted(filePath string, dst any, budget *queryReadBudget) error {
+	b, exists, err := readRegularFileBudgeted(filePath, maxQueryFileSize, budget)
 	if err != nil {
 		return err
 	}
