@@ -172,7 +172,13 @@ func TestLoadQueryRevision_RevisionIgnoresTheRequestedIDSpelling(t *testing.T) {
 		func(id string) string { return queryBodyFileName(id, datatug.QueryTypeDTQL) },
 	} {
 		if err := os.Link(filepath.Join(queriesDir, fileName("original")), filepath.Join(queriesDir, fileName("alias"))); err != nil {
-			t.Skipf("the file system does not support hard links: %v", err)
+			// Skip only when hard links are genuinely unavailable; anything
+			// else (e.g. the pair's file naming changed and the source no
+			// longer exists) must fail, not silently skip.
+			if errors.Is(err, errors.ErrUnsupported) || errors.Is(err, os.ErrPermission) {
+				t.Skipf("the file system does not support hard links: %v", err)
+			}
+			t.Fatalf("failed to hard-link %s: %v", fileName("original"), err)
 		}
 	}
 
