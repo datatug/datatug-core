@@ -3,7 +3,6 @@ package filestore
 import (
 	"fmt"
 	"os"
-	"path"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
@@ -29,6 +28,11 @@ func (s fsQueriesStore) stageAndInstallQueryPair(g queryLockGuard, dir, folderPa
 		return "", err
 	}
 	bodyBytes := []byte(query.Text)
+	// A file over the read cap would commit a transaction that recovery and
+	// every read then refuse, so it is refused here, before anything.
+	if len(jsonBytes) > maxQueryFileSize || len(bodyBytes) > maxQueryFileSize {
+		return "", fmt.Errorf("query %q is over the %d-byte limit for a query file; refusing to write it", query.ID, maxQueryFileSize)
+	}
 
 	if err := os.MkdirAll(dir, 0o777); err != nil {
 		return "", fmt.Errorf("failed to create query folder: %w", err)
@@ -37,7 +41,7 @@ func (s fsQueriesStore) stageAndInstallQueryPair(g queryLockGuard, dir, folderPa
 		return "", err
 	}
 	if err := writeStagedFile(g.txnDir, queryTxnStagedBody, bodyBytes); err != nil {
-		_ = os.Remove(path.Join(g.txnDir, queryTxnStagedJSON))
+		discardStagedFiles(g.txnDir, queryTxnStagedJSON)
 		return "", err
 	}
 	fsyncDirBestEffort(g.txnDir)
@@ -56,6 +60,9 @@ func (s fsQueriesStore) stageAndInstallQueryPair(g queryLockGuard, dir, folderPa
 		j.PrevBodyFileName = current.bodyFileName
 	}
 	if err := writeJournal(g.txnDir, j); err != nil {
+		// Not committed (writeJournal fails only before its rename), so the
+		// staged files are this attempt's own leftovers.
+		discardStagedFiles(g.txnDir, queryTxnStagedJSON, queryTxnStagedBody)
 		return "", err
 	}
 	if err := completeQueryTransaction(s.dirPath, g.txnDir); err != nil {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
+	"github.com/strongo/validation"
 )
 
 // validateQueryForWrite validates a query definition before it is staged
@@ -25,7 +26,14 @@ import (
 // which Validate() itself already rejects), so PutQuery must accept
 // exactly what the legacy write path accepts for the additive,
 // non-breaking claim to hold precisely.
+//
+// It also refuses a body over maxQueryFileSize here, before the lock, so
+// PutQuery rejects it without creating anything; stageAndInstallQueryPair
+// enforces the same cap on the encoded pair for every writer.
 func validateQueryForWrite(query datatug.QueryDef) error {
+	if len(query.Text) > maxQueryFileSize {
+		return validation.NewErrBadRecordFieldValue("text", fmt.Sprintf("is %d bytes, over the %d-byte limit for a query body", len(query.Text), maxQueryFileSize))
+	}
 	return query.Validate()
 }
 

@@ -236,7 +236,7 @@ func vetExistingQueryTxnDir(txnDir string, info os.FileInfo) error {
 // themselves - neither is a recovery artifact, so their presence alone
 // must not block the permission repair below.
 func queryTxnDirHasRecoveryContent(txnDir string) (bool, error) {
-	for _, name := range []string{queryTxnJournalFile, queryTxnStagedJSON, queryTxnStagedBody} {
+	for _, name := range []string{queryTxnJournalFile, queryTxnJournalTmpFile, queryTxnStagedJSON, queryTxnStagedBody} {
 		if _, err := os.Lstat(path.Join(txnDir, name)); err == nil {
 			return true, nil
 		} else if !os.IsNotExist(err) {

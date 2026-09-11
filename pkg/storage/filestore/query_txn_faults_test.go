@@ -310,17 +310,36 @@ func TestEnsureInstalled_IsANoOpWhenAlreadyInstalled(t *testing.T) {
 	}
 }
 
-func TestWriteStagedFile_RejectsExistingFile(t *testing.T) {
-	_, queriesDir := newTestQueriesStore(t)
+// TestLeftoverStagedFile_DoesNotBlockLaterWrites replaces
+// TestWriteStagedFile_RejectsExistingFile, which locked in review B2's bug:
+// a staged file left by a crash before the commit point made every later
+// write fail with "file exists", permanently. writeStagedFile itself still
+// never clobbers an existing file (exclusive creation stays the invariant),
+// but the store now sweeps an uncommitted leftover during recovery, before
+// the next write stages anything.
+func TestLeftoverStagedFile_DoesNotBlockLaterWrites(t *testing.T) {
+	store, queriesDir := newTestQueriesStore(t)
 	txnDir, err := ensureQueryTxnDir(queriesDir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(txnDir, queryTxnStagedJSON), []byte("stale leftover"), 0o600); err != nil {
+	leftover := filepath.Join(txnDir, queryTxnStagedJSON)
+	if err := os.WriteFile(leftover, []byte("stale leftover"), 0o600); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := writeStagedFile(txnDir, queryTxnStagedJSON, []byte("new content")); err == nil {
-		t.Fatal("expected exclusive creation to reject an already-present staged file")
+		t.Fatal("expected exclusive creation to refuse to clobber an already-present staged file")
+	}
+	if b, err := os.ReadFile(leftover); err != nil || string(b) != "stale leftover" {
+		t.Fatalf("expected a refused exclusive create to leave the existing file alone, got %q (err %v)", b, err)
+	}
+
+	q := dtqlQuery("q1", "", "text")
+	if _, err := store.PutQuery(context.Background(), &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
+		t.Fatalf("expected the next write to succeed after recovery sweeps the uncommitted leftover, got: %v", err)
+	}
+	if fileExistsAt(leftover) {
+		t.Error("expected the uncommitted leftover to be gone")
 	}
 }
 
@@ -333,9 +352,16 @@ func TestWriteJournal_RejectsExistingJournal(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(txnDir, queryTxnJournalFile), []byte("stale leftover"), 0o600); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	err = writeJournal(txnDir, queryTxnJournal{FolderPath: "", ID: "q1", Operation: queryTxnOpPut, JSONFileName: "q1.query.json"})
+	// A valid journal, so the refusal can only come from the existing one.
+	err = writeJournal(txnDir, queryTxnJournal{FolderPath: "", ID: "q1", Operation: queryTxnOpDelete, JSONFileName: "q1.query.json"})
 	if err == nil {
-		t.Fatal("expected exclusive creation to reject an already-present journal")
+		t.Fatal("expected writeJournal to refuse to replace an already-committed journal")
+	}
+	if b, _ := os.ReadFile(filepath.Join(txnDir, queryTxnJournalFile)); string(b) != "stale leftover" {
+		t.Errorf("expected the existing journal to be untouched, got %q", b)
+	}
+	if fileExistsAt(filepath.Join(txnDir, queryTxnJournalTmpFile)) {
+		t.Error("expected no journal.tmp to be left behind")
 	}
 }
 

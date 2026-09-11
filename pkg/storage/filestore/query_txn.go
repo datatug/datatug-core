@@ -1,53 +1,73 @@
 // Package filestore's query pair transaction protocol (this file) persists
 // a query's JSON metadata and its body sidecar as one recoverable logical
-// transaction: stage both new files under the reserved ".dt-query-txn"
-// directory with exclusive creation, durably record a journal describing
-// the target state (queryTxnJournal), then install (or remove, for a
-// delete) each file idempotently via ensureInstalled, which verifies
-// staged/already-installed content against the journal's recorded hash
-// before trusting it. A fresh withQueryLock call always recovers any
-// journal left by an earlier interrupted attempt before doing anything
-// else, replaying exactly the same idempotent install path recovery and a
-// normal write share.
+// transaction, under the query store lock (query_lock.go):
+//
+//  1. Stage. Both new files are written under the reserved ".dt-query-txn"
+//     directory as "staged.json" and "staged.body", each created
+//     exclusively and fsynced; then the directory is fsynced.
+//  2. Commit. The journal (queryTxnJournal) is written to "journal.tmp",
+//     fsynced, renamed to "journal.json", and the directory is fsynced.
+//     That rename is the commit point: "journal.json" either does not
+//     exist or is complete, so no crash can leave a partly written journal
+//     under that name. If the journal cannot be written, the attempt
+//     removes its own staged files before returning the error.
+//  3. Install. completeQueryTransaction verifies both staged files against
+//     the journal's recorded hashes, then ensureInstalled renames each into
+//     place - the body, then the JSON metadata, each followed by a
+//     directory fsync. A delete removes the pair instead.
+//  4. Clean up. Whatever staged file is left, then the journal, are
+//     removed, and the directory is fsynced.
+//
+// Every withQueryLock call recovers before doing anything else
+// (completeQueryTransaction). With a "journal.json" present, recovery runs
+// steps 3 and 4 again, idempotently - the same code a normal write runs.
+// With none, nothing was committed: recovery removes any "journal.tmp" and
+// staged files as uncommitted leftovers, after checking that each is the
+// user's own regular file (checkTxnArtifact; anything else fails closed
+// and nothing is removed). A crash during steps 1-2 therefore never blocks
+// a later read or write.
 //
 // Deviation from the plan: the plan's Approach text calls for the
 // transaction to "back up the old pair" before installing the new one.
-// This implementation has no backup-file step anywhere. It relies instead
-// on three properties that together give the same guarantee the plan's
-// backup step was meant to provide - "never observe a torn pair, never
-// lose data to an interruption" - without ever needing a copy of the
-// previous content on disk:
+// This implementation has no backup file. It relies instead on three
+// properties that together give the guarantee the backup step was meant to
+// provide - a DataTug reader never observes a torn pair, and an
+// interruption never loses committed data:
 //
-//  1. The new content is durably staged (writeStagedFile fsyncs each
-//     staged file) and journaled (writeJournal fsyncs the journal and its
-//     directory) before anything at the final location is touched, so an
-//     interruption before the journal exists leaves the previous complete
-//     revision completely untouched - there is nothing to back up yet
-//     because nothing has changed yet.
-//  2. Once the journal exists, the transaction is committed forward, never
-//     rolled back (see completeQueryTransaction's doc comment) - so the
-//     "old pair" a backup would protect is never something this protocol
-//     needs to restore. What could still be lost is the *new* pair's
-//     install being interrupted partway, which a backup of the *old* pair
-//     would not have helped with anyway.
-//  3. ensureInstalled makes that partial-install case safe without a
-//     backup: recovery re-derives the exact same staged content (still
-//     present under txnDir - staged files are only ever removed by
-//     cleanupTxnArtifacts, the transaction's very last step) and its
-//     recorded hash from the journal, and only ever installs content that
-//     hashes to exactly what was staged. A crash between installing the
-//     body and the JSON (or during either rename) leaves the directory in
-//     a state recovery always finishes identically, deterministically,
-//     to the journal's target state - old or new, never mixed, and never
-//     dependent on a backup file having survived the same crash.
+//  1. Nothing at the final location changes before the commit point, so an
+//     interruption before it leaves the previous complete revision
+//     untouched: there is nothing to back up yet.
+//  2. After the commit point the transaction is completed forward, never
+//     rolled back, so the old pair a backup would protect is never needed.
+//     What an interruption can leave is the new pair's install half done,
+//     which a backup of the old pair would not help with.
+//  3. Recovery finishes a half-done install from the staged files and the
+//     journal's hashes alone. A staged file leaves the transaction
+//     directory in exactly two ways while a journal exists: ensureInstalled
+//     renames it into place (that is its install), or step 4 removes it
+//     after both installs are done. (The leftover sweep above runs only
+//     when no journal exists.) So while a journal exists, each staged file
+//     is either still present - and installed only if it hashes to the
+//     recorded content - or already installed, in which case the final
+//     file must hash to that content. If a final file was edited outside
+//     DataTug between an interrupted install and recovery, it matches
+//     neither: recovery then fails closed with an error naming the file,
+//     rather than guessing, and the user restores the file or removes the
+//     journal. Nothing here depends on a backup surviving the same crash.
 //
-// A physical backup file would in fact be a strictly weaker guarantee than
-// this: it would need its own fsync to be trustworthy after a crash, and
-// restoring it correctly still depends on knowing whether the install it
-// is protecting against completed - exactly the question the journal's
-// hash already answers without one. See query_lock.go's withQueryLock and
-// the recovery tests (query_txn_recovery_test.go) for the crash-phase
-// analysis this reasoning is verified against.
+// A physical backup file would be a weaker guarantee: it would need its own
+// fsync to be trustworthy after a crash, and restoring it correctly would
+// still depend on knowing whether the install it protects against
+// completed - the question the journal's hashes already answer.
+//
+// Directory fsync is best effort (fsyncDirBestEffort) because it is not
+// available on every platform, notably Windows. There, a power loss (not a
+// process crash) just after a rename can in principle lose that rename;
+// hash verification still refuses to install anything but the recorded
+// content. See query_lock.go's withQueryLock and the recovery, crash and
+// kill-loop tests (query_txn_recovery_test.go, query_txn_crash_test.go,
+// query_txn_killloop_unix_test.go) for the crash-phase analysis this is
+// verified against.
 package filestore
 
 import (
@@ -107,11 +127,14 @@ const (
 	queryTxnOpPut    = "put"
 	queryTxnOpDelete = "delete"
 
-	queryTxnJournalFile  = "journal.json"
-	queryTxnStagedJSON   = "staged.json"
-	queryTxnStagedBody   = "staged.body"
-	queryTxnMaxFilePerm  = 0o600
-	queryTxnFilePermMode = 0o600
+	queryTxnJournalFile = "journal.json"
+	// queryTxnJournalTmpFile is where writeJournal writes the journal
+	// before renaming it to queryTxnJournalFile - the commit point.
+	queryTxnJournalTmpFile = "journal.tmp"
+	queryTxnStagedJSON     = "staged.json"
+	queryTxnStagedBody     = "staged.body"
+	queryTxnMaxFilePerm    = 0o600
+	queryTxnFilePermMode   = 0o600
 )
 
 // validate checks everything recovery acts on in a journal, returning an
@@ -207,45 +230,76 @@ func removeIfExists(filePath string) error {
 }
 
 // writeStagedFile creates name under txnDir with the private staging
-// permissions (0600), exclusively (O_EXCL - recovery already guarantees
-// no leftover staged file exists by the time a fresh transaction stages
-// one), writes data and flushes it to durable storage before returning.
+// permissions (0600), exclusively (O_EXCL - under the lock, recovery has
+// already removed any uncommitted leftover by the time a transaction
+// stages, so an existing file here means an invariant broke, and it is
+// never clobbered), writes data and flushes it to durable storage.
 func writeStagedFile(txnDir, name string, data []byte) error {
+	return writeTxnFileExclusive(txnDir, name, data)
+}
+
+// writeTxnFileExclusive creates txnDir/name exclusively at 0600, writes
+// data, fsyncs and closes it. If anything fails after the file was
+// created, it removes that file - its own partial write - before returning
+// the error; it never removes a file it did not create.
+func writeTxnFileExclusive(txnDir, name string, data []byte) (err error) {
 	filePath := path.Join(txnDir, name)
 	f, err := os.OpenFile(filePath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, queryTxnFilePermMode)
 	if err != nil {
-		return fmt.Errorf("failed to create staged file %s: %w", name, err)
+		return fmt.Errorf("failed to create %s: %w", name, err)
 	}
-	defer func() { _ = f.Close() }()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close %s: %w", name, closeErr)
+		}
+		if err != nil {
+			_ = os.Remove(filePath)
+		}
+	}()
 	if _, err := f.Write(data); err != nil {
-		return fmt.Errorf("failed to write staged file %s: %w", name, err)
+		return fmt.Errorf("failed to write %s: %w", name, err)
 	}
 	if err := f.Sync(); err != nil {
-		return fmt.Errorf("failed to flush staged file %s: %w", name, err)
+		return fmt.Errorf("failed to flush %s: %w", name, err)
 	}
 	return nil
 }
 
-// writeJournal durably records j as the transaction's commit point: once
-// this returns successfully, the transaction MUST be completed forward by
-// completeQueryTransaction (immediately, or by a later recovery) - it can
-// no longer be abandoned.
+// writeJournal durably and atomically records j as the transaction's commit
+// point: it writes journal.tmp, fsyncs it, renames it to journal.json and
+// fsyncs the directory. The rename is the commit point, so journal.json is
+// never observed partly written. Once this returns successfully, the
+// transaction MUST be completed forward by completeQueryTransaction
+// (immediately, or by a later recovery); it can no longer be abandoned.
+// When it returns an error, journal.json was not created (every failure
+// happens before the rename), so the caller's staged files are its own
+// uncommitted leftovers to remove. j must pass validate - the same check
+// recovery applies - so a writer can never commit a journal recovery would
+// refuse; an existing journal.json is never replaced.
 func writeJournal(txnDir string, j queryTxnJournal) error {
+	if err := j.validate(); err != nil {
+		return fmt.Errorf("refusing to commit an invalid query transaction journal: %w", err)
+	}
 	b, err := json.Marshal(j)
 	if err != nil {
 		return fmt.Errorf("failed to encode query transaction journal: %w", err)
 	}
-	filePath := path.Join(txnDir, queryTxnJournalFile)
-	f, err := os.OpenFile(filePath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, queryTxnFilePermMode)
-	if err != nil {
-		return fmt.Errorf("failed to create query transaction journal: %w", err)
+	if len(b) > maxQueryTxnJournalSize {
+		return fmt.Errorf("query transaction journal would be %d bytes, over the %d-byte limit", len(b), maxQueryTxnJournalSize)
 	}
-	defer func() { _ = f.Close() }()
-	if _, err := f.Write(b); err != nil {
+	journalPath := path.Join(txnDir, queryTxnJournalFile)
+	if _, err := os.Lstat(journalPath); err == nil {
+		return fmt.Errorf("a committed query transaction journal already exists at %s; refusing to replace it", journalPath)
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("failed to check for an existing query transaction journal: %w", err)
+	}
+	if err := writeTxnFileExclusive(txnDir, queryTxnJournalTmpFile, b); err != nil {
 		return fmt.Errorf("failed to write query transaction journal: %w", err)
 	}
-	if err := f.Sync(); err != nil {
-		return fmt.Errorf("failed to flush query transaction journal: %w", err)
+	tmpPath := path.Join(txnDir, queryTxnJournalTmpFile)
+	if err := os.Rename(tmpPath, journalPath); err != nil {
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("failed to commit query transaction journal: %w", err)
 	}
 	fsyncDirBestEffort(txnDir)
 	return nil
@@ -272,9 +326,10 @@ func fsyncDirBestEffort(dir string) {
 	}
 }
 
-// cleanupTxnArtifacts removes every file a query transaction may have left
-// under txnDir. Staged files are removed best-effort (their absence is
-// never itself a problem); the journal's removal is the one that must
+// cleanupTxnArtifacts removes every file a completed query transaction may
+// have left under txnDir, then fsyncs the directory so the journal's
+// removal is durable. Staged files are removed best-effort (their absence
+// is never itself a problem); the journal's removal is the one that must
 // succeed, since its presence is what says a transaction still needs
 // completing.
 func cleanupTxnArtifacts(txnDir string) error {
@@ -283,6 +338,47 @@ func cleanupTxnArtifacts(txnDir string) error {
 	if err := os.Remove(path.Join(txnDir, queryTxnJournalFile)); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to remove query transaction journal: %w", err)
 	}
+	fsyncDirBestEffort(txnDir)
+	return nil
+}
+
+// discardStagedFiles removes this attempt's own staged files after a
+// failure before the commit point. Best effort: anything it cannot remove
+// is an uncommitted leftover the next recovery sweeps.
+func discardStagedFiles(txnDir string, names ...string) {
+	for _, name := range names {
+		_ = os.Remove(path.Join(txnDir, name))
+	}
+}
+
+// sweepUncommittedTxnArtifacts removes what an attempt interrupted before
+// its commit point leaves behind - journal.tmp and staged files, with no
+// journal.json - so a crash during staging or while the journal is being
+// written never blocks later writes (staging creates its files
+// exclusively). Every leftover is vetted first (checkTxnArtifact: the
+// user's own regular file, 0600 or tighter); if any fails, it returns an
+// error and removes nothing. It is called only when readJournal found no
+// journal.json.
+func sweepUncommittedTxnArtifacts(txnDir string) error {
+	var present []string
+	for _, name := range [...]string{queryTxnJournalTmpFile, queryTxnStagedJSON, queryTxnStagedBody} {
+		exists, err := checkTxnArtifact(path.Join(txnDir, name), queryTxnMaxFilePerm)
+		if err != nil {
+			return fmt.Errorf("refusing to clean up an uncommitted query transaction: %w", err)
+		}
+		if exists {
+			present = append(present, name)
+		}
+	}
+	if len(present) == 0 {
+		return nil
+	}
+	for _, name := range present {
+		if err := removeIfExists(path.Join(txnDir, name)); err != nil {
+			return fmt.Errorf("failed to remove uncommitted query transaction leftover %s: %w", name, err)
+		}
+	}
+	fsyncDirBestEffort(txnDir)
 	return nil
 }
 
@@ -320,7 +416,9 @@ func verifyInstallable(txnDir, stagedName, dir, finalName, expectedHash string) 
 	if exists, err := checkTxnArtifact(stagedPath, queryTxnMaxFilePerm); err != nil {
 		return false, err
 	} else if !exists {
-		return false, fmt.Errorf("staged file %s is missing and %s does not already match the transaction's recorded content", stagedName, finalName)
+		return false, fmt.Errorf("%s does not hold the content the interrupted query transaction recorded, and its staged copy %s was already installed: "+
+			"the file changed outside DataTug before recovery finished; restore it, or remove %s to abandon the transaction",
+			path.Join(dir, finalName), stagedName, path.Join(txnDir, queryTxnJournalFile))
 	}
 	stagedBytes, _, err := readRegularFileCapped(stagedPath, maxQueryFileSize)
 	if err != nil {
@@ -392,7 +490,7 @@ func completeQueryTransaction(queriesRoot, txnDir string) error {
 		return err
 	}
 	if !present {
-		return nil
+		return sweepUncommittedTxnArtifacts(txnDir)
 	}
 
 	dir, err := walkQueryDir(queriesRoot, j.FolderPath, j.ID, j.Operation == queryTxnOpPut)
