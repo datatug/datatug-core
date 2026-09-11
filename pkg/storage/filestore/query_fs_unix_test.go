@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -40,11 +41,17 @@ func TestOwnedByCurrentUser(t *testing.T) {
 	}
 }
 
-// mkfifo creates a FIFO, skipping the test where the file system cannot.
+// mkfifo creates a FIFO with the mkfifo(1) utility, skipping the test where
+// that is not possible. (syscall.Mkfifo is not defined on every unix Go
+// supports - aix, solaris and illumos lack it - so a direct call would
+// keep this file from compiling there.)
 func mkfifo(t *testing.T, p string) {
 	t.Helper()
-	if err := syscall.Mkfifo(p, 0o600); err != nil {
-		t.Skipf("cannot create a FIFO here: %v", err)
+	if out, err := exec.Command("mkfifo", "-m", "600", p).CombinedOutput(); err != nil {
+		t.Skipf("cannot create a FIFO here: %v: %s", err, out)
+	}
+	if info, err := os.Lstat(p); err != nil || info.Mode()&os.ModeNamedPipe == 0 {
+		t.Skipf("mkfifo did not create a FIFO at %s (%v)", p, err)
 	}
 }
 
