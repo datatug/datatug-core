@@ -139,7 +139,10 @@ func TestEmbeddedCredentialReason_Allowed(t *testing.T) {
 
 // The documented limits stay what the package doc says they are.
 func TestEmbeddedCredentialReason_DocumentedLimits(t *testing.T) {
-	for _, value := range []string{"scott/tiger@orcl", "https://user:123/x@h", "?key=AIzaSyA", "password: secret", "password=@dmin"} {
+	for _, value := range []string{
+		"scott/tiger@orcl", "https://user:123/x@h", "?key=AIzaSyA", "password: secret", "password=@dmin",
+		"https://gmail.googleapis.com/gmail/v1/users/me/messages?q=from:alice@example.com",
+	} {
 		if _, found := EmbeddedCredentialReason(value); found {
 			t.Errorf("%q is documented as not detected; update the package doc if that changed", value)
 		}
@@ -148,6 +151,8 @@ func TestEmbeddedCredentialReason_DocumentedLimits(t *testing.T) {
 		"SELECT * FROM users WHERE password = 'x'",
 		"UPDATE users SET password = crypt(:pw, gen_salt('bf'))",
 		"{\n  user(id: 1) {\n    authorization: permissions { read }\n  }\n}",
+		"from:alice@example.com",
+		"https://h/x?csrf_token=abc123",
 		"a,b:c@d",
 		"SELECT 'a:b@c'",
 	} {

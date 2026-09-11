@@ -22,13 +22,20 @@ func ownedByCurrentUser(info os.FileInfo) bool {
 	return ok && int64(st.Uid) == int64(os.Geteuid())
 }
 
-// checkQueryDirWritable requires the effective user to be able to add and
-// remove entries in dir (write and search permission, access(2) with
-// W_OK|X_OK). A writer checks it before committing, because the install
-// renames into dir and a type change or delete removes from it: a folder
-// made read-only would otherwise let the commit succeed and then fail the
-// install - and so every later recovery - until someone fixed its
-// permissions.
+// checkQueryDirWritable requires the user running DataTug to be able to add
+// and remove entries in dir: write and search permission, access(2) with
+// W_OK|X_OK. access(2) checks the real user and group IDs - on macOS and
+// Linux alike - not the effective ones ownedByCurrentUser compares with;
+// the two are the same unless the process runs setuid or setgid, which
+// DataTug does not (review N1). For root, access(2) grants W_OK just as
+// rename(2) then allows. On NFS, SMB or FUSE its answer can disagree with
+// what the server enforces (review N2): a false "not writable" refuses the
+// write as an ordinary error, and a false "writable" is caught by the
+// install, which rolls back or scopes the failure to its query
+// (finishQueryTransaction, recoverQueryTransactions). checkQueryTxnTargets
+// runs it - so both the writer before its commit and recovery before it
+// touches anything - through checkQueryDirAcceptsChanges, which adds the
+// file-flag half.
 func checkQueryDirWritable(dir string) error {
 	const wOK, xOK = 0x2, 0x1 // POSIX access(2) mode bits
 	if err := syscall.Access(dir, wOK|xOK); err != nil {

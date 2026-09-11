@@ -91,6 +91,12 @@ import (
 //     literal ("SELECT 'a:b@c'").
 //   - A literal that has a placeholder's shape ("@dmin", ":secret",
 //     "{token}", "$SECRET") is taken for a placeholder and not detected.
+//   - A search operator followed by an email address outside a URL
+//     ("from:alice@example.com", for example a search-string parameter
+//     default) reads as DSN userinfo and is refused (review N4); inside a
+//     URL query ("?q=from:alice@example.com") it is allowed. A key that
+//     ends in a secret suffix is refused whatever it holds, so
+//     "csrf_token=abc123" is refused too.
 //   - A GraphQL alias named authorization on its own line
 //     ("authorization: permissions { read }") reads as a credential header
 //     and is refused; rename the alias.

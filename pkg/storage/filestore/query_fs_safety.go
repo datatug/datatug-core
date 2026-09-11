@@ -41,6 +41,13 @@ const (
 	// maxQueryFileSize, and needs no budget. What a call holds in memory is
 	// a small multiple of the bytes it reads (the decoded metadata and the
 	// body as a string), not the bytes alone.
+	//
+	// The budget is per call (review N3): concurrent listing calls each
+	// have their own, so N of them together can read N times it; bounding
+	// concurrent calls is the caller's to do (for example a limit on
+	// concurrent capture requests per project). A call is refused once its
+	// next file would pass the budget, so a refused call has already read
+	// up to the budget - never more.
 	maxQueryListingBytes = 256 << 20
 
 	// maxQueryTxnJournalSize bounds the transaction journal (the plan's
