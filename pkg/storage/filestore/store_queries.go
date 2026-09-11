@@ -47,7 +47,24 @@ type fsQueriesStore struct {
 	fsProjectItemsStore[datatug.QueryDefs, *datatug.QueryDef, datatug.QueryDef]
 }
 
+// LoadQueries implements datatug.QueriesStore. It acquires the query store
+// lock (recovering any earlier interrupted transaction first) so a
+// concurrent revisioned write can never be observed half-installed - see
+// the plan's "participating readers include direct LoadQuery/LoadQueries
+// calls".
 func (s fsQueriesStore) LoadQueries(ctx context.Context, folderPath string, o ...datatug.StoreOption) (folder *datatug.QueriesFolder, err error) {
+	err = s.withQueryLock(ctx, func(_ queryLockGuard) error {
+		var lockedErr error
+		folder, lockedErr = s.loadQueriesLocked(ctx, folderPath, o...)
+		return lockedErr
+	})
+	return folder, err
+}
+
+// loadQueriesLocked is LoadQueries' body, callable by a caller that already
+// holds the query store lock - loadQueriesTreeLocked's per-folder walk -
+// without reacquiring it (the lock is not reentrant).
+func (s fsQueriesStore) loadQueriesLocked(ctx context.Context, folderPath string, o ...datatug.StoreOption) (folder *datatug.QueriesFolder, err error) {
 	_ = datatug.GetStoreOptions(o...)
 	dirPath := path.Join(s.dirPath, folderPath)
 	items, err := s.loadProjectItems(ctx, dirPath)
@@ -68,11 +85,21 @@ func (s fsQueriesStore) LoadQueries(ctx context.Context, folderPath string, o ..
 	return folder, nil
 }
 
+// LoadQuery implements datatug.QueriesStore. It keeps the legacy tolerant
+// behavior (a missing body sidecar loads as an empty Text, not an error),
+// but - like LoadQueries - now goes through the query store lock.
 func (s fsQueriesStore) LoadQuery(ctx context.Context, id string, o ...datatug.StoreOption) (query *datatug.QueryDef, err error) {
-	ids := strings.Split(id, "/")
-	folder := path.Join(ids[:len(ids)-1]...)
-	dirPath := path.Join(s.dirPath, folder)
-	itemID := ids[len(ids)-1]
+	err = s.withQueryLock(ctx, func(_ queryLockGuard) error {
+		var lockedErr error
+		query, lockedErr = s.loadQueryLocked(ctx, id, o...)
+		return lockedErr
+	})
+	return query, err
+}
+
+func (s fsQueriesStore) loadQueryLocked(ctx context.Context, id string, o ...datatug.StoreOption) (query *datatug.QueryDef, err error) {
+	folderPath, itemID := splitQueryFullID(id)
+	dirPath := path.Join(s.dirPath, folderPath)
 	query, err = s.loadProjectItem(ctx, dirPath, itemID, "", o...)
 	if err != nil {
 		return nil, err
@@ -85,18 +112,63 @@ func (s fsQueriesStore) LoadQuery(ctx context.Context, id string, o ...datatug.S
 	return query, nil
 }
 
+// UpdateQuery is a legacy update path, not part of the datatug.QueriesStore
+// interface but kept for existing callers with its original signature.
+// query.ID may be a "<folder>/.../<id>" combined path exactly like
+// LoadQuery/DeleteQuery - UpdateQuery has no separate FolderPath parameter,
+// so that is how a caller has always had to reach a nested folder here.
+// Unlike the original implementation (which serialized the whole QueryDef,
+// Text included, straight into the JSON sidecar), this now routes through
+// the same pair transaction every other write uses: Text is stripped from
+// the JSON and persisted to its own body sidecar, and a type change
+// removes the stale sidecar - see the plan's "correct update/delete so
+// they do not serialize Text into JSON or leave stale body sidecars".
 func (s fsQueriesStore) UpdateQuery(ctx context.Context, query datatug.QueryDef) (q *datatug.QueryDefWithFolderPath, err error) {
-	err = s.saveProjectItem(ctx, s.dirPath, &query)
+	folderPath, itemID := splitQueryFullID(query.ID)
+	query.ID = itemID
+	if err := query.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid query: %w", err)
+	}
+	dir, err := s.resolveQueryLocation(folderPath, itemID)
 	if err != nil {
 		return nil, err
 	}
-	return &datatug.QueryDefWithFolderPath{
-		QueryDef: query,
-	}, nil
+
+	err = s.withQueryLock(ctx, func(g queryLockGuard) error {
+		current, err := readCurrentQueryPair(dir, itemID)
+		if err != nil {
+			return err
+		}
+		_, err = s.stageAndInstallQueryPair(g, dir, folderPath, query, current)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &datatug.QueryDefWithFolderPath{FolderPath: folderPath, QueryDef: query}, nil
 }
 
+// DeleteQuery implements datatug.QueriesStore. id may be a
+// "<folder>/.../<id>" combined path exactly like LoadQuery. It is a no-op,
+// not an error, when no record exists at that location - the original
+// behavior. Unlike the original implementation (which removed only the
+// JSON sidecar, leaving any body sidecar orphaned - see the plan's "leave
+// stale body sidecars"), this now removes both files of the pair as one
+// recoverable transaction, and validates the location the same way every
+// other write does.
 func (s fsQueriesStore) DeleteQuery(ctx context.Context, id string) (err error) {
-	return s.deleteProjectItem(ctx, s.dirPath, id)
+	folderPath, itemID := splitQueryFullID(id)
+	dir, err := s.resolveQueryLocation(folderPath, itemID)
+	if err != nil {
+		return err
+	}
+	return s.withQueryLock(ctx, func(g queryLockGuard) error {
+		current, err := readCurrentQueryPair(dir, itemID)
+		if err != nil {
+			return err
+		}
+		return s.deleteQueryPairIfExists(g, folderPath, itemID, current)
+	})
 }
 
 func (s fsQueriesStore) DeleteQueryFolder(_ context.Context, folderPath string) error {
@@ -105,6 +177,27 @@ func (s fsQueriesStore) DeleteQueryFolder(_ context.Context, folderPath string) 
 	return errors.New("not implemented yet")
 }
 
+// SaveQuery implements datatug.QueriesStore. Unlike the original
+// implementation (which silently ignored query.FolderPath and always wrote
+// to the queries root - see the plan's "correct SaveQuery to honor
+// FolderPath"), this resolves and writes to the query's actual folder. It
+// remains unconditional like CreateQuery: an existing pair at the same
+// location is replaced, not rejected - a caller that needs a create-only
+// or stale-revision-safe write uses the revisioned PutQuery instead.
 func (s fsQueriesStore) SaveQuery(ctx context.Context, query *datatug.QueryDefWithFolderPath) error {
-	return s.saveProjectItem(ctx, s.dirPath, &query.QueryDef)
+	if err := query.QueryDef.Validate(); err != nil {
+		return fmt.Errorf("invalid query: %w", err)
+	}
+	dir, err := s.resolveQueryLocation(query.FolderPath, query.ID)
+	if err != nil {
+		return err
+	}
+	return s.withQueryLock(ctx, func(g queryLockGuard) error {
+		current, err := readCurrentQueryPair(dir, query.ID)
+		if err != nil {
+			return err
+		}
+		_, err = s.stageAndInstallQueryPair(g, dir, query.FolderPath, query.QueryDef, current)
+		return err
+	})
 }

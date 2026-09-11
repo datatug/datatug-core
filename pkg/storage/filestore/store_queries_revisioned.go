@@ -105,56 +105,23 @@ func (s fsQueriesStore) PutQuery(ctx context.Context, query *datatug.QueryDefWit
 		if err := checkQueryWriteCondition(query.FolderPath, query.ID, condition, current); err != nil {
 			return err
 		}
-
-		jsonBytes, err := queryJSONBytes(query.QueryDef)
-		if err != nil {
-			return err
-		}
-		bodyFileName := queryBodyFileName(query.ID, query.Type)
-		bodyBytes := []byte(query.Text)
-
 		if err := ctx.Err(); err != nil {
 			// Still before the first target mutation: nothing but the
-			// private staging area (cleaned up below) has been touched.
+			// private staging area (cleaned up by stageAndInstallQueryPair
+			// on a staging failure) has been touched.
 			return err
-		}
-		if err := os.MkdirAll(dir, 0o777); err != nil {
-			return fmt.Errorf("failed to create query folder: %w", err)
 		}
 
-		if err := writeStagedFile(g.txnDir, queryTxnStagedJSON, jsonBytes); err != nil {
-			return err
-		}
-		if err := writeStagedFile(g.txnDir, queryTxnStagedBody, bodyBytes); err != nil {
-			_ = os.Remove(fmt.Sprintf("%s/%s", g.txnDir, queryTxnStagedJSON))
-			return err
-		}
-		fsyncDirBestEffort(g.txnDir)
-
-		j := queryTxnJournal{
-			FolderPath:   query.FolderPath,
-			ID:           query.ID,
-			Operation:    queryTxnOpPut,
-			JSONFileName: storage.JsonFileName(query.ID, storage.QueryFileSuffix),
-			JSONHash:     hashBytes(jsonBytes),
-			BodyFileName: bodyFileName,
-			BodyHash:     hashBytes(bodyBytes),
-		}
-		if current.exists {
-			j.HadPrevious = true
-			j.PrevBodyFileName = current.bodyFileName
-		}
-		if err := writeJournal(g.txnDir, j); err != nil {
-			return err
-		}
-		// Commit point reached: complete regardless of ctx from here.
-		if err := completeQueryTransaction(s.dirPath, g.txnDir); err != nil {
+		// Commit point reached inside stageAndInstallQueryPair (once its
+		// journal write returns): complete regardless of ctx from here.
+		revision, err := s.stageAndInstallQueryPair(g, dir, query.FolderPath, query.QueryDef, current)
+		if err != nil {
 			return err
 		}
 
 		result = &datatug.StoredQuery{
 			Query:    datatug.QueryDefWithFolderPath{FolderPath: query.FolderPath, QueryDef: query.QueryDef},
-			Revision: computeQueryRevision(jsonBytes, bodyFileName, bodyBytes),
+			Revision: revision,
 		}
 		return nil
 	})
