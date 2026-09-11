@@ -233,7 +233,7 @@ func (s fsQueriesStore) DeleteQueryRevision(ctx context.Context, id string, expe
 			JSONFileName: storage.JsonFileName(itemID, storage.QueryFileSuffix),
 			BodyFileName: current.bodyFileName,
 		}
-		if err := writeJournal(g.txnDir, j); err != nil {
+		if err := commitQueryTransaction(s.dirPath, g.txnDir, j); err != nil {
 			return err
 		}
 		// Commit point reached: complete regardless of ctx from here.

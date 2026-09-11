@@ -3,6 +3,7 @@
 package filestore
 
 import (
+	"fmt"
 	"os"
 	"syscall"
 )
@@ -19,4 +20,19 @@ const openNoFollowFlags = syscall.O_NOFOLLOW | syscall.O_NONBLOCK
 func ownedByCurrentUser(info os.FileInfo) bool {
 	st, ok := info.Sys().(*syscall.Stat_t)
 	return ok && int64(st.Uid) == int64(os.Geteuid())
+}
+
+// checkQueryDirWritable requires the effective user to be able to add and
+// remove entries in dir (write and search permission, access(2) with
+// W_OK|X_OK). A writer checks it before committing, because the install
+// renames into dir and a type change or delete removes from it: a folder
+// made read-only would otherwise let the commit succeed and then fail the
+// install - and so every later recovery - until someone fixed its
+// permissions.
+func checkQueryDirWritable(dir string) error {
+	const wOK, xOK = 0x2, 0x1 // POSIX access(2) mode bits
+	if err := syscall.Access(dir, wOK|xOK); err != nil {
+		return fmt.Errorf("query folder %s does not accept new files (%w)", dir, err)
+	}
+	return nil
 }

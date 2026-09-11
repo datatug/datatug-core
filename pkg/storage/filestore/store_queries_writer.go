@@ -64,9 +64,14 @@ func (s fsQueriesStore) stageAndInstallQueryPair(g queryLockGuard, folderPath st
 		j.HadPrevious = true
 		j.PrevBodyFileName = current.bodyFileName
 	}
-	if err := writeJournal(g.txnDir, j); err != nil {
-		// Not committed (writeJournal fails only before its rename), so the
-		// staged files are this attempt's own leftovers.
+	// commitQueryTransaction first runs every check recovery would run on
+	// this transaction - the target names included, which may hold a
+	// symlink, directory, FIFO, over-cap or unreadable file this write
+	// cannot replace - so a refusal is an ordinary error here, never a
+	// committed journal that wedges every later call.
+	if err := commitQueryTransaction(s.dirPath, g.txnDir, j); err != nil {
+		// Not committed (it fails only before writeJournal's rename), so
+		// the staged files are this attempt's own leftovers.
 		discardStagedFiles(g.txnDir, queryTxnStagedJSON, queryTxnStagedBody)
 		return "", err
 	}
@@ -93,7 +98,7 @@ func (s fsQueriesStore) deleteQueryPairIfExists(g queryLockGuard, folderPath, id
 		JSONFileName: storage.JsonFileName(id, storage.QueryFileSuffix),
 		BodyFileName: current.bodyFileName,
 	}
-	if err := writeJournal(g.txnDir, j); err != nil {
+	if err := commitQueryTransaction(s.dirPath, g.txnDir, j); err != nil {
 		return err
 	}
 	return completeQueryTransaction(s.dirPath, g.txnDir)

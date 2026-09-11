@@ -5,12 +5,17 @@
 //  1. Stage. Both new files are written under the reserved ".dt-query-txn"
 //     directory as "staged.json" and "staged.body", each created
 //     exclusively and fsynced; then the directory is fsynced.
-//  2. Commit. The journal (queryTxnJournal) is written to "journal.tmp",
-//     fsynced, renamed to "journal.json", and the directory is fsynced.
-//     That rename is the commit point: "journal.json" either does not
-//     exist or is complete, so no crash can leave a partly written journal
-//     under that name. If the journal cannot be written, the attempt
-//     removes its own staged files before returning the error.
+//  2. Commit. commitQueryTransaction first runs checkQueryTxnTargets - the
+//     very function recovery runs before it touches anything - on the
+//     journal about to be committed, so a transaction recovery would refuse
+//     is refused here instead, as an ordinary error on this one write, and
+//     the store stays usable. Only then is the journal (queryTxnJournal)
+//     written to "journal.tmp", fsynced, renamed to "journal.json", and the
+//     directory fsynced. That rename is the commit point: "journal.json"
+//     either does not exist or is complete, so no crash can leave a partly
+//     written journal under that name. If the checks refuse or the journal
+//     cannot be written, the attempt removes its own staged files before
+//     returning the error.
 //  3. Install. completeQueryTransaction verifies both staged files against
 //     the journal's recorded hashes, then ensureInstalled renames each into
 //     place - the body, then the JSON metadata, each followed by a
@@ -295,8 +300,9 @@ func writeTxnFileExclusive(txnDir, name string, data []byte) (err error) {
 // When it returns an error, journal.json was not created (every failure
 // happens before the rename), so the caller's staged files are its own
 // uncommitted leftovers to remove. j must pass validate - the same check
-// recovery applies - so a writer can never commit a journal recovery would
-// refuse; an existing journal.json is never replaced.
+// recovery applies to a journal it reads; writers call it only through
+// commitQueryTransaction, which first runs the checks recovery applies to
+// the transaction's targets. An existing journal.json is never replaced.
 func writeJournal(txnDir string, j queryTxnJournal) error {
 	if err := j.validate(); err != nil {
 		return fmt.Errorf("refusing to commit an invalid query transaction journal: %w", err)
@@ -441,8 +447,8 @@ func verifyInstallable(txnDir, stagedName, dir, finalName, expectedHash string) 
 		return false, err
 	} else if !exists {
 		return false, fmt.Errorf("%s does not hold the content the interrupted query transaction recorded, and its staged copy %s was already installed: "+
-			"the file changed outside DataTug before recovery finished; restore it, or remove %s to abandon the transaction",
-			path.Join(dir, finalName), stagedName, path.Join(txnDir, queryTxnJournalFile))
+			"the file changed outside DataTug before recovery finished",
+			path.Join(dir, finalName), stagedName)
 	}
 	stagedBytes, _, err := readRegularFileCapped(stagedPath, maxQueryFileSize)
 	if err != nil {
@@ -516,31 +522,132 @@ func completeQueryTransaction(queriesRoot, txnDir string) error {
 	if !present {
 		return sweepUncommittedTxnArtifacts(txnDir)
 	}
+	if err := installQueryTransaction(queriesRoot, txnDir, j); err != nil {
+		// The journal is committed, so every query-store call retries it
+		// until it completes. commitQueryTransaction refuses anything the
+		// checks below would refuse, so only a change made outside DataTug
+		// after the commit, or an operating-system failure, gets here.
+		return fmt.Errorf("the committed query transaction for %q cannot be completed: %w; "+
+			"fix or remove the entry named above, or remove %s to abandon the transaction",
+			j.ID, err, path.Join(txnDir, queryTxnJournalFile))
+	}
+	return nil
+}
 
-	dir, err := walkQueryDir(queriesRoot, j.FolderPath, j.ID, j.Operation == queryTxnOpPut)
+// checkQueryTxnTargets runs every check completeQueryTransaction makes
+// before it changes anything, against the transaction j describes, and
+// returns the query directory. It is the single definition of "recovery
+// can complete this transaction": recovery runs it on a committed journal,
+// and commitQueryTransaction runs it on a journal about to be committed,
+// so a writer can never commit what recovery would then refuse.
+//
+// The checks are, in order:
+//   - the folder: walkQueryDir with j's validated FolderPath - every
+//     existing segment an ordinary directory, never a symlink - creating a
+//     missing segment for a put, exactly as a put's recovery does;
+//   - for a put, each file to install (body, then JSON metadata) with
+//     verifyInstallable: the target name must be absent, or a regular file
+//     (not a symlink, directory, FIFO, device or socket) within
+//     maxQueryFileSize that opens and reads; unless it already holds the
+//     recorded content, its staged copy must be the user's own 0600
+//     regular file hashing to the recorded content;
+//   - for a put that changes the body file name, the stale body name must
+//     not be a directory (checkRemovableQueryFile);
+//   - for a delete, neither file of the pair may be a directory.
+func checkQueryTxnTargets(queriesRoot, txnDir string, j queryTxnJournal) (dir string, err error) {
+	dir, err = walkQueryDir(queriesRoot, j.FolderPath, j.ID, j.Operation == queryTxnOpPut)
 	if err != nil {
-		return fmt.Errorf("refusing to recover the query transaction for %q: %w", j.ID, err)
+		return "", err
+	}
+	switch j.Operation {
+	case queryTxnOpPut:
+		for _, f := range j.installs() {
+			if _, err := verifyInstallable(txnDir, f.staged, dir, f.final, f.hash); err != nil {
+				return "", err
+			}
+		}
+		if stale := j.staleBodyFileName(); stale != "" {
+			if err := checkRemovableQueryFile(path.Join(dir, stale)); err != nil {
+				return "", err
+			}
+		}
+	case queryTxnOpDelete:
+		for _, target := range j.deleteTargets(dir) {
+			if err := checkRemovableQueryFile(target); err != nil {
+				return "", err
+			}
+		}
+	}
+	return dir, nil
+}
+
+// txnInstall is one file a put installs: its staged name, final name and
+// recorded hash.
+type txnInstall struct{ staged, final, hash string }
+
+// installs lists the files a put installs, body first.
+func (j queryTxnJournal) installs() [2]txnInstall {
+	return [2]txnInstall{
+		{queryTxnStagedBody, j.BodyFileName, j.BodyHash},
+		{queryTxnStagedJSON, j.JSONFileName, j.JSONHash},
+	}
+}
+
+// staleBodyFileName is the body sidecar a put removes because the query's
+// type, and so its body file name, changed; "" when there is none.
+func (j queryTxnJournal) staleBodyFileName() string {
+	if j.HadPrevious && j.PrevBodyFileName != "" && j.PrevBodyFileName != j.BodyFileName {
+		return j.PrevBodyFileName
+	}
+	return ""
+}
+
+// deleteTargets lists the files a delete removes under dir, body first.
+func (j queryTxnJournal) deleteTargets(dir string) []string {
+	targets := []string{path.Join(dir, j.JSONFileName)}
+	if j.BodyFileName != "" {
+		targets = append([]string{path.Join(dir, j.BodyFileName)}, targets...)
+	}
+	return targets
+}
+
+// commitQueryTransaction is how every writer reaches the commit point. It
+// validates j (the check readJournal applies), runs checkQueryTxnTargets
+// (the checks completeQueryTransaction applies) and requires the query
+// directory to accept new and removed entries (checkQueryDirWritable) -
+// and only when all of them pass does it write the journal. A refusal is
+// returned as an ordinary error on this write: nothing was committed, the
+// caller discards its staged files, and every other read and write of the
+// project keeps working. The caller holds the query store lock, so only a
+// change made outside DataTug can alter a target between these checks and
+// the install (see the package doc's "Concurrent tampering").
+func commitQueryTransaction(queriesRoot, txnDir string, j queryTxnJournal) error {
+	if err := j.validate(); err != nil {
+		return fmt.Errorf("refusing to commit an invalid query transaction journal: %w", err)
+	}
+	dir, err := checkQueryTxnTargets(queriesRoot, txnDir, j)
+	if err != nil {
+		return fmt.Errorf("refusing to write query %q: %w", j.ID, err)
+	}
+	if err := checkQueryDirWritable(dir); err != nil {
+		return fmt.Errorf("refusing to write query %q: %w", j.ID, err)
+	}
+	return writeJournal(txnDir, j)
+}
+
+// installQueryTransaction completes the committed transaction j: it checks
+// every target (checkQueryTxnTargets) before touching any, then installs
+// or removes the pair and cleans up the transaction directory.
+func installQueryTransaction(queriesRoot, txnDir string, j queryTxnJournal) error {
+	dir, err := checkQueryTxnTargets(queriesRoot, txnDir, j)
+	if err != nil {
+		return err
 	}
 
 	switch j.Operation {
 	case queryTxnOpPut:
-		// Verify both files before touching anything: an untrustworthy
-		// staged file refuses the whole transaction, instead of being found
-		// only after the other half of the pair was already installed.
-		for _, f := range [...]struct{ staged, final, hash string }{
-			{queryTxnStagedBody, j.BodyFileName, j.BodyHash},
-			{queryTxnStagedJSON, j.JSONFileName, j.JSONHash},
-		} {
-			if _, err := verifyInstallable(txnDir, f.staged, dir, f.final, f.hash); err != nil {
-				return err
-			}
-		}
-		removeStale := j.HadPrevious && j.PrevBodyFileName != "" && j.PrevBodyFileName != j.BodyFileName
-		if removeStale {
-			if err := checkRemovableQueryFile(path.Join(dir, j.PrevBodyFileName)); err != nil {
-				return err
-			}
-			if err := removeIfExists(path.Join(dir, j.PrevBodyFileName)); err != nil {
+		if stale := j.staleBodyFileName(); stale != "" {
+			if err := removeIfExists(path.Join(dir, stale)); err != nil {
 				return fmt.Errorf("failed to remove stale body sidecar: %w", err)
 			}
 		}
@@ -564,18 +671,9 @@ func completeQueryTransaction(queriesRoot, txnDir string) error {
 			return err
 		}
 	case queryTxnOpDelete:
-		// Check both targets before removing either, so a refusal leaves
-		// the pair exactly as it was.
-		targets := []string{path.Join(dir, j.JSONFileName)}
-		if j.BodyFileName != "" {
-			targets = append([]string{path.Join(dir, j.BodyFileName)}, targets...)
-		}
-		for _, target := range targets {
-			if err := checkRemovableQueryFile(target); err != nil {
-				return err
-			}
-		}
-		for _, target := range targets {
+		// checkQueryTxnTargets already checked both targets, so a refusal
+		// left the pair exactly as it was.
+		for _, target := range j.deleteTargets(dir) {
 			if err := removeIfExists(target); err != nil {
 				return fmt.Errorf("failed to remove %s: %w", target, err)
 			}

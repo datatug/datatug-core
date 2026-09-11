@@ -13,3 +13,8 @@ const openNoFollowFlags = 0
 // owner to compare (Windows ACLs are not modelled by it). The regular-file
 // and derived-name checks still apply there.
 func ownedByCurrentUser(os.FileInfo) bool { return true }
+
+// checkQueryDirWritable accepts every directory where there is no POSIX
+// access(2) to ask (Windows ACLs are not modelled by it); an install that
+// then fails leaves the committed transaction for recovery to retry.
+func checkQueryDirWritable(string) error { return nil }
