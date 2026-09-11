@@ -31,11 +31,53 @@ import (
 // rolled back or moved: the first access after the entry is fixed
 // completes it forward.
 //
-// The named query is matched conservatively, so no spelling can reach its
-// files: its folder by file identity or by queryPathKey, its ID by
-// queryNameKey (case-insensitive, and blind to how non-ASCII characters
-// are composed) or by sharing a file with it. Over-matching only refuses a
-// few more IDs while a write is stuck.
+// Attribution: which files a stuck transaction owns.
+//
+// Coverage exists for one reason - a committed transaction that installed
+// part of a pair leaves a mix of the old and the new files on disk, and no
+// read may ever serve that. So coverage is decided from proof, never from
+// a guess. These are the inputs, what each one proves, and what happens
+// when it is unavailable:
+//
+//   - The journal (FolderPath, ID, the pair's file names). A claim, not
+//     proof: it records where the writer meant to write, not where those
+//     files are now. It only says what to look for. Unavailable (missing,
+//     corrupt, untrustworthy): readJournal refuses the slot outright,
+//     which fails every call closed.
+//   - The staged files still in the slot, and the stale body a type change
+//     removes (queryTxnNothingHalfDone). Proof that the transaction has
+//     applied nothing at any query location - so no half-installed pair
+//     exists anywhere, whatever a read addresses, however it is spelled.
+//     This is the only proof that does not depend on finding the folder.
+//   - The folder the journal's FolderPath resolves to, read-only
+//     (resolveQueryDirReadOnly), holding at least one of the journal's own
+//     file names (queryTxnOwnsAFileIn). Proof of where this transaction's
+//     files are. Unavailable - the folder was renamed away, deleted,
+//     replaced by a symlink, or replaced by a directory that does not hold
+//     the pair - the store cannot say which files are its own.
+//   - os.SameFile against that proven folder. Identifies the folder
+//     whatever spelling reached it. Unavailable (the read's folder does
+//     not exist, or Lstat fails): falls back to queryPathKey, which only
+//     ever adds coverage.
+//   - queryNameKey / queryPathKey. Coarse spelling keys, never finer than
+//     any file system this store supports (see queryNameKey). An
+//     over-match, not proof: they only widen coverage, never narrow it.
+//   - sharesAFileWith (os.SameFile on the pair's own files). Identifies an
+//     alias spelling the key did not merge. Again only widens.
+//
+// Anything short of the second or the third proof leaves the transaction
+// unscopable, and an unscopable transaction covers everything: every read,
+// every write and every folder listing is refused until it completes, as
+// they were before slots existed. Over-matching only refuses a few more
+// IDs while a write is stuck; under-matching would serve a mix, so
+// availability is never traded for it.
+//
+// Residual: a directory deliberately put at the journal's path holding
+// files with the pair's exact names is taken for the transaction's own.
+// Reaching that state needs edits made outside DataTug - while a
+// transaction is unscopable the store refuses every write, so it can never
+// create the ambiguity itself - and it is the same class as the package
+// doc's "Concurrent tampering" limit.
 
 // queryTxnSlotCount bounds how many committed transactions can wait for
 // their entries to be fixed while the store keeps writing. With every slot
@@ -92,19 +134,78 @@ type stuckQueryTxn struct {
 	slot    string
 	journal queryTxnJournal
 	err     *queryTxnIncompleteError
-	// dir and dirInfo are the query's folder, when it still resolves.
+	// scoped records that the store proved which files this transaction
+	// owns, so refusing only the query it names is safe. While it is
+	// false the transaction covers every query (covers, coversFolder).
+	scoped bool
+	// dir and dirInfo are the query's folder, when it was found as an
+	// ordinary directory. They are only ever consulted while scoped.
 	dir     string
 	dirInfo os.FileInfo
 }
 
+// newStuckQueryTxn decides, from what is on disk, whether this stuck
+// transaction can be scoped to the query it names. See "Attribution"
+// above: either nothing is half applied anywhere, or the journal's folder
+// was found holding at least one of the transaction's own files. Neither
+// proof means unscopable, and an unscopable transaction refuses every
+// query until it completes.
 func newStuckQueryTxn(queriesRoot, slot string, incomplete *queryTxnIncompleteError) stuckQueryTxn {
 	st := stuckQueryTxn{slot: slot, journal: incomplete.journal, err: incomplete}
-	if dir, err := walkQueryDir(queriesRoot, st.journal.FolderPath, st.journal.ID, false); err == nil {
-		if info, err := os.Lstat(dir); err == nil && info.IsDir() {
-			st.dir, st.dirInfo = dir, info
-		}
+	dir, dirInfo := resolveQueryDirReadOnly(queriesRoot, st.journal)
+	switch {
+	case queryTxnNothingHalfDone(queriesRoot, slot, st.journal, dir):
+		// No read can serve a mix however it is addressed, because there
+		// is no half-installed pair to serve. The named query is still
+		// refused, so a competing write cannot race the committed journal.
+		st.scoped = true
+		st.dir, st.dirInfo = dir, dirInfo
+	case dirInfo != nil && queryTxnOwnsAFileIn(dir, st.journal):
+		st.scoped = true
+		st.dir, st.dirInfo = dir, dirInfo
 	}
 	return st
+}
+
+// resolveQueryDirReadOnly resolves j's folder and returns it only when it
+// is there, right now, as an ordinary directory. It never creates
+// anything: resolution for coverage must be read-only, so it can never
+// manufacture an empty folder for attribution to match against. A folder
+// that was renamed away, deleted or replaced by a symlink yields
+// ("", nil).
+func resolveQueryDirReadOnly(queriesRoot string, j queryTxnJournal) (string, os.FileInfo) {
+	dir, err := walkQueryDir(queriesRoot, j.FolderPath, j.ID, false)
+	if err != nil {
+		return "", nil
+	}
+	// walkQueryDir reports a missing entry by returning the path it would
+	// have, not an error, so existence is checked here.
+	info, err := os.Lstat(dir)
+	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return "", nil
+	}
+	return dir, info
+}
+
+// queryTxnOwnsAFileIn reports whether dir holds any of the files j names -
+// the new pair, or the stale body a type change removes. That is the
+// positive proof that this directory is where the transaction's work is:
+// for a put over an existing query the names are the ones it is replacing,
+// and for a delete they are the ones it is removing. An entry of any type
+// counts, since an entry the transaction targets is one it owns.
+func queryTxnOwnsAFileIn(dir string, j queryTxnJournal) bool {
+	if dir == "" {
+		return false
+	}
+	for _, name := range [...]string{j.JSONFileName, j.BodyFileName, j.PrevBodyFileName} {
+		if name == "" {
+			continue
+		}
+		if _, err := os.Lstat(path.Join(dir, name)); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 // recoverQueryTransactions runs recovery (completeQueryTransaction) in slot
@@ -215,8 +316,12 @@ func (g queryLockGuard) refuseStuckFolder(folderPath, dir string) error {
 }
 
 // coversFolder reports whether folderPath (dir) may be the stuck query's
-// folder: the same directory, or a spelling with the same queryPathKey.
+// folder: every folder while the transaction is unscopable, and otherwise
+// the same directory or a spelling with the same queryPathKey.
 func (st stuckQueryTxn) coversFolder(folderPath, dir string) bool {
+	if !st.scoped {
+		return true
+	}
 	if st.dirInfo != nil && dir != "" {
 		if info, err := os.Lstat(dir); err == nil && os.SameFile(info, st.dirInfo) {
 			return true
@@ -226,10 +331,15 @@ func (st stuckQueryTxn) coversFolder(folderPath, dir string) bool {
 }
 
 // covers reports whether (folderPath, id) in dir may address the stuck
-// query: in its folder, with the same queryNameKey or sharing a file.
+// query: every query while the transaction is unscopable (coversFolder
+// then matches every folder), and otherwise one in its folder with the
+// same queryNameKey or sharing a file with it.
 func (st stuckQueryTxn) covers(folderPath, dir, id string) bool {
 	if !st.coversFolder(folderPath, dir) {
 		return false
+	}
+	if !st.scoped {
+		return true
 	}
 	return queryNameKey(id) == queryNameKey(st.journal.ID) || st.sharesAFileWith(dir, id)
 }

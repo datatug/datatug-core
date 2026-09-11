@@ -700,6 +700,35 @@ func queryTxnUntouched(queriesRoot, txnDir string, j queryTxnJournal) bool {
 	return false
 }
 
+// queryTxnNothingHalfDone reports whether the store can prove, from disk,
+// that the committed transaction j has left nothing half applied at the
+// query's location - so no read can serve a mix of the old and the new
+// pair, whatever query it addresses and however that query is spelled. It
+// is the one attribution proof that does not need the query's folder to be
+// found (see "Attribution" in query_txn_slots.go). dir is that folder as
+// resolveQueryDirReadOnly found it, or "" when it could not be found.
+//
+// A put is proved by queryTxnUntouched: both staged files are still in the
+// slot, so neither install has happened. A delete is proved either way
+// round - every target still there (nothing removed yet) or every target
+// already gone (the removals finished and only the clean-up afterwards
+// failed) - but only when the folder itself was found, because a folder
+// renamed away may have carried a half-deleted pair with it.
+func queryTxnNothingHalfDone(queriesRoot, slot string, j queryTxnJournal, dir string) bool {
+	if queryTxnUntouched(queriesRoot, slot, j) {
+		return true
+	}
+	if j.Operation != queryTxnOpDelete || dir == "" {
+		return false
+	}
+	for _, target := range j.deleteTargets(dir) {
+		if _, err := os.Lstat(target); err == nil {
+			return false // still there: the delete is only part done
+		}
+	}
+	return true
+}
+
 // checkQueryTxnTargets runs every check completeQueryTransaction makes
 // before it changes anything, against the transaction j describes, and
 // returns the query directory. It is the single definition of "recovery
