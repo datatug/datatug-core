@@ -74,12 +74,17 @@ func queryTypeFileExtension(queryType datatug.QueryType) (string, error) {
 		return "", fmt.Errorf("query type %q cannot name a body sidecar file: it must be 1-%d characters", t, maxQueryTypeFileExtensionLength)
 	}
 	for i := 0; i < len(t); i++ {
-		c := t[i]
-		if !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_' || c == '-') {
+		if !isQueryTypeByte(t[i]) {
 			return "", fmt.Errorf("query type %q cannot name a body sidecar file: only ASCII letters, digits, '_' and '-' are allowed", t)
 		}
 	}
 	return strings.ToLower(t), nil
+}
+
+// isQueryTypeByte reports whether c may appear in a query type used as a
+// file extension: an ASCII letter, digit, '_' or '-'.
+func isQueryTypeByte(c byte) bool {
+	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_' || c == '-'
 }
 
 // queryBodyFileName returns the body sidecar file name a query of this
