@@ -105,7 +105,10 @@ func TestFsQueriesStore(t *testing.T) {
 			}
 			err := store.SaveQuery(ctx, query)
 			assert.NoError(t, err)
-			assert.FileExists(t, filepath.Join(queriesDir, "query2.query.json"))
+			// SaveQuery now honors FolderPath (previously it silently ignored
+			// it and always wrote to the queries root - see the plan's
+			// "correct SaveQuery to honor FolderPath").
+			assert.FileExists(t, filepath.Join(queriesDir, folder1, "query2.query.json"))
 		})
 	})
 

@@ -20,7 +20,35 @@ import (
 // *.sql.json queries, which predate the "<id>.query.json" suffix
 // convention and so match nothing here) out of the tree entirely. Returns
 // (nil, nil) when relFolderPath itself has nothing loadable.
-func (s fsQueriesStore) loadQueriesTree(ctx context.Context, relFolderPath string) (*datatug.QueriesFolder, error) {
+//
+// This is LoadProject's sole entry point into the query store: once a
+// project has been touched by a write, it acquires the query store lock
+// once for the whole recursive walk and holds it throughout, so a
+// concurrent writer can never be observed mid-install partway through the
+// tree. Before that (see withQueryReadLock), a fresh or read-only project
+// has nothing to coordinate against and loads directly. Internal recursion
+// calls loadQueriesTreeLocked/loadQueriesLocked directly - never the
+// public LoadQueries - since the lock is not reentrant.
+func (s fsQueriesStore) loadQueriesTree(ctx context.Context, relFolderPath string) (folder *datatug.QueriesFolder, err error) {
+	err = s.withQueryReadLock(ctx, func(g queryLockGuard) error {
+		var lockedErr error
+		// One byte budget for the whole walk (maxQueryListingBytes).
+		folder, lockedErr = s.loadQueriesTreeLocked(ctx, g, relFolderPath, s.newListingBudget())
+		return lockedErr
+	})
+	return folder, err
+}
+
+func (s fsQueriesStore) loadQueriesTreeLocked(ctx context.Context, g queryLockGuard, relFolderPath string, budget *queryReadBudget) (*datatug.QueriesFolder, error) {
+	if relFolderPath == "" {
+		// A symlinked queries root would redirect the whole walk. Below it,
+		// os.ReadDir reports a symlinked sub-folder as a non-directory,
+		// which the loop skips, and each file is read by the query store's
+		// regular-file-only reader (readQueryItemJSON).
+		if _, err := walkQueryDir(s.dirPath, "", "", false); err != nil {
+			return nil, err
+		}
+	}
 	dirPath := path.Join(s.dirPath, relFolderPath)
 	dirEntries, err := os.ReadDir(dirPath)
 	if err != nil {
@@ -30,7 +58,7 @@ func (s fsQueriesStore) loadQueriesTree(ctx context.Context, relFolderPath strin
 		return nil, err
 	}
 
-	own, err := s.LoadQueries(ctx, relFolderPath)
+	own, err := s.loadQueriesLocked(ctx, g, relFolderPath, budget)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load queries in %s: %w", relFolderPath, err)
 	}
@@ -40,7 +68,19 @@ func (s fsQueriesStore) loadQueriesTree(ctx context.Context, relFolderPath strin
 		if !de.IsDir() {
 			continue
 		}
-		sub, err := s.loadQueriesTree(ctx, path.Join(relFolderPath, de.Name()))
+		if de.Name() == reservedQueryTxnDirName {
+			// The query transaction namespace is internal bookkeeping - a
+			// lock file, journal and staging area - never a user folder or
+			// query (see query_lock.go/query_txn.go). It only ever lives at
+			// the queries root, but it is skipped at every depth: no API can
+			// address a folder of that name anywhere (validateQuerySegmentReason
+			// refuses it for writes, validateQueryReadSegmentReason for
+			// LoadQuery and LoadQueries), so a tree listing that showed one -
+			// only a clone or an archive can put it there - would list
+			// queries nothing else can read, write or delete (review N-f).
+			continue
+		}
+		sub, err := s.loadQueriesTreeLocked(ctx, g, path.Join(relFolderPath, de.Name()), budget)
 		if err != nil {
 			return nil, err
 		}
@@ -65,15 +105,38 @@ func (s fsQueriesStore) loadQueriesTree(ctx context.Context, relFolderPath strin
 // sub-folders under relFolderPath (empty for the project's queries root) -
 // "the query saver must round-trip" against loadQueriesTree. A nil folder
 // (a project with no queries) is a no-op.
+//
+// This is SaveProject's sole entry point into the query store: like
+// loadQueriesTree, it acquires the query store lock once for the whole
+// recursive save - so a project save writing several query pairs holds one
+// coordination while each pair still gets its own recoverable transaction,
+// per the plan's Approach.
 func (s fsQueriesStore) saveQueriesTree(ctx context.Context, relFolderPath string, folder *datatug.QueriesFolder) error {
 	if folder == nil {
 		return nil
 	}
+	return s.withQueryLock(ctx, func(g queryLockGuard) error {
+		return s.saveQueriesTreeLocked(ctx, g, relFolderPath, folder)
+	})
+}
+
+func (s fsQueriesStore) saveQueriesTreeLocked(ctx context.Context, g queryLockGuard, relFolderPath string, folder *datatug.QueriesFolder) error {
 	for _, item := range folder.Items {
 		if item == nil {
 			continue
 		}
-		if _, err := s.CreateQuery(ctx, datatug.QueryDefWithFolderPath{FolderPath: relFolderPath, QueryDef: *item}); err != nil {
+		if err := item.Validate(); err != nil {
+			return fmt.Errorf("invalid query[%s] in %s: %w", item.ID, relFolderPath, err)
+		}
+		dir, err := s.resolveQueryLocation(relFolderPath, item.ID)
+		if err != nil {
+			return fmt.Errorf("failed to save query[%s] in %s: %w", item.ID, relFolderPath, err)
+		}
+		current, err := g.readQueryPair(relFolderPath, dir, item.ID)
+		if err != nil {
+			return fmt.Errorf("failed to read existing query[%s] in %s: %w", item.ID, relFolderPath, err)
+		}
+		if _, err := s.stageAndInstallQueryPair(g, relFolderPath, *item, current); err != nil {
 			return fmt.Errorf("failed to save query[%s] in %s: %w", item.ID, relFolderPath, err)
 		}
 	}
@@ -81,7 +144,13 @@ func (s fsQueriesStore) saveQueriesTree(ctx context.Context, relFolderPath strin
 		if sub == nil {
 			continue
 		}
-		if err := s.saveQueriesTree(ctx, path.Join(relFolderPath, sub.GetID()), sub); err != nil {
+		// A sub-folder's ID is one path segment. "" or "." would otherwise
+		// save its items into the parent, and ".." into the grandparent,
+		// because path.Join cleans them away (review N-g).
+		if reason, ok := validateQuerySegmentReason(sub.GetID()); !ok {
+			return invalidQueryLocation(relFolderPath, "", fmt.Sprintf("sub-folder %q: %s", sub.GetID(), reason))
+		}
+		if err := s.saveQueriesTreeLocked(ctx, g, path.Join(relFolderPath, sub.GetID()), sub); err != nil {
 			return err
 		}
 	}

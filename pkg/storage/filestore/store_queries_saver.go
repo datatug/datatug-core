@@ -2,66 +2,82 @@ package filestore
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path"
-	"strings"
+	"strconv"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
-	"github.com/datatug/datatug-core/pkg/storage"
 )
 
-func (s fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, name string) (err error) {
-	folderPath := path.Join(s.dirPath, parentPath, name)
-	if err = os.MkdirAll(folderPath, 0777); err != nil {
-		err = fmt.Errorf("failed to create folder: %w", err)
-		return
+// CreateQueryFolder creates folder name under parentPath, plus a README.md
+// naming it unless one is already there. parentPath and name are validated
+// like every query write location (validateQueryFolderPath,
+// validateQuerySegmentReason), and each segment is checked or created by
+// walkQueryDir, so nothing is ever created outside the queries root or
+// through a symlinked or non-directory segment. README.md is created
+// exclusively: an existing entry - a file, or a symlink whether dangling or
+// not - is left alone and never followed.
+func (s fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, name string) error {
+	if err := validateQueryFolderPath(parentPath); err != nil {
+		return err
 	}
-	readmePath := path.Join(folderPath, "README.md")
-	if _, err = os.Stat(readmePath); err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			err = fmt.Errorf("failed to check README.md: %w", err)
-			return
+	if reason, ok := validateQuerySegmentReason(name); !ok {
+		return invalidQueryLocation(parentPath, "", "folder name "+strconv.Quote(name)+": "+reason)
+	}
+	folderPath := name
+	if parentPath != "" {
+		folderPath = parentPath + "/" + name
+	}
+	dir, err := walkQueryDir(s.dirPath, folderPath, "", true)
+	if err != nil {
+		return fmt.Errorf("failed to create folder: %w", err)
+	}
+	f, err := os.OpenFile(path.Join(dir, "README.md"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+	if err != nil {
+		if os.IsExist(err) {
+			return nil
 		}
-		if err = os.WriteFile(readmePath, []byte(fmt.Sprintf("# %v", name)), 0644); err != nil {
-			err = fmt.Errorf("failed to write to README.md file: %w", err)
-			return
-		}
+		return fmt.Errorf("failed to create README.md file: %w", err)
 	}
-	return
-}
-
-func (s fsQueriesStore) CreateQuery(_ context.Context, query datatug.QueryDefWithFolderPath) (*datatug.QueryDefWithFolderPath, error) {
-	return &query, s.saveQuery(query.FolderPath, query.QueryDef, true)
-}
-
-func (s fsQueriesStore) saveQuery(folderPath string, query datatug.QueryDef, isNew bool) (err error) {
-	if err = query.Validate(); err != nil {
-		return fmt.Errorf("invalid query (isNew=%v): %w", isNew, err)
+	if _, err := fmt.Fprintf(f, "# %v", name); err != nil {
+		_ = f.Close()
+		return fmt.Errorf("failed to write to README.md file: %w", err)
 	}
-
-	queryText := query.Text
-	query.Text = ""
-	defer func() {
-		query.Text = queryText
-	}()
-
-	queryDirPath := path.Join(s.dirPath, folderPath)
-
-	jsonFileName := fmt.Sprintf("%s.%s.json", query.ID, storage.QueryFileSuffix)
-	if err = saveJSONFile(queryDirPath, jsonFileName, query); err != nil {
-		return fmt.Errorf("failed to save query to json file: %w", err)
-	}
-
-	if queryText != "" {
-		fileExt := strings.ToLower(string(query.Type))
-		fileName := fmt.Sprintf("%s.%s.%s", query.ID, storage.QueryFileSuffix, fileExt)
-		filePath := path.Join(queryDirPath, fileName)
-
-		if err = os.WriteFile(filePath, []byte(queryText), 0644); err != nil {
-			return fmt.Errorf("failed to write query text to file %s: %w", filePath, err)
-		}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("failed to write to README.md file: %w", err)
 	}
 	return nil
+}
+
+// CreateQuery is a legacy save path used by saveQueriesTree during project
+// saves and by existing callers directly. Despite its name it has always
+// been an unconditional upsert (nothing here ever checked whether a record
+// already existed) - a caller that needs true create-only or
+// stale-revision-safe semantics uses the revisioned PutQuery instead. It
+// now routes through the same pair transaction every other write uses,
+// with the same location validation SaveQuery applies.
+func (s fsQueriesStore) CreateQuery(ctx context.Context, query datatug.QueryDefWithFolderPath) (*datatug.QueryDefWithFolderPath, error) {
+	if err := query.QueryDef.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid query: %w", err)
+	}
+	if _, err := s.resolveQueryLocation(query.FolderPath, query.ID); err != nil {
+		return nil, err
+	}
+	err := s.withQueryLock(ctx, func(g queryLockGuard) error {
+		dir, err := s.resolveQueryLocation(query.FolderPath, query.ID) // again, under the lock (N3)
+		if err != nil {
+			return err
+		}
+		current, err := g.readQueryPair(query.FolderPath, dir, query.ID)
+		if err != nil {
+			return err
+		}
+		_, err = s.stageAndInstallQueryPair(g, query.FolderPath, query.QueryDef, current)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &query, nil
 }

@@ -2,7 +2,6 @@ package datatug
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -168,32 +167,39 @@ type QueryDefTarget struct {
 	Credentials
 }
 
-// embeddedURLCredentialsPattern matches a userinfo component (user:pass@) as
-// found in connection-string style URLs, e.g. "postgres://user:pass@host/db".
-var embeddedURLCredentialsPattern = regexp.MustCompile(`\S+:\S+@`)
-
 // Validate returns error if not valid. QueryDefTarget is persisted to
 // git-tracked project files, so it must never carry credential material: a
-// non-empty password, or a user:pass@ userinfo component embedded in any of
-// its connection-string-like fields.
+// non-empty password, or a secret embedded in any of its
+// connection-string-like fields (driver, catalog, protocol, host, and the
+// username itself) in any syntax EmbeddedCredentialReason recognizes
+// (query_credentials.go). A username alone is allowed.
 func (v QueryDefTarget) Validate() error {
 	if v.Password != "" {
 		return validation.NewErrBadRecordFieldValue("password", "must not store credentials in a query target; connect using environment-level secrets instead")
 	}
 	for _, f := range []struct{ name, value string }{
-		{"driver", v.Driver}, {"catalog", v.Catalog}, {"protocol", v.Protocol}, {"host", v.Host},
+		{"driver", v.Driver}, {"catalog", v.Catalog}, {"protocol", v.Protocol}, {"host", v.Host}, {"username", v.Username},
 	} {
-		if embeddedURLCredentialsPattern.MatchString(f.value) {
-			return validation.NewErrBadRecordFieldValue(f.name, "must not embed credentials (user:pass@) in a URL")
+		if reason, found := EmbeddedCredentialReason(f.value); found {
+			return validation.NewErrBadRecordFieldValue(f.name, reason+"; connect using environment-level secrets instead")
 		}
 	}
 	return nil
 }
 
-// Validate returns error if not valid
+// Validate returns error if not valid. A QueryDef is persisted to
+// git-tracked project files, so besides its structure it is screened for
+// credential material (query_credentials.go): its title, its text whatever
+// the query type, every target and every parameter default. Every save
+// path validates through here. A query captured from exploration is
+// additionally checked for complete, consistent provenance
+// (QueryCapture.validateCaptureAgainst, query_capture.go).
 func (v QueryDef) Validate() error {
 	if err := v.ValidateWithOptions(true); err != nil {
 		return err
+	}
+	if reason, found := EmbeddedCredentialReason(v.Title); found {
+		return validation.NewErrBadRecordFieldValue("title", reason+"; a query's title is stored in git-tracked project files")
 	}
 	if v.Capture != nil {
 		if err := v.Capture.validateCaptureAgainst(v.Parameters); err != nil {
@@ -220,6 +226,13 @@ func (v QueryDef) Validate() error {
 	default:
 		return validation.NewErrBadRecordFieldValue("type", "unsupported value: "+string(v.Type))
 	}
+	// The text of every query type - an HTTP request, SQL, GraphQL or DTQL -
+	// is persisted to a git-tracked body sidecar, so it is screened whatever
+	// the type. Bind parameters and {name} references are placeholders, not
+	// secrets (see query_credentials.go).
+	if reason, found := EmbeddedCredentialReason(v.Text); found {
+		return validation.NewErrBadRecordFieldValue("text", reason+"; "+queryTextSecretHint(v.Type))
+	}
 	for i, target := range v.Targets {
 		if err := target.Validate(); err != nil {
 			return fmt.Errorf("targets[%v]: %w", i, err)
@@ -228,7 +241,23 @@ func (v QueryDef) Validate() error {
 	if err := v.Parameters.Validate(); err != nil {
 		return err
 	}
+	for i, p := range v.Parameters {
+		if reason, found := defaultValueCredentialReason(p.DefaultValue); found {
+			return validation.NewErrBadRecordFieldValue(fmt.Sprintf("parameters[%v].defaultValue", i), reason)
+		}
+	}
 	return nil
+}
+
+// queryTextSecretHint says how to keep a secret out of a query's text: for
+// an HTTP query, a declared parameter referenced as {name} - the one
+// placeholder syntax datatug-cli's HTTP executor substitutes
+// (pkg/httpsource) - and for any other type a bind parameter.
+func queryTextSecretHint(queryType QueryType) string {
+	if queryType == QueryTypeHTTP {
+		return "declare the secret as a query parameter and reference it as {name} instead"
+	}
+	return "pass the value as a query parameter (for example @name, :name, $1 or ?) instead of a literal"
 }
 
 // QueryResult holds results of a query execution

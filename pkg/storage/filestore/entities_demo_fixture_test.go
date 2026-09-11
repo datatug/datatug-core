@@ -48,10 +48,7 @@ const demoProjectsRepoPath = "/home/ai/projects/datatug/datatug-demo-projects"
 // (a "git pull" here previously did; a test is not the place to fetch
 // changes into a repository other tooling/sessions may be using).
 func TestFsEntitiesStore_DemoProject1Fixture(t *testing.T) {
-	demoProjectDir := filepath.Join(demoProjectsRepoPath, "demo-project-1")
-	if _, err := os.Stat(demoProjectDir); err != nil {
-		t.Skipf("skipping: sibling checkout not found at %s: %v", demoProjectDir, err)
-	}
+	demoProjectDir := demoProject1Dir(t)
 
 	tmpDir, err := os.MkdirTemp("", "datatug_demo_project_1_fixture")
 	require.NoError(t, err)
@@ -173,11 +170,42 @@ func TestFsEntitiesStore_DemoProject1Fixture(t *testing.T) {
 	}
 	corruptErr := corruptedProject.Validate()
 	if assert.Error(t, corruptErr, "a query target embedding user:pass@ in a URL must fail Project.Validate()") {
-		assert.ErrorContains(t, corruptErr, "user:pass@")
+		assert.ErrorContains(t, corruptErr, "targets[0]")
+		assert.ErrorContains(t, corruptErr, "host")
 	}
 
 	err = project.Validate()
 	assert.NoError(t, err, "the real demo project must fully validate now that S42 fixed the sqlite3 host issue upstream")
+}
+
+// demoProject1Dir returns demo-project-1 in a datatug-demo-projects
+// checkout, skipping the test when there is none. It looks at
+// $DATATUG_DEMO_PROJECTS_DIR, then demoProjectsRepoPath, then a
+// "datatug-demo-projects" sibling of any directory above the working
+// directory - which finds the sibling checkout from the canonical clone
+// and from any worktree under it. The checkout is only ever read.
+func demoProject1Dir(t *testing.T) string {
+	t.Helper()
+	candidates := []string{os.Getenv("DATATUG_DEMO_PROJECTS_DIR"), demoProjectsRepoPath}
+	if wd, err := os.Getwd(); err == nil {
+		for dir := wd; ; dir = filepath.Dir(dir) {
+			candidates = append(candidates, filepath.Join(dir, "datatug-demo-projects"))
+			if filepath.Dir(dir) == dir {
+				break
+			}
+		}
+	}
+	for _, repo := range candidates {
+		if repo == "" {
+			continue
+		}
+		dir := filepath.Join(repo, "demo-project-1")
+		if info, err := os.Stat(dir); err == nil && info.IsDir() {
+			return dir
+		}
+	}
+	t.Skipf("skipping: no datatug-demo-projects checkout found (set DATATUG_DEMO_PROJECTS_DIR)")
+	return ""
 }
 
 // copyDir recursively copies src to dst, preserving the directory structure.

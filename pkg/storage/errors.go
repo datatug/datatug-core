@@ -27,6 +27,12 @@ func (e FileLoadError) String() string {
 	return e.Error()
 }
 
+// Unwrap returns the error the file failed to load with, so errors.Is and
+// errors.As see through a FileLoadError.
+func (e FileLoadError) Unwrap() error {
+	return e.err
+}
+
 func NewFilesLoadError(errs []FileLoadError) FilesLoadError {
 	return FilesLoadError{
 		errs: errs,
@@ -56,4 +62,14 @@ func (e FilesLoadError) Error() string {
 
 func (e FilesLoadError) String() string {
 	return e.Error()
+}
+
+// Unwrap returns every file's error, so errors.Is and errors.As see
+// through a FilesLoadError to any of them.
+func (e FilesLoadError) Unwrap() []error {
+	errs := make([]error, len(e.errs))
+	for i, err := range e.errs {
+		errs[i] = err
+	}
+	return errs
 }

@@ -11,7 +11,13 @@ import (
 	"github.com/datatug/datatug-core/pkg/storage"
 )
 
-// SaveProject saves project
+// SaveProject saves project. It validates the whole project first - every
+// query's content included - so a project that fails validation writes
+// nothing. It is not atomic across the parts it then saves in parallel
+// (the project file, entities, environments, DB models, boards and
+// queries): when one part fails, the parts already saved stay written
+// (review N5, pre-existing). Each query pair is still written as its own
+// recoverable transaction.
 func (s fsProjectStore) SaveProject(ctx context.Context, project *datatug.Project) (err error) {
 	//log.Println("Validating project for saving to: ", s.projectPath)
 	if err = project.Validate(); err != nil {
