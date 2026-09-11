@@ -340,6 +340,18 @@ type currentQueryPair struct {
 	// sidecar and so is never "complete" here - see LoadQueryRevision and
 	// TestPutQuery_TreatsLegacyEmptyBodyRecordAsIncomplete for what that
 	// means for revisioned reads/writes meeting legacy-written data.
+	//
+	// revision is set whenever exists is true, complete or not: an
+	// incomplete pair still has a revision, computed the same framed way
+	// but over an empty body file name/bytes (the "no body sidecar exists"
+	// sentinel - see computeQueryRevision), so it can never collide with a
+	// complete pair's revision even when that complete pair's own body
+	// happens to be empty content (a real, present, empty-content sidecar
+	// carries its real file name in the hash; a missing one never does).
+	// This is what lets a caller that only ever saw the incomplete state
+	// through LoadQueryRevision still supply a meaningful, verifiable
+	// PutQuery IfMatch/DeleteQueryRevision expected revision for it - see
+	// datatug.IncompleteQueryRecordError.Revision.
 	complete     bool
 	jsonBytes    []byte
 	bodyFileName string
@@ -370,6 +382,7 @@ func readCurrentQueryPair(dir, id string) (currentQueryPair, error) {
 		return cur, fmt.Errorf("failed to parse existing query metadata for %s: %w", id, err)
 	}
 	if meta.Type == "" {
+		cur.revision = computeQueryRevision(jsonBytes, "", nil)
 		return cur, nil
 	}
 	bodyFileName := queryBodyFileName(id, meta.Type)
@@ -378,6 +391,7 @@ func readCurrentQueryPair(dir, id string) (currentQueryPair, error) {
 		return cur, fmt.Errorf("failed to read query body: %w", err)
 	}
 	if !bodyExists {
+		cur.revision = computeQueryRevision(jsonBytes, "", nil)
 		return cur, nil
 	}
 	cur.complete = true

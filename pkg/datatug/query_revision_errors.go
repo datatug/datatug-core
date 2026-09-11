@@ -48,10 +48,22 @@ var ErrIncompleteQueryRecord = errors.New("incomplete query record")
 // metadata file. It is returned only by the strict revisioned load; the
 // tolerant QueriesStore.LoadQuery keeps treating a missing body sidecar as
 // an empty body.
+//
+// It carries what a caller needs to act on this location rather than being
+// permanently locked out of it: Revision, computed over exactly what is
+// currently persisted, is the exact value PutQuery's IfMatch or
+// DeleteQueryRevision's expected revision must supply to replace (which
+// completes it) or remove this record - a fabricated or stale value still
+// conflicts, exactly as it would for a complete record. Query is the
+// partial record as read from disk (Text always empty, since no body
+// sidecar exists), so a caller can inspect or adopt what is already there
+// instead of only learning that something incomplete exists.
 type IncompleteQueryRecordError struct {
 	FolderPath string
 	ID         string
 	Reason     string
+	Revision   QueryRevision
+	Query      QueryDefWithFolderPath
 }
 
 func (e *IncompleteQueryRecordError) Error() string {

@@ -49,17 +49,20 @@ func (s fsQueriesStore) LoadQueryRevision(ctx context.Context, id string, o ...d
 		if !current.exists {
 			return fmt.Errorf("query %q not found: %w", id, os.ErrNotExist)
 		}
-		if !current.complete {
-			return &datatug.IncompleteQueryRecordError{
-				FolderPath: folderPath, ID: itemID,
-				Reason: "committed pair is incomplete: JSON metadata exists without its expected body sidecar",
-			}
-		}
 		var qd datatug.QueryDef
 		if err := json.Unmarshal(current.jsonBytes, &qd); err != nil {
 			return fmt.Errorf("failed to parse query metadata for %s: %w", id, err)
 		}
 		qd.ID = itemID
+		if !current.complete {
+			// qd.Text stays "" - no body sidecar exists to read it from.
+			return &datatug.IncompleteQueryRecordError{
+				FolderPath: folderPath, ID: itemID,
+				Reason:   "committed pair is incomplete: JSON metadata exists without its expected body sidecar",
+				Revision: current.revision,
+				Query:    datatug.QueryDefWithFolderPath{FolderPath: folderPath, QueryDef: qd},
+			}
+		}
 		qd.Text = string(current.bodyBytes)
 		result = &datatug.StoredQuery{
 			Query:    datatug.QueryDefWithFolderPath{FolderPath: folderPath, QueryDef: qd},
@@ -138,6 +141,15 @@ func (s fsQueriesStore) PutQuery(ctx context.Context, query *datatug.QueryDefWit
 // *datatug.QueryRevisionConflictError when it is not met. condition has
 // already been validated (validateQueryWriteCondition) to set exactly one
 // of IfNoneMatch/IfMatch.
+//
+// IfMatch is checked by revision equality alone, deliberately not gated on
+// current.complete: an incomplete legacy record (see S1/
+// TestPutQuery_TreatsLegacyEmptyBodyRecordAsIncomplete) still has a
+// revision (readCurrentQueryPair computes one over whatever exists), and a
+// caller that obtained it from LoadQueryRevision's IncompleteQueryRecordError
+// must be able to supply it here to replace - and thereby complete - the
+// record. This is exactly as safe as matching a complete record's
+// revision: an arbitrary or stale guess still cannot equal it.
 func checkQueryWriteCondition(folderPath, id string, condition datatug.QueryWriteCondition, current currentQueryPair) error {
 	if condition.IfNoneMatch {
 		if current.exists {
@@ -148,7 +160,7 @@ func checkQueryWriteCondition(folderPath, id string, condition datatug.QueryWrit
 		}
 		return nil
 	}
-	if !current.exists || !current.complete {
+	if !current.exists {
 		return &datatug.QueryRevisionConflictError{
 			FolderPath: folderPath, ID: id, Expected: condition.IfMatch,
 			Reason: "no matching query exists at this location",
@@ -166,6 +178,12 @@ func checkQueryWriteCondition(folderPath, id string, condition datatug.QueryWrit
 // DeleteQueryRevision implements datatug.RevisionedQueriesStore. Location
 // validation runs before the query store lock is acquired, so an invalid
 // id never creates the reserved transaction directory.
+//
+// Like checkQueryWriteCondition, expected is matched by revision equality
+// alone, not gated on current.complete, so a caller that obtained a
+// revision from LoadQueryRevision's IncompleteQueryRecordError (S1) can
+// remove that record too - completeQueryTransaction's delete path already
+// tolerates current.bodyFileName being "" (no body sidecar to remove).
 func (s fsQueriesStore) DeleteQueryRevision(ctx context.Context, id string, expected datatug.QueryRevision) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -184,7 +202,7 @@ func (s fsQueriesStore) DeleteQueryRevision(ctx context.Context, id string, expe
 		if err != nil {
 			return err
 		}
-		if !current.exists || !current.complete || current.revision != expected {
+		if !current.exists || current.revision != expected {
 			return &datatug.QueryRevisionConflictError{
 				FolderPath: folderPath, ID: itemID, Expected: expected, Actual: current.revision,
 				Reason: "stale or missing revision",
