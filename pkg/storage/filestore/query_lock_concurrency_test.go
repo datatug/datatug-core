@@ -69,6 +69,68 @@ func TestQueryLock_BlocksConcurrentAccessAndSeesCompleteResultAfterRelease(t *te
 	}
 }
 
+// TestQueryLock_BlocksConcurrentProjectLevelRecursiveLoad is N3: the same
+// proof as TestQueryLock_BlocksConcurrentAccessAndSeesCompleteResultAfterRelease,
+// but for loadQueriesTree - the project-level recursive walk LoadProject
+// actually uses (see queries_tree.go) - rather than the single-folder
+// LoadQueries. It has its own lock-acquire/recover call
+// (loadQueriesTree -> withQueryReadLock) distinct from LoadQueries', so
+// this exercises that call site directly instead of only inferring it is
+// covered by the single-folder case.
+func TestQueryLock_BlocksConcurrentProjectLevelRecursiveLoad(t *testing.T) {
+	store, queriesDir := newTestQueriesStore(t)
+	ctx := context.Background()
+	q := dtqlQuery("q1", "", "original")
+	if _, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
+		t.Fatalf("unexpected error creating: %v", err)
+	}
+
+	txnDir, err := ensureQueryTxnDir(queriesDir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	external := flock.New(filepath.Join(txnDir, "lock"))
+	locked, err := external.TryLock()
+	if err != nil || !locked {
+		t.Fatalf("unexpected error/result taking the external lock: locked=%v err=%v", locked, err)
+	}
+
+	done := make(chan struct {
+		folder *datatug.QueriesFolder
+		err    error
+	}, 1)
+	go func() {
+		folder, err := store.loadQueriesTree(ctx, "")
+		done <- struct {
+			folder *datatug.QueriesFolder
+			err    error
+		}{folder, err}
+	}()
+
+	select {
+	case <-done:
+		t.Fatal("expected loadQueriesTree to block while an external holder has the lock")
+	case <-time.After(150 * time.Millisecond):
+		// Still blocked, as expected.
+	}
+
+	if err := external.Unlock(); err != nil {
+		t.Fatalf("unexpected error releasing the external lock: %v", err)
+	}
+
+	select {
+	case result := <-done:
+		if result.err != nil {
+			t.Fatalf("unexpected error after the lock was released: %v", result.err)
+		}
+		if result.folder == nil || len(result.folder.Items) != 1 || result.folder.Items[0].Text != "original" {
+			t.Fatalf("expected the complete, unchanged record, got: %+v", result.folder)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("expected loadQueriesTree to proceed once the external lock was released")
+	}
+}
+
 // TestQueryLock_CancellationWhileWaitingBehindAHeldLock proves waiting for
 // the lock is cancellation-aware even when another holder never releases
 // it: PutQuery must return ctx's error promptly, not hang until the lock

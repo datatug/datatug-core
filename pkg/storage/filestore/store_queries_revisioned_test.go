@@ -166,6 +166,56 @@ func TestPutQuery_UpdateMissingRecordConflicts(t *testing.T) {
 	}
 }
 
+// TestPutQuery_HandEditedFileInvalidatesAStaleRevision is N2: a real
+// end-to-end exercise of the revision's whole point - detecting a change
+// made outside the revisioned API entirely (another process, a text
+// editor, a merge tool), not just the framing/hashing unit tests
+// (TestComputeQueryRevision_*) that prove the primitive alone. It hand-
+// edits the persisted JSON sidecar directly with os.WriteFile, bypassing
+// PutQuery completely, then proves LoadQueryRevision observes the new
+// revision and a writer still holding the pre-edit revision is refused.
+func TestPutQuery_HandEditedFileInvalidatesAStaleRevision(t *testing.T) {
+	store, queriesDir := newTestQueriesStore(t)
+	ctx := context.Background()
+	q := dtqlQuery("q1", "", "original")
+	stored, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true})
+	if err != nil {
+		t.Fatalf("unexpected error creating: %v", err)
+	}
+
+	jsonPath := filepath.Join(queriesDir, "q1.query.json")
+	data, err := os.ReadFile(jsonPath)
+	if err != nil {
+		t.Fatalf("unexpected error reading the sidecar: %v", err)
+	}
+	// A trailing space is still valid JSON but different bytes - exactly
+	// the kind of edit a text editor's "save" makes even when nothing
+	// semantic changed.
+	if err := os.WriteFile(jsonPath, append(data, ' '), 0o644); err != nil {
+		t.Fatalf("unexpected error hand-editing the sidecar: %v", err)
+	}
+
+	loaded, err := store.LoadQueryRevision(ctx, "q1")
+	if err != nil {
+		t.Fatalf("unexpected error loading after the hand edit: %v", err)
+	}
+	if loaded.Revision == stored.Revision {
+		t.Fatal("expected the hand edit to produce a new revision")
+	}
+
+	updated := dtqlQuery("q1", "", "updated-by-a-writer-that-never-saw-the-hand-edit")
+	_, err = store.PutQuery(ctx, &updated, datatug.QueryWriteCondition{IfMatch: stored.Revision})
+	if !datatug.IsQueryRevisionConflict(err) {
+		t.Fatalf("expected the pre-edit revision to be stale and refused, got %T: %v", err, err)
+	}
+
+	// The writer that reloads first, and so sees the hand edit's revision,
+	// succeeds.
+	if _, err := store.PutQuery(ctx, &updated, datatug.QueryWriteCondition{IfMatch: loaded.Revision}); err != nil {
+		t.Fatalf("expected the post-edit revision to be accepted, got: %v", err)
+	}
+}
+
 func TestPutQuery_TypeChangeRemovesOldSidecar(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()

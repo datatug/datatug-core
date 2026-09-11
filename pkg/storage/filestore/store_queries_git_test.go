@@ -67,12 +67,26 @@ func TestPutQuery_LeavesOnlyOrdinaryUncommittedGitChanges(t *testing.T) {
 	if !strings.Contains(status, "queries/q1.query.dtql") {
 		t.Fatalf("expected the body sidecar to show as an ordinary uncommitted change, got status:\n%s", status)
 	}
+	// N1: assert the exact set of status lines, not merely that the two
+	// expected files are present among possibly more - a prefix-only
+	// Contains check would not fail if a leaked ".dt-query-txn" (its lock
+	// file, journal or staged content, should the self-referential
+	// .gitignore ever stop working) also showed up as an untracked entry.
+	var lines []string
+	for _, line := range strings.Split(status, "\n") {
+		if line != "" {
+			lines = append(lines, line)
+		}
+	}
+	if len(lines) != 2 {
+		t.Fatalf("expected exactly 2 status lines (the JSON and body sidecars only), got %d:\n%s", len(lines), status)
+	}
+	if strings.Contains(status, reservedQueryTxnDirName) {
+		t.Fatalf("expected the reserved transaction namespace never to leak into git status, got:\n%s", status)
+	}
 	// Every status line for a brand-new file must be "??" (untracked), never
 	// a staged/index change - the store must not run `git add` or similar.
-	for _, line := range strings.Split(status, "\n") {
-		if line == "" {
-			continue
-		}
+	for _, line := range lines {
 		if !strings.HasPrefix(line, "??") {
 			t.Errorf("expected an untracked ('??') status line, got: %q", line)
 		}
