@@ -1,3 +1,53 @@
+// Package filestore's query pair transaction protocol (this file) persists
+// a query's JSON metadata and its body sidecar as one recoverable logical
+// transaction: stage both new files under the reserved ".dt-query-txn"
+// directory with exclusive creation, durably record a journal describing
+// the target state (queryTxnJournal), then install (or remove, for a
+// delete) each file idempotently via ensureInstalled, which verifies
+// staged/already-installed content against the journal's recorded hash
+// before trusting it. A fresh withQueryLock call always recovers any
+// journal left by an earlier interrupted attempt before doing anything
+// else, replaying exactly the same idempotent install path recovery and a
+// normal write share.
+//
+// Deviation from the plan: the plan's Approach text calls for the
+// transaction to "back up the old pair" before installing the new one.
+// This implementation has no backup-file step anywhere. It relies instead
+// on three properties that together give the same guarantee the plan's
+// backup step was meant to provide - "never observe a torn pair, never
+// lose data to an interruption" - without ever needing a copy of the
+// previous content on disk:
+//
+//  1. The new content is durably staged (writeStagedFile fsyncs each
+//     staged file) and journaled (writeJournal fsyncs the journal and its
+//     directory) before anything at the final location is touched, so an
+//     interruption before the journal exists leaves the previous complete
+//     revision completely untouched - there is nothing to back up yet
+//     because nothing has changed yet.
+//  2. Once the journal exists, the transaction is committed forward, never
+//     rolled back (see completeQueryTransaction's doc comment) - so the
+//     "old pair" a backup would protect is never something this protocol
+//     needs to restore. What could still be lost is the *new* pair's
+//     install being interrupted partway, which a backup of the *old* pair
+//     would not have helped with anyway.
+//  3. ensureInstalled makes that partial-install case safe without a
+//     backup: recovery re-derives the exact same staged content (still
+//     present under txnDir - staged files are only ever removed by
+//     cleanupTxnArtifacts, the transaction's very last step) and its
+//     recorded hash from the journal, and only ever installs content that
+//     hashes to exactly what was staged. A crash between installing the
+//     body and the JSON (or during either rename) leaves the directory in
+//     a state recovery always finishes identically, deterministically,
+//     to the journal's target state - old or new, never mixed, and never
+//     dependent on a backup file having survived the same crash.
+//
+// A physical backup file would in fact be a strictly weaker guarantee than
+// this: it would need its own fsync to be trustworthy after a crash, and
+// restoring it correctly still depends on knowing whether the install it
+// is protecting against completed - exactly the question the journal's
+// hash already answers without one. See query_lock.go's withQueryLock and
+// the recovery tests (query_txn_recovery_test.go) for the crash-phase
+// analysis this reasoning is verified against.
 package filestore
 
 import (
