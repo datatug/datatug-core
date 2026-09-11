@@ -1,0 +1,120 @@
+package filestore
+
+import (
+	"encoding/json"
+	"testing"
+
+	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/strongo/validation"
+)
+
+func validQueryForWrite() datatug.QueryDef {
+	return datatug.QueryDef{
+		ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "q1", Title: "Q1"}},
+		Type:        datatug.QueryTypeDTQL,
+		Text:        "from:\n  name: Invoice\n",
+	}
+}
+
+// Task 2: validate credentials and content before staging - none of these
+// cases may reach the file system.
+
+func TestValidateQueryForWrite_AcceptsValidQuery(t *testing.T) {
+	if err := validateQueryForWrite(validQueryForWrite()); err != nil {
+		t.Fatalf("expected a valid query to pass, got: %v", err)
+	}
+}
+
+func TestValidateQueryForWrite_RejectsPassword(t *testing.T) {
+	q := validQueryForWrite()
+	q.Targets = []datatug.QueryDefTarget{{Driver: "postgres", Credentials: datatug.Credentials{Username: "alice", Password: "secret"}}}
+	err := validateQueryForWrite(q)
+	if err == nil {
+		t.Fatal("expected a target password to be rejected")
+	}
+	if !validation.IsValidationError(err) {
+		t.Fatalf("expected a validation error, got %T: %v", err, err)
+	}
+}
+
+func TestValidateQueryForWrite_RejectsEmbeddedURLCredentials(t *testing.T) {
+	q := validQueryForWrite()
+	q.Targets = []datatug.QueryDefTarget{{Driver: "postgres", Host: "user:pass@db.example.com"}}
+	err := validateQueryForWrite(q)
+	if err == nil {
+		t.Fatal("expected embedded URL credentials to be rejected")
+	}
+	if !validation.IsValidationError(err) {
+		t.Fatalf("expected a validation error, got %T: %v", err, err)
+	}
+}
+
+func TestValidateQueryForWrite_AcceptsUsernameAlone(t *testing.T) {
+	q := validQueryForWrite()
+	q.Targets = []datatug.QueryDefTarget{{Driver: "postgres", Credentials: datatug.Credentials{Username: "alice"}}}
+	if err := validateQueryForWrite(q); err != nil {
+		t.Fatalf("expected a username alone to be accepted, got: %v", err)
+	}
+}
+
+func TestValidateQueryForWrite_RejectsUnknownType(t *testing.T) {
+	q := validQueryForWrite()
+	q.Type = "folder"
+	err := validateQueryForWrite(q)
+	if err == nil {
+		t.Fatal("expected an unknown/unsupported query type to be rejected")
+	}
+}
+
+func TestValidateQueryForWrite_RejectsInvalidRecord(t *testing.T) {
+	q := validQueryForWrite()
+	q.ID = "" // required field
+	if err := validateQueryForWrite(q); err == nil {
+		t.Fatal("expected a missing id to be rejected")
+	}
+}
+
+func TestQueryJSONBytes_ExcludesText(t *testing.T) {
+	q := validQueryForWrite()
+	b, err := queryJSONBytes(q)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	var raw map[string]interface{}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		t.Fatalf("unexpected error unmarshalling: %v", err)
+	}
+	if _, present := raw["text"]; present {
+		t.Fatalf("expected persisted JSON to exclude \"text\", got: %s", b)
+	}
+	if raw["id"] != "q1" {
+		t.Fatalf("expected persisted JSON to keep other metadata, got: %s", b)
+	}
+}
+
+func TestQueryJSONBytes_DoesNotMutateCaller(t *testing.T) {
+	q := validQueryForWrite()
+	if _, err := queryJSONBytes(q); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if q.Text == "" {
+		t.Fatalf("expected queryJSONBytes to leave the caller's copy of Text untouched")
+	}
+}
+
+func TestQueryBodyFileName(t *testing.T) {
+	cases := []struct {
+		id       string
+		typ      datatug.QueryType
+		expected string
+	}{
+		{"q1", datatug.QueryTypeDTQL, "q1.query.dtql"},
+		{"q1", datatug.QueryTypeSQL, "q1.query.sql"},
+		{"customer-invoices", datatug.QueryTypeHTTP, "customer-invoices.query.http"},
+	}
+	for _, c := range cases {
+		if got := queryBodyFileName(c.id, c.typ); got != c.expected {
+			t.Errorf("queryBodyFileName(%q, %q) = %q, want %q", c.id, c.typ, got, c.expected)
+		}
+	}
+}
