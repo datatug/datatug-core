@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "REVISION_CONFLICT",
+    "message": "the query changed since that revision was read; reload it and retry",
+    "field": "ifMatch",
+    "requestId": "req-0101"
+  }
+}

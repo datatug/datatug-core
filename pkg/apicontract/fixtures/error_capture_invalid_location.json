@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "segment \"..\" must not be \".\" or \"..\"",
+    "field": "query.folderPath",
+    "requestId": "req-0103"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "REVISION_CONFLICT",
+    "message": "a query already exists at this location; choose another id, or load it and update it with ifMatch",
+    "field": "query.id",
+    "requestId": "req-0102"
+  }
+}

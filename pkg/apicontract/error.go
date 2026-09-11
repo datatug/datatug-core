@@ -20,6 +20,16 @@ const (
 	ErrCodeResponseTooLarge              ErrorCode = "RESPONSE_TOO_LARGE"
 	ErrCodeSourceUnavailable             ErrorCode = "SOURCE_UNAVAILABLE"
 	ErrCodeTimeout                       ErrorCode = "TIMEOUT"
+	// ErrCodeRevisionConflict (409) refuses a project write whose
+	// optimistic-concurrency condition failed: a create (ifNoneMatch) found
+	// something already stored at the location, or an update (ifMatch) named
+	// a revision that is no longer current. Nothing was written. It is
+	// distinct from STALE_CONTEXT, which means the caller's securityContextId
+	// is stale and is recovered by calling agent-info again - retrying a
+	// stale revision that way would never succeed. Lead assumption
+	// 2026-09-11 (Phase 2 task 2, queries/capture), pending an amendment of
+	// api-contract.md's closed code set.
+	ErrCodeRevisionConflict ErrorCode = "REVISION_CONFLICT"
 )
 
 // errorCodeHTTPStatus is the exact code -> status mapping from "HTTP 400
@@ -38,6 +48,7 @@ var errorCodeHTTPStatus = map[ErrorCode]int{
 	ErrCodeUnsupportedProtectedExecution: 403,
 	ErrCodeNotFound:                      404,
 	ErrCodeStaleContext:                  409,
+	ErrCodeRevisionConflict:              409,
 	ErrCodeResponseTooLarge:              413,
 	ErrCodeSourceUnavailable:             503,
 	ErrCodeTimeout:                       504,

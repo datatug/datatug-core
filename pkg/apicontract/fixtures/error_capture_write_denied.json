@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "ACCESS_DENIED",
+    "message": "the serving principal may not save project queries: policy \"demo-project-1\" does not allow insert",
+    "requestId": "req-0107"
+  }
+}

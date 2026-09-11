@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "the stored query at this location is an incomplete pair; replace it with ifMatch set to its current revision",
+    "field": "query.id",
+    "requestId": "req-0106"
+  }
+}

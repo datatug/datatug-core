@@ -88,7 +88,24 @@ func TestFixtures_RoundTrip(t *testing.T) {
 	t.Run("result_snapshot.json", func(t *testing.T) { roundTrip[apicontract.Result](t, "result_snapshot.json") })
 	t.Run("result_truncated.json", func(t *testing.T) { roundTrip[apicontract.Result](t, "result_truncated.json") })
 
+	t.Run("capture_query_request_create.json", func(t *testing.T) {
+		roundTrip[apicontract.CaptureQueryRequest](t, "capture_query_request_create.json")
+	})
+	t.Run("capture_query_request_update.json", func(t *testing.T) {
+		roundTrip[apicontract.CaptureQueryRequest](t, "capture_query_request_update.json")
+	})
+	t.Run("capture_query_response.json", func(t *testing.T) {
+		roundTrip[apicontract.CaptureQueryResponse](t, "capture_query_response.json")
+	})
+
 	errorFixtures := []string{
+		"error_revision_conflict.json",
+		"error_capture_already_exists.json",
+		"error_capture_invalid_location.json",
+		"error_capture_credentials.json",
+		"error_capture_result_rows.json",
+		"error_capture_incomplete_record.json",
+		"error_capture_write_denied.json",
 		"error_invalid_request.json",
 		"error_type_mismatch.json",
 		"error_missing_parameter.json",
@@ -127,6 +144,7 @@ func TestFixtures_EveryErrorCodeHasAFixture(t *testing.T) {
 		apicontract.ErrCodeResponseTooLarge,
 		apicontract.ErrCodeSourceUnavailable,
 		apicontract.ErrCodeTimeout,
+		apicontract.ErrCodeRevisionConflict,
 	}
 	entries, err := Manifest()
 	if err != nil {

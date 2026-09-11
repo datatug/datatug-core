@@ -1,0 +1,35 @@
+{
+  "queryId": "customers/customer-invoices",
+  "revision": "4d7a9e21c0b35f86",
+  "query": {
+    "folderPath": "customers",
+    "id": "customer-invoices",
+    "title": "Customer invoices",
+    "purpose": "Which invoices does this customer have?",
+    "source": "chinook",
+    "dtql": "from:\n  name: Invoice\ncolumns:\n  - field: InvoiceId\n  - field: InvoiceDate\n  - field: Total\nwhere:\n  op: ==\n  left:\n    field: CustomerId\n  right:\n    param: Customer.ID\n",
+    "parameters": [
+      {
+        "id": "Customer.ID",
+        "type": "integer",
+        "title": "Customer",
+        "isRequired": true,
+        "meta": {
+          "entity": "Customer",
+          "field": "ID"
+        }
+      }
+    ],
+    "bindingOrigins": [
+      {
+        "parameterId": "Customer.ID",
+        "origin": "selection"
+      }
+    ]
+  },
+  "provenance": {
+    "author": "admin",
+    "environment": "local",
+    "collection": "Invoice"
+  }
+}

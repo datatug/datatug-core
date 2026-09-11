@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "invalid JSON body: json: unknown field \"rows\"",
+    "requestId": "req-0105"
+  }
+}

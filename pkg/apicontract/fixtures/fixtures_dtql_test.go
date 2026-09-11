@@ -8,11 +8,12 @@ import (
 )
 
 // TestFixtures_DTQLFieldsParse proves every fixture's "dtql" field, wherever
-// one appears, is real DTQL - a document dtql.Deserialize accepts - not just
-// YAML-shaped prose. A frozen fixture is an executable example both server
-// (datatug-cli) and client (datatug-apps) pin by digest (Manifest); one that
-// merely looks like DTQL without being parseable silently teaches every
-// consumer the wrong shape.
+// one appears - at the top level (ExecutionRequest) or nested inside another
+// object (CaptureQueryRequest.query.dtql) - is real DTQL, a document
+// dtql.Deserialize accepts, not just YAML-shaped prose. A frozen fixture is
+// an executable example both server (datatug-cli) and client
+// (datatug-apps) pin by digest (Manifest); one that merely looks like DTQL
+// without being parseable silently teaches every consumer the wrong shape.
 //
 // This test lives in package fixtures rather than in pkg/apicontract itself
 // so that dtql's dependency chain (github.com/dal-go/dalgo/dtql, which pulls
@@ -35,30 +36,65 @@ func TestFixtures_DTQLFieldsParse(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", e.Name, err)
 		}
-		var generic map[string]json.RawMessage
-		if err := json.Unmarshal(data, &generic); err != nil {
-			continue // not a flat JSON object fixture - nothing to check here
-		}
-		raw, ok := generic["dtql"]
-		if !ok {
+		var doc any
+		if err := json.Unmarshal(data, &doc); err != nil {
+			t.Errorf("%s: not JSON: %v", e.Name, err)
 			continue
 		}
-		var text string
-		if err := json.Unmarshal(raw, &text); err != nil {
-			t.Errorf("%s: \"dtql\" is not a JSON string: %v", e.Name, err)
-			continue
+		for _, raw := range dtqlFields(doc) {
+			text, ok := raw.(string)
+			if !ok {
+				t.Errorf("%s: \"dtql\" is not a JSON string: %v", e.Name, raw)
+				continue
+			}
+			if text == "" {
+				continue
+			}
+			if _, err := dtql.Deserialize([]byte(text)); err != nil {
+				t.Errorf("%s: \"dtql\" field does not parse as DTQL: %v\ngot:\n%s", e.Name, err, text)
+				continue
+			}
+			checked++
 		}
-		if text == "" {
-			continue
-		}
-		if _, err := dtql.Deserialize([]byte(text)); err != nil {
-			t.Errorf("%s: \"dtql\" field does not parse as DTQL: %v\ngot:\n%s", e.Name, err, text)
-			continue
-		}
-		checked++
 	}
 	if checked == 0 {
 		t.Fatal("no fixture carried a non-empty \"dtql\" field - this test would silently stop proving anything; " +
-			"update it (or remove it) if the fixture set no longer demonstrates ad-hoc DTQL")
+			"update it (or remove it) if the fixture set no longer demonstrates DTQL")
+	}
+}
+
+// dtqlFields returns the value of every "dtql" key in doc, at any depth.
+func dtqlFields(doc any) []any {
+	var found []any
+	switch v := doc.(type) {
+	case map[string]any:
+		for key, value := range v {
+			if key == "dtql" {
+				found = append(found, value)
+				continue
+			}
+			found = append(found, dtqlFields(value)...)
+		}
+	case []any:
+		for _, item := range v {
+			found = append(found, dtqlFields(item)...)
+		}
+	}
+	return found
+}
+
+func TestDTQLFields_FindsNestedValues(t *testing.T) {
+	var doc any
+	if err := json.Unmarshal([]byte(`{"dtql":"a","query":{"dtql":"b"},"list":[{"dtql":"c"}],"n":1}`), &doc); err != nil {
+		t.Fatal(err)
+	}
+	got := map[any]bool{}
+	for _, v := range dtqlFields(doc) {
+		got[v] = true
+	}
+	for _, want := range []string{"a", "b", "c"} {
+		if !got[want] {
+			t.Errorf("dtqlFields missed %q, got %v", want, got)
+		}
 	}
 }
