@@ -5,6 +5,8 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 )
@@ -33,15 +35,37 @@ const maxQuerySegmentLength = 200
 
 // windowsReservedNames are device names Windows reserves regardless of
 // extension, compared case-insensitively against a segment's name before
-// its first ".".
+// its first "." (with trailing spaces trimmed, which Windows ignores there
+// too - "CON .txt" still opens the console). The set follows Microsoft's
+// "Naming Files, Paths, and Namespaces" list: CON, PRN, AUX, NUL, COM0-COM9,
+// LPT0-LPT9, the superscript-digit variants COM¹-COM³/LPT¹-LPT³ (Windows
+// treats ¹²³ as digits in these names), and the console aliases CONIN$ and
+// CONOUT$.
 var windowsReservedNames = func() map[string]bool {
-	names := map[string]bool{"CON": true, "PRN": true, "AUX": true, "NUL": true}
-	for i := 1; i <= 9; i++ {
-		names["COM"+strconv.Itoa(i)] = true
-		names["LPT"+strconv.Itoa(i)] = true
+	names := map[string]bool{"CON": true, "PRN": true, "AUX": true, "NUL": true, "CONIN$": true, "CONOUT$": true}
+	for _, digit := range []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "¹", "²", "³"} {
+		names["COM"+digit] = true
+		names["LPT"+digit] = true
 	}
 	return names
 }()
+
+// unsafeNameRuneReason reports why r may not appear in a query folder
+// segment or ID, or ("", false) when it may. Control characters (Unicode
+// category Cc: C0, DEL and C1) can corrupt terminal output, logs and git
+// porcelain; the Unicode Bidi_Control characters (U+061C, U+200E, U+200F,
+// U+202A-U+202E, U+2066-U+2069) can make a name display as something it is
+// not ("Trojan Source"-style spoofing in a file listing or a diff). NUL is
+// reported separately by validateQuerySegmentReason.
+func unsafeNameRuneReason(r rune) (reason string, bad bool) {
+	switch {
+	case unicode.IsControl(r):
+		return "must not contain control characters", true
+	case unicode.Is(unicode.Bidi_Control, r):
+		return "must not contain bidirectional-text control characters", true
+	}
+	return "", false
+}
 
 func invalidQueryLocation(folderPath, id, reason string) error {
 	return &datatug.InvalidQueryLocationError{FolderPath: folderPath, ID: id, Reason: reason}
@@ -62,6 +86,15 @@ func validateQuerySegmentReason(segment string) (reason string, ok bool) {
 		return `must not be "." or ".."`, false
 	case strings.ContainsRune(segment, 0):
 		return "must not contain a NUL byte", false
+	case !utf8.ValidString(segment):
+		return "must be valid UTF-8", false
+	}
+	for _, r := range segment {
+		if reason, bad := unsafeNameRuneReason(r); bad {
+			return reason, false
+		}
+	}
+	switch {
 	case strings.ContainsAny(segment, windowsIllegalChars):
 		return "must not contain any of " + windowsIllegalChars, false
 	case segment == reservedQueryTxnDirName:
@@ -77,6 +110,7 @@ func validateQuerySegmentReason(segment string) (reason string, ok bool) {
 	if i := strings.IndexByte(base, '.'); i > 0 {
 		base = base[:i]
 	}
+	base = strings.TrimRight(base, " ")
 	if windowsReservedNames[strings.ToUpper(base)] {
 		return "is a Windows-reserved device name", false
 	}

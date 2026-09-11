@@ -55,7 +55,13 @@ func TestValidateQueryFolderPath_Invalid(t *testing.T) {
 }
 
 func TestValidateQueryID_Valid(t *testing.T) {
-	for _, id := range []string{"q1", "customer-invoices", "a", "query_2", "Query.With.Dots"} {
+	for _, id := range []string{
+		"q1", "customer-invoices", "a", "query_2", "Query.With.Dots",
+		// Near misses of the Windows device names that are ordinary names.
+		"CONSOLE", "COM10", "LPT12", "communication", "auxiliary", "CONIN", "nullable",
+		// Non-ASCII letters remain valid.
+		"запрос", "クエリ", "café",
+	} {
 		if err := validateQueryID(id); err != nil {
 			t.Errorf("expected id %q to be valid, got: %v", id, err)
 		}
@@ -83,6 +89,32 @@ func TestValidateQueryID_Invalid(t *testing.T) {
 		"a<b>",
 		"a|b",
 		`a"b`,
+		// N1: control characters (C0, DEL, C1).
+		"a\x01b",
+		"line\nbreak",
+		"tab\tid",
+		"del\x7f",
+		"c1\u0085", // C1 control NEXT LINE
+		// N1: bidirectional-text controls (Unicode Bidi_Control).
+		"a\u202eb", // RIGHT-TO-LEFT OVERRIDE
+		"a\u202ab", // LEFT-TO-RIGHT EMBEDDING
+		"a\u2066b", // LEFT-TO-RIGHT ISOLATE
+		"a\u2069b", // POP DIRECTIONAL ISOLATE
+		"a\u200fb", // RIGHT-TO-LEFT MARK
+		"a\u061cb", // ARABIC LETTER MARK
+		// Not valid UTF-8: not representable on APFS/NTFS, ambiguous in git.
+		"bad\xffutf8",
+		// N1: every Windows device-name variant, case-insensitive.
+		"COM0",
+		"LPT0",
+		"COM¹",
+		"com²",
+		"LPT³",
+		"CONIN$",
+		"conout$",
+		"CONIN$.query",
+		"CON .txt", // Windows ignores trailing spaces before the extension
+		"nul.anything",
 	}
 	for _, id := range cases {
 		err := validateQueryID(id)
