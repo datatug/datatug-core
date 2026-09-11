@@ -1,9 +1,11 @@
 package filestore
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
@@ -41,6 +43,8 @@ func TestValidateQueryFolderPath_Invalid(t *testing.T) {
 		".hidden", // leading dot reserved (defense in depth)
 		"C:\\Windows",
 		"folder1:stream", // Windows-illegal char
+		"re\u200cf",      // S3: default-ignorable, invisible in any listing
+		"a/re\u200cf/b",
 	}
 	for _, fp := range cases {
 		err := validateQueryFolderPath(fp)
@@ -102,6 +106,20 @@ func TestValidateQueryID_Invalid(t *testing.T) {
 		"a\u2069b", // POP DIRECTIONAL ISOLATE
 		"a\u200fb", // RIGHT-TO-LEFT MARK
 		"a\u061cb", // ARABIC LETTER MARK
+		// S3: default-ignorable code points. They are invisible, so two ids
+		// differing only by one look identical in a listing, a diff or a
+		// review - and on HFS+ they are not two ids at all but one file.
+		"rev\u200cenue", // ZERO WIDTH NON-JOINER
+		"rev\u200denue", // ZERO WIDTH JOINER
+		"rev\u200benue", // ZERO WIDTH SPACE
+		"rev\u2060enue", // WORD JOINER
+		"rev\u206aenue", // INHIBIT SYMMETRIC SWAPPING
+		"rev\u206fenue", // NOMINAL DIGIT SHAPES
+		"rev\ufeffenue", // ZERO WIDTH NO-BREAK SPACE (BOM)
+		"rev\u00adenue", // SOFT HYPHEN
+		"rev\u034fenue", // COMBINING GRAPHEME JOINER
+		"chart\ufe0f",   // VARIATION SELECTOR-16
+		"tag\U000e0001", // LANGUAGE TAG
 		// Not valid UTF-8: not representable on APFS/NTFS, ambiguous in git.
 		"bad\xffutf8",
 		// N1: every Windows device-name variant, case-insensitive.
@@ -205,5 +223,65 @@ func TestResolveQueryLocation_RejectsNonDirectoryParent(t *testing.T) {
 	_, err := store.resolveQueryLocation("folder1", "q1")
 	if !datatug.IsInvalidQueryLocation(err) {
 		t.Fatalf("expected InvalidQueryLocationError for a non-directory parent, got %T: %v", err, err)
+	}
+}
+
+// Review S3: an invisible character is refused on every write path, and
+// reads stay lenient, so a record that already carries one is still
+// readable. Refusing beats stripping: either spelling is a name someone can
+// read back, and neither is the one they typed.
+func TestQueryIDs_WithInvisibleCharacters_RefusedForWritesButStillReadable(t *testing.T) {
+	ctx := context.Background()
+	store, queriesDir := newTestQueriesStore(t)
+	const alias = "rev\u200cenue"
+
+	q := dtqlQuery(alias, "", "BODY")
+	_, putErr := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true})
+	requireInvisibleRefusal(t, "PutQuery", putErr)
+	requireInvisibleRefusal(t, "SaveQuery", store.SaveQuery(ctx, &q))
+	_, createErr := store.CreateQuery(ctx, q)
+	requireInvisibleRefusal(t, "CreateQuery", createErr)
+	_, updateErr := store.UpdateQuery(ctx, q.QueryDef)
+	requireInvisibleRefusal(t, "UpdateQuery", updateErr)
+
+	inFolder := dtqlQuery("revenue", "re\u200cf", "BODY")
+	_, folderErr := store.PutQuery(ctx, &inFolder, datatug.QueryWriteCondition{IfNoneMatch: true})
+	requireInvisibleRefusal(t, "PutQuery into an invisible folder", folderErr)
+
+	if entries, err := os.ReadDir(queriesDir); err == nil && len(entries) != 0 {
+		t.Errorf("expected the refused writes to leave nothing behind, got %d entries", len(entries))
+	}
+
+	// A record that already carries one - written before this rule, or by
+	// another tool - stays readable through the legacy read path.
+	if err := os.MkdirAll(queriesDir, 0o755); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	meta := []byte(`{"id":"` + alias + `","title":"Legacy","type":"DTQL"}` + "\n")
+	if err := os.WriteFile(filepath.Join(queriesDir, alias+".query.json"), meta, 0o644); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(queriesDir, alias+".query.dtql"), []byte("LEGACY"), 0o644); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	got, err := store.LoadQuery(ctx, alias)
+	if err != nil {
+		t.Fatalf("expected a legacy record carrying an invisible character to stay readable, got: %v", err)
+	}
+	if got.Text != "LEGACY" {
+		t.Errorf("expected the legacy body, got %q", got.Text)
+	}
+}
+
+func requireInvisibleRefusal(t *testing.T, what string, err error) {
+	t.Helper()
+	if err == nil {
+		t.Fatalf("%s: expected an invisible character to be refused", what)
+	}
+	if !strings.Contains(err.Error(), "invisible") {
+		t.Errorf("%s: expected the refusal to name the invisible character, got: %v", what, err)
+	}
+	if !datatug.IsInvalidQueryLocation(err) {
+		t.Errorf("%s: expected a typed location refusal, got %T: %v", what, err, err)
 	}
 }

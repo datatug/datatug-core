@@ -79,12 +79,24 @@ func isIgnorableRune(r rune) bool {
 // U+202A-U+202E, U+2066-U+2069) can make a name display as something it is
 // not ("Trojan Source"-style spoofing in a file listing or a diff). NUL is
 // reported separately by validateQuerySegmentReason.
+//
+// The default-ignorable code points (isIgnorableRune: U+200B-U+200F,
+// U+202A-U+202E, U+2060-U+206F, U+00AD, U+FEFF and the rest of the
+// property) are refused rather than stripped, because either spelling is a
+// name someone can read back and neither is the one they typed. They are
+// invisible, so two query IDs that differ only by one look identical in a
+// listing, a diff or a review - and on HFS+ they are not two IDs at all but
+// one file, silently resolving to whichever pair is already there. Reads
+// stay lenient (validateQueryReadSegmentReason), so a legacy record already
+// carrying one is still readable.
 func unsafeNameRuneReason(r rune) (reason string, bad bool) {
 	switch {
 	case unicode.IsControl(r):
 		return "must not contain control characters", true
 	case unicode.Is(unicode.Bidi_Control, r):
 		return "must not contain bidirectional-text control characters", true
+	case isIgnorableRune(r):
+		return "must not contain invisible (default-ignorable) characters", true
 	}
 	return "", false
 }
