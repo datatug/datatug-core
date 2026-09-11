@@ -46,9 +46,90 @@ func TestEnsureQueryTxnDir_RejectsSymlink(t *testing.T) {
 	}
 }
 
-func TestEnsureQueryTxnDir_RejectsOverlyBroadPermissions(t *testing.T) {
+// TestEnsureQueryTxnDir_RepairsEmptyDirWithBroadPermissions is a
+// regression test for B1: an empty ".dt-query-txn" (no journal, no staged
+// content - nothing a looser permission bit could let anyone tamper with)
+// that comes back from an ordinary zip/unzip, tar, Dropbox or AV-quarantine
+// round trip at 0755 used to be refused outright, permanently bricking
+// every read and write against the project. There is nothing to trust or
+// distrust in an empty directory, so ensureQueryTxnDir now repairs it back
+// to 0700 in place and proceeds, exactly like the "case == 0700" path.
+func TestEnsureQueryTxnDir_RepairsEmptyDirWithBroadPermissions(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Go's os.FileMode permission bits are synthetic on Windows")
+	}
+	if os.Geteuid() == 0 {
+		t.Skip("running as root bypasses permission checks")
+	}
+	root := t.TempDir()
+	queriesDir := filepath.Join(root, "queries")
+	txnDir := filepath.Join(queriesDir, reservedQueryTxnDirName)
+	// 0755 is exactly what Python's zipfile.extractall() (and many other
+	// common archivers) leaves behind - it does not preserve the 0700 bit.
+	if err := os.MkdirAll(txnDir, 0o755); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got, err := ensureQueryTxnDir(queriesDir)
+	if err != nil {
+		t.Fatalf("expected an empty over-permissioned directory to be repaired, not refused: %v", err)
+	}
+	if got != txnDir {
+		t.Fatalf("expected %s, got %s", txnDir, got)
+	}
+	info, err := os.Lstat(txnDir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if perm := info.Mode().Perm(); perm != 0o700 {
+		t.Fatalf("expected the directory to be repaired to 0700, got %v", perm)
+	}
+}
+
+// TestEnsureQueryTxnDir_RejectsBroadPermissionsWithJournalPresent proves
+// the repair in TestEnsureQueryTxnDir_RepairsEmptyDirWithBroadPermissions
+// is narrowly scoped: a transaction directory that actually holds a
+// journal (a real recovery artifact something could have tampered with)
+// still fails closed when its permissions are broader than 0700, exactly
+// as before - and is left untouched, not silently repaired.
+func TestEnsureQueryTxnDir_RejectsBroadPermissionsWithJournalPresent(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Go's os.FileMode permission bits are synthetic on Windows")
+	}
+	if os.Geteuid() == 0 {
+		t.Skip("running as root bypasses permission checks")
+	}
+	root := t.TempDir()
+	queriesDir := filepath.Join(root, "queries")
+	txnDir := filepath.Join(queriesDir, reservedQueryTxnDirName)
+	if err := os.MkdirAll(txnDir, 0o755); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(txnDir, queryTxnJournalFile), []byte(`{"id":"q1","operation":"put"}`), 0o600); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if _, err := ensureQueryTxnDir(queriesDir); err == nil {
+		t.Fatal("expected an error for a world-readable transaction directory holding a journal")
+	}
+	info, err := os.Lstat(txnDir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if perm := info.Mode().Perm(); perm != 0o755 {
+		t.Fatalf("expected the directory's permissions to be left untouched, got %v", perm)
+	}
+}
+
+// TestEnsureQueryTxnDir_RejectsBroadPermissionsWithStagedContentPresent
+// covers the other recovery artifacts the repair must not silently trust:
+// a staged (not yet journaled) file.
+func TestEnsureQueryTxnDir_RejectsBroadPermissionsWithStagedContentPresent(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Go's os.FileMode permission bits are synthetic on Windows")
+	}
+	if os.Geteuid() == 0 {
+		t.Skip("running as root bypasses permission checks")
 	}
 	root := t.TempDir()
 	queriesDir := filepath.Join(root, "queries")
@@ -56,8 +137,12 @@ func TestEnsureQueryTxnDir_RejectsOverlyBroadPermissions(t *testing.T) {
 	if err := os.MkdirAll(txnDir, 0o777); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	if err := os.WriteFile(filepath.Join(txnDir, queryTxnStagedJSON), []byte(`{"id":"q1"}`), 0o600); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	if _, err := ensureQueryTxnDir(queriesDir); err == nil {
-		t.Fatal("expected an error for a world-writable transaction directory")
+		t.Fatal("expected an error for a world-writable transaction directory holding staged content")
 	}
 }
 

@@ -104,13 +104,23 @@ func (s fsQueriesStore) withQueryReadLock(ctx context.Context, fn func(g queryLo
 
 // ensureQueryTxnDir returns the reserved ".dt-query-txn" directory under
 // queriesRoot, creating it (and queriesRoot itself) at 0700 if it does not
-// exist yet. If it already exists, it must be an ordinary directory with
-// permissions no broader than 0700 - anything else (a symlink, a regular
-// file, group/other-accessible permissions) is refused rather than
-// silently corrected, per the plan's "fail closed if existing recovery
-// artifacts are broader" rule. Windows does not expose POSIX permission
-// bits through os.FileMode (Go reports a synthetic value there), so the
-// permission check only applies on the platforms where it is meaningful.
+// exist yet. If it already exists, it must be an ordinary directory
+// (a symlink or a regular file is refused outright); when its permissions
+// are broader than 0700, what happens next depends on what it holds. A
+// journal or staged file is a real recovery artifact - something a
+// tampering actor could have loosened permissions on to smuggle in
+// content this store would otherwise trust - so that case still fails
+// closed, per the plan's "fail closed if existing recovery artifacts are
+// broader" rule. An otherwise-empty directory holds nothing to trust or
+// distrust: the common real-world way to end up here is an ordinary
+// zip/unzip, tar, Dropbox sync or AV-quarantine round trip, none of which
+// preserve the 0700 bit (Python's zipfile.extractall(), for one, leaves
+// 0755) - so that case is repaired back to 0700 in place and used, rather
+// than permanently bricking every read and write against the project over
+// a hidden dot-directory an ordinary user has no reason to know needs a
+// chmod. Windows does not expose POSIX permission bits through
+// os.FileMode (Go reports a synthetic value there), so the permission
+// check only applies on the platforms where it is meaningful.
 func ensureQueryTxnDir(queriesRoot string) (string, error) {
 	txnDir := path.Join(queriesRoot, reservedQueryTxnDirName)
 	info, err := os.Lstat(txnDir)
@@ -123,7 +133,16 @@ func ensureQueryTxnDir(queriesRoot string) (string, error) {
 			return "", fmt.Errorf("query transaction path %s is not a directory; refusing to use it", txnDir)
 		}
 		if runtime.GOOS != "windows" && info.Mode().Perm()&^0o700 != 0 {
-			return "", fmt.Errorf("query transaction directory %s has overly broad permissions %v; refusing to use it", txnDir, info.Mode().Perm())
+			hasContent, contentErr := queryTxnDirHasRecoveryContent(txnDir)
+			if contentErr != nil {
+				return "", contentErr
+			}
+			if hasContent {
+				return "", fmt.Errorf("query transaction directory %s has overly broad permissions %v; refusing to use it", txnDir, info.Mode().Perm())
+			}
+			if err := os.Chmod(txnDir, 0o700); err != nil {
+				return "", fmt.Errorf("failed to repair query transaction directory permissions: %w", err)
+			}
 		}
 		return txnDir, nil
 	case os.IsNotExist(err):
@@ -151,4 +170,26 @@ func ensureQueryTxnDir(queriesRoot string) (string, error) {
 	default:
 		return "", err
 	}
+}
+
+// queryTxnDirHasRecoveryContent reports whether txnDir holds a journal or
+// a staged (not yet journaled) file - the artifacts an interrupted
+// transaction leaves behind, and the only things an over-permissioned
+// transaction directory could let a tampering actor have altered. It only
+// checks existence (Lstat), never trusts what it finds: readJournal and
+// ensureInstalled still apply their own permission/hash checks to
+// anything actually read once ensureQueryTxnDir decides the directory
+// (now at, or repaired to, 0700) is safe to use. It deliberately ignores
+// the "lock" and ".gitignore" files ensureQueryTxnDir/withQueryLock write
+// themselves - neither is a recovery artifact, so their presence alone
+// must not block the permission repair below.
+func queryTxnDirHasRecoveryContent(txnDir string) (bool, error) {
+	for _, name := range []string{queryTxnJournalFile, queryTxnStagedJSON, queryTxnStagedBody} {
+		if _, err := os.Lstat(path.Join(txnDir, name)); err == nil {
+			return true, nil
+		} else if !os.IsNotExist(err) {
+			return false, err
+		}
+	}
+	return false, nil
 }
