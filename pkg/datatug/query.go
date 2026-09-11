@@ -2,7 +2,6 @@ package datatug
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -162,14 +161,11 @@ type QueryDefTarget struct {
 	Credentials
 }
 
-// embeddedURLCredentialsPattern matches a userinfo component (user:pass@) as
-// found in connection-string style URLs, e.g. "postgres://user:pass@host/db".
-var embeddedURLCredentialsPattern = regexp.MustCompile(`\S+:\S+@`)
-
 // Validate returns error if not valid. QueryDefTarget is persisted to
 // git-tracked project files, so it must never carry credential material: a
-// non-empty password, or a user:pass@ userinfo component embedded in any of
-// its connection-string-like fields.
+// non-empty password, or a password embedded in any of its
+// connection-string-like fields in any syntax embeddedCredentialReason
+// recognizes (query_credentials.go). A username alone is allowed.
 func (v QueryDefTarget) Validate() error {
 	if v.Password != "" {
 		return validation.NewErrBadRecordFieldValue("password", "must not store credentials in a query target; connect using environment-level secrets instead")
@@ -177,8 +173,8 @@ func (v QueryDefTarget) Validate() error {
 	for _, f := range []struct{ name, value string }{
 		{"driver", v.Driver}, {"catalog", v.Catalog}, {"protocol", v.Protocol}, {"host", v.Host},
 	} {
-		if embeddedURLCredentialsPattern.MatchString(f.value) {
-			return validation.NewErrBadRecordFieldValue(f.name, "must not embed credentials (user:pass@) in a URL")
+		if reason, found := embeddedCredentialReason(f.value); found {
+			return validation.NewErrBadRecordFieldValue(f.name, reason+"; connect using environment-level secrets instead")
 		}
 	}
 	return nil
@@ -216,6 +212,11 @@ func (v QueryDef) Validate() error {
 	}
 	if err := v.Parameters.Validate(); err != nil {
 		return err
+	}
+	for i, p := range v.Parameters {
+		if reason, found := defaultValueCredentialReason(p.DefaultValue); found {
+			return validation.NewErrBadRecordFieldValue(fmt.Sprintf("parameters[%v].defaultValue", i), reason)
+		}
 	}
 	return nil
 }
