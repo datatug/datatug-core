@@ -269,8 +269,11 @@ func vetExistingQueryTxnDir(txnDir string, info os.FileInfo) error {
 	// can add anything to it, so an emptiness check made after the chmod
 	// cannot be raced by an injected journal or staged file; checking first
 	// and tightening second left exactly that window open to anyone who
-	// could write to the broad directory.
-	if err := os.Chmod(txnDir, 0o700); err != nil {
+	// could write to the broad directory. The chmod goes through a
+	// descriptor opened without following a symlink and proven to be the
+	// directory Lstat described (chmodDirNoFollow), so a symlink swapped in
+	// after the Lstat cannot redirect it to its target (review N-e).
+	if err := chmodDirNoFollow(txnDir, info, 0o700); err != nil {
 		return fmt.Errorf("failed to repair query transaction directory permissions: %w", err)
 	}
 	tightened, err := os.Lstat(txnDir)

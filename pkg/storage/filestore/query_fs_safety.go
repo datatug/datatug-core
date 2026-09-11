@@ -231,3 +231,24 @@ func checkTxnArtifact(filePath string, maxPerm os.FileMode) (exists bool, err er
 	}
 	return true, nil
 }
+
+// chmodDirNoFollow sets dir's permissions through a descriptor opened with
+// openNoFollowFlags (no symlink, no blocking on a FIFO), after checking
+// that the opened entry is the very directory info (from Lstat) describes.
+// os.Chmod would follow a symlink swapped in after the Lstat and change its
+// target instead.
+func chmodDirNoFollow(dir string, info os.FileInfo, perm os.FileMode) error {
+	f, err := os.OpenFile(dir, os.O_RDONLY|openNoFollowFlags, 0)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = f.Close() }()
+	opened, err := f.Stat()
+	if err != nil {
+		return err
+	}
+	if !opened.IsDir() || !os.SameFile(info, opened) {
+		return fmt.Errorf("%s changed while it was being opened", dir)
+	}
+	return f.Chmod(perm)
+}

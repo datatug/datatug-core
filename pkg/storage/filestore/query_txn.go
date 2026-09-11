@@ -106,6 +106,21 @@
 //     in total, checking each file's size before opening it, and fails with
 //     errQueryListingTooLarge. Memory a call holds is a small multiple of
 //     the bytes it reads.
+//   - One bad record fails its listing. A query file the store refuses to
+//     read (a symlink, an oversize file, a metadata type that cannot name a
+//     body file) fails LoadQueries for its folder, and LoadProject, rather
+//     than being skipped: a listing never silently omits a query. The error
+//     names the file.
+//   - Hard links. A regular file is trusted whatever its link count, so a
+//     body hard-linked to a file outside the project is read like any
+//     other body; a later write replaces the link and leaves the other file
+//     alone. Only a user who can already read that file can create such a
+//     link - git cannot create hard links, and tar refuses one that points
+//     outside the archive - so this store does not refuse them.
+//   - Alias spellings. On a case- or normalization-insensitive file system,
+//     a write addressed through an alias of an existing ID ("FOO" for
+//     "Foo") keeps the file's original name but records the alias as the
+//     JSON "id". The revision does not depend on the spelling.
 //   - Concurrent tampering. Containment is proven against what is on disk
 //     when each step runs: no symlinked segment, regular target files, and
 //     names derived from the ID. Locations are resolved again after the

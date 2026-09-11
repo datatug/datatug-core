@@ -68,15 +68,16 @@ func (s fsQueriesStore) loadQueriesTreeLocked(ctx context.Context, g queryLockGu
 		if !de.IsDir() {
 			continue
 		}
-		if relFolderPath == "" && de.Name() == reservedQueryTxnDirName {
+		if de.Name() == reservedQueryTxnDirName {
 			// The query transaction namespace is internal bookkeeping - a
 			// lock file, journal and staging area - never a user folder or
-			// query (see query_lock.go/query_txn.go, and
-			// validateQuerySegmentReason, which already refuses it as a
-			// folder/ID a caller could ever address). It only ever lives
-			// exactly at the queries root, so that is the only place this
-			// skips it; a coincidentally-named ordinary sub-folder deeper in
-			// the tree is never silently hidden.
+			// query (see query_lock.go/query_txn.go). It only ever lives at
+			// the queries root, but it is skipped at every depth: no API can
+			// address a folder of that name anywhere (validateQuerySegmentReason
+			// refuses it for writes, validateQueryReadSegmentReason for
+			// LoadQuery and LoadQueries), so a tree listing that showed one -
+			// only a clone or an archive can put it there - would list
+			// queries nothing else can read, write or delete (review N-f).
 			continue
 		}
 		sub, err := s.loadQueriesTreeLocked(ctx, g, path.Join(relFolderPath, de.Name()), budget)
@@ -142,6 +143,12 @@ func (s fsQueriesStore) saveQueriesTreeLocked(ctx context.Context, g queryLockGu
 	for _, sub := range folder.Folders {
 		if sub == nil {
 			continue
+		}
+		// A sub-folder's ID is one path segment. "" or "." would otherwise
+		// save its items into the parent, and ".." into the grandparent,
+		// because path.Join cleans them away (review N-g).
+		if reason, ok := validateQuerySegmentReason(sub.GetID()); !ok {
+			return invalidQueryLocation(relFolderPath, "", fmt.Sprintf("sub-folder %q: %s", sub.GetID(), reason))
 		}
 		if err := s.saveQueriesTreeLocked(ctx, g, path.Join(relFolderPath, sub.GetID()), sub); err != nil {
 			return err
