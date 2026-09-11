@@ -24,8 +24,11 @@ func splitQueryFullID(fullID string) (folderPath, id string) {
 }
 
 // LoadQueryRevision implements datatug.RevisionedQueriesStore. Location
-// validation runs before the query store lock is even acquired, so an
-// invalid id never creates the reserved transaction directory.
+// validation runs before the query store lock is even considered, so an
+// invalid id never creates the reserved transaction directory. On a
+// project no write has ever touched, it reads directly without requiring
+// write access - see withQueryReadLock; there is categorically nothing to
+// recover when that namespace has never existed.
 func (s fsQueriesStore) LoadQueryRevision(ctx context.Context, id string, o ...datatug.StoreOption) (*datatug.StoredQuery, error) {
 	_ = datatug.GetStoreOptions(o...)
 	if err := ctx.Err(); err != nil {
@@ -38,7 +41,7 @@ func (s fsQueriesStore) LoadQueryRevision(ctx context.Context, id string, o ...d
 	}
 
 	var result *datatug.StoredQuery
-	err = s.withQueryLock(ctx, func(_ queryLockGuard) error {
+	err = s.withQueryReadLock(ctx, func(_ queryLockGuard) error {
 		current, err := readCurrentQueryPair(dir, itemID)
 		if err != nil {
 			return err

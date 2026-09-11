@@ -73,6 +73,35 @@ func (s fsQueriesStore) withQueryLock(ctx context.Context, fn func(g queryLockGu
 	return fn(queryLockGuard{txnDir: txnDir})
 }
 
+// withQueryReadLock is withQueryLock for a caller that only reads (fn must
+// not stage, install or delete anything). If the reserved transaction
+// namespace does not exist yet, nothing has ever been written through this
+// store's pair-transaction protocol against this project, so there is
+// nothing to coordinate against or recover: fn runs directly, without
+// creating any file or directory and without requiring write access to
+// the project - a project opened read-only, or simply never yet touched
+// by a revisioned/legacy write, stays fully readable. queryLockGuard{} is
+// the zero value in that path; no read-only caller dereferences its
+// txnDir.
+//
+// Once that namespace exists - any write, ever, through
+// PutQuery/SaveQuery/CreateQuery/UpdateQuery/DeleteQuery/saveQueriesTree -
+// reads go through the same lock and recovery a write would, via
+// withQueryLock. That still works on a project whose filesystem has since
+// become read-only: the lock file the earlier write already created is
+// merely opened and flock()'d, which needs no write permission on an
+// existing file.
+func (s fsQueriesStore) withQueryReadLock(ctx context.Context, fn func(g queryLockGuard) error) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	txnDir := path.Join(s.dirPath, reservedQueryTxnDirName)
+	if info, err := os.Lstat(txnDir); err != nil || !info.IsDir() {
+		return fn(queryLockGuard{})
+	}
+	return s.withQueryLock(ctx, fn)
+}
+
 // ensureQueryTxnDir returns the reserved ".dt-query-txn" directory under
 // queriesRoot, creating it (and queriesRoot itself) at 0700 if it does not
 // exist yet. If it already exists, it must be an ordinary directory with

@@ -47,13 +47,17 @@ type fsQueriesStore struct {
 	fsProjectItemsStore[datatug.QueryDefs, *datatug.QueryDef, datatug.QueryDef]
 }
 
-// LoadQueries implements datatug.QueriesStore. It acquires the query store
+// LoadQueries implements datatug.QueriesStore. Once a project has ever
+// been touched by a revisioned/legacy write, it acquires the query store
 // lock (recovering any earlier interrupted transaction first) so a
 // concurrent revisioned write can never be observed half-installed - see
 // the plan's "participating readers include direct LoadQuery/LoadQueries
-// calls".
+// calls". Before that, a project has nothing to coordinate against - see
+// withQueryReadLock - so a project opened read-only, or one this store has
+// simply never written to yet, stays fully readable without requiring
+// write access.
 func (s fsQueriesStore) LoadQueries(ctx context.Context, folderPath string, o ...datatug.StoreOption) (folder *datatug.QueriesFolder, err error) {
-	err = s.withQueryLock(ctx, func(_ queryLockGuard) error {
+	err = s.withQueryReadLock(ctx, func(_ queryLockGuard) error {
 		var lockedErr error
 		folder, lockedErr = s.loadQueriesLocked(ctx, folderPath, o...)
 		return lockedErr
@@ -87,9 +91,11 @@ func (s fsQueriesStore) loadQueriesLocked(ctx context.Context, folderPath string
 
 // LoadQuery implements datatug.QueriesStore. It keeps the legacy tolerant
 // behavior (a missing body sidecar loads as an empty Text, not an error),
-// but - like LoadQueries - now goes through the query store lock.
+// but - like LoadQueries - now goes through the query store lock once a
+// project has something for it to coordinate against (see
+// withQueryReadLock).
 func (s fsQueriesStore) LoadQuery(ctx context.Context, id string, o ...datatug.StoreOption) (query *datatug.QueryDef, err error) {
-	err = s.withQueryLock(ctx, func(_ queryLockGuard) error {
+	err = s.withQueryReadLock(ctx, func(_ queryLockGuard) error {
 		var lockedErr error
 		query, lockedErr = s.loadQueryLocked(ctx, id, o...)
 		return lockedErr

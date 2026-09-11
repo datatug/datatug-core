@@ -21,14 +21,16 @@ import (
 // convention and so match nothing here) out of the tree entirely. Returns
 // (nil, nil) when relFolderPath itself has nothing loadable.
 //
-// This is LoadProject's sole entry point into the query store: it
-// acquires the query store lock once for the whole recursive walk and
-// holds it throughout, so a concurrent writer can never be observed
-// mid-install partway through the tree. Internal recursion calls
-// loadQueriesTreeLocked/loadQueriesLocked directly - never the public
-// LoadQueries - since the lock is not reentrant.
+// This is LoadProject's sole entry point into the query store: once a
+// project has been touched by a write, it acquires the query store lock
+// once for the whole recursive walk and holds it throughout, so a
+// concurrent writer can never be observed mid-install partway through the
+// tree. Before that (see withQueryReadLock), a fresh or read-only project
+// has nothing to coordinate against and loads directly. Internal recursion
+// calls loadQueriesTreeLocked/loadQueriesLocked directly - never the
+// public LoadQueries - since the lock is not reentrant.
 func (s fsQueriesStore) loadQueriesTree(ctx context.Context, relFolderPath string) (folder *datatug.QueriesFolder, err error) {
-	err = s.withQueryLock(ctx, func(g queryLockGuard) error {
+	err = s.withQueryReadLock(ctx, func(g queryLockGuard) error {
 		var lockedErr error
 		folder, lockedErr = s.loadQueriesTreeLocked(ctx, g, relFolderPath)
 		return lockedErr
