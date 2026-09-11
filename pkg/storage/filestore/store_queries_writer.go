@@ -2,7 +2,6 @@ package filestore
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
@@ -10,7 +9,8 @@ import (
 
 // stageAndInstallQueryPair stages query's JSON+body pair and installs it as
 // one recoverable transaction under the caller's already-held query store
-// lock (g), replacing whatever pair (if any) current describes at dir. It
+// lock (g), replacing whatever pair (if any) current describes at
+// folderPath. It
 // is the single write primitive every query write funnels through: the
 // revisioned PutQuery (after checking its own precondition) and the legacy
 // SaveQuery/CreateQuery/UpdateQuery/saveQueriesTree adapters (which impose
@@ -18,7 +18,12 @@ import (
 // alike, so every query pair this store ever persists - old API or new -
 // goes through the same recoverable pair transaction, never a direct
 // write.
-func (s fsQueriesStore) stageAndInstallQueryPair(g queryLockGuard, dir, folderPath string, query datatug.QueryDef, current currentQueryPair) (datatug.QueryRevision, error) {
+//
+// It resolves the pair's folder itself, under the lock, with walkQueryDir -
+// creating any missing segment without following a symlink - so the
+// directory a pair is installed into is always one proven under the lock,
+// never one a caller resolved before acquiring it (review N3).
+func (s fsQueriesStore) stageAndInstallQueryPair(g queryLockGuard, folderPath string, query datatug.QueryDef, current currentQueryPair) (datatug.QueryRevision, error) {
 	jsonBytes, err := queryJSONBytes(query)
 	if err != nil {
 		return "", err
@@ -34,8 +39,8 @@ func (s fsQueriesStore) stageAndInstallQueryPair(g queryLockGuard, dir, folderPa
 		return "", fmt.Errorf("query %q is over the %d-byte limit for a query file; refusing to write it", query.ID, maxQueryFileSize)
 	}
 
-	if err := os.MkdirAll(dir, 0o777); err != nil {
-		return "", fmt.Errorf("failed to create query folder: %w", err)
+	if _, err := walkQueryDir(s.dirPath, folderPath, query.ID, true); err != nil {
+		return "", err
 	}
 	if err := writeStagedFile(g.txnDir, queryTxnStagedJSON, jsonBytes); err != nil {
 		return "", err

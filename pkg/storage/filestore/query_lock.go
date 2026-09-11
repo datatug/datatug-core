@@ -136,15 +136,39 @@ func (s fsQueriesStore) withQueryLock(ctx context.Context, fn func(g queryLockGu
 // broader than 0700, even a read first repairs them (see ensureQueryTxnDir),
 // and on a medium where that chmod is impossible (an immutable flag, a
 // read-only mount) the read fails closed rather than trusting the directory.
+//
+// The unlocked path is only safe if no writer started during it (review
+// S1): the first write to a project creates the namespace and then
+// installs a pair, so a reader that began before the namespace existed
+// could see that install half done. So after an unlocked fn, the namespace
+// is checked again. If it appeared, fn's result - including any error - is
+// discarded and fn runs again under the lock. That is sufficient because
+// every query-pair mutation happens after the namespace is created (every
+// writer goes through withQueryLock, which creates it first): if it still
+// does not exist when fn has returned, no mutation overlapped fn. fn must
+// therefore tolerate being called twice (a read that overwrites its
+// results), which every caller's closure does. This covers LoadQuery,
+// LoadQueries, LoadQueryRevision and the recursive project-tree load, which
+// all read through here.
 func (s fsQueriesStore) withQueryReadLock(ctx context.Context, fn func(g queryLockGuard) error) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	txnDir := path.Join(s.dirPath, reservedQueryTxnDirName)
-	if info, err := os.Lstat(txnDir); err != nil || !info.IsDir() {
-		return fn(queryLockGuard{})
+	if !s.queryTxnNamespaceExists() {
+		err := fn(queryLockGuard{})
+		if !s.queryTxnNamespaceExists() {
+			return err
+		}
 	}
 	return s.withQueryLock(ctx, fn)
+}
+
+// queryTxnNamespaceExists reports whether the reserved transaction
+// namespace exists as a real directory (Lstat) - the same condition under
+// which a writer can have installed anything.
+func (s fsQueriesStore) queryTxnNamespaceExists() bool {
+	info, err := os.Lstat(path.Join(s.dirPath, reservedQueryTxnDirName))
+	return err == nil && info.IsDir()
 }
 
 // ensureQueryTxnDir returns the reserved ".dt-query-txn" directory under

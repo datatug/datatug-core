@@ -157,17 +157,20 @@ func (s fsQueriesStore) UpdateQuery(ctx context.Context, query datatug.QueryDef)
 	if err := query.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid query: %w", err)
 	}
-	dir, err := s.resolveQueryLocation(folderPath, itemID)
-	if err != nil {
+	if _, err := s.resolveQueryLocation(folderPath, itemID); err != nil {
 		return nil, err
 	}
 
 	err = s.withQueryLock(ctx, func(g queryLockGuard) error {
+		dir, err := s.resolveQueryLocation(folderPath, itemID) // again, under the lock (N3)
+		if err != nil {
+			return err
+		}
 		current, err := readCurrentQueryPair(dir, itemID)
 		if err != nil {
 			return err
 		}
-		_, err = s.stageAndInstallQueryPair(g, dir, folderPath, query, current)
+		_, err = s.stageAndInstallQueryPair(g, folderPath, query, current)
 		return err
 	})
 	if err != nil {
@@ -186,11 +189,14 @@ func (s fsQueriesStore) UpdateQuery(ctx context.Context, query datatug.QueryDef)
 // other write does.
 func (s fsQueriesStore) DeleteQuery(ctx context.Context, id string) (err error) {
 	folderPath, itemID := splitQueryFullID(id)
-	dir, err := s.resolveQueryLocation(folderPath, itemID)
-	if err != nil {
+	if _, err := s.resolveQueryLocation(folderPath, itemID); err != nil {
 		return err
 	}
 	return s.withQueryLock(ctx, func(g queryLockGuard) error {
+		dir, err := s.resolveQueryLocation(folderPath, itemID) // again, under the lock (N3)
+		if err != nil {
+			return err
+		}
 		current, err := readCurrentQueryPair(dir, itemID)
 		if err != nil {
 			return err
@@ -216,16 +222,19 @@ func (s fsQueriesStore) SaveQuery(ctx context.Context, query *datatug.QueryDefWi
 	if err := query.QueryDef.Validate(); err != nil {
 		return fmt.Errorf("invalid query: %w", err)
 	}
-	dir, err := s.resolveQueryLocation(query.FolderPath, query.ID)
-	if err != nil {
+	if _, err := s.resolveQueryLocation(query.FolderPath, query.ID); err != nil {
 		return err
 	}
 	return s.withQueryLock(ctx, func(g queryLockGuard) error {
+		dir, err := s.resolveQueryLocation(query.FolderPath, query.ID) // again, under the lock (N3)
+		if err != nil {
+			return err
+		}
 		current, err := readCurrentQueryPair(dir, query.ID)
 		if err != nil {
 			return err
 		}
-		_, err = s.stageAndInstallQueryPair(g, dir, query.FolderPath, query.QueryDef, current)
+		_, err = s.stageAndInstallQueryPair(g, query.FolderPath, query.QueryDef, current)
 		return err
 	})
 }

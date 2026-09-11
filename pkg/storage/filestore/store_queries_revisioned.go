@@ -35,13 +35,18 @@ func (s fsQueriesStore) LoadQueryRevision(ctx context.Context, id string, o ...d
 		return nil, err
 	}
 	folderPath, itemID := splitQueryFullID(id)
-	dir, err := s.resolveQueryLocation(folderPath, itemID)
-	if err != nil {
+	if _, err := s.resolveQueryLocation(folderPath, itemID); err != nil {
 		return nil, err
 	}
 
 	var result *datatug.StoredQuery
-	err = s.withQueryReadLock(ctx, func(_ queryLockGuard) error {
+	err := s.withQueryReadLock(ctx, func(_ queryLockGuard) error {
+		// Resolve again inside the lock (N3): the check above only rejects
+		// an invalid request early, before the lock is considered.
+		dir, err := s.resolveQueryLocation(folderPath, itemID)
+		if err != nil {
+			return err
+		}
 		current, err := readCurrentQueryPair(dir, itemID)
 		if err != nil {
 			return err
@@ -94,14 +99,19 @@ func (s fsQueriesStore) PutQuery(ctx context.Context, query *datatug.QueryDefWit
 	if err := validateQueryForWrite(query.QueryDef); err != nil {
 		return nil, err
 	}
-	dir, err := s.resolveQueryLocation(query.FolderPath, query.ID)
-	if err != nil {
+	if _, err := s.resolveQueryLocation(query.FolderPath, query.ID); err != nil {
 		return nil, err
 	}
 
 	var result *datatug.StoredQuery
-	err = s.withQueryLock(ctx, func(g queryLockGuard) error {
+	err := s.withQueryLock(ctx, func(g queryLockGuard) error {
 		if err := ctx.Err(); err != nil {
+			return err
+		}
+		// Resolve again under the lock (N3): a symlink swapped into the
+		// folder chain while this request waited for the lock is refused.
+		dir, err := s.resolveQueryLocation(query.FolderPath, query.ID)
+		if err != nil {
 			return err
 		}
 		current, err := readCurrentQueryPair(dir, query.ID)
@@ -120,7 +130,7 @@ func (s fsQueriesStore) PutQuery(ctx context.Context, query *datatug.QueryDefWit
 
 		// Commit point reached inside stageAndInstallQueryPair (once its
 		// journal write returns): complete regardless of ctx from here.
-		revision, err := s.stageAndInstallQueryPair(g, dir, query.FolderPath, query.QueryDef, current)
+		revision, err := s.stageAndInstallQueryPair(g, query.FolderPath, query.QueryDef, current)
 		if err != nil {
 			return err
 		}
@@ -189,13 +199,16 @@ func (s fsQueriesStore) DeleteQueryRevision(ctx context.Context, id string, expe
 		return err
 	}
 	folderPath, itemID := splitQueryFullID(id)
-	dir, err := s.resolveQueryLocation(folderPath, itemID)
-	if err != nil {
+	if _, err := s.resolveQueryLocation(folderPath, itemID); err != nil {
 		return err
 	}
 
 	return s.withQueryLock(ctx, func(g queryLockGuard) error {
 		if err := ctx.Err(); err != nil {
+			return err
+		}
+		dir, err := s.resolveQueryLocation(folderPath, itemID) // again, under the lock (N3)
+		if err != nil {
 			return err
 		}
 		current, err := readCurrentQueryPair(dir, itemID)

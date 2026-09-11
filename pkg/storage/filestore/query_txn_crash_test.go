@@ -208,7 +208,7 @@ func TestStageAndInstall_DiscardsStagedFilesWhenTheJournalCannotBeWritten(t *tes
 	// both files are staged (it never replaces a committed journal).
 	writeFile0600(t, filepath.Join(txnDir, queryTxnJournalFile), []byte("{}"))
 	q := dtqlQuery("q", "", "B")
-	if _, err := store.stageAndInstallQueryPair(queryLockGuard{txnDir: txnDir}, queriesDir, "", q.QueryDef, currentQueryPair{}); err == nil {
+	if _, err := store.stageAndInstallQueryPair(queryLockGuard{txnDir: txnDir}, "", q.QueryDef, currentQueryPair{}); err == nil {
 		t.Fatal("expected the journal write to fail")
 	}
 	for _, name := range []string{queryTxnStagedJSON, queryTxnStagedBody, queryTxnJournalTmpFile} {

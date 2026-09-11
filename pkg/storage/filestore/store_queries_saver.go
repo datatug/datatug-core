@@ -61,16 +61,19 @@ func (s fsQueriesStore) CreateQuery(ctx context.Context, query datatug.QueryDefW
 	if err := query.QueryDef.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid query: %w", err)
 	}
-	dir, err := s.resolveQueryLocation(query.FolderPath, query.ID)
-	if err != nil {
+	if _, err := s.resolveQueryLocation(query.FolderPath, query.ID); err != nil {
 		return nil, err
 	}
-	err = s.withQueryLock(ctx, func(g queryLockGuard) error {
+	err := s.withQueryLock(ctx, func(g queryLockGuard) error {
+		dir, err := s.resolveQueryLocation(query.FolderPath, query.ID) // again, under the lock (N3)
+		if err != nil {
+			return err
+		}
 		current, err := readCurrentQueryPair(dir, query.ID)
 		if err != nil {
 			return err
 		}
-		_, err = s.stageAndInstallQueryPair(g, dir, query.FolderPath, query.QueryDef, current)
+		_, err = s.stageAndInstallQueryPair(g, query.FolderPath, query.QueryDef, current)
 		return err
 	})
 	if err != nil {
