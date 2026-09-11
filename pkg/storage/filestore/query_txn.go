@@ -649,7 +649,9 @@ func commitQueryTransaction(queriesRoot, txnDir string, j queryTxnJournal) error
 	}
 	dir, err := checkQueryTxnTargets(queriesRoot, txnDir, j)
 	if err != nil {
-		return fmt.Errorf("refusing to write query %q: %w", j.ID, err)
+		// A symlink or other non-regular entry at a target name is a
+		// typed location refusal (review SF-D).
+		return fmt.Errorf("refusing to write query %q: %w", j.ID, asQueryLocationError(j.FolderPath, j.ID, err))
 	}
 	if err := checkQueryDirWritable(dir); err != nil {
 		return fmt.Errorf("refusing to write query %q: %w", j.ID, err)
@@ -738,6 +740,17 @@ type currentQueryPair struct {
 	bodyFileName string
 	bodyBytes    []byte
 	revision     datatug.QueryRevision
+}
+
+// readQueryPairAt is readCurrentQueryPair for the query addressed as
+// (folderPath, id), the form every query-store operation uses: an entry at
+// either file name of the pair that is not a regular file is refused with
+// a typed *datatug.InvalidQueryLocationError (asQueryLocationError), so a
+// caller can tell it from an I/O failure with errors.As or
+// datatug.IsInvalidQueryLocation.
+func readQueryPairAt(folderPath, dir, id string) (currentQueryPair, error) {
+	cur, err := readCurrentQueryPair(dir, id)
+	return cur, asQueryLocationError(folderPath, id, err)
 }
 
 // readCurrentQueryPair reads the exact current pair for id under dir. It

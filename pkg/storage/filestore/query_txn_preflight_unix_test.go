@@ -53,6 +53,9 @@ func TestPutQuery_RefusesUnixEntriesAtTheNewBodyNameAndStaysUsable(t *testing.T)
 				return err
 			})
 			requireRefusedWrite(t, err, tc.want)
+			if tc.name != "unreadable file" { // a permission failure is not a location refusal
+				requireTypedQueryLocation(t, tc.name, err, "new.query.dtql")
+			}
 			assertStoreUsableAfterRefusal(t, ps, queriesDir)
 		})
 	}

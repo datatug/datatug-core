@@ -69,7 +69,7 @@ func (s fsQueriesStore) CreateQuery(ctx context.Context, query datatug.QueryDefW
 		if err != nil {
 			return err
 		}
-		current, err := readCurrentQueryPair(dir, query.ID)
+		current, err := readQueryPairAt(query.FolderPath, dir, query.ID)
 		if err != nil {
 			return err
 		}

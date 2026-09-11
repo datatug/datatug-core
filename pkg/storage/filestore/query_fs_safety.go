@@ -8,8 +8,13 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
+
+	"github.com/datatug/datatug-core/pkg/storage"
 )
 
 const (
@@ -50,15 +55,44 @@ const (
 // owned by another user, which an unprivileged test cannot create.
 var fileOwnedByCurrentUser = ownedByCurrentUser
 
+// nonRegularEntryError refuses an entry that is not a regular file where
+// the query store needs one - a symlink, directory, FIFO, device or socket -
+// or a directory where a query file is to be removed. At one of a query's
+// own file names that is a refusal of the query's location, so
+// asQueryLocationError types it as *datatug.InvalidQueryLocationError, the
+// error every other location refusal uses (review SF-D).
+type nonRegularEntryError struct {
+	path   string // the entry
+	detail string // what it is and what is refused
+}
+
+func (e *nonRegularEntryError) Error() string { return e.path + " " + e.detail }
+
+// asQueryLocationError returns err as a typed *datatug.InvalidQueryLocationError
+// for (folderPath, id) when it refuses a non-regular entry at one of that
+// query's own file names ("<id>.query.*"); any other error, including one
+// about a transaction artifact, is returned unchanged.
+func asQueryLocationError(folderPath, id string, err error) error {
+	var entryErr *nonRegularEntryError
+	if !errors.As(err, &entryErr) {
+		return err
+	}
+	name := path.Base(filepath.ToSlash(entryErr.path))
+	if !strings.HasPrefix(name, id+"."+storage.QueryFileSuffix+".") {
+		return err
+	}
+	return invalidQueryLocation(folderPath, id, name+" "+entryErr.detail)
+}
+
 // requireRegularFile refuses anything but a regular file: a symlink (whose
 // target could be anywhere), a directory, a FIFO (whose open or read can
 // block forever), a device (/dev/zero never ends) or a socket.
 func requireRegularFile(filePath string, info os.FileInfo) error {
 	switch mode := info.Mode(); {
 	case mode&os.ModeSymlink != 0:
-		return fmt.Errorf("%s is a symlink; refusing to use it", filePath)
+		return &nonRegularEntryError{filePath, "is a symlink; refusing to use it"}
 	case !mode.IsRegular():
-		return fmt.Errorf("%s is not a regular file (%v); refusing to use it", filePath, mode.Type())
+		return &nonRegularEntryError{filePath, fmt.Sprintf("is not a regular file (%v); refusing to use it", mode.Type())}
 	}
 	return nil
 }
@@ -205,7 +239,7 @@ func checkRemovableQueryFile(filePath string) error {
 		return err
 	}
 	if info.IsDir() {
-		return fmt.Errorf("%s is a directory; refusing to remove it as a query file", filePath)
+		return &nonRegularEntryError{filePath, "is a directory; refusing to remove it as a query file"}
 	}
 	return nil
 }

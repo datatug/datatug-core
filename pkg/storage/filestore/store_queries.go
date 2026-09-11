@@ -191,7 +191,7 @@ func (s fsQueriesStore) UpdateQuery(ctx context.Context, query datatug.QueryDef)
 		if err != nil {
 			return err
 		}
-		current, err := readCurrentQueryPair(dir, itemID)
+		current, err := readQueryPairAt(folderPath, dir, itemID)
 		if err != nil {
 			return err
 		}
@@ -222,7 +222,7 @@ func (s fsQueriesStore) DeleteQuery(ctx context.Context, id string) (err error) 
 		if err != nil {
 			return err
 		}
-		current, err := readCurrentQueryPair(dir, itemID)
+		current, err := readQueryPairAt(folderPath, dir, itemID)
 		if err != nil {
 			return err
 		}
@@ -255,7 +255,7 @@ func (s fsQueriesStore) SaveQuery(ctx context.Context, query *datatug.QueryDefWi
 		if err != nil {
 			return err
 		}
-		current, err := readCurrentQueryPair(dir, query.ID)
+		current, err := readQueryPairAt(query.FolderPath, dir, query.ID)
 		if err != nil {
 			return err
 		}

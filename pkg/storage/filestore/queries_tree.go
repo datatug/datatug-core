@@ -132,7 +132,7 @@ func (s fsQueriesStore) saveQueriesTreeLocked(ctx context.Context, g queryLockGu
 		if err != nil {
 			return fmt.Errorf("failed to save query[%s] in %s: %w", item.ID, relFolderPath, err)
 		}
-		current, err := readCurrentQueryPair(dir, item.ID)
+		current, err := readQueryPairAt(relFolderPath, dir, item.ID)
 		if err != nil {
 			return fmt.Errorf("failed to read existing query[%s] in %s: %w", item.ID, relFolderPath, err)
 		}

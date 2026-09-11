@@ -47,7 +47,7 @@ func (s fsQueriesStore) LoadQueryRevision(ctx context.Context, id string, o ...d
 		if err != nil {
 			return err
 		}
-		current, err := readCurrentQueryPair(dir, itemID)
+		current, err := readQueryPairAt(folderPath, dir, itemID)
 		if err != nil {
 			return err
 		}
@@ -114,7 +114,7 @@ func (s fsQueriesStore) PutQuery(ctx context.Context, query *datatug.QueryDefWit
 		if err != nil {
 			return err
 		}
-		current, err := readCurrentQueryPair(dir, query.ID)
+		current, err := readQueryPairAt(query.FolderPath, dir, query.ID)
 		if err != nil {
 			return err
 		}
@@ -211,7 +211,7 @@ func (s fsQueriesStore) DeleteQueryRevision(ctx context.Context, id string, expe
 		if err != nil {
 			return err
 		}
-		current, err := readCurrentQueryPair(dir, itemID)
+		current, err := readQueryPairAt(folderPath, dir, itemID)
 		if err != nil {
 			return err
 		}
