@@ -139,12 +139,18 @@ func TestEmbeddedCredentialReason_Allowed(t *testing.T) {
 
 // The documented limits stay what the package doc says they are.
 func TestEmbeddedCredentialReason_DocumentedLimits(t *testing.T) {
-	for _, value := range []string{"scott/tiger@orcl", "https://user:123/x@h", "?key=AIzaSyA", "password: secret"} {
+	for _, value := range []string{"scott/tiger@orcl", "https://user:123/x@h", "?key=AIzaSyA", "password: secret", "password=@dmin"} {
 		if _, found := EmbeddedCredentialReason(value); found {
 			t.Errorf("%q is documented as not detected; update the package doc if that changed", value)
 		}
 	}
-	for _, value := range []string{"SELECT * FROM users WHERE password = 'x'", "a,b:c@d"} {
+	for _, value := range []string{
+		"SELECT * FROM users WHERE password = 'x'",
+		"UPDATE users SET password = crypt(:pw, gen_salt('bf'))",
+		"{\n  user(id: 1) {\n    authorization: permissions { read }\n  }\n}",
+		"a,b:c@d",
+		"SELECT 'a:b@c'",
+	} {
 		if _, found := EmbeddedCredentialReason(value); !found {
 			t.Errorf("%q is documented as refused; update the package doc if that changed", value)
 		}
@@ -251,10 +257,6 @@ func TestQueryDef_Validate_ScreensHTTPQueryText(t *testing.T) {
 			t.Errorf("expected HTTP text %q to be allowed, got: %v", text, err)
 		}
 	}
-	// SQL text is code a user writes on purpose; it is not screened.
-	if err := newQueryDef("SQL", "SELECT * FROM users WHERE password = 'x'").Validate(); err != nil {
-		t.Errorf("expected SQL text not to be screened, got: %v", err)
-	}
 }
 
 // Review SF-C: datatug-cli's HTTP executor substitutes a declared parameter
@@ -294,6 +296,121 @@ func TestQueryDef_Validate_AllowsTheHTTPParameterPlaceholder(t *testing.T) {
 		}
 		if msg := err.Error(); !strings.Contains(msg, "{name}") || strings.Contains(msg, "{{") {
 			t.Errorf("expected the refusal to suggest the {name} placeholder the executor substitutes, got: %v", err)
+		}
+	}
+}
+
+// Review V1: a query's title and its text are stored in git-tracked files
+// (the text as the body sidecar), so QueryDef.Validate screens both,
+// whatever the query type.
+func TestQueryDef_Validate_ScreensTheTitleAndEveryQueryText(t *testing.T) {
+	for _, title := range []string{
+		"prod postgres://u:secret@h/db",
+		"Server=h;Password=secret",
+		"Authorization: Bearer abc123",
+	} {
+		v := newQueryDef("SQL", "SELECT 1")
+		v.Title = title
+		err := v.Validate()
+		if err == nil || !strings.Contains(err.Error(), "title") {
+			t.Errorf("expected title %q to be refused naming the title field, got: %v", title, err)
+		}
+	}
+	for _, c := range []struct {
+		typ  QueryType
+		text string
+	}{
+		{"SQL", "SELECT * FROM dblink('host=h user=u password=secret', 'select 1') AS t(x int)"},
+		{"SQL", "-- postgres://u:secret@h/db\nSELECT 1"},
+		{"SQL", "SELECT * FROM users WHERE password = 'x'"},
+		{"SQL", "SELECT * FROM t WHERE api_key = 'abc123'"},
+		{"SQL", "SELECT * FROM t WHERE token = abc123"},
+		{"DTQL", "from:\n  name: Invoice\n# postgres://u:secret@h/db"},
+		{"GraphQL", "# Authorization: Bearer secret\n{ a }"},
+		{"GraphQL", `{"query": "{ me }", "variables": {"token": "abc123"}}`},
+		{"SQL", "-- X-API-Key: abc123\nSELECT 1"},
+		{"SQL", "/* Authorization: Bearer abc123 */\nSELECT 1"},
+		{"SQL", "/*\n * Authorization: Bearer abc123\n */\nSELECT 1"},
+		{"DTQL", "// Authorization: Basic dXNlcjpwYXNz\nfrom:\n  name: Invoice"},
+		{"HTTP", "https://u:secret@h/x"},
+	} {
+		err := newQueryDef(c.typ, c.text).Validate()
+		if err == nil || !strings.Contains(err.Error(), "text") {
+			t.Errorf("expected %s text %q to be refused naming the text field, got: %v", c.typ, c.text, err)
+			continue
+		}
+		wantHint := "@name"
+		if c.typ == QueryTypeHTTP {
+			wantHint = "{name}"
+		}
+		if !strings.Contains(err.Error(), wantHint) {
+			t.Errorf("expected the %s refusal to suggest %s, got: %v", c.typ, wantHint, err)
+		}
+	}
+}
+
+// Bind parameters and template references name a value instead of holding
+// one, so query text that uses them is allowed on every query type.
+func TestQueryDef_Validate_AllowsPlaceholdersInQueryText(t *testing.T) {
+	for _, text := range []string{
+		"SELECT * FROM users WHERE token = @token",
+		"SELECT * FROM t WHERE api_key = @apiKey",
+		"UPDATE users SET password = :pw WHERE id = :id",
+		"UPDATE users SET password = ? WHERE id = ?",
+		"UPDATE users SET password = $1 WHERE id = $2",
+		"SELECT * FROM t WHERE token = {token}",
+		"SELECT * FROM t WHERE token = {{token}}",
+		`UPDATE users SET "password" = crypt(:pw, gen_salt('bf'))`, // the documented workaround
+		"UPDATE users SET password_hash = crypt($1, gen_salt('bf'))",
+		"SELECT password FROM users",
+		"SELECT * FROM users WHERE password = ''",
+		"SELECT * FROM users WHERE password IS NULL",
+		"SELECT * FROM t WHERE email = 'bob@example.com'",
+		"SELECT * FROM logs WHERE msg LIKE '%token=%'",
+	} {
+		if err := newQueryDef("SQL", text).Validate(); err != nil {
+			t.Errorf("expected SQL %q to be allowed, got: %v", text, err)
+		}
+	}
+	for _, c := range []struct {
+		typ  QueryType
+		text string
+	}{
+		{"GraphQL", "query($token: String!) { login(token: $token) { id } }"},
+		{"GraphQL", "# Authorization: Bearer {token}\n{ me { id } }"},
+		{"SQL", "/* Authorization: Bearer {{token}} */\nSELECT 1"},
+		{"GraphQL", `{"query": "{ me }", "variables": {"token": "{{token}}"}}`},
+		{"DTQL", "from:\n  name: User\nwhere:\n  op: ==\n  left:\n    field: Token\n  right:\n    param: token\n"},
+	} {
+		if err := newQueryDef(c.typ, c.text).Validate(); err != nil {
+			t.Errorf("expected %s %q to be allowed, got: %v", c.typ, c.text, err)
+		}
+	}
+}
+
+// The demo project's titles and bodies (datatug-demo-projects,
+// demo-project-1/queries) are ordinary content and must all pass. They are
+// copied here so the check holds without that checkout; the filestore
+// package's demo fixture test also re-saves the real files when the
+// checkout is present.
+func TestQueryDef_Validate_AllowsTheDemoProjectQueries(t *testing.T) {
+	for _, c := range []struct {
+		title string
+		typ   QueryType
+		text  string
+	}{
+		{"Customer invoices", "DTQL", "from:\n  name: Invoice\n  alias: i\ncolumns:\n  - field: InvoiceId\n  - field: InvoiceDate\n  - field: BillingCity\n  - field: BillingCountry\n  - field: Total\nwhere:\n  op: ==\n  left:\n    field: CustomerId\n  right:\n    param: CustomerId\norderBy:\n  - field: InvoiceDate\n    desc: true\n"},
+		{"Customer purchases by genre", "SQL", "SELECT\n    g.Name AS GenreName,\n    COUNT(il.InvoiceLineId) AS TracksPurchased,\n    SUM(il.UnitPrice * il.Quantity) AS TotalSpent\nFROM InvoiceLine AS il\nINNER JOIN Invoice AS i ON i.InvoiceId = il.InvoiceId\nINNER JOIN Track AS t ON t.TrackId = il.TrackId\nINNER JOIN Genre AS g ON g.GenreId = t.GenreId\nWHERE i.CustomerId = @CustomerId\nGROUP BY g.Name\nORDER BY TotalSpent DESC\n"},
+		{"Invoice lines", "SQL", "SELECT\n    il.InvoiceLineId,\n    t.Name AS TrackName,\n    il.UnitPrice,\n    il.Quantity,\n    (il.UnitPrice * il.Quantity) AS LineTotal\nFROM InvoiceLine AS il\nINNER JOIN Track AS t ON t.TrackId = il.TrackId\nWHERE il.InvoiceId = @InvoiceId\nORDER BY il.InvoiceLineId\n"},
+		{"Country facts (currency by country name)", "HTTP", "https://countriesnow.space/api/v0.1/countries/currency/q?country={name}\n"},
+		{"Exchange rate for the customer's currency", "HTTP", "https://api.frankfurter.dev/v1/latest?from=USD&to={to}\n"},
+		{"Albums by title", "SQL", "SELECT al.AlbumId, al.Title AS AlbumTitle FROM Album AS al WHERE al.AlbumId = IFNULL(@AlbumId, al.AlbumId) AND al.ArtistId = IFNULL(@ArtistId, al.ArtistId) ORDER BY Title"},
+		{"Tracks by title", "SQL", "SELECT t.* FROM Track AS t WHERE t.GenreId = IFNULL(t.GenreId, t.GenreId) AND t.AlbumId = IFNULL(@AlbumId, t.AlbumId)"},
+	} {
+		v := newQueryDef(c.typ, c.text)
+		v.Title = c.title
+		if err := v.Validate(); err != nil {
+			t.Errorf("expected the demo query %q to be allowed, got: %v", c.title, err)
 		}
 	}
 }

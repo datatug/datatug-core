@@ -13,13 +13,16 @@ import (
 // Credential screening for git-tracked query definitions.
 //
 // A QueryDef is persisted to git-tracked project files, so no field that
-// can carry a connection string may carry a secret. QueryDefTarget.Validate
-// screens a target's driver, catalog, protocol, host and username;
-// QueryDef.Validate screens every parameter default (strings, and maps,
-// objects and arrays walked recursively, whatever the parameter's declared
-// type) and the text of an HTTP query. All of them use
-// EmbeddedCredentialReason, which refuses a secret in each of these
-// syntaxes:
+// can carry a secret may hold one. QueryDefTarget.Validate screens a
+// target's driver, catalog, protocol, host and username; QueryDef.Validate
+// screens the query's title, its text whatever the query type (SQL,
+// GraphQL, DTQL and HTTP alike: the text is the git-tracked body sidecar)
+// and every parameter default (strings, and maps, objects and arrays
+// walked recursively, whatever the parameter's declared type). Every save
+// path - PutQuery, SaveQuery, CreateQuery, UpdateQuery and a project save -
+// validates the QueryDef first, so each of them refuses such a write before
+// anything reaches disk. All of them use EmbeddedCredentialReason, which
+// refuses a secret in each of these syntaxes:
 //
 //   - URL userinfo with a password, "postgres://user:secret@host/db",
 //     including a URL embedded in a longer value
@@ -49,17 +52,22 @@ import (
 //     is a pagination cursor, not a secret, and is allowed.
 //   - An HTTP credential header line with a literal value:
 //     "Authorization: Bearer abc", "Proxy-Authorization:", "X-API-Key:",
-//     "Api-Key:", "X-Auth-Token:" and "X-Access-Token:".
+//     "Api-Key:", "X-Auth-Token:" and "X-Access-Token:", also when the
+//     line is a comment ("# ", "// ", "-- ", "/* " or " * " before the
+//     header name), since a header pasted into a SQL or GraphQL comment
+//     is stored in git all the same.
 //
 // A value is not a secret when it is empty or a placeholder: "?", "$1", a
-// bind name such as ":new_password", an environment reference such as
-// "$PGPASSWORD" or "${PGPASSWORD}", an HTTP query parameter reference such
-// as "{token}" (the syntax datatug-cli's HTTP executor substitutes, see
-// its pkg/httpsource/params.go), a template such as "{{token}}" or
-// "<password>", or one of true, false, yes, no, on, off, null and none.
-// So a username alone, "reset_password=true", "token_count=5" and SQL such
-// as "UPDATE users SET password = :new_password" or "SELECT password_hash
-// FROM users" are all allowed.
+// bind name such as ":new_password" or "@CustomerId" (the SQL Server and
+// SQLite style the demo project's own SQL uses), an environment reference
+// such as "$PGPASSWORD" or "${PGPASSWORD}", an HTTP query parameter
+// reference such as "{token}" (the syntax datatug-cli's HTTP executor
+// substitutes, see its pkg/httpsource/params.go), a template such as
+// "{{token}}" or "<password>", or one of true, false, yes, no, on, off,
+// null and none. So a username alone, "reset_password=true",
+// "token_count=5" and SQL such as "UPDATE users SET password =
+// :new_password", "WHERE token = @token", "WHERE api_key = $1" or "SELECT
+// password_hash FROM users" are all allowed.
 //
 // Known limits, each a deliberate trade-off against false positives:
 //
@@ -71,14 +79,21 @@ import (
 //     "https://h:443/users/bob@example.com".
 //   - A secret under a key this list does not name (for example Google's
 //     "?key="), or in YAML "password: secret" form, is not detected.
-//   - Some values that only look like credentials are refused: SQL that
-//     compares a password column with a literal ("WHERE password = 'x'"
-//     holds that literal in git), a "u:@h" URL with an explicitly empty
-//     password, and a "name:word@host" token inside a comma- or
-//     semicolon-separated list ("a,b:c@d").
-//
-// The text of SQL, GraphQL and DTQL queries is not screened: it is code a
-// user writes on purpose, and screening it would refuse ordinary SQL.
+//   - Some values that only look like credentials are refused. SQL that
+//     compares a secret-named column with a literal ("WHERE password =
+//     'x'") is refused on purpose: it would put that literal in git. SQL
+//     that assigns a function call to one ("SET password = crypt(:pw,
+//     gen_salt('bf'))") is refused too, because the value is read up to
+//     the first separator ("crypt(:pw"); quote the column name (SET
+//     "password" = ...) to write it. So are a "u:@h" URL with an
+//     explicitly empty password and a "name:word@host" token inside a
+//     comma- or semicolon-separated list ("a,b:c@d") or a SQL string
+//     literal ("SELECT 'a:b@c'").
+//   - A literal that has a placeholder's shape ("@dmin", ":secret",
+//     "{token}", "$SECRET") is taken for a placeholder and not detected.
+//   - A GraphQL alias named authorization on its own line
+//     ("authorization: permissions { read }") reads as a credential header
+//     and is refused; rename the alias.
 
 // Refusal reasons returned by EmbeddedCredentialReason.
 const (
@@ -110,14 +125,15 @@ var (
 	jsonMemberPattern = regexp.MustCompile(`"([^"\\]{1,128})"\s*:\s*"((?:[^"\\]|\\.)*)"`)
 
 	// httpCredentialHeaderPattern matches an HTTP header line that carries
-	// a credential.
-	httpCredentialHeaderPattern = regexp.MustCompile(`(?im)^[ \t]*(authorization|proxy-authorization|x-api-key|api-key|x-auth-token|x-access-token)[ \t]*:[ \t]*([^\r\n]*)`)
+	// a credential, optionally inside a comment (#, //, --, /* or *).
+	httpCredentialHeaderPattern = regexp.MustCompile(`(?im)^[ \t]*(?:(?:#|//|--|/\*|\*)[ \t]*)?(authorization|proxy-authorization|x-api-key|api-key|x-auth-token|x-access-token)[ \t]*:[ \t]*([^\r\n]*)`)
 
 	// placeholderValuePattern matches a value that names a secret instead
 	// of holding one.
 	// "{name}" is the HTTP executor's parameter syntax, matched exactly as
-	// datatug-cli's pkg/httpsource/params.go matches it.
-	placeholderValuePattern = regexp.MustCompile(`^(?:\?|\$\d+|:[A-Za-z_]\w*|\$[A-Z_][A-Z0-9_]*|\$\{[^{}]*\}|\{[A-Za-z0-9_]+\}|\{\{[^{}]*\}\}|<[^<>]*>)$`)
+	// datatug-cli's pkg/httpsource/params.go matches it; "@name" and
+	// ":name" are SQL bind parameters.
+	placeholderValuePattern = regexp.MustCompile(`^(?:\?|\$\d+|:[A-Za-z_]\w*|@[A-Za-z_]\w*|\$[A-Z_][A-Z0-9_]*|\$\{[^{}]*\}|\{[A-Za-z0-9_]+\}|\{\{[^{}]*\}\}|<[^<>]*>)$`)
 )
 
 var (
@@ -253,7 +269,8 @@ func jsonCredentialReason(value string) (reason string, found bool) {
 // httpHeaderCredentialReason checks every HTTP credential header line.
 func httpHeaderCredentialReason(value string) (reason string, found bool) {
 	for _, m := range httpCredentialHeaderPattern.FindAllStringSubmatch(value, -1) {
-		header, credential := strings.ToLower(m[1]), strings.TrimSpace(m[2])
+		// A block comment may close on the header's own line.
+		header, credential := strings.ToLower(m[1]), strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(m[2]), "*/"))
 		if header == "authorization" || header == "proxy-authorization" {
 			if fields := strings.Fields(credential); len(fields) > 0 && httpAuthSchemes[strings.ToLower(fields[0])] {
 				credential = strings.Join(fields[1:], " ")
