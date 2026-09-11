@@ -90,7 +90,10 @@ func (s fsQueriesStore) withQueryLock(ctx context.Context, fn func(g queryLockGu
 // withQueryLock. That still works on a project whose filesystem has since
 // become read-only: the lock file the earlier write already created is
 // merely opened and flock()'d, which needs no write permission on an
-// existing file.
+// existing file. One exception: if that namespace exists with permissions
+// broader than 0700, even a read first repairs them (see ensureQueryTxnDir),
+// and on a medium where that chmod is impossible (an immutable flag, a
+// read-only mount) the read fails closed rather than trusting the directory.
 func (s fsQueriesStore) withQueryReadLock(ctx context.Context, fn func(g queryLockGuard) error) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -118,7 +121,9 @@ func (s fsQueriesStore) withQueryReadLock(ctx context.Context, fn func(g queryLo
 // 0755) - so that case is repaired back to 0700 in place and used, rather
 // than permanently bricking every read and write against the project over
 // a hidden dot-directory an ordinary user has no reason to know needs a
-// chmod. Windows does not expose POSIX permission bits through
+// chmod. The repair tightens the directory to 0700 first and only then
+// checks it for recovery artifacts, so content planted while it was broad
+// is still refused, and nothing can be planted after the chmod. Windows does not expose POSIX permission bits through
 // os.FileMode (Go reports a synthetic value there), so the permission
 // check only applies on the platforms where it is meaningful.
 func ensureQueryTxnDir(queriesRoot string) (string, error) {
@@ -133,15 +138,27 @@ func ensureQueryTxnDir(queriesRoot string) (string, error) {
 			return "", fmt.Errorf("query transaction path %s is not a directory; refusing to use it", txnDir)
 		}
 		if runtime.GOOS != "windows" && info.Mode().Perm()&^0o700 != 0 {
+			// Tighten first, then look. Once the directory is 0700 no other
+			// user can add anything to it, so an emptiness check made after
+			// the chmod cannot be raced by an injected journal or staged
+			// file; checking first and tightening second left exactly that
+			// window open to anyone who could write to the broad directory.
+			if err := os.Chmod(txnDir, 0o700); err != nil {
+				return "", fmt.Errorf("failed to repair query transaction directory permissions: %w", err)
+			}
+			tightened, err := os.Lstat(txnDir)
+			if err != nil {
+				return "", fmt.Errorf("failed to re-inspect query transaction directory %s after repairing its permissions: %w", txnDir, err)
+			}
+			if tightened.Mode()&os.ModeSymlink != 0 || !tightened.IsDir() || tightened.Mode().Perm()&^0o700 != 0 {
+				return "", fmt.Errorf("query transaction directory %s changed while its permissions were being repaired; refusing to use it", txnDir)
+			}
 			hasContent, contentErr := queryTxnDirHasRecoveryContent(txnDir)
 			if contentErr != nil {
 				return "", contentErr
 			}
 			if hasContent {
 				return "", fmt.Errorf("query transaction directory %s has overly broad permissions %v; refusing to use it", txnDir, info.Mode().Perm())
-			}
-			if err := os.Chmod(txnDir, 0o700); err != nil {
-				return "", fmt.Errorf("failed to repair query transaction directory permissions: %w", err)
 			}
 		}
 		return txnDir, nil

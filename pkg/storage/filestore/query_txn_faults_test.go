@@ -91,7 +91,8 @@ func TestEnsureQueryTxnDir_RepairsEmptyDirWithBroadPermissions(t *testing.T) {
 // is narrowly scoped: a transaction directory that actually holds a
 // journal (a real recovery artifact something could have tampered with)
 // still fails closed when its permissions are broader than 0700, exactly
-// as before - and is left untouched, not silently repaired.
+// as before. It is tightened to 0700 first, so nothing can be planted
+// while it is checked, and then refused.
 func TestEnsureQueryTxnDir_RejectsBroadPermissionsWithJournalPresent(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Go's os.FileMode permission bits are synthetic on Windows")
@@ -116,8 +117,8 @@ func TestEnsureQueryTxnDir_RejectsBroadPermissionsWithJournalPresent(t *testing.
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if perm := info.Mode().Perm(); perm != 0o755 {
-		t.Fatalf("expected the directory's permissions to be left untouched, got %v", perm)
+	if perm := info.Mode().Perm(); perm != 0o700 {
+		t.Fatalf("expected the directory to be tightened to 0700 before the content check, got %v", perm)
 	}
 }
 
