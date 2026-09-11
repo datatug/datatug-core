@@ -4,12 +4,15 @@ import "context"
 
 // QueryRevision identifies one persisted state of a query's on-disk pair
 // ("<id>.query.json" + its body sidecar, see pkg/datatug/doc.go). It is
-// derived from the exact bytes a store persisted - metadata bytes, body
-// sidecar file name and exact body bytes - so any change to either file,
-// including one made outside the revisioned API (a hand edit, another
-// process), produces a different revision and invalidates a writer holding
-// the old one. It carries no meaning beyond equality comparison: callers
-// must not parse it or assume any ordering.
+// derived from the exact bytes a store persisted - metadata bytes, the body
+// sidecar's type-derived extension and exact body bytes - so any change to
+// either file, including one made outside the revisioned API (a hand edit,
+// another process), produces a different revision and invalidates a writer
+// holding the old one. It never depends on how a caller spelled the id to
+// find the pair, so a record read through two spellings a file system
+// resolves to the same files (e.g. letter case on macOS/Windows) has one
+// revision. It carries no meaning beyond equality comparison: callers must
+// not parse it or assume any ordering.
 type QueryRevision string
 
 // QueryWriteCondition is the optimistic-concurrency precondition a

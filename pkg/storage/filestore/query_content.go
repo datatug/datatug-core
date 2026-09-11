@@ -49,5 +49,13 @@ func queryJSONBytes(query datatug.QueryDef) ([]byte, error) {
 // pkg/datatug/doc.go's "Query text sidecar file naming" convention, which
 // readQueryTextSidecar in store_queries.go already derives the same way).
 func queryBodyFileName(id string, queryType datatug.QueryType) string {
-	return fmt.Sprintf("%s.%s.%s", id, storage.QueryFileSuffix, strings.ToLower(string(queryType)))
+	return fmt.Sprintf("%s.%s.%s", id, storage.QueryFileSuffix, queryBodyFileExt(queryType))
+}
+
+// queryBodyFileExt returns the type-derived part of queryBodyFileName - the
+// "<lowercase type>" in "<id>.query.<lowercase type>" - which, unlike the
+// full file name, never depends on how the id was spelled to find the
+// sidecar (see computeQueryRevision).
+func queryBodyFileExt(queryType datatug.QueryType) string {
+	return strings.ToLower(string(queryType))
 }
