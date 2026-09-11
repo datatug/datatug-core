@@ -42,10 +42,14 @@
 //  1. Nothing at the final location changes before the commit point, so an
 //     interruption before it leaves the previous complete revision
 //     untouched: there is nothing to back up yet.
-//  2. After the commit point the transaction is completed forward, never
-//     rolled back, so the old pair a backup would protect is never needed.
-//     What an interruption can leave is the new pair's install half done,
-//     which a backup of the old pair would not help with.
+//  2. After the commit point the transaction is completed forward, so the
+//     old pair a backup would protect is never needed. What an interruption
+//     can leave is the new pair's install half done, which a backup of the
+//     old pair would not help with. The one exception is the writer's own
+//     install failing before it changed anything at the query's location
+//     (finishQueryTransaction): the old pair is then provably intact and
+//     no success was reported, so the writer removes its journal and
+//     returns an ordinary error.
 //  3. Recovery finishes a half-done install from the staged files and the
 //     journal's hashes alone. A staged file leaves the transaction
 //     directory in exactly two ways while a journal exists: ensureInstalled
@@ -57,8 +61,8 @@
 //     file must hash to that content. If a final file was edited outside
 //     DataTug between an interrupted install and recovery, it matches
 //     neither: recovery then fails closed with an error naming the file,
-//     rather than guessing, and the user restores the file or removes the
-//     journal. Nothing here depends on a backup surviving the same crash.
+//     rather than guessing, and the user restores the file. Nothing here
+//     depends on a backup surviving the same crash.
 //
 // A physical backup file would be a weaker guarantee: it would need its own
 // fsync to be trustworthy after a crash, and restoring it correctly would
@@ -135,6 +139,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -318,7 +323,9 @@ func writeTxnFileExclusive(txnDir, name string, data []byte) (err error) {
 // fsyncs the directory. The rename is the commit point, so journal.json is
 // never observed partly written. Once this returns successfully, the
 // transaction MUST be completed forward by completeQueryTransaction
-// (immediately, or by a later recovery); it can no longer be abandoned.
+// (immediately, or by a later recovery). The only way back is the
+// committing writer's own rollback in finishQueryTransaction, allowed only
+// while nothing at the query's location has changed.
 // When it returns an error, journal.json was not created (every failure
 // happens before the rename), so the caller's staged files are its own
 // uncommitted leftovers to remove. j must pass validate - the same check
@@ -431,6 +438,25 @@ func sweepUncommittedTxnArtifacts(txnDir string) error {
 	return nil
 }
 
+// queryTargetRename and queryTargetRemove are os.Rename and os.Remove, used
+// for every change a transaction makes at a query's location: the installs,
+// the stale-body removal and a delete's removals. They are variables only
+// so tests can make one of those steps fail part way through a transaction,
+// which a portable, unprivileged test cannot otherwise arrange.
+var (
+	queryTargetRename = os.Rename
+	queryTargetRemove = os.Remove
+)
+
+// removeQueryTargetIfExists is removeIfExists for a file at a query's
+// location (queryTargetRemove).
+func removeQueryTargetIfExists(filePath string) error {
+	if err := queryTargetRemove(filePath); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
+
 // ensureInstalled makes dir/finalName hold exactly the content hashed as
 // expectedHash, idempotently: a no-op if it already does (the common case
 // when this runs as part of the same call that just staged it, and the
@@ -443,7 +469,7 @@ func ensureInstalled(txnDir, stagedName, dir, finalName, expectedHash string) er
 	if err != nil || installed {
 		return err
 	}
-	if err := os.Rename(path.Join(txnDir, stagedName), path.Join(dir, finalName)); err != nil {
+	if err := queryTargetRename(path.Join(txnDir, stagedName), path.Join(dir, finalName)); err != nil {
 		return fmt.Errorf("failed to install %s: %w", finalName, err)
 	}
 	return nil
@@ -549,11 +575,107 @@ func completeQueryTransaction(queriesRoot, txnDir string) error {
 		// until it completes. commitQueryTransaction refuses anything the
 		// checks below would refuse, so only a change made outside DataTug
 		// after the commit, or an operating-system failure, gets here.
-		return fmt.Errorf("the committed query transaction for %q cannot be completed: %w; "+
-			"fix or remove the entry named above, or remove %s to abandon the transaction",
-			j.ID, err, path.Join(txnDir, queryTxnJournalFile))
+		return &queryTxnIncompleteError{
+			FolderPath: j.FolderPath, ID: j.ID,
+			JournalPath: path.Join(txnDir, queryTxnJournalFile), Err: err,
+		}
 	}
 	return nil
+}
+
+// queryTxnIncompleteError reports a committed query transaction whose
+// install cannot be completed yet. Its advice is fix-forward only (review
+// SF-B): once part of the new pair is installed, removing the journal would
+// leave a mix of the old and the new pair, which a later read would serve
+// as one query. So the error never suggests removing it; the user fixes the
+// entry named and the next access completes the write. (A writer whose own
+// install fails before it changed anything rolls back instead, in
+// finishQueryTransaction, and never returns this.)
+type queryTxnIncompleteError struct {
+	FolderPath, ID string
+	JournalPath    string
+	Err            error
+}
+
+func (e *queryTxnIncompleteError) Error() string {
+	return fmt.Sprintf("the committed write of query %q cannot be completed yet: %v. "+
+		"Fix the entry named above (for example unlock the file, restore its permissions or free disk space); "+
+		"DataTug then completes the write on its next access. Do not remove %s: "+
+		"part of the new query may already be in place, and removing the journal would leave a mix of old and new files",
+		path.Join(e.FolderPath, e.ID), e.Err, e.JournalPath)
+}
+
+func (e *queryTxnIncompleteError) Unwrap() error { return e.Err }
+
+// finishQueryTransaction completes the transaction a writer has just
+// committed in txnDir, with completeQueryTransaction - the code recovery
+// runs. If that fails, it rolls the write back only when
+// queryTxnUntouched proves, from what is on disk, that nothing at the
+// query's location has changed yet (the first install step failed). Then
+// the old pair is intact and no success was reported for this write, so
+// removing the journal it committed leaves exactly the previous state: it
+// removes the journal, fsyncs the directory, discards its staged files and
+// returns an ordinary error. Once anything was installed or removed it
+// never rolls back: it returns the *queryTxnIncompleteError and leaves the
+// journal for recovery to complete forward.
+func finishQueryTransaction(queriesRoot, txnDir string, j queryTxnJournal) error {
+	err := completeQueryTransaction(queriesRoot, txnDir)
+	var incomplete *queryTxnIncompleteError
+	if err == nil || !errors.As(err, &incomplete) || !queryTxnUntouched(queriesRoot, txnDir, j) {
+		return err
+	}
+	if rmErr := os.Remove(path.Join(txnDir, queryTxnJournalFile)); rmErr != nil {
+		return err
+	}
+	fsyncDirBestEffort(txnDir)
+	discardStagedFiles(txnDir, queryTxnStagedJSON, queryTxnStagedBody)
+	return fmt.Errorf("failed to write query %q; nothing was changed: %w", path.Join(j.FolderPath, j.ID), incomplete.Err)
+}
+
+// queryTxnUntouched reports whether the committed transaction j has not yet
+// changed anything at the query's location. It judges from what is on disk
+// now, never from which step reported the failure (a rename that failed on
+// a network file system may still have happened):
+//   - a put: both staged files are still in txnDir - a staged file leaves
+//     it only by being installed, or by the clean-up after both installs -
+//     and the stale body a type change removes first is still there;
+//   - a delete: every file the delete removes is still there.
+//
+// Whatever cannot be checked counts as touched, so a writer never rolls
+// back a transaction it cannot prove untouched.
+func queryTxnUntouched(queriesRoot, txnDir string, j queryTxnJournal) bool {
+	present := func(filePath string) bool {
+		_, err := os.Lstat(filePath)
+		return err == nil
+	}
+	targetDir := func() (string, bool) {
+		dir, err := walkQueryDir(queriesRoot, j.FolderPath, j.ID, false)
+		return dir, err == nil
+	}
+	switch j.Operation {
+	case queryTxnOpPut:
+		if !present(path.Join(txnDir, queryTxnStagedJSON)) || !present(path.Join(txnDir, queryTxnStagedBody)) {
+			return false
+		}
+		stale := j.staleBodyFileName()
+		if stale == "" {
+			return true
+		}
+		dir, ok := targetDir()
+		return ok && present(path.Join(dir, stale))
+	case queryTxnOpDelete:
+		dir, ok := targetDir()
+		if !ok {
+			return false
+		}
+		for _, target := range j.deleteTargets(dir) {
+			if !present(target) {
+				return false
+			}
+		}
+		return true
+	}
+	return false
 }
 
 // checkQueryTxnTargets runs every check completeQueryTransaction makes
@@ -671,7 +793,7 @@ func installQueryTransaction(queriesRoot, txnDir string, j queryTxnJournal) erro
 	switch j.Operation {
 	case queryTxnOpPut:
 		if stale := j.staleBodyFileName(); stale != "" {
-			if err := removeIfExists(path.Join(dir, stale)); err != nil {
+			if err := removeQueryTargetIfExists(path.Join(dir, stale)); err != nil {
 				return fmt.Errorf("failed to remove stale body sidecar: %w", err)
 			}
 		}
@@ -698,7 +820,7 @@ func installQueryTransaction(queriesRoot, txnDir string, j queryTxnJournal) erro
 		// checkQueryTxnTargets already checked both targets, so a refusal
 		// left the pair exactly as it was.
 		for _, target := range j.deleteTargets(dir) {
-			if err := removeIfExists(target); err != nil {
+			if err := removeQueryTargetIfExists(target); err != nil {
 				return fmt.Errorf("failed to remove %s: %w", target, err)
 			}
 		}

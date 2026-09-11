@@ -197,10 +197,13 @@ func TestRecovery_ExplainsHowToClearATargetChangedAfterTheCommit(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	_, err = ps.LoadQueries(context.Background(), "")
-	for _, want := range []string{"cannot be completed", "new.query.dtql", "abandon the transaction", filepath.ToSlash(filepath.Join(txnDir, queryTxnJournalFile))} {
+	for _, want := range []string{"cannot be completed", "new.query.dtql", "next access", "Do not remove " + filepath.ToSlash(filepath.Join(txnDir, queryTxnJournalFile))} {
 		if err == nil || !strings.Contains(filepath.ToSlash(err.Error()), want) {
 			t.Errorf("expected the recovery error to mention %q, got: %v", want, err)
 		}
+	}
+	if err != nil && strings.Contains(err.Error(), "abandon") {
+		t.Errorf("expected the advice never to offer abandoning the transaction (review SF-B), got: %v", err)
 	}
 	if err := os.Remove(target); err != nil {
 		t.Fatalf("unexpected error: %v", err)

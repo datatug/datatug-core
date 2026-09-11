@@ -75,7 +75,7 @@ func (s fsQueriesStore) stageAndInstallQueryPair(g queryLockGuard, folderPath st
 		discardStagedFiles(g.txnDir, queryTxnStagedJSON, queryTxnStagedBody)
 		return "", err
 	}
-	if err := completeQueryTransaction(s.dirPath, g.txnDir); err != nil {
+	if err := finishQueryTransaction(s.dirPath, g.txnDir, j); err != nil {
 		return "", err
 	}
 	return computeQueryRevision(jsonBytes, queryBodyFileExt(query.Type), bodyBytes), nil
@@ -101,5 +101,5 @@ func (s fsQueriesStore) deleteQueryPairIfExists(g queryLockGuard, folderPath, id
 	if err := commitQueryTransaction(s.dirPath, g.txnDir, j); err != nil {
 		return err
 	}
-	return completeQueryTransaction(s.dirPath, g.txnDir)
+	return finishQueryTransaction(s.dirPath, g.txnDir, j)
 }

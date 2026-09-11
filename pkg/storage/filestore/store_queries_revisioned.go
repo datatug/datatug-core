@@ -237,6 +237,6 @@ func (s fsQueriesStore) DeleteQueryRevision(ctx context.Context, id string, expe
 			return err
 		}
 		// Commit point reached: complete regardless of ctx from here.
-		return completeQueryTransaction(s.dirPath, g.txnDir)
+		return finishQueryTransaction(s.dirPath, g.txnDir, j)
 	})
 }
