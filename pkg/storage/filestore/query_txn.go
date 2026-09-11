@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"runtime"
@@ -167,14 +168,19 @@ func writeJournal(txnDir string, j queryTxnJournal) error {
 // across every OS datatug-core targets (notably Windows), and the
 // transaction protocol's real safety net is the journal-plus-hash
 // verification recovery below, not perfect directory-entry durability -
-// so a failure here is logged, never fatal.
+// so a failure here is logged (via the standard log package, this
+// package's existing convention - see utils.go), never fatal and never
+// returned to the caller.
 func fsyncDirBestEffort(dir string) {
 	d, err := os.Open(dir)
 	if err != nil {
+		log.Printf("failed to open directory %s to flush it (best-effort, non-fatal): %v", dir, err)
 		return
 	}
 	defer func() { _ = d.Close() }()
-	_ = d.Sync()
+	if err := d.Sync(); err != nil {
+		log.Printf("failed to flush directory %s (best-effort, non-fatal): %v", dir, err)
+	}
 }
 
 // cleanupTxnArtifacts removes every file a query transaction may have left
@@ -307,6 +313,17 @@ func completeQueryTransaction(queriesRoot, txnDir string) error {
 			if err := ensureInstalled(txnDir, queryTxnStagedBody, dir, j.BodyFileName, j.BodyHash); err != nil {
 				return err
 			}
+			// Flush the body's rename before installing the JSON metadata:
+			// each install is its own durability step, not only the pair as
+			// a whole - see the plan's "flush the files, journal and
+			// containing directories" applied at each step. Recovery's
+			// idempotent hash-reverification (ensureInstalled) makes every
+			// DataTug-reader-observable guarantee hold regardless of
+			// whether this barrier runs, but it still narrows the window in
+			// which a real power loss could otherwise leave the directory
+			// entry for this rename non-durable while a later one already
+			// is.
+			fsyncDirBestEffort(dir)
 		}
 		if err := ensureInstalled(txnDir, queryTxnStagedJSON, dir, j.JSONFileName, j.JSONHash); err != nil {
 			return err
