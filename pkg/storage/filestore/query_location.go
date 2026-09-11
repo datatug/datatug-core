@@ -145,6 +145,56 @@ func validateQueryID(id string) error {
 	return nil
 }
 
+// validateQueryReadSegmentReason is the containment subset of
+// validateQuerySegmentReason, for a segment a legacy read (LoadQuery,
+// LoadQueries) addresses: non-empty, not "." or "..", no "/", "\" or NUL,
+// and not the reserved transaction namespace - so it can only name an
+// entry directly inside its parent. The portability rules (Windows-illegal
+// characters, device names, a leading ".", control characters) apply to
+// writes only, so a legacy record whose name breaks them stays readable.
+func validateQueryReadSegmentReason(segment string) (reason string, ok bool) {
+	switch {
+	case segment == "":
+		return "must not be empty", false
+	case segment == "." || segment == "..":
+		return `must not be "." or ".."`, false
+	case strings.ContainsRune(segment, 0):
+		return "must not contain a NUL byte", false
+	case strings.ContainsAny(segment, `/\`):
+		return "must not contain a path separator", false
+	case segment == reservedQueryTxnDirName:
+		return "reserved for the query transaction namespace", false
+	}
+	return "", true
+}
+
+// resolveQueryReadFolder validates a folder path a legacy read addresses
+// and returns it cleaned, relative to the queries root. It is lenient
+// where the old path.Join was harmless ("a/", "a/./b", "." for the root)
+// and strict where it was not: after path.Clean, every segment must pass
+// validateQueryReadSegmentReason (no "..", no absolute path), and the
+// location must pass walkQueryDir - the queries root and every existing
+// segment a real directory, never a symlink.
+func (s fsQueriesStore) resolveQueryReadFolder(folderPath string) (string, error) {
+	rel := ""
+	if folderPath != "" {
+		if rel = path.Clean(folderPath); rel == "." {
+			rel = ""
+		}
+	}
+	if rel != "" {
+		for _, seg := range strings.Split(rel, "/") {
+			if reason, ok := validateQueryReadSegmentReason(seg); !ok {
+				return "", invalidQueryLocation(folderPath, "", "folder path segment "+strconv.Quote(seg)+": "+reason)
+			}
+		}
+	}
+	if _, err := walkQueryDir(s.dirPath, rel, "", false); err != nil {
+		return "", err
+	}
+	return rel, nil
+}
+
 // queryDirIssue reports why an existing entry (described by Lstat) cannot
 // be a query location directory, or ("", false) when it is an ordinary
 // directory. It never follows a symlink to see what it points to: any

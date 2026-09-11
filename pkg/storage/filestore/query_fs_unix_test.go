@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
 // fakeOwnedInfo is an os.FileInfo whose Sys() reports a chosen owner.
@@ -57,6 +59,66 @@ func within(t *testing.T, d time.Duration, fn func() error) error {
 	case <-time.After(d):
 		t.Fatalf("still blocked after %v", d)
 		return nil
+	}
+}
+
+// TestQueryReads_RefuseAFIFOBodyWithoutHoldingTheLock is the review's fifo
+// repro: a FIFO body used to block LoadQueryRevision while it held the
+// store lock, so a PutQuery on a different ID timed out behind it.
+func TestQueryReads_RefuseAFIFOBodyWithoutHoldingTheLock(t *testing.T) {
+	store, queriesDir := newTestQueriesStore(t)
+	ctx := context.Background()
+	q := dtqlQuery("q", "", "B0")
+	if _, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
+		t.Fatalf("unexpected error creating: %v", err)
+	}
+	body := filepath.Join(queriesDir, "q.query.dtql")
+	if err := os.Remove(body); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	mkfifo(t, body)
+	for reader, read := range map[string]func() error{
+		"LoadQueryRevision": func() error { _, err := store.LoadQueryRevision(ctx, "q"); return err },
+		"LoadQuery":         func() error { _, err := store.LoadQuery(ctx, "q"); return err },
+		"LoadQueries":       func() error { _, err := store.LoadQueries(ctx, ""); return err },
+	} {
+		if err := within(t, 5*time.Second, read); err == nil || !strings.Contains(err.Error(), "not a regular file") {
+			t.Errorf("%s: expected a FIFO body to be refused, got: %v", reader, err)
+		}
+	}
+	other := dtqlQuery("other", "", "O")
+	c2, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	if _, err := store.PutQuery(c2, &other, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
+		t.Errorf("PutQuery on a different id: expected no wait behind a FIFO read, got: %v", err)
+	}
+}
+
+func TestQueryReads_RefuseAFIFOMetadataFile(t *testing.T) {
+	store, queriesDir := newTestQueriesStore(t)
+	if err := os.MkdirAll(queriesDir, 0o755); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	mkfifo(t, filepath.Join(queriesDir, "f.query.json"))
+	ctx := context.Background()
+	for reader, read := range map[string]func() error{
+		"LoadQueryRevision": func() error { _, err := store.LoadQueryRevision(ctx, "f"); return err },
+		"LoadQuery":         func() error { _, err := store.LoadQuery(ctx, "f"); return err },
+		"LoadQueries":       func() error { _, err := store.LoadQueries(ctx, ""); return err },
+	} {
+		if err := within(t, 5*time.Second, read); err == nil || !strings.Contains(err.Error(), "not a regular file") {
+			t.Errorf("%s: expected a FIFO metadata file to be refused, got: %v", reader, err)
+		}
+	}
+}
+
+func TestReadRegularFileCapped_RefusesADevice(t *testing.T) {
+	info, err := os.Lstat("/dev/null")
+	if err != nil || info.Mode()&os.ModeDevice == 0 {
+		t.Skip("/dev/null is not a device here")
+	}
+	if _, _, err := readRegularFileCapped("/dev/null", 16); err == nil || !strings.Contains(err.Error(), "not a regular file") {
+		t.Fatalf("expected a device to be refused, got: %v", err)
 	}
 }
 

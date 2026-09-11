@@ -2,32 +2,52 @@ package filestore
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path"
+	"strconv"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
-func (s fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, name string) (err error) {
-	folderPath := path.Join(s.dirPath, parentPath, name)
-	if err = os.MkdirAll(folderPath, 0777); err != nil {
-		err = fmt.Errorf("failed to create folder: %w", err)
-		return
+// CreateQueryFolder creates folder name under parentPath, plus a README.md
+// naming it unless one is already there. parentPath and name are validated
+// like every query write location (validateQueryFolderPath,
+// validateQuerySegmentReason), and each segment is checked or created by
+// walkQueryDir, so nothing is ever created outside the queries root or
+// through a symlinked or non-directory segment. README.md is created
+// exclusively: an existing entry - a file, or a symlink whether dangling or
+// not - is left alone and never followed.
+func (s fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, name string) error {
+	if err := validateQueryFolderPath(parentPath); err != nil {
+		return err
 	}
-	readmePath := path.Join(folderPath, "README.md")
-	if _, err = os.Stat(readmePath); err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			err = fmt.Errorf("failed to check README.md: %w", err)
-			return
-		}
-		if err = os.WriteFile(readmePath, []byte(fmt.Sprintf("# %v", name)), 0644); err != nil {
-			err = fmt.Errorf("failed to write to README.md file: %w", err)
-			return
-		}
+	if reason, ok := validateQuerySegmentReason(name); !ok {
+		return invalidQueryLocation(parentPath, "", "folder name "+strconv.Quote(name)+": "+reason)
 	}
-	return
+	folderPath := name
+	if parentPath != "" {
+		folderPath = parentPath + "/" + name
+	}
+	dir, err := walkQueryDir(s.dirPath, folderPath, "", true)
+	if err != nil {
+		return fmt.Errorf("failed to create folder: %w", err)
+	}
+	f, err := os.OpenFile(path.Join(dir, "README.md"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+	if err != nil {
+		if os.IsExist(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to create README.md file: %w", err)
+	}
+	if _, err := fmt.Fprintf(f, "# %v", name); err != nil {
+		_ = f.Close()
+		return fmt.Errorf("failed to write to README.md file: %w", err)
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("failed to write to README.md file: %w", err)
+	}
+	return nil
 }
 
 // CreateQuery is a legacy save path used by saveQueriesTree during project

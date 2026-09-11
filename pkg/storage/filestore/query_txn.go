@@ -208,19 +208,6 @@ func hashBytes(b []byte) string {
 	return hex.EncodeToString(h[:])
 }
 
-// readFileIfExists reads path, returning (nil, false, nil) when it does
-// not exist instead of an error.
-func readFileIfExists(filePath string) (data []byte, exists bool, err error) {
-	data, err = os.ReadFile(filePath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, false, nil
-		}
-		return nil, false, err
-	}
-	return data, true, nil
-}
-
 // removeIfExists removes path, treating "already gone" as success.
 func removeIfExists(filePath string) error {
 	if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
@@ -407,8 +394,11 @@ func ensureInstalled(txnDir, stagedName, dir, finalName, expectedHash string) er
 // expectedHash. It changes nothing, so completeQueryTransaction can verify
 // every file a transaction installs before it touches any of them.
 func verifyInstallable(txnDir, stagedName, dir, finalName, expectedHash string) (installed bool, err error) {
-	if b, exists, err := readFileIfExists(path.Join(dir, finalName)); err != nil {
-		return false, err
+	// The final file must itself be a regular file (readRegularFileCapped):
+	// a symlink, FIFO or device planted at the target name refuses the
+	// transaction instead of being read through or silently replaced.
+	if b, exists, err := readRegularFileCapped(path.Join(dir, finalName), maxQueryFileSize); err != nil {
+		return false, fmt.Errorf("refusing to install %s: %w", finalName, err)
 	} else if exists && hashBytes(b) == expectedHash {
 		return true, nil
 	}
@@ -511,7 +501,11 @@ func completeQueryTransaction(queriesRoot, txnDir string) error {
 				return err
 			}
 		}
-		if j.HadPrevious && j.PrevBodyFileName != "" && j.PrevBodyFileName != j.BodyFileName {
+		removeStale := j.HadPrevious && j.PrevBodyFileName != "" && j.PrevBodyFileName != j.BodyFileName
+		if removeStale {
+			if err := checkRemovableQueryFile(path.Join(dir, j.PrevBodyFileName)); err != nil {
+				return err
+			}
 			if err := removeIfExists(path.Join(dir, j.PrevBodyFileName)); err != nil {
 				return fmt.Errorf("failed to remove stale body sidecar: %w", err)
 			}
@@ -536,13 +530,21 @@ func completeQueryTransaction(queriesRoot, txnDir string) error {
 			return err
 		}
 	case queryTxnOpDelete:
+		// Check both targets before removing either, so a refusal leaves
+		// the pair exactly as it was.
+		targets := []string{path.Join(dir, j.JSONFileName)}
 		if j.BodyFileName != "" {
-			if err := removeIfExists(path.Join(dir, j.BodyFileName)); err != nil {
-				return fmt.Errorf("failed to remove query body sidecar: %w", err)
+			targets = append([]string{path.Join(dir, j.BodyFileName)}, targets...)
+		}
+		for _, target := range targets {
+			if err := checkRemovableQueryFile(target); err != nil {
+				return err
 			}
 		}
-		if err := removeIfExists(path.Join(dir, j.JSONFileName)); err != nil {
-			return fmt.Errorf("failed to remove query metadata: %w", err)
+		for _, target := range targets {
+			if err := removeIfExists(target); err != nil {
+				return fmt.Errorf("failed to remove %s: %w", target, err)
+			}
 		}
 	}
 
@@ -590,7 +592,7 @@ type currentQueryPair struct {
 // whatever a previous writer - revisioned or legacy - actually persisted.
 func readCurrentQueryPair(dir, id string) (currentQueryPair, error) {
 	jsonPath := path.Join(dir, storage.JsonFileName(id, storage.QueryFileSuffix))
-	jsonBytes, exists, err := readFileIfExists(jsonPath)
+	jsonBytes, exists, err := readRegularFileCapped(jsonPath, maxQueryFileSize)
 	if err != nil {
 		return currentQueryPair{}, fmt.Errorf("failed to read query metadata: %w", err)
 	}
@@ -613,7 +615,7 @@ func readCurrentQueryPair(dir, id string) (currentQueryPair, error) {
 	if err != nil {
 		return cur, fmt.Errorf("existing query metadata for %s: %w", id, err)
 	}
-	bodyBytes, bodyExists, err := readFileIfExists(path.Join(dir, bodyFileName))
+	bodyBytes, bodyExists, err := readRegularFileCapped(path.Join(dir, bodyFileName), maxQueryFileSize)
 	if err != nil {
 		return cur, fmt.Errorf("failed to read query body: %w", err)
 	}

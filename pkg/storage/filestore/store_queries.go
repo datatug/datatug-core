@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"path"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
@@ -29,22 +28,21 @@ func readQueryTextSidecar(dirPath string, query *datatug.QueryDef) (string, erro
 	if err != nil {
 		return "", err
 	}
-	data, err := os.ReadFile(path.Join(dirPath, fileName))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return "", nil
-		}
+	data, exists, err := readRegularFileCapped(path.Join(dirPath, fileName), maxQueryFileSize)
+	if err != nil || !exists {
 		return "", err
 	}
 	return string(data), nil
 }
 
 func newFsQueriesStore(projectPath string) fsQueriesStore {
-	return fsQueriesStore{
-		fsProjectItemsStore: newFileProjectItemsStore[datatug.QueryDefs, *datatug.QueryDef, datatug.QueryDef](
-			path.Join(projectPath, storage.QueriesFolder), storage.QueryFileSuffix,
-		),
-	}
+	items := newFileProjectItemsStore[datatug.QueryDefs, *datatug.QueryDef, datatug.QueryDef](
+		path.Join(projectPath, storage.QueriesFolder), storage.QueryFileSuffix,
+	)
+	// Legacy query loads read metadata only from regular files within the
+	// read cap (readQueryItemJSON), like every other query-store read.
+	items.readItemJSON = readQueryItemJSON
+	return fsQueriesStore{fsProjectItemsStore: items}
 }
 
 var _ datatug.QueriesStore = (*fsQueriesStore)(nil)
@@ -62,10 +60,18 @@ type fsQueriesStore struct {
 // withQueryReadLock - so a project opened read-only, or one this store has
 // simply never written to yet, stays fully readable without requiring
 // write access.
+//
+// folderPath is validated and resolved by resolveQueryReadFolder (under the
+// lock, when one is taken): a legacy read can address only a real
+// directory inside the queries root, never "..", an absolute path or a
+// symlinked folder.
 func (s fsQueriesStore) LoadQueries(ctx context.Context, folderPath string, o ...datatug.StoreOption) (folder *datatug.QueriesFolder, err error) {
 	err = s.withQueryReadLock(ctx, func(_ queryLockGuard) error {
-		var lockedErr error
-		folder, lockedErr = s.loadQueriesLocked(ctx, folderPath, o...)
+		relFolderPath, lockedErr := s.resolveQueryReadFolder(folderPath)
+		if lockedErr != nil {
+			return lockedErr
+		}
+		folder, lockedErr = s.loadQueriesLocked(ctx, relFolderPath, o...)
 		return lockedErr
 	})
 	return folder, err
@@ -109,9 +115,19 @@ func (s fsQueriesStore) LoadQuery(ctx context.Context, id string, o ...datatug.S
 	return query, err
 }
 
+// loadQueryLocked resolves id's folder with resolveQueryReadFolder and
+// requires the item ID to be a single segment (validateQueryReadSegmentReason),
+// so a legacy LoadQuery can never read outside the queries root.
 func (s fsQueriesStore) loadQueryLocked(ctx context.Context, id string, o ...datatug.StoreOption) (query *datatug.QueryDef, err error) {
 	folderPath, itemID := splitQueryFullID(id)
-	dirPath := path.Join(s.dirPath, folderPath)
+	if reason, ok := validateQueryReadSegmentReason(itemID); !ok {
+		return nil, invalidQueryLocation(folderPath, itemID, "id: "+reason)
+	}
+	relFolderPath, err := s.resolveQueryReadFolder(folderPath)
+	if err != nil {
+		return nil, err
+	}
+	dirPath := path.Join(s.dirPath, relFolderPath)
 	query, err = s.loadProjectItem(ctx, dirPath, itemID, "", o...)
 	if err != nil {
 		return nil, err

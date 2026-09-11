@@ -36,6 +36,11 @@ type fsProjectItemsStore[TSlice ~[]TItemPtr, TItemPtr IItemPtr[TItem], TItem IIt
 	dirPath         string
 	itemFileSuffix  string
 	summaryFileName string
+	// readItemJSON, when set, replaces readJSONFile for reading an item's
+	// JSON file. Only the query store sets it (readQueryItemJSON), so its
+	// legacy loaders refuse symlinks, special files and oversize files;
+	// every other item store keeps reading exactly as before.
+	readItemJSON func(filePath string, dst any) error
 }
 
 func newFileProjectItemsStore[TSlice ~[]TItemPtr, TItemPtr IItemPtr[TItem], TItem IItem](
@@ -80,7 +85,11 @@ func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) loadProjectItem(
 	}
 	filePath := path.Join(dirPath, fileName)
 	item = new(TItem)
-	if err = readJSONFile(filePath, true, &item); err != nil {
+	read := s.readItemJSON
+	if read == nil {
+		read = func(filePath string, dst any) error { return readJSONFile(filePath, true, dst) }
+	}
+	if err = read(filePath, &item); err != nil {
 		return item, fmt.Errorf("failed to load %T[%s] from project: %w", item, id, err)
 	}
 	item.SetID(id)

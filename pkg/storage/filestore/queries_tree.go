@@ -39,6 +39,15 @@ func (s fsQueriesStore) loadQueriesTree(ctx context.Context, relFolderPath strin
 }
 
 func (s fsQueriesStore) loadQueriesTreeLocked(ctx context.Context, g queryLockGuard, relFolderPath string) (*datatug.QueriesFolder, error) {
+	if relFolderPath == "" {
+		// A symlinked queries root would redirect the whole walk. Below it,
+		// os.ReadDir reports a symlinked sub-folder as a non-directory,
+		// which the loop skips, and each file is read by the query store's
+		// regular-file-only reader (readQueryItemJSON).
+		if _, err := walkQueryDir(s.dirPath, "", "", false); err != nil {
+			return nil, err
+		}
+	}
 	dirPath := path.Join(s.dirPath, relFolderPath)
 	dirEntries, err := os.ReadDir(dirPath)
 	if err != nil {

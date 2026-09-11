@@ -1,8 +1,11 @@
 package filestore
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"runtime"
 )
@@ -97,6 +100,42 @@ func readRegularFileCapped(filePath string, maxSize int64) (data []byte, exists 
 		return nil, true, fmt.Errorf("%s grew over the %d-byte limit while it was read; refusing it", filePath, maxSize)
 	}
 	return data, true, nil
+}
+
+// readQueryItemJSON is the legacy query loaders' JSON reader (the query
+// store's fsProjectItemsStore.readItemJSON): readJSONFile's decoding - the
+// first JSON value in the file, exactly as before - over
+// readRegularFileCapped, so a legacy LoadQuery, LoadQueries or project-tree
+// load reads only a regular file within maxQueryFileSize, never through a
+// symlink, FIFO or device. A missing file keeps readJSONFile's error shape
+// (an *fs.PathError wrapping fs.ErrNotExist).
+func readQueryItemJSON(filePath string, dst any) error {
+	b, exists, err := readRegularFileCapped(filePath, maxQueryFileSize)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return &fs.PathError{Op: "open", Path: filePath, Err: fs.ErrNotExist}
+	}
+	return json.NewDecoder(bytes.NewReader(b)).Decode(dst)
+}
+
+// checkRemovableQueryFile refuses a query target path that exists as a
+// directory: removing a pair must never remove a directory, or fail on
+// one halfway through. Any other entry may be removed - os.Remove removes
+// a symlink or FIFO itself, never what a symlink points to.
+func checkRemovableQueryFile(filePath string) error {
+	info, err := os.Lstat(filePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	if info.IsDir() {
+		return fmt.Errorf("%s is a directory; refusing to remove it as a query file", filePath)
+	}
+	return nil
 }
 
 // checkTxnArtifact vets an entry of the private transaction directory (the
