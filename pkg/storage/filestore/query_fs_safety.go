@@ -244,6 +244,60 @@ func checkRemovableQueryFile(filePath string) error {
 	return nil
 }
 
+// checkQueryTargetReplaceable refuses, before a transaction commits, an
+// existing entry at one of a query's file names that the install could not
+// replace or remove even though its folder accepts changes (review SF-A):
+//   - a file with a flag that forbids it: BSD and macOS immutable,
+//     append-only or no-unlink flags (chflags uchg/uappnd/schg/sappnd, and
+//     Finder's Locked checkbox, which sets uchg), the Linux immutable or
+//     append-only attribute (chattr +i/+a), or the Windows read-only
+//     attribute - see fileFlagsIssue;
+//   - a file owned by another user in a sticky folder, which only its owner
+//     (or the folder's owner) may rename over or remove.
+//
+// A missing entry passes. The write permission bits of the file itself are
+// deliberately not checked: rename(2) and unlink(2) need write permission on
+// the folder, not on the file, so a 0444 file is replaced as before. What
+// no portable check can see - an ACL that denies deleting the file, a full
+// disk, a file held open on Windows, a sandbox denial - is left to the
+// install, which fails without a torn result (finishQueryTransaction,
+// recoverQueryTransactions).
+func checkQueryTargetReplaceable(dirInfo os.FileInfo, filePath string) error {
+	info, err := os.Lstat(filePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	if reason, bad := fileFlagsIssue(filePath, info); bad {
+		return fmt.Errorf("%s %s, so DataTug cannot replace or remove it; unlock it and retry", filePath, reason)
+	}
+	if dirInfo.Mode()&os.ModeSticky != 0 && os.Geteuid() != 0 && !fileOwnedByCurrentUser(info) && !fileOwnedByCurrentUser(dirInfo) {
+		return fmt.Errorf("%s belongs to another user in a sticky folder, so DataTug cannot replace or remove it", filePath)
+	}
+	return nil
+}
+
+// checkQueryDirAcceptsChanges requires dir to accept new and removed
+// entries: write and search permission (checkQueryDirWritable) and no flag
+// that forbids removing or renaming entries (an append-only or immutable
+// folder, fileFlagsIssue) - access(2) reports an append-only folder as
+// writable, yet renaming over or removing an entry in it fails.
+func checkQueryDirAcceptsChanges(dir string) error {
+	if err := checkQueryDirWritable(dir); err != nil {
+		return err
+	}
+	info, err := os.Lstat(dir)
+	if err != nil {
+		return err
+	}
+	if reason, bad := fileFlagsIssue(dir, info); bad {
+		return fmt.Errorf("query folder %s %s, so DataTug cannot change entries in it; unlock it and retry", dir, reason)
+	}
+	return nil
+}
+
 // checkTxnArtifact vets an entry of the private transaction directory (the
 // journal, journal.tmp, a staged file) before it is trusted in any way -
 // read, installed, or removed as an uncommitted leftover. It must be a

@@ -64,9 +64,14 @@ func queryLockOpenFlags() int {
 // gofrs/flock's platform locks are associated with the open file
 // description, not the process.
 type queryLockGuard struct {
-	// txnDir is the reserved ".dt-query-txn" directory this lock, its
-	// journal and its staging files live under.
+	// txnDir is the reserved ".dt-query-txn" directory this lock lives
+	// under; it is also transaction slot 0 (query_txn_slots.go).
 	txnDir string
+	// stuck lists the committed transactions recovery could not complete
+	// when the lock was taken. The queries they name are refused
+	// (refuseStuckQuery, refuseStuckFolder); everything else proceeds, and
+	// a write stages in the first slot none of them holds (stagingDir).
+	stuck []stuckQueryTxn
 }
 
 // withQueryLock acquires the query store's cross-process advisory lock,
@@ -108,11 +113,16 @@ func (s fsQueriesStore) withQueryLock(ctx context.Context, fn func(g queryLockGu
 	}
 	defer func() { _ = fl.Unlock() }()
 
-	if err := completeQueryTransaction(s.dirPath, txnDir); err != nil {
+	// A transaction that cannot be completed yet does not fail the call:
+	// it is scoped to the query it names (recoverQueryTransactions). Only
+	// an untrustworthy artifact - one this store cannot attribute to a
+	// query - fails every call, closed.
+	stuck, err := recoverQueryTransactions(s.dirPath, txnDir)
+	if err != nil {
 		return fmt.Errorf("failed to recover an earlier interrupted query transaction: %w", err)
 	}
 
-	return fn(queryLockGuard{txnDir: txnDir})
+	return fn(queryLockGuard{txnDir: txnDir, stuck: stuck})
 }
 
 // withQueryReadLock is withQueryLock for a caller that only reads (fn must
@@ -311,6 +321,14 @@ func vetExistingQueryTxnDir(txnDir string, info os.FileInfo) error {
 func queryTxnDirHasRecoveryContent(txnDir string) (bool, error) {
 	for _, name := range []string{queryTxnJournalFile, queryTxnJournalTmpFile, queryTxnStagedJSON, queryTxnStagedBody} {
 		if _, err := os.Lstat(path.Join(txnDir, name)); err == nil {
+			return true, nil
+		} else if !os.IsNotExist(err) {
+			return false, err
+		}
+	}
+	// An extra transaction slot exists only while a transaction uses it.
+	for n := 1; n < queryTxnSlotCount; n++ {
+		if _, err := os.Lstat(queryTxnSlotDir(txnDir, n)); err == nil {
 			return true, nil
 		} else if !os.IsNotExist(err) {
 			return false, err

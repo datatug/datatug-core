@@ -42,14 +42,18 @@ func (s fsQueriesStore) stageAndInstallQueryPair(g queryLockGuard, folderPath st
 	if _, err := walkQueryDir(s.dirPath, folderPath, query.ID, true); err != nil {
 		return "", err
 	}
-	if err := writeStagedFile(g.txnDir, queryTxnStagedJSON, jsonBytes); err != nil {
+	txnDir, err := g.stagingDir()
+	if err != nil {
 		return "", err
 	}
-	if err := writeStagedFile(g.txnDir, queryTxnStagedBody, bodyBytes); err != nil {
-		discardStagedFiles(g.txnDir, queryTxnStagedJSON)
+	if err := writeStagedFile(txnDir, queryTxnStagedJSON, jsonBytes); err != nil {
 		return "", err
 	}
-	fsyncDirBestEffort(g.txnDir)
+	if err := writeStagedFile(txnDir, queryTxnStagedBody, bodyBytes); err != nil {
+		discardStagedFiles(txnDir, queryTxnStagedJSON)
+		return "", err
+	}
+	fsyncDirBestEffort(txnDir)
 
 	j := queryTxnJournal{
 		FolderPath:   folderPath,
@@ -69,13 +73,13 @@ func (s fsQueriesStore) stageAndInstallQueryPair(g queryLockGuard, folderPath st
 	// symlink, directory, FIFO, over-cap or unreadable file this write
 	// cannot replace - so a refusal is an ordinary error here, never a
 	// committed journal that wedges every later call.
-	if err := commitQueryTransaction(s.dirPath, g.txnDir, j); err != nil {
+	if err := commitQueryTransaction(s.dirPath, txnDir, j); err != nil {
 		// Not committed (it fails only before writeJournal's rename), so
 		// the staged files are this attempt's own leftovers.
-		discardStagedFiles(g.txnDir, queryTxnStagedJSON, queryTxnStagedBody)
+		discardStagedFiles(txnDir, queryTxnStagedJSON, queryTxnStagedBody)
 		return "", err
 	}
-	if err := finishQueryTransaction(s.dirPath, g.txnDir, j); err != nil {
+	if err := finishQueryTransaction(s.dirPath, txnDir, j); err != nil {
 		return "", err
 	}
 	return computeQueryRevision(jsonBytes, queryBodyFileExt(query.Type), bodyBytes), nil
@@ -98,8 +102,12 @@ func (s fsQueriesStore) deleteQueryPairIfExists(g queryLockGuard, folderPath, id
 		JSONFileName: storage.JsonFileName(id, storage.QueryFileSuffix),
 		BodyFileName: current.bodyFileName,
 	}
-	if err := commitQueryTransaction(s.dirPath, g.txnDir, j); err != nil {
+	txnDir, err := g.stagingDir()
+	if err != nil {
 		return err
 	}
-	return finishQueryTransaction(s.dirPath, g.txnDir, j)
+	if err := commitQueryTransaction(s.dirPath, txnDir, j); err != nil {
+		return err
+	}
+	return finishQueryTransaction(s.dirPath, txnDir, j)
 }

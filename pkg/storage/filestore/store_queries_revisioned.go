@@ -40,14 +40,14 @@ func (s fsQueriesStore) LoadQueryRevision(ctx context.Context, id string, o ...d
 	}
 
 	var result *datatug.StoredQuery
-	err := s.withQueryReadLock(ctx, func(_ queryLockGuard) error {
+	err := s.withQueryReadLock(ctx, func(g queryLockGuard) error {
 		// Resolve again inside the lock (N3): the check above only rejects
 		// an invalid request early, before the lock is considered.
 		dir, err := s.resolveQueryLocation(folderPath, itemID)
 		if err != nil {
 			return err
 		}
-		current, err := readQueryPairAt(folderPath, dir, itemID)
+		current, err := g.readQueryPair(folderPath, dir, itemID)
 		if err != nil {
 			return err
 		}
@@ -114,7 +114,7 @@ func (s fsQueriesStore) PutQuery(ctx context.Context, query *datatug.QueryDefWit
 		if err != nil {
 			return err
 		}
-		current, err := readQueryPairAt(query.FolderPath, dir, query.ID)
+		current, err := g.readQueryPair(query.FolderPath, dir, query.ID)
 		if err != nil {
 			return err
 		}
@@ -211,7 +211,7 @@ func (s fsQueriesStore) DeleteQueryRevision(ctx context.Context, id string, expe
 		if err != nil {
 			return err
 		}
-		current, err := readQueryPairAt(folderPath, dir, itemID)
+		current, err := g.readQueryPair(folderPath, dir, itemID)
 		if err != nil {
 			return err
 		}
@@ -233,10 +233,14 @@ func (s fsQueriesStore) DeleteQueryRevision(ctx context.Context, id string, expe
 			JSONFileName: storage.JsonFileName(itemID, storage.QueryFileSuffix),
 			BodyFileName: current.bodyFileName,
 		}
-		if err := commitQueryTransaction(s.dirPath, g.txnDir, j); err != nil {
+		txnDir, err := g.stagingDir()
+		if err != nil {
+			return err
+		}
+		if err := commitQueryTransaction(s.dirPath, txnDir, j); err != nil {
 			return err
 		}
 		// Commit point reached: complete regardless of ctx from here.
-		return finishQueryTransaction(s.dirPath, g.txnDir, j)
+		return finishQueryTransaction(s.dirPath, txnDir, j)
 	})
 }

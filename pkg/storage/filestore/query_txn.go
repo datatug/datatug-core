@@ -24,7 +24,8 @@
 //     removed, and the directory is fsynced.
 //
 // Every withQueryLock call recovers before doing anything else
-// (completeQueryTransaction). With a "journal.json" present, recovery runs
+// (recoverQueryTransactions runs completeQueryTransaction in every
+// transaction slot). With a "journal.json" present, recovery runs
 // steps 3 and 4 again, idempotently - the same code a normal write runs.
 // With none, nothing was committed: recovery removes any "journal.tmp" and
 // staged files as uncommitted leftovers, after checking that each is the
@@ -115,6 +116,19 @@
 //     body file) fails LoadQueries for its folder, and LoadProject, rather
 //     than being skipped: a listing never silently omits a query. The error
 //     names the file.
+//   - Writes that cannot complete. checkQueryTxnTargets refuses before the
+//     commit what it can see: a target or folder that is locked,
+//     append-only or immutable, a folder without write permission, a
+//     foreign file in a sticky folder. What it cannot see - an ACL that
+//     denies deleting a target, a full disk, a file another process holds
+//     open on Windows, a sandbox denial, a change made outside DataTug
+//     after the commit - can still fail an install. If that happens before
+//     anything changed, the writer rolls back (finishQueryTransaction).
+//     Otherwise the transaction keeps its slot and only the query it names
+//     is refused - its reads, its writes and the listing of its folder, so
+//     LoadProject too - with an error naming the entry to fix; every other
+//     query is read and written as usual, and the next access after the
+//     fix completes the write (query_txn_slots.go). Nothing is served torn.
 //   - Hard links. A regular file is trusted whatever its link count, so a
 //     body hard-linked to a file outside the project is read like any
 //     other body; a later write replaces the link and leaves the other file
@@ -571,13 +585,19 @@ func completeQueryTransaction(queriesRoot, txnDir string) error {
 		return sweepUncommittedTxnArtifacts(txnDir)
 	}
 	if err := installQueryTransaction(queriesRoot, txnDir, j); err != nil {
-		// The journal is committed, so every query-store call retries it
-		// until it completes. commitQueryTransaction refuses anything the
-		// checks below would refuse, so only a change made outside DataTug
-		// after the commit, or an operating-system failure, gets here.
+		// The journal stays committed and every query-store call retries
+		// it. commitQueryTransaction ran these same target checks
+		// (checkQueryTxnTargets) before the commit, so what fails here is
+		// what they cannot see - an ACL that denies deleting a target, a
+		// full disk, a file held open on Windows, a sandbox denial - or a
+		// change made outside DataTug since the commit, or a check that
+		// now refuses a transaction a process committed before it crashed.
+		// recoverQueryTransactions scopes the failure to the query the
+		// journal names; the error's advice is fix-forward only.
 		return &queryTxnIncompleteError{
 			FolderPath: j.FolderPath, ID: j.ID,
 			JournalPath: path.Join(txnDir, queryTxnJournalFile), Err: err,
+			journal: j,
 		}
 	}
 	return nil
@@ -595,6 +615,8 @@ type queryTxnIncompleteError struct {
 	FolderPath, ID string
 	JournalPath    string
 	Err            error
+
+	journal queryTxnJournal // what recovery scopes the failure to
 }
 
 func (e *queryTxnIncompleteError) Error() string {
@@ -689,40 +711,72 @@ func queryTxnUntouched(queriesRoot, txnDir string, j queryTxnJournal) bool {
 //   - the folder: walkQueryDir with j's validated FolderPath - every
 //     existing segment an ordinary directory, never a symlink - creating a
 //     missing segment for a put, exactly as a put's recovery does;
+//   - the query folder and txnDir (the slot the staged files leave) must
+//     accept renamed and removed entries (checkQueryDirAcceptsChanges:
+//     write and search permission, and no immutable or append-only flag);
 //   - for a put, each file to install (body, then JSON metadata) with
 //     verifyInstallable: the target name must be absent, or a regular file
 //     (not a symlink, directory, FIFO, device or socket) within
 //     maxQueryFileSize that opens and reads; unless it already holds the
 //     recorded content, its staged copy must be the user's own 0600
-//     regular file hashing to the recorded content;
-//   - for a put that changes the body file name, the stale body name must
-//     not be a directory (checkRemovableQueryFile);
-//   - for a delete, neither file of the pair may be a directory.
+//     regular file hashing to the recorded content, and the existing
+//     target must be replaceable (checkQueryTargetReplaceable: not locked,
+//     append-only or read-only, not another user's in a sticky folder);
+//   - for a put that changes the body file name, the stale body must not
+//     be a directory and must be removable, by the same two checks;
+//   - for a delete, each file of the pair likewise.
+//
+// What these checks cannot see is listed at checkQueryTargetReplaceable.
 func checkQueryTxnTargets(queriesRoot, txnDir string, j queryTxnJournal) (dir string, err error) {
 	dir, err = walkQueryDir(queriesRoot, j.FolderPath, j.ID, j.Operation == queryTxnOpPut)
+	if err != nil {
+		return "", err
+	}
+	for _, d := range [...]string{dir, txnDir} {
+		if err := checkQueryDirAcceptsChanges(d); err != nil {
+			return "", err
+		}
+	}
+	dirInfo, err := os.Lstat(dir)
 	if err != nil {
 		return "", err
 	}
 	switch j.Operation {
 	case queryTxnOpPut:
 		for _, f := range j.installs() {
-			if _, err := verifyInstallable(txnDir, f.staged, dir, f.final, f.hash); err != nil {
+			installed, err := verifyInstallable(txnDir, f.staged, dir, f.final, f.hash)
+			if err != nil {
 				return "", err
+			}
+			if !installed {
+				if err := checkQueryTargetReplaceable(dirInfo, path.Join(dir, f.final)); err != nil {
+					return "", err
+				}
 			}
 		}
 		if stale := j.staleBodyFileName(); stale != "" {
-			if err := checkRemovableQueryFile(path.Join(dir, stale)); err != nil {
+			if err := checkRemovableQueryTarget(dirInfo, path.Join(dir, stale)); err != nil {
 				return "", err
 			}
 		}
 	case queryTxnOpDelete:
 		for _, target := range j.deleteTargets(dir) {
-			if err := checkRemovableQueryFile(target); err != nil {
+			if err := checkRemovableQueryTarget(dirInfo, target); err != nil {
 				return "", err
 			}
 		}
 	}
 	return dir, nil
+}
+
+// checkRemovableQueryTarget checks a file a transaction removes: not a
+// directory (checkRemovableQueryFile) and removable
+// (checkQueryTargetReplaceable).
+func checkRemovableQueryTarget(dirInfo os.FileInfo, filePath string) error {
+	if err := checkRemovableQueryFile(filePath); err != nil {
+		return err
+	}
+	return checkQueryTargetReplaceable(dirInfo, filePath)
 }
 
 // txnInstall is one file a put installs: its staged name, final name and
@@ -756,10 +810,11 @@ func (j queryTxnJournal) deleteTargets(dir string) []string {
 }
 
 // commitQueryTransaction is how every writer reaches the commit point. It
-// validates j (the check readJournal applies), runs checkQueryTxnTargets
-// (the checks completeQueryTransaction applies) and requires the query
-// directory to accept new and removed entries (checkQueryDirWritable) -
-// and only when all of them pass does it write the journal. A refusal is
+// validates j (the check readJournal applies) and runs checkQueryTxnTargets
+// - the checks completeQueryTransaction applies, including that the query
+// folder and the slot accept changes and that every existing target can be
+// replaced - and only when all of them pass does it write the journal. A
+// refusal is
 // returned as an ordinary error on this write: nothing was committed, the
 // caller discards its staged files, and every other read and write of the
 // project keeps working. The caller holds the query store lock, so only a
@@ -769,14 +824,10 @@ func commitQueryTransaction(queriesRoot, txnDir string, j queryTxnJournal) error
 	if err := j.validate(); err != nil {
 		return fmt.Errorf("refusing to commit an invalid query transaction journal: %w", err)
 	}
-	dir, err := checkQueryTxnTargets(queriesRoot, txnDir, j)
-	if err != nil {
+	if _, err := checkQueryTxnTargets(queriesRoot, txnDir, j); err != nil {
 		// A symlink or other non-regular entry at a target name is a
 		// typed location refusal (review SF-D).
 		return fmt.Errorf("refusing to write query %q: %w", j.ID, asQueryLocationError(j.FolderPath, j.ID, err))
-	}
-	if err := checkQueryDirWritable(dir); err != nil {
-		return fmt.Errorf("refusing to write query %q: %w", j.ID, err)
 	}
 	return writeJournal(txnDir, j)
 }

@@ -85,12 +85,12 @@ func (s fsQueriesStore) newListingBudget() *queryReadBudget {
 // directory inside the queries root, never "..", an absolute path or a
 // symlinked folder.
 func (s fsQueriesStore) LoadQueries(ctx context.Context, folderPath string, o ...datatug.StoreOption) (folder *datatug.QueriesFolder, err error) {
-	err = s.withQueryReadLock(ctx, func(_ queryLockGuard) error {
+	err = s.withQueryReadLock(ctx, func(g queryLockGuard) error {
 		relFolderPath, lockedErr := s.resolveQueryReadFolder(folderPath)
 		if lockedErr != nil {
 			return lockedErr
 		}
-		folder, lockedErr = s.loadQueriesLocked(ctx, relFolderPath, s.newListingBudget(), o...)
+		folder, lockedErr = s.loadQueriesLocked(ctx, g, relFolderPath, s.newListingBudget(), o...)
 		return lockedErr
 	})
 	return folder, err
@@ -100,10 +100,15 @@ func (s fsQueriesStore) LoadQueries(ctx context.Context, folderPath string, o ..
 // holds the query store lock - loadQueriesTreeLocked's per-folder walk -
 // without reacquiring it (the lock is not reentrant). Every metadata and
 // body file it reads is charged to budget (maxQueryListingBytes) before it
-// is opened.
-func (s fsQueriesStore) loadQueriesLocked(ctx context.Context, folderPath string, budget *queryReadBudget, o ...datatug.StoreOption) (folder *datatug.QueriesFolder, err error) {
+// is opened. A folder holding a query whose committed write cannot be
+// completed yet is refused (g.refuseStuckFolder): a listing never omits a
+// query, and never serves one half installed.
+func (s fsQueriesStore) loadQueriesLocked(ctx context.Context, g queryLockGuard, folderPath string, budget *queryReadBudget, o ...datatug.StoreOption) (folder *datatug.QueriesFolder, err error) {
 	_ = datatug.GetStoreOptions(o...)
 	dirPath := path.Join(s.dirPath, folderPath)
+	if err := g.refuseStuckFolder(folderPath, dirPath); err != nil {
+		return nil, err
+	}
 	items := s.fsProjectItemsStore // a copy: its reader is bound to this call's budget
 	items.readItemJSON = func(filePath string, dst any) error {
 		return readQueryItemJSONBudgeted(filePath, dst, budget)
@@ -132,9 +137,9 @@ func (s fsQueriesStore) loadQueriesLocked(ctx context.Context, folderPath string
 // project has something for it to coordinate against (see
 // withQueryReadLock).
 func (s fsQueriesStore) LoadQuery(ctx context.Context, id string, o ...datatug.StoreOption) (query *datatug.QueryDef, err error) {
-	err = s.withQueryReadLock(ctx, func(_ queryLockGuard) error {
+	err = s.withQueryReadLock(ctx, func(g queryLockGuard) error {
 		var lockedErr error
-		query, lockedErr = s.loadQueryLocked(ctx, id, o...)
+		query, lockedErr = s.loadQueryLocked(ctx, g, id, o...)
 		return lockedErr
 	})
 	return query, err
@@ -143,7 +148,7 @@ func (s fsQueriesStore) LoadQuery(ctx context.Context, id string, o ...datatug.S
 // loadQueryLocked resolves id's folder with resolveQueryReadFolder and
 // requires the item ID to be a single segment (validateQueryReadSegmentReason),
 // so a legacy LoadQuery can never read outside the queries root.
-func (s fsQueriesStore) loadQueryLocked(ctx context.Context, id string, o ...datatug.StoreOption) (query *datatug.QueryDef, err error) {
+func (s fsQueriesStore) loadQueryLocked(ctx context.Context, g queryLockGuard, id string, o ...datatug.StoreOption) (query *datatug.QueryDef, err error) {
 	folderPath, itemID := splitQueryFullID(id)
 	if reason, ok := validateQueryReadSegmentReason(itemID); !ok {
 		return nil, invalidQueryLocation(folderPath, itemID, "id: "+reason)
@@ -153,6 +158,9 @@ func (s fsQueriesStore) loadQueryLocked(ctx context.Context, id string, o ...dat
 		return nil, err
 	}
 	dirPath := path.Join(s.dirPath, relFolderPath)
+	if err := g.refuseStuckQuery(relFolderPath, dirPath, itemID); err != nil {
+		return nil, err
+	}
 	query, err = s.loadProjectItem(ctx, dirPath, itemID, "", o...)
 	if err != nil {
 		return nil, err
@@ -191,7 +199,7 @@ func (s fsQueriesStore) UpdateQuery(ctx context.Context, query datatug.QueryDef)
 		if err != nil {
 			return err
 		}
-		current, err := readQueryPairAt(folderPath, dir, itemID)
+		current, err := g.readQueryPair(folderPath, dir, itemID)
 		if err != nil {
 			return err
 		}
@@ -222,7 +230,7 @@ func (s fsQueriesStore) DeleteQuery(ctx context.Context, id string) (err error) 
 		if err != nil {
 			return err
 		}
-		current, err := readQueryPairAt(folderPath, dir, itemID)
+		current, err := g.readQueryPair(folderPath, dir, itemID)
 		if err != nil {
 			return err
 		}
@@ -255,7 +263,7 @@ func (s fsQueriesStore) SaveQuery(ctx context.Context, query *datatug.QueryDefWi
 		if err != nil {
 			return err
 		}
-		current, err := readQueryPairAt(query.FolderPath, dir, query.ID)
+		current, err := g.readQueryPair(query.FolderPath, dir, query.ID)
 		if err != nil {
 			return err
 		}
