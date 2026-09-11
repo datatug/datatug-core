@@ -58,8 +58,6 @@ import (
 	"log"
 	"os"
 	"path"
-	"runtime"
-	"strings"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
@@ -67,12 +65,16 @@ import (
 
 // queryTxnJournal is the durable record a query pair transaction writes
 // once its new content is staged and verified, and reads back to recover
-// an interruption. It records only a validated query identity, the
-// operation and the exact hashes of the content involved - never a raw
-// file path from anywhere other than re-deriving it from FolderPath/ID
-// through the same validation every ordinary request goes through
-// (validateQueryFolderPath/validateQueryID), so a malformed or tampered
-// journal can never address a path outside the validated query location.
+// an interruption. It records a query identity (FolderPath, ID), the
+// operation, the exact hashes of the content involved and the pair's file
+// names. A journal read back from disk is untrusted - it can arrive in a
+// clone or an archive - so recovery never uses anything in it as a path
+// (see validate): FolderPath and ID must pass the same validation every
+// ordinary request does, the folder is then reached through walkQueryDir
+// (no symlinked segment), and every file name must equal the name derived
+// from ID - storage.JsonFileName for the metadata, queryBodyFileName with
+// an accepted type for a body sidecar. A recorded name that differs from
+// the derived one refuses the whole journal.
 //
 // Its presence is the transaction's commit point: once written and
 // durable, completeQueryTransaction always finishes by installing
@@ -112,6 +114,67 @@ const (
 	queryTxnFilePermMode = 0o600
 )
 
+// validate checks everything recovery acts on in a journal, returning an
+// error for anything that is not exactly what this store's own writers
+// record. It is applied both to a journal read back from disk (readJournal)
+// and to one about to be committed, so a writer can never commit a journal
+// that recovery would then refuse.
+func (j queryTxnJournal) validate() error {
+	if j.Operation != queryTxnOpPut && j.Operation != queryTxnOpDelete {
+		return fmt.Errorf("unrecognized operation %q", j.Operation)
+	}
+	if err := validateQueryFolderPath(j.FolderPath); err != nil {
+		return fmt.Errorf("invalid folder path: %w", err)
+	}
+	if err := validateQueryID(j.ID); err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	if want := storage.JsonFileName(j.ID, storage.QueryFileSuffix); j.JSONFileName != want {
+		return fmt.Errorf("jsonFileName %q is not the name derived from id %q (%q)", j.JSONFileName, j.ID, want)
+	}
+	switch j.Operation {
+	case queryTxnOpPut:
+		if !isSHA256Hex(j.JSONHash) || !isSHA256Hex(j.BodyHash) {
+			return fmt.Errorf("a put journal must record the SHA-256 hash of each staged file")
+		}
+		if err := checkQueryBodyFileName(j.ID, j.BodyFileName); err != nil {
+			return fmt.Errorf("bodyFileName: %w", err)
+		}
+		if j.PrevBodyFileName != "" {
+			if !j.HadPrevious {
+				return fmt.Errorf("prevBodyFileName is set without hadPrevious")
+			}
+			if err := checkQueryBodyFileName(j.ID, j.PrevBodyFileName); err != nil {
+				return fmt.Errorf("prevBodyFileName: %w", err)
+			}
+		}
+	case queryTxnOpDelete:
+		if j.JSONHash != "" || j.BodyHash != "" || j.HadPrevious || j.PrevBodyFileName != "" {
+			return fmt.Errorf("a delete journal must not record put fields")
+		}
+		if j.BodyFileName != "" {
+			if err := checkQueryBodyFileName(j.ID, j.BodyFileName); err != nil {
+				return fmt.Errorf("bodyFileName: %w", err)
+			}
+		}
+	}
+	return nil
+}
+
+// isSHA256Hex reports whether s is a lowercase hex SHA-256 digest, the
+// form hashBytes produces.
+func isSHA256Hex(s string) bool {
+	if len(s) != sha256.Size*2 {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if c := s[i]; !(c >= '0' && c <= '9' || c >= 'a' && c <= 'f') {
+			return false
+		}
+	}
+	return true
+}
+
 // hashBytes returns the hex SHA-256 digest of b, used to let recovery
 // verify staged/installed content against what the journal recorded
 // without needing a physical backup copy of the previous pair: the
@@ -141,30 +204,6 @@ func removeIfExists(filePath string) error {
 		return err
 	}
 	return nil
-}
-
-// lstatTrustedArtifact checks a recovery artifact (the journal, a staged
-// file) before it is trusted: it must not be a symlink, and - where the
-// platform's permission bits are meaningful - must be no more permissive
-// than maxPerm. Windows does not expose POSIX permission bits through
-// os.FileMode (Go reports a synthetic value there), so that half of the
-// check is skipped there. Returns exists=false, err=nil when the path
-// simply does not exist.
-func lstatTrustedArtifact(filePath string, maxPerm os.FileMode) (exists bool, err error) {
-	info, err := os.Lstat(filePath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, err
-	}
-	if info.Mode()&os.ModeSymlink != 0 {
-		return true, fmt.Errorf("%s is a symlink; refusing to use it", filePath)
-	}
-	if runtime.GOOS != "windows" && info.Mode().Perm()&^maxPerm != 0 {
-		return true, fmt.Errorf("%s has overly broad permissions %v; refusing to use it", filePath, info.Mode().Perm())
-	}
-	return true, nil
 }
 
 // writeStagedFile creates name under txnDir with the private staging
@@ -255,61 +294,73 @@ func cleanupTxnArtifacts(txnDir string) error {
 // must itself match expectedHash, or the staged content is refused rather
 // than trusted blindly.
 func ensureInstalled(txnDir, stagedName, dir, finalName, expectedHash string) error {
-	finalPath := path.Join(dir, finalName)
-	if b, exists, err := readFileIfExists(finalPath); err != nil {
+	installed, err := verifyInstallable(txnDir, stagedName, dir, finalName, expectedHash)
+	if err != nil || installed {
 		return err
-	} else if exists && hashBytes(b) == expectedHash {
-		return nil
 	}
-
-	stagedPath := path.Join(txnDir, stagedName)
-	if exists, err := lstatTrustedArtifact(stagedPath, queryTxnMaxFilePerm); err != nil {
-		return err
-	} else if !exists {
-		return fmt.Errorf("staged file %s is missing and %s does not already match the transaction's recorded content", stagedName, finalName)
-	}
-	stagedBytes, err := os.ReadFile(stagedPath)
-	if err != nil {
-		return fmt.Errorf("failed to read staged file %s: %w", stagedName, err)
-	}
-	if hashBytes(stagedBytes) != expectedHash {
-		return fmt.Errorf("staged file %s does not match the transaction's recorded hash; refusing to install it", stagedName)
-	}
-	if err := os.Rename(stagedPath, finalPath); err != nil {
+	if err := os.Rename(path.Join(txnDir, stagedName), path.Join(dir, finalName)); err != nil {
 		return fmt.Errorf("failed to install %s: %w", finalName, err)
 	}
 	return nil
 }
 
-// readJournal reads txnDir's journal, if any. A present-but-malformed
-// journal (bad permissions, a symlink, corrupt JSON, an unrecognized
-// operation, a location that no longer validates) is a hard error - fail
-// closed rather than silently ignore or, worse, act on an untrusted
-// journal.
+// verifyInstallable is ensureInstalled without the rename: it reports
+// installed=true when dir/finalName already holds exactly the content
+// hashed as expectedHash, and otherwise requires txnDir/stagedName to be a
+// trusted artifact (checkTxnArtifact) whose content hashes to
+// expectedHash. It changes nothing, so completeQueryTransaction can verify
+// every file a transaction installs before it touches any of them.
+func verifyInstallable(txnDir, stagedName, dir, finalName, expectedHash string) (installed bool, err error) {
+	if b, exists, err := readFileIfExists(path.Join(dir, finalName)); err != nil {
+		return false, err
+	} else if exists && hashBytes(b) == expectedHash {
+		return true, nil
+	}
+	stagedPath := path.Join(txnDir, stagedName)
+	if exists, err := checkTxnArtifact(stagedPath, queryTxnMaxFilePerm); err != nil {
+		return false, err
+	} else if !exists {
+		return false, fmt.Errorf("staged file %s is missing and %s does not already match the transaction's recorded content", stagedName, finalName)
+	}
+	stagedBytes, _, err := readRegularFileCapped(stagedPath, maxQueryFileSize)
+	if err != nil {
+		return false, fmt.Errorf("failed to read staged file %s: %w", stagedName, err)
+	}
+	if hashBytes(stagedBytes) != expectedHash {
+		return false, fmt.Errorf("staged file %s does not match the transaction's recorded hash; refusing to install it", stagedName)
+	}
+	return false, nil
+}
+
+// readJournal reads txnDir's journal, if any. A present-but-untrustworthy
+// journal is a hard error, and nothing is touched: fail closed rather than
+// silently ignore or, worse, act on it. That covers a journal that is not
+// a regular file owned by the current user with 0600-or-tighter
+// permissions (checkTxnArtifact), one over maxQueryTxnJournalSize, corrupt
+// JSON, and anything queryTxnJournal.validate refuses (an unrecognized
+// operation, an invalid location, a file name that differs from the one
+// derived from the ID, a malformed hash).
 func readJournal(txnDir string) (j queryTxnJournal, present bool, err error) {
 	journalPath := path.Join(txnDir, queryTxnJournalFile)
-	exists, err := lstatTrustedArtifact(journalPath, queryTxnMaxFilePerm)
+	exists, err := checkTxnArtifact(journalPath, queryTxnMaxFilePerm)
 	if err != nil {
 		return queryTxnJournal{}, false, err
 	}
 	if !exists {
 		return queryTxnJournal{}, false, nil
 	}
-	b, err := os.ReadFile(journalPath)
+	b, exists, err := readRegularFileCapped(journalPath, maxQueryTxnJournalSize)
 	if err != nil {
 		return queryTxnJournal{}, false, fmt.Errorf("failed to read query transaction journal: %w", err)
 	}
+	if !exists {
+		return queryTxnJournal{}, false, nil
+	}
 	if err := json.Unmarshal(b, &j); err != nil {
-		return queryTxnJournal{}, false, fmt.Errorf("query transaction journal is corrupt: %w", err)
+		return queryTxnJournal{}, false, fmt.Errorf("query transaction journal %s is corrupt: %w", journalPath, err)
 	}
-	if j.Operation != queryTxnOpPut && j.Operation != queryTxnOpDelete {
-		return queryTxnJournal{}, false, fmt.Errorf("query transaction journal has an unrecognized operation %q", j.Operation)
-	}
-	if err := validateQueryFolderPath(j.FolderPath); err != nil {
-		return queryTxnJournal{}, false, fmt.Errorf("query transaction journal has an invalid folder path: %w", err)
-	}
-	if err := validateQueryID(j.ID); err != nil {
-		return queryTxnJournal{}, false, fmt.Errorf("query transaction journal has an invalid id: %w", err)
+	if err := j.validate(); err != nil {
+		return queryTxnJournal{}, false, fmt.Errorf("query transaction journal %s is not trustworthy; refusing to recover from it: %w", journalPath, err)
 	}
 	return j, true, nil
 }
@@ -329,10 +380,12 @@ func readJournal(txnDir string) (j queryTxnJournal, present bool, err error) {
 // cancellation - that guarantee holds structurally here, not by checking
 // and ignoring ctx.Err().
 //
-// queriesRoot is the project's canonical "queries/" directory; the target
-// directory is re-derived from it plus the journal's own
-// (re-)validated FolderPath, never trusted as a path the journal supplies
-// directly.
+// queriesRoot is the project's canonical "queries/" directory. The target
+// directory is re-derived from it plus the journal's validated FolderPath
+// through walkQueryDir, which refuses a symlinked or non-directory segment
+// and creates a missing one (for a put) without following a symlink; every
+// file name is one validate proved equal to the name derived from the ID.
+// Nothing in the journal is ever used as a path directly.
 func completeQueryTransaction(queriesRoot, txnDir string) error {
 	j, present, err := readJournal(txnDir)
 	if err != nil {
@@ -342,18 +395,24 @@ func completeQueryTransaction(queriesRoot, txnDir string) error {
 		return nil
 	}
 
-	dir := queriesRoot
-	if j.FolderPath != "" {
-		for _, seg := range strings.Split(j.FolderPath, "/") {
-			dir = path.Join(dir, seg)
-		}
-	}
-	if err := os.MkdirAll(dir, 0o777); err != nil {
-		return fmt.Errorf("failed to create query folder: %w", err)
+	dir, err := walkQueryDir(queriesRoot, j.FolderPath, j.ID, j.Operation == queryTxnOpPut)
+	if err != nil {
+		return fmt.Errorf("refusing to recover the query transaction for %q: %w", j.ID, err)
 	}
 
 	switch j.Operation {
 	case queryTxnOpPut:
+		// Verify both files before touching anything: an untrustworthy
+		// staged file refuses the whole transaction, instead of being found
+		// only after the other half of the pair was already installed.
+		for _, f := range [...]struct{ staged, final, hash string }{
+			{queryTxnStagedBody, j.BodyFileName, j.BodyHash},
+			{queryTxnStagedJSON, j.JSONFileName, j.JSONHash},
+		} {
+			if _, err := verifyInstallable(txnDir, f.staged, dir, f.final, f.hash); err != nil {
+				return err
+			}
+		}
 		if j.HadPrevious && j.PrevBodyFileName != "" && j.PrevBodyFileName != j.BodyFileName {
 			if err := removeIfExists(path.Join(dir, j.PrevBodyFileName)); err != nil {
 				return fmt.Errorf("failed to remove stale body sidecar: %w", err)
@@ -452,7 +511,10 @@ func readCurrentQueryPair(dir, id string) (currentQueryPair, error) {
 		cur.revision = computeQueryRevision(jsonBytes, "", nil)
 		return cur, nil
 	}
-	bodyFileName := queryBodyFileName(id, meta.Type)
+	bodyFileName, err := queryBodyFileName(id, meta.Type)
+	if err != nil {
+		return cur, fmt.Errorf("existing query metadata for %s: %w", id, err)
+	}
 	bodyBytes, bodyExists, err := readFileIfExists(path.Join(dir, bodyFileName))
 	if err != nil {
 		return cur, fmt.Errorf("failed to read query body: %w", err)

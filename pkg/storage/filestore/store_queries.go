@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strings"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
@@ -17,12 +16,19 @@ import (
 // pkg/datatug/doc.go): the JSON sidecar never carries Text (the saver strips
 // it before writing), so the loader must read the body back separately.
 // Returns ("", nil) when there is no sidecar - not every query has a text
-// body (e.g. one with only structured parameters/recordsets so far).
+// body (e.g. one with only structured parameters/recordsets so far). The
+// file name is derived by queryBodyFileName, which refuses a type from the
+// JSON metadata that could not safely name a file (a type is project
+// content, and "/../../x" would otherwise address a file outside the
+// project).
 func readQueryTextSidecar(dirPath string, query *datatug.QueryDef) (string, error) {
 	if query.Type == "" {
 		return "", nil
 	}
-	fileName := fmt.Sprintf("%s.%s.%s", query.ID, storage.QueryFileSuffix, strings.ToLower(string(query.Type)))
+	fileName, err := queryBodyFileName(query.ID, query.Type)
+	if err != nil {
+		return "", err
+	}
 	data, err := os.ReadFile(path.Join(dirPath, fileName))
 	if err != nil {
 		if os.IsNotExist(err) {

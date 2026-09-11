@@ -44,10 +44,65 @@ func queryJSONBytes(query datatug.QueryDef) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// maxQueryTypeFileExtensionLength bounds a query type used as a body
+// sidecar file extension.
+const maxQueryTypeFileExtensionLength = 32
+
+// queryTypeFileExtension returns the file extension a query of queryType
+// stores its body sidecar under - the lowercased type - or an error when
+// the type cannot safely name a file. A query's type is read back from its
+// own JSON metadata, which is project content (a clone, an archive, a hand
+// edit) and therefore untrusted: joined into a path unchecked, a type such
+// as "/../../x" would address a file outside the project, for a read and -
+// through a delete or a type-changing write - for a removal. An accepted
+// type is 1-32 ASCII letters, digits, "_" or "-", which can never add a
+// separator, a dot, a control character or a Windows-illegal character to
+// the derived name. Every type QueryDef.Validate accepts qualifies, and so
+// do legacy types it no longer accepts (the demo projects' "JSON"), so
+// existing records stay readable.
+func queryTypeFileExtension(queryType datatug.QueryType) (string, error) {
+	t := string(queryType)
+	if t == "" || len(t) > maxQueryTypeFileExtensionLength {
+		return "", fmt.Errorf("query type %q cannot name a body sidecar file: it must be 1-%d characters", t, maxQueryTypeFileExtensionLength)
+	}
+	for i := 0; i < len(t); i++ {
+		c := t[i]
+		if !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_' || c == '-') {
+			return "", fmt.Errorf("query type %q cannot name a body sidecar file: only ASCII letters, digits, '_' and '-' are allowed", t)
+		}
+	}
+	return strings.ToLower(t), nil
+}
+
 // queryBodyFileName returns the body sidecar file name a query of this
 // type/id persists, following "<id>.query.<lowercase type>" (see
-// pkg/datatug/doc.go's "Query text sidecar file naming" convention, which
-// readQueryTextSidecar in store_queries.go already derives the same way).
-func queryBodyFileName(id string, queryType datatug.QueryType) string {
-	return fmt.Sprintf("%s.%s.%s", id, storage.QueryFileSuffix, strings.ToLower(string(queryType)))
+// pkg/datatug/doc.go's "Query text sidecar file naming" convention). It
+// fails for a type queryTypeFileExtension refuses. id must already be a
+// validated query ID.
+func queryBodyFileName(id string, queryType datatug.QueryType) (string, error) {
+	ext, err := queryTypeFileExtension(queryType)
+	if err != nil {
+		return "", err
+	}
+	return id + "." + storage.QueryFileSuffix + "." + ext, nil
+}
+
+// checkQueryBodyFileName verifies that name is exactly the body sidecar
+// name queryBodyFileName derives for id and some accepted type. Recovery
+// applies it to every body file name a journal records, so a journal can
+// only ever name a body sidecar of its own validated query ID - never
+// another file, and never a path.
+func checkQueryBodyFileName(id, name string) error {
+	ext, ok := strings.CutPrefix(name, id+"."+storage.QueryFileSuffix+".")
+	if !ok {
+		return fmt.Errorf("%q is not a body sidecar name of query %q", name, id)
+	}
+	derived, err := queryBodyFileName(id, datatug.QueryType(ext))
+	if err != nil {
+		return fmt.Errorf("%q is not a body sidecar name of query %q: %w", name, id, err)
+	}
+	if derived != name {
+		return fmt.Errorf("%q is not a body sidecar name of query %q (the derived name is %q)", name, id, derived)
+	}
+	return nil
 }

@@ -2,6 +2,7 @@ package filestore
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
@@ -135,10 +136,57 @@ func TestQueryBodyFileName(t *testing.T) {
 		{"q1", datatug.QueryTypeDTQL, "q1.query.dtql"},
 		{"q1", datatug.QueryTypeSQL, "q1.query.sql"},
 		{"customer-invoices", datatug.QueryTypeHTTP, "customer-invoices.query.http"},
+		{"q1", "GraphQL", "q1.query.graphql"},
+		{"q1", "StructuredSQL", "q1.query.structuredsql"}, // legacy types stay addressable
+		{"q1", "JSON", "q1.query.json"},
+		{"q1", "my_type-2", "q1.query.my_type-2"},
 	}
 	for _, c := range cases {
-		if got := queryBodyFileName(c.id, c.typ); got != c.expected {
+		got, err := queryBodyFileName(c.id, c.typ)
+		if err != nil {
+			t.Errorf("queryBodyFileName(%q, %q): unexpected error: %v", c.id, c.typ, err)
+			continue
+		}
+		if got != c.expected {
 			t.Errorf("queryBodyFileName(%q, %q) = %q, want %q", c.id, c.typ, got, c.expected)
+		}
+		if err := checkQueryBodyFileName(c.id, got); err != nil {
+			t.Errorf("checkQueryBodyFileName(%q, %q): expected the derived name to be accepted, got: %v", c.id, got, err)
+		}
+	}
+}
+
+// TestQueryBodyFileName_RefusesATypeThatCannotNameAFile is a regression
+// test for the class behind review B1: a query's type comes from its own
+// JSON metadata (project content) and used to be joined into the body file
+// name unchecked, so "/../../x" addressed a file outside the project for a
+// read, a delete and a type-changing write.
+func TestQueryBodyFileName_RefusesATypeThatCannotNameAFile(t *testing.T) {
+	for _, typ := range []datatug.QueryType{
+		"", "/../../victim/secret.txt", "../x", "a/b", `a\b`, "a.b", "sql server", "x\x00", "tab\t",
+		"café", datatug.QueryType(strings.Repeat("a", maxQueryTypeFileExtensionLength+1)),
+	} {
+		if name, err := queryBodyFileName("q1", typ); err == nil {
+			t.Errorf("expected type %q to be refused, got name %q", typ, name)
+		}
+	}
+}
+
+func TestCheckQueryBodyFileName_RefusesNamesNotDerivedFromTheID(t *testing.T) {
+	for _, name := range []string{
+		"",
+		"q1.query.json.",
+		"q2.query.dtql",         // another query's body
+		"q1.query.DTQL",         // not the lowercase derived name
+		"q1.query.",             // no type
+		"q1.query.d.tql",        // a dot in the type
+		"q1.query.dtql/../../x", // a path
+		"../../victim/dot_zshrc",
+		"/etc/passwd",
+		"q1.sql",
+	} {
+		if err := checkQueryBodyFileName("q1", name); err == nil {
+			t.Errorf("expected body file name %q to be refused for id q1", name)
 		}
 	}
 }

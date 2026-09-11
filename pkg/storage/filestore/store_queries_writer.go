@@ -24,7 +24,10 @@ func (s fsQueriesStore) stageAndInstallQueryPair(g queryLockGuard, dir, folderPa
 	if err != nil {
 		return "", err
 	}
-	bodyFileName := queryBodyFileName(query.ID, query.Type)
+	bodyFileName, err := queryBodyFileName(query.ID, query.Type)
+	if err != nil {
+		return "", err
+	}
 	bodyBytes := []byte(query.Text)
 
 	if err := os.MkdirAll(dir, 0o777); err != nil {

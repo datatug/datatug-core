@@ -128,48 +128,34 @@ func (s fsQueriesStore) withQueryReadLock(ctx context.Context, fn func(g queryLo
 // check only applies on the platforms where it is meaningful.
 func ensureQueryTxnDir(queriesRoot string) (string, error) {
 	txnDir := path.Join(queriesRoot, reservedQueryTxnDirName)
+	// The queries root must itself be a real directory: a symlinked
+	// "queries" would put the transaction directory, and every write,
+	// wherever it points.
+	if _, err := walkQueryDir(queriesRoot, "", "", false); err != nil {
+		return "", err
+	}
 	info, err := os.Lstat(txnDir)
 	switch {
 	case err == nil:
-		if info.Mode()&os.ModeSymlink != 0 {
-			return "", fmt.Errorf("query transaction directory %s is a symlink; refusing to use it", txnDir)
-		}
-		if !info.IsDir() {
-			return "", fmt.Errorf("query transaction path %s is not a directory; refusing to use it", txnDir)
-		}
-		if runtime.GOOS != "windows" && info.Mode().Perm()&^0o700 != 0 {
-			// Tighten first, then look. Once the directory is 0700 no other
-			// user can add anything to it, so an emptiness check made after
-			// the chmod cannot be raced by an injected journal or staged
-			// file; checking first and tightening second left exactly that
-			// window open to anyone who could write to the broad directory.
-			if err := os.Chmod(txnDir, 0o700); err != nil {
-				return "", fmt.Errorf("failed to repair query transaction directory permissions: %w", err)
-			}
-			tightened, err := os.Lstat(txnDir)
-			if err != nil {
-				return "", fmt.Errorf("failed to re-inspect query transaction directory %s after repairing its permissions: %w", txnDir, err)
-			}
-			if tightened.Mode()&os.ModeSymlink != 0 || !tightened.IsDir() || tightened.Mode().Perm()&^0o700 != 0 {
-				return "", fmt.Errorf("query transaction directory %s changed while its permissions were being repaired; refusing to use it", txnDir)
-			}
-			hasContent, contentErr := queryTxnDirHasRecoveryContent(txnDir)
-			if contentErr != nil {
-				return "", contentErr
-			}
-			if hasContent {
-				return "", fmt.Errorf("query transaction directory %s has overly broad permissions %v; refusing to use it", txnDir, info.Mode().Perm())
-			}
+		if err := vetExistingQueryTxnDir(txnDir, info); err != nil {
+			return "", err
 		}
 		return txnDir, nil
 	case os.IsNotExist(err):
-		if err := os.MkdirAll(queriesRoot, 0o777); err != nil {
-			return "", fmt.Errorf("failed to create queries folder: %w", err)
+		if _, err := walkQueryDir(queriesRoot, "", "", true); err != nil {
+			return "", err
 		}
 		if err := os.Mkdir(txnDir, 0o700); err != nil {
 			if os.IsExist(err) {
-				// Another process created it between our Lstat and Mkdir;
-				// harmless, since both attempts want the same directory.
+				// Another process created it between our Lstat and Mkdir.
+				// Vet it exactly like any directory found already there.
+				info, err := os.Lstat(txnDir)
+				if err != nil {
+					return "", err
+				}
+				if err := vetExistingQueryTxnDir(txnDir, info); err != nil {
+					return "", err
+				}
 				return txnDir, nil
 			}
 			return "", fmt.Errorf("failed to create query transaction directory: %w", err)
@@ -187,6 +173,55 @@ func ensureQueryTxnDir(queriesRoot string) (string, error) {
 	default:
 		return "", err
 	}
+}
+
+// vetExistingQueryTxnDir decides whether an existing ".dt-query-txn" entry
+// (described by Lstat) may be used. It must be an ordinary directory - a
+// symlink or anything else is refused outright - and it must be owned by
+// the effective user running this process: a directory someone else
+// created (an archive extracted as root keeps its original owner; a server
+// running as root in a container would otherwise trust an attacker's
+// directory) is refused before anything else, including the permission
+// repair below, is attempted. When its permissions are broader than 0700
+// it is tightened first and only then checked for recovery artifacts, so
+// content planted while it was broad is still refused and nothing can be
+// planted after the chmod (see ensureQueryTxnDir).
+func vetExistingQueryTxnDir(txnDir string, info os.FileInfo) error {
+	if info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("query transaction directory %s is a symlink; refusing to use it", txnDir)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("query transaction path %s is not a directory; refusing to use it", txnDir)
+	}
+	if !fileOwnedByCurrentUser(info) {
+		return fmt.Errorf("query transaction directory %s is owned by another user; refusing to use it", txnDir)
+	}
+	if runtime.GOOS == "windows" || info.Mode().Perm()&^0o700 == 0 {
+		return nil
+	}
+	// Tighten first, then look. Once the directory is 0700 no other user
+	// can add anything to it, so an emptiness check made after the chmod
+	// cannot be raced by an injected journal or staged file; checking first
+	// and tightening second left exactly that window open to anyone who
+	// could write to the broad directory.
+	if err := os.Chmod(txnDir, 0o700); err != nil {
+		return fmt.Errorf("failed to repair query transaction directory permissions: %w", err)
+	}
+	tightened, err := os.Lstat(txnDir)
+	if err != nil {
+		return fmt.Errorf("failed to re-inspect query transaction directory %s after repairing its permissions: %w", txnDir, err)
+	}
+	if tightened.Mode()&os.ModeSymlink != 0 || !tightened.IsDir() || !fileOwnedByCurrentUser(tightened) || tightened.Mode().Perm()&^0o700 != 0 {
+		return fmt.Errorf("query transaction directory %s changed while its permissions were being repaired; refusing to use it", txnDir)
+	}
+	hasContent, err := queryTxnDirHasRecoveryContent(txnDir)
+	if err != nil {
+		return err
+	}
+	if hasContent {
+		return fmt.Errorf("query transaction directory %s has overly broad permissions %v; refusing to use it", txnDir, info.Mode().Perm())
+	}
+	return nil
 }
 
 // queryTxnDirHasRecoveryContent reports whether txnDir holds a journal or

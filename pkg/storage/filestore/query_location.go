@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"strconv"
@@ -144,21 +145,12 @@ func validateQueryID(id string) error {
 	return nil
 }
 
-// lstatSegmentIssue reports why segmentPath cannot be a query location
-// directory, or ("", false) when it may be one: either it does not exist
-// yet (the normal case - it will be created on write) or it already exists
-// as an ordinary directory. It never follows a symlink to see what it
-// points to; any symlink along a query location is rejected outright,
-// which is what proves containment without needing to resolve where a
-// symlink actually leads.
-func lstatSegmentIssue(segmentPath string) (reason string, bad bool) {
-	info, err := os.Lstat(segmentPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return "", false
-		}
-		return err.Error(), true
-	}
+// queryDirIssue reports why an existing entry (described by Lstat) cannot
+// be a query location directory, or ("", false) when it is an ordinary
+// directory. It never follows a symlink to see what it points to: any
+// symlink along a query location is rejected outright, which is what
+// proves containment without needing to resolve where a symlink leads.
+func queryDirIssue(info os.FileInfo) (reason string, bad bool) {
 	if info.Mode()&os.ModeSymlink != 0 {
 		return "resolves through a symlink", true
 	}
@@ -168,15 +160,72 @@ func lstatSegmentIssue(segmentPath string) (reason string, bad bool) {
 	return "", false
 }
 
+// walkQueryDir resolves an already-validated folderPath under queriesRoot
+// and returns the directory a query pair there lives in. It Lstat-checks
+// the queries root itself and then every segment in order: each one that
+// exists must be an ordinary directory, never a symlink, so the returned
+// directory cannot resolve outside the queries root. The project directory
+// above "queries/" is the caller's own path and is trusted as given; from
+// "queries/" down, everything is project content (a clone, an archive, a
+// hand edit) and is not.
+//
+// With create=false it performs no I/O beyond those Lstat calls: the walk
+// stops at the first missing entry and returns the path the location would
+// have. With create=true each missing segment is created with os.Mkdir,
+// which never follows a symlink in its final component, and then checked
+// like any other - never with os.MkdirAll, which silently follows a
+// symlinked segment. Only the queries root itself is created with
+// os.MkdirAll, since its parent is the project directory.
+//
+// It is how both an ordinary request (resolveQueryLocation) and recovery
+// (completeQueryTransaction, from a journal's validated FolderPath) reach
+// a query's directory, so recovery can never be steered through a symlink
+// either.
+func walkQueryDir(queriesRoot, folderPath, id string, create bool) (string, error) {
+	var segments []string
+	if folderPath != "" {
+		segments = strings.Split(folderPath, "/")
+	}
+	dir := queriesRoot
+	for i := -1; i < len(segments); i++ {
+		name := "queries root"
+		if i >= 0 {
+			dir = path.Join(dir, segments[i])
+			name = "folder path segment " + strconv.Quote(segments[i])
+		}
+		info, err := os.Lstat(dir)
+		if os.IsNotExist(err) {
+			if !create {
+				return path.Join(append([]string{dir}, segments[i+1:]...)...), nil
+			}
+			if i < 0 {
+				err = os.MkdirAll(dir, 0o777)
+			} else {
+				err = os.Mkdir(dir, 0o777)
+			}
+			if err != nil && !os.IsExist(err) {
+				return "", fmt.Errorf("failed to create query folder %s: %w", dir, err)
+			}
+			info, err = os.Lstat(dir)
+		}
+		if err != nil {
+			return "", invalidQueryLocation(folderPath, id, name+": "+err.Error())
+		}
+		if reason, bad := queryDirIssue(info); bad {
+			return "", invalidQueryLocation(folderPath, id, name+": "+reason)
+		}
+	}
+	return dir, nil
+}
+
 // resolveQueryLocation validates folderPath and id, then resolves and
 // returns the absolute directory their pair's files live in: the
 // project's canonical "queries/" root plus every validated folder
-// segment. It proves containment by Lstat-checking every segment that
-// already exists on disk as it extends the path, rejecting a symlink or
-// non-directory before returning - so a caller can join the returned
-// directory with a file name and know the result cannot resolve outside
-// the queries root. It performs no I/O beyond those Lstat calls: nothing
-// is created, and a rejected request leaves the file system untouched.
+// segment, proven by walkQueryDir not to pass through a symlink or a
+// non-directory - so a caller can join the returned directory with a
+// derived file name and know the result cannot resolve outside the
+// queries root. It performs no I/O beyond Lstat calls: nothing is
+// created, and a rejected request leaves the file system untouched.
 func (s fsQueriesStore) resolveQueryLocation(folderPath, id string) (string, error) {
 	if err := validateQueryFolderPath(folderPath); err != nil {
 		return "", err
@@ -184,14 +233,5 @@ func (s fsQueriesStore) resolveQueryLocation(folderPath, id string) (string, err
 	if err := validateQueryID(id); err != nil {
 		return "", err
 	}
-	dir := s.dirPath
-	if folderPath != "" {
-		for _, seg := range strings.Split(folderPath, "/") {
-			dir = path.Join(dir, seg)
-			if reason, bad := lstatSegmentIssue(dir); bad {
-				return "", invalidQueryLocation(folderPath, id, reason)
-			}
-		}
-	}
-	return dir, nil
+	return walkQueryDir(s.dirPath, folderPath, id, false)
 }
