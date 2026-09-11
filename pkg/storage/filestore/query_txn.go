@@ -572,9 +572,12 @@ func readJournal(txnDir string) (j queryTxnJournal, present bool, err error) {
 //
 // queriesRoot is the project's canonical "queries/" directory. The target
 // directory is re-derived from it plus the journal's validated FolderPath
-// through walkQueryDir, which refuses a symlinked or non-directory segment
-// and creates a missing one (for a put) without following a symlink; every
-// file name is one validate proved equal to the name derived from the ID.
+// through walkQueryDir, which refuses a symlinked or non-directory
+// segment. Recovery never creates a missing segment (review S1): a folder
+// that is gone refuses the transaction until it is restored, so a recovery
+// pass neither resurrects a folder the user deleted nor leaves an empty one
+// behind. Every file name is one validate proved equal to the name derived
+// from the ID.
 // Nothing in the journal is ever used as a path directly.
 func completeQueryTransaction(queriesRoot, txnDir string) error {
 	j, present, err := readJournal(txnDir)
@@ -738,8 +741,13 @@ func queryTxnNothingHalfDone(queriesRoot, slot string, j queryTxnJournal, dir st
 //
 // The checks are, in order:
 //   - the folder: walkQueryDir with j's validated FolderPath - every
-//     existing segment an ordinary directory, never a symlink - creating a
-//     missing segment for a put, exactly as a put's recovery does;
+//     existing segment an ordinary directory, never a symlink. Only a
+//     writer about to commit creates a missing segment (createFolder, and
+//     then only for a put); recovery never does (review S1), so a recovery
+//     pass can neither resurrect a folder the user deleted nor leave an
+//     empty one behind for attribution to mistake for the query's own. A
+//     folder that is not there refuses the transaction, naming the folder
+//     to restore;
 //   - the query folder and txnDir (the slot the staged files leave) must
 //     accept renamed and removed entries (checkQueryDirAcceptsChanges:
 //     write and search permission, and no immutable or append-only flag);
@@ -756,19 +764,24 @@ func queryTxnNothingHalfDone(queriesRoot, slot string, j queryTxnJournal, dir st
 //   - for a delete, each file of the pair likewise.
 //
 // What these checks cannot see is listed at checkQueryTargetReplaceable.
-func checkQueryTxnTargets(queriesRoot, txnDir string, j queryTxnJournal) (dir string, err error) {
-	dir, err = walkQueryDir(queriesRoot, j.FolderPath, j.ID, j.Operation == queryTxnOpPut)
+func checkQueryTxnTargets(queriesRoot, txnDir string, j queryTxnJournal, createFolder bool) (dir string, err error) {
+	dir, err = walkQueryDir(queriesRoot, j.FolderPath, j.ID, createFolder && j.Operation == queryTxnOpPut)
 	if err != nil {
 		return "", err
+	}
+	// walkQueryDir reports a missing entry by returning the path it would
+	// have, not an error, so with creation off the folder's absence is
+	// caught here - as a typed location refusal naming what to restore,
+	// rather than as an opaque permission error from the checks below.
+	dirInfo, err := os.Lstat(dir)
+	if err != nil || !dirInfo.IsDir() {
+		return "", invalidQueryLocation(j.FolderPath, j.ID,
+			"query folder "+dir+" is missing; restore it so the interrupted write can be completed")
 	}
 	for _, d := range [...]string{dir, txnDir} {
 		if err := checkQueryDirAcceptsChanges(d); err != nil {
 			return "", err
 		}
-	}
-	dirInfo, err := os.Lstat(dir)
-	if err != nil {
-		return "", err
 	}
 	switch j.Operation {
 	case queryTxnOpPut:
@@ -853,7 +866,9 @@ func commitQueryTransaction(queriesRoot, txnDir string, j queryTxnJournal) error
 	if err := j.validate(); err != nil {
 		return fmt.Errorf("refusing to commit an invalid query transaction journal: %w", err)
 	}
-	if _, err := checkQueryTxnTargets(queriesRoot, txnDir, j); err != nil {
+	// A writer is the only caller that may create the query's folder: it
+	// is writing there, and it has not committed anything yet.
+	if _, err := checkQueryTxnTargets(queriesRoot, txnDir, j, true); err != nil {
 		// A symlink or other non-regular entry at a target name is a
 		// typed location refusal (review SF-D).
 		return fmt.Errorf("refusing to write query %q: %w", j.ID, asQueryLocationError(j.FolderPath, j.ID, err))
@@ -865,7 +880,10 @@ func commitQueryTransaction(queriesRoot, txnDir string, j queryTxnJournal) error
 // every target (checkQueryTxnTargets) before touching any, then installs
 // or removes the pair and cleans up the transaction directory.
 func installQueryTransaction(queriesRoot, txnDir string, j queryTxnJournal) error {
-	dir, err := checkQueryTxnTargets(queriesRoot, txnDir, j)
+	// Completing a committed transaction never creates the folder: the
+	// writer's own commit already proved it was there, so if it is gone
+	// now the user moved or deleted it and must restore it (review S1).
+	dir, err := checkQueryTxnTargets(queriesRoot, txnDir, j, false)
 	if err != nil {
 		return err
 	}

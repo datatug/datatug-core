@@ -180,6 +180,16 @@ func TestRecovery_NestedFolderPathIsRederivedFromJournal(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	// The folder a committed transaction names always exists by the time it
+	// is committed - the writer creates it before it stages anything - and
+	// recovery itself never creates one (review S1). So the planted journal
+	// is given the folder a real writer would have left behind; what this
+	// test pins is that recovery re-derives the nested path from the
+	// journal rather than trusting a stored path.
+	if err := os.MkdirAll(filepath.Join(queriesDir, "folder1", "sub2"), 0o755); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	jsonBytes := []byte(`{"id":"q1","title":"Q1","type":"DTQL"}` + "\n")
 	bodyBytes := []byte("nested body")
 	if err := writeStagedFile(txnDir, queryTxnStagedJSON, jsonBytes); err != nil {
@@ -204,6 +214,50 @@ func TestRecovery_NestedFolderPathIsRederivedFromJournal(t *testing.T) {
 	}
 	if !fileExistsAt(filepath.Join(queriesDir, "folder1", "sub2", "q1.query.json")) {
 		t.Error("expected the nested folder path to be re-derived and used to install the pair")
+	}
+}
+
+// Review S1: a recovery pass must not create directories. It used to
+// recreate the journal's folder for a put on every lock acquisition, which
+// both resurrected a folder the user had deleted and left an empty one for
+// attribution to mistake for the query's own (review B1). Recovery now
+// refuses until the folder is restored, and completes forward when it is.
+func TestRecovery_NeverCreatesTheQuerysFolder(t *testing.T) {
+	ctx := context.Background()
+	_, queriesDir := newTestQueriesStore(t)
+	txnDir, err := ensureQueryTxnDir(queriesDir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	jsonBytes := []byte(`{"id":"q1","title":"Q1","type":"DTQL"}` + "\n")
+	bodyBytes := []byte("body")
+	if err := writeStagedFile(txnDir, queryTxnStagedJSON, jsonBytes); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := writeStagedFile(txnDir, queryTxnStagedBody, bodyBytes); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	writeTestJournal(t, txnDir, queryTxnJournal{
+		FolderPath: "gone", ID: "q1", Operation: queryTxnOpPut,
+		JSONFileName: "q1.query.json", JSONHash: hashBytes(jsonBytes),
+		BodyFileName: "q1.query.dtql", BodyHash: hashBytes(bodyBytes),
+	})
+
+	fresh := newFsQueriesStore(filepath.Dir(queriesDir))
+	if _, err := fresh.LoadQueryRevision(ctx, "gone/q1"); err == nil {
+		t.Fatal("expected a committed transaction whose folder is missing to be refused")
+	}
+	if fileExistsAt(filepath.Join(queriesDir, "gone")) {
+		t.Fatal("expected recovery never to create the query's folder")
+	}
+
+	// Still committed: restoring the folder completes the write forward.
+	if err := os.Mkdir(filepath.Join(queriesDir, "gone"), 0o755); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	loaded, err := fresh.LoadQueryRevision(ctx, "gone/q1")
+	if err != nil || loaded.Query.Text != "body" {
+		t.Fatalf("expected the write completed once the folder was restored, got %+v, %v", loaded, err)
 	}
 }
 
