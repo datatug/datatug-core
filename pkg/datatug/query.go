@@ -201,9 +201,11 @@ func (v QueryDef) Validate() error {
 		}
 		// An HTTP query's text is a request - a URL, headers and a body -
 		// persisted to git-tracked files like the rest of the query, so it
-		// is screened like any other connection string.
+		// is screened like any other connection string. The hint names the
+		// one placeholder syntax the HTTP executor substitutes: a declared
+		// parameter referenced as {name} (datatug-cli pkg/httpsource).
 		if reason, found := EmbeddedCredentialReason(v.Text); found {
-			return validation.NewErrBadRecordFieldValue("text", reason+"; reference a secret (for example {{token}} or $TOKEN) instead")
+			return validation.NewErrBadRecordFieldValue("text", reason+"; declare the secret as a query parameter and reference it as {name} instead")
 		}
 	case "SQL", "GraphQL", "DTQL":
 		//if strings.TrimSpace(v.Text) == "" {

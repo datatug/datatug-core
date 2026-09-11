@@ -256,3 +256,44 @@ func TestQueryDef_Validate_ScreensHTTPQueryText(t *testing.T) {
 		t.Errorf("expected SQL text not to be screened, got: %v", err)
 	}
 }
+
+// Review SF-C: datatug-cli's HTTP executor substitutes a declared parameter
+// referenced as {name} (pkg/httpsource/params.go). Referencing a secret
+// that way keeps it out of git, so it must be allowed, while the same
+// positions holding a literal are still refused - and the refusal must
+// suggest the {name} syntax the executor substitutes, not {{name}}.
+func TestQueryDef_Validate_AllowsTheHTTPParameterPlaceholder(t *testing.T) {
+	for _, text := range []string{
+		"https://api.example.com/v1/latest?api_key={apiKey}",
+		"https://api.example.com/v1/latest?access_token={token}",
+		"GET https://h/x\nAuthorization: Bearer {token}",
+		"GET https://h/x\nX-API-Key: {apiKey}",
+		`{"token": "{token}"}`,
+		// The demo project's own HTTP queries.
+		"https://countriesnow.space/api/v0.1/countries/currency/q?country={name}",
+		"https://api.frankfurter.dev/v1/latest?from=USD&to={to}",
+	} {
+		if reason, found := EmbeddedCredentialReason(text); found {
+			t.Errorf("expected %q to be allowed, got refused: %s", text, reason)
+		}
+		if err := newQueryDef("HTTP", text).Validate(); err != nil {
+			t.Errorf("expected HTTP text %q to be allowed, got: %v", text, err)
+		}
+	}
+	for _, text := range []string{
+		"https://api.example.com/v1/latest?api_key=abc123",
+		"GET https://h/x\nAuthorization: Bearer abc123",
+		"GET https://h/x\nX-API-Key: abc123",
+		`{"token": "abc123"}`,
+		"https://api.example.com/v1/latest?api_key={api key}", // not a parameter name
+	} {
+		err := newQueryDef("HTTP", text).Validate()
+		if err == nil {
+			t.Errorf("expected HTTP text %q to be refused", text)
+			continue
+		}
+		if msg := err.Error(); !strings.Contains(msg, "{name}") || strings.Contains(msg, "{{") {
+			t.Errorf("expected the refusal to suggest the {name} placeholder the executor substitutes, got: %v", err)
+		}
+	}
+}

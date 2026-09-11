@@ -53,7 +53,9 @@ import (
 //
 // A value is not a secret when it is empty or a placeholder: "?", "$1", a
 // bind name such as ":new_password", an environment reference such as
-// "$PGPASSWORD" or "${PGPASSWORD}", a template such as "{{token}}" or
+// "$PGPASSWORD" or "${PGPASSWORD}", an HTTP query parameter reference such
+// as "{token}" (the syntax datatug-cli's HTTP executor substitutes, see
+// its pkg/httpsource/params.go), a template such as "{{token}}" or
 // "<password>", or one of true, false, yes, no, on, off, null and none.
 // So a username alone, "reset_password=true", "token_count=5" and SQL such
 // as "UPDATE users SET password = :new_password" or "SELECT password_hash
@@ -113,7 +115,9 @@ var (
 
 	// placeholderValuePattern matches a value that names a secret instead
 	// of holding one.
-	placeholderValuePattern = regexp.MustCompile(`^(?:\?|\$\d+|:[A-Za-z_]\w*|\$[A-Z_][A-Z0-9_]*|\$\{[^{}]*\}|\{\{[^{}]*\}\}|<[^<>]*>)$`)
+	// "{name}" is the HTTP executor's parameter syntax, matched exactly as
+	// datatug-cli's pkg/httpsource/params.go matches it.
+	placeholderValuePattern = regexp.MustCompile(`^(?:\?|\$\d+|:[A-Za-z_]\w*|\$[A-Z_][A-Z0-9_]*|\$\{[^{}]*\}|\{[A-Za-z0-9_]+\}|\{\{[^{}]*\}\}|<[^<>]*>)$`)
 )
 
 var (
