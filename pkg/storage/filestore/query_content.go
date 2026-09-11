@@ -8,24 +8,25 @@ import (
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
-	"github.com/strongo/validation"
 )
 
 // validateQueryForWrite validates a query definition before it is staged
-// for a revisioned write. It runs the model's own Validate() - which
-// already rejects a target password and an embedded user:pass@ URL
-// (QueryDefTarget.Validate, pkg/datatug/query.go) while accepting a bare
-// username, and which already confines Recordsets to schema definitions,
-// never result rows (see TestQueryDef_ExcludesResultRows) - and additionally
-// requires a known, storable query type.
+// for a revisioned write. It runs exactly the model's own Validate() - the
+// same, and only, validation the legacy SaveQuery/CreateQuery/UpdateQuery
+// paths apply - which already rejects a target password and an embedded
+// user:pass@ URL (QueryDefTarget.Validate, pkg/datatug/query.go) while
+// accepting a bare username, already confines Recordsets to schema
+// definitions, never result rows (see TestQueryDef_ExcludesResultRows),
+// and already restricts Type to its own recognized set (including
+// "GraphQL" - see TestValidateQueryForWrite_AcceptsGraphQL/S6). It
+// deliberately does not layer datatug.IsKnownQueryType on top: that gate
+// disagreed with query.Validate() on both ends (rejecting "GraphQL",
+// which Validate() accepts, while nominally allowing "StructuredSQL",
+// which Validate() itself already rejects), so PutQuery must accept
+// exactly what the legacy write path accepts for the additive,
+// non-breaking claim to hold precisely.
 func validateQueryForWrite(query datatug.QueryDef) error {
-	if err := query.Validate(); err != nil {
-		return err
-	}
-	if !datatug.IsKnownQueryType(query.Type) {
-		return validation.NewErrBadRecordFieldValue("type", fmt.Sprintf("unsupported query type: %v", query.Type))
-	}
-	return nil
+	return query.Validate()
 }
 
 // queryJSONBytes returns the exact bytes a query's "<id>.query.json"

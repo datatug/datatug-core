@@ -59,10 +59,34 @@ func TestValidateQueryForWrite_AcceptsUsernameAlone(t *testing.T) {
 
 func TestValidateQueryForWrite_RejectsUnknownType(t *testing.T) {
 	q := validQueryForWrite()
-	q.Type = "folder"
+	// A type QueryDef.Validate itself does not recognize (its own switch's
+	// default case), independent of any other field - "folder" would also
+	// be rejected here, but only because of an unrelated rule ("text
+	// should be empty for folders"), which would leave this test passing
+	// for the wrong reason once validateQueryForWrite no longer applies
+	// its own separate IsKnownQueryType gate on top (see
+	// TestValidateQueryForWrite_AcceptsGraphQL/S6).
+	q.Type = "COBOL"
 	err := validateQueryForWrite(q)
 	if err == nil {
 		t.Fatal("expected an unknown/unsupported query type to be rejected")
+	}
+}
+
+// TestValidateQueryForWrite_AcceptsGraphQL is a regression test for S6:
+// validateQueryForWrite used to additionally require datatug.IsKnownQueryType,
+// which does not include "GraphQL" even though QueryDef.Validate (pkg/datatug/
+// query.go, unmodified by this branch) explicitly treats it as a valid
+// case - and the legacy SaveQuery/CreateQuery/UpdateQuery paths, which call
+// only query.Validate(), have always accepted it. PutQuery must accept
+// exactly what the legacy path accepts, so the "additive, non-breaking"
+// claim holds precisely: a query type legacy already writes must not
+// become newly rejected by the revisioned API.
+func TestValidateQueryForWrite_AcceptsGraphQL(t *testing.T) {
+	q := validQueryForWrite()
+	q.Type = "GraphQL"
+	if err := validateQueryForWrite(q); err != nil {
+		t.Fatalf("expected GraphQL to be accepted, matching the legacy write path, got: %v", err)
 	}
 }
 

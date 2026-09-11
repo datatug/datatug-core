@@ -50,6 +50,31 @@ func TestPutQuery_CreateSucceeds(t *testing.T) {
 	}
 }
 
+// TestPutQuery_AcceptsGraphQL is the end-to-end regression test for S6:
+// legacy SaveQuery has always accepted a "GraphQL"-typed query (it only
+// calls QueryDef.Validate(), which explicitly allows it); PutQuery must
+// accept it too.
+func TestPutQuery_AcceptsGraphQL(t *testing.T) {
+	store, queriesDir := newTestQueriesStore(t)
+	q := datatug.QueryDefWithFolderPath{
+		QueryDef: datatug.QueryDef{
+			ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "q1", Title: "Q1"}},
+			Type:        "GraphQL",
+			Text:        "query { customers { id } }",
+		},
+	}
+	stored, err := store.PutQuery(context.Background(), &q, datatug.QueryWriteCondition{IfNoneMatch: true})
+	if err != nil {
+		t.Fatalf("expected a GraphQL query to be accepted, matching legacy SaveQuery, got: %v", err)
+	}
+	if stored.Revision == "" {
+		t.Fatal("expected a non-empty revision")
+	}
+	if !fileExists(t, filepath.Join(queriesDir, "q1.query.graphql")) {
+		t.Error("expected q1.query.graphql to exist")
+	}
+}
+
 func TestPutQuery_CreateOverExistingConflicts(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
