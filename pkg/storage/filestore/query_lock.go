@@ -15,6 +15,45 @@ import (
 // cross-process advisory lock while it waits.
 const queryLockRetryDelay = 20 * time.Millisecond
 
+// queryTxnLockFile is the advisory lock file inside the transaction
+// directory.
+const queryTxnLockFile = "lock"
+
+// checkQueryLockFile refuses a lock file that is not a regular file owned
+// by the effective user. The lock is only ever opened and flock()ed, never
+// read or written, but opening a planted symlink would create or open a
+// file wherever it points (flock opens with O_CREATE), and opening a
+// planted FIFO blocks. A missing lock is fine: flock creates it, and
+// queryLockOpenFlags makes that open refuse a symlink - and not block on a
+// FIFO - swapped in after this check. Anything else is refused rather than
+// deleted and recreated: another process may hold a lock on the existing
+// file, and unlinking it would let two processes lock different files. The
+// lock's permission bits are not checked, since an archive round trip can
+// leave it 0644 and nothing is ever read from it.
+func checkQueryLockFile(lockPath string) error {
+	info, exists, err := lstatRegularFile(lockPath)
+	if err != nil {
+		return fmt.Errorf("query store lock file: %w", err)
+	}
+	if exists && !fileOwnedByCurrentUser(info) {
+		return fmt.Errorf("query store lock file %s is owned by another user; refusing to use it", lockPath)
+	}
+	return nil
+}
+
+// queryLockOpenFlags are the flags the lock file is opened with: flock's
+// own defaults (create; read-only, or read-write on the platforms that can
+// only take an exclusive lock on a writable descriptor) plus
+// openNoFollowFlags.
+func queryLockOpenFlags() int {
+	flags := os.O_CREATE | os.O_RDONLY
+	switch runtime.GOOS {
+	case "aix", "solaris", "illumos":
+		flags = os.O_CREATE | os.O_RDWR
+	}
+	return flags | openNoFollowFlags
+}
+
 // queryLockGuard is proof the caller already holds the query store's
 // single advisory lock, and that any earlier interrupted transaction has
 // already been recovered. Only withQueryLock constructs one. A recursive
@@ -55,8 +94,11 @@ func (s fsQueriesStore) withQueryLock(ctx context.Context, fn func(g queryLockGu
 	if err != nil {
 		return err
 	}
-	lockPath := path.Join(txnDir, "lock")
-	fl := flock.New(lockPath, flock.SetPermissions(0o600))
+	lockPath := path.Join(txnDir, queryTxnLockFile)
+	if err := checkQueryLockFile(lockPath); err != nil {
+		return err
+	}
+	fl := flock.New(lockPath, flock.SetFlag(queryLockOpenFlags()), flock.SetPermissions(0o600))
 	ok, err := fl.TryLockContext(ctx, queryLockRetryDelay)
 	if err != nil {
 		return fmt.Errorf("failed to acquire the query store lock: %w", err)
@@ -221,7 +263,10 @@ func vetExistingQueryTxnDir(txnDir string, info os.FileInfo) error {
 	if hasContent {
 		return fmt.Errorf("query transaction directory %s has overly broad permissions %v; refusing to use it", txnDir, info.Mode().Perm())
 	}
-	return nil
+	// The lock is expected to be there, so it is not recovery content, but
+	// a symlink or FIFO planted in its place while the directory was broad
+	// is refused here too.
+	return checkQueryLockFile(path.Join(txnDir, queryTxnLockFile))
 }
 
 // queryTxnDirHasRecoveryContent reports whether txnDir holds a journal or
@@ -234,7 +279,8 @@ func vetExistingQueryTxnDir(txnDir string, info os.FileInfo) error {
 // (now at, or repaired to, 0700) is safe to use. It deliberately ignores
 // the "lock" and ".gitignore" files ensureQueryTxnDir/withQueryLock write
 // themselves - neither is a recovery artifact, so their presence alone
-// must not block the permission repair below.
+// must not block the permission repair. (vetExistingQueryTxnDir checks the
+// lock's type and owner separately, with checkQueryLockFile.)
 func queryTxnDirHasRecoveryContent(txnDir string) (bool, error) {
 	for _, name := range []string{queryTxnJournalFile, queryTxnJournalTmpFile, queryTxnStagedJSON, queryTxnStagedBody} {
 		if _, err := os.Lstat(path.Join(txnDir, name)); err == nil {

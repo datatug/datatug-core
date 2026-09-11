@@ -4,6 +4,7 @@ package filestore
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -119,6 +120,60 @@ func TestReadRegularFileCapped_RefusesADevice(t *testing.T) {
 	}
 	if _, _, err := readRegularFileCapped("/dev/null", 16); err == nil || !strings.Contains(err.Error(), "not a regular file") {
 		t.Fatalf("expected a device to be refused, got: %v", err)
+	}
+}
+
+// TestQueryLock_RefusesAPlantedLockFIFOWithoutBlocking is the review's
+// lockplant FIFO case: a FIFO planted as "lock" kept a read blocked in
+// open() for more than 5s.
+func TestQueryLock_RefusesAPlantedLockFIFOWithoutBlocking(t *testing.T) {
+	for _, broad := range []bool{false, true} {
+		t.Run(fmt.Sprintf("broad=%v", broad), func(t *testing.T) {
+			projectDir, txnDir := newTxnDirForLockTest(t, broad)
+			mkfifo(t, filepath.Join(txnDir, queryTxnLockFile))
+			err := within(t, 5*time.Second, func() error {
+				_, err := newFsQueriesStore(projectDir).LoadQueries(context.Background(), "")
+				return err
+			})
+			if err == nil || !strings.Contains(err.Error(), "not a regular file") {
+				t.Fatalf("expected a FIFO lock to be refused, got: %v", err)
+			}
+		})
+	}
+}
+
+// TestQueryLockOpenFlags_RefuseASymlinkAndNeverBlock proves the flags the
+// lock is opened with close the window between checkQueryLockFile and the
+// open: a symlink swapped in is not followed (and its target not created),
+// and a FIFO swapped in does not block the open.
+func TestQueryLockOpenFlags_RefuseASymlinkAndNeverBlock(t *testing.T) {
+	flags := queryLockOpenFlags()
+	if flags&syscall.O_NOFOLLOW == 0 || flags&syscall.O_NONBLOCK == 0 || flags&os.O_CREATE == 0 {
+		t.Fatalf("expected O_CREATE|O_NOFOLLOW|O_NONBLOCK in the lock open flags, got %#x", flags)
+	}
+	dir := t.TempDir()
+	target := filepath.Join(dir, "target")
+	link := filepath.Join(dir, "lock-link")
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if f, err := os.OpenFile(link, flags, 0o600); err == nil {
+		_ = f.Close()
+		t.Fatal("expected opening a symlink with the lock flags to fail")
+	}
+	if fileExistsAt(target) {
+		t.Error("expected the symlink's target not to be created")
+	}
+	fifo := filepath.Join(dir, "lock-fifo")
+	mkfifo(t, fifo)
+	if err := within(t, 5*time.Second, func() error {
+		f, err := os.OpenFile(fifo, flags, 0o600)
+		if err == nil {
+			_ = f.Close()
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
