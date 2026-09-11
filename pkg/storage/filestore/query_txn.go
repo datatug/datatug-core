@@ -68,6 +68,40 @@
 // kill-loop tests (query_txn_recovery_test.go, query_txn_crash_test.go,
 // query_txn_killloop_unix_test.go) for the crash-phase analysis this is
 // verified against.
+//
+// Operational notes:
+//
+//   - Lock fairness. The query store lock is an advisory file lock that a
+//     waiter retries every queryLockRetryDelay (20ms); it is not a queue.
+//     Under sustained contention one process can re-acquire it again and
+//     again while another keeps waiting, bounded only by the waiter's
+//     context deadline. Correctness does not depend on fairness: writes are
+//     still serialized, and IfMatch is still checked under the lock.
+//   - Other local users. The transaction directory is created 0700 and must
+//     be owned by the user running DataTug (vetExistingQueryTxnDir). Once
+//     one local user has written to a project's queries, other local users
+//     cannot read or write them through DataTug; they get an "owned by
+//     another user" error. Each account needs its own checkout. A project
+//     nobody has written to yet stays readable without write access
+//     (withQueryReadLock).
+//   - Stricter names for legacy writes. SaveQuery, CreateQuery,
+//     UpdateQuery, DeleteQuery, CreateQueryFolder and project saves now
+//     validate IDs and folder names exactly like the revisioned API
+//     (validateQuerySegmentReason). An ID or folder that contains a
+//     Windows-illegal character such as ":" or "?" or a control or
+//     bidirectional-text character, starts with ".", ends with "." or a
+//     space, or names a Windows device is now refused, where it used to be
+//     written as given. Reading such a legacy record still works, because
+//     LoadQuery and LoadQueries apply only the containment rules
+//     (validateQueryReadSegmentReason).
+//   - Concurrent tampering. Containment is proven against what is on disk
+//     when each step runs: no symlinked segment, regular target files, and
+//     names derived from the ID. Locations are resolved again after the
+//     lock is acquired. That does not defend against another process with
+//     write access to the project tree renaming a directory between those
+//     checks and the rename that installs a file. Such a process could
+//     modify the project's files directly anyway; the threat this store
+//     closes is untrusted content that arrives in a clone or an archive.
 package filestore
 
 import (
