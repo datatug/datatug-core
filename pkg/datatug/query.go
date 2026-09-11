@@ -150,6 +150,12 @@ type QueryDef struct {
 	Targets    []QueryDefTarget `json:"targets,omitempty" yaml:"targets,omitempty"`
 	// User might want to now what set of cols is returned even before hitting the RUN button.
 	Recordsets []RecordsetDefinition `json:"recordsets,omitempty" yaml:"recordsets,omitempty"`
+	// Purpose says what question the query answers, in the author's words
+	// (executable-knowledge-library REQ:capture-from-exploration).
+	Purpose string `json:"purpose,omitempty" yaml:"purpose,omitempty"`
+	// Capture is the provenance of a query captured from exploration; nil
+	// for a query authored any other way. See QueryCapture.
+	Capture *QueryCapture `json:"capture,omitempty" yaml:"capture,omitempty"`
 }
 
 // QueryDefTarget defines target of query
@@ -188,6 +194,11 @@ func (v QueryDefTarget) Validate() error {
 func (v QueryDef) Validate() error {
 	if err := v.ValidateWithOptions(true); err != nil {
 		return err
+	}
+	if v.Capture != nil {
+		if err := v.Capture.validateCaptureAgainst(v.Parameters); err != nil {
+			return fmt.Errorf("capture: %w", err)
+		}
 	}
 	switch v.Type {
 	case "":
