@@ -3,8 +3,6 @@ package datatug
 import (
 	"fmt"
 	"strings"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/strongo/validation"
 )
@@ -60,69 +58,11 @@ type QueryCaptureBinding struct {
 // EmbeddedCredentialReason (query_credentials.go). Every string a capture
 // records - the author, the environment, the source, the collection and
 // each binding's parameter ID - is an identifier or a value the server
-// recorded, never free text, so a rule about the value's shape says
-// everything that needs saying about it and, unlike the credential
-// screen, never has to guess what a word means.
-//
-// That matters because the credential screen is tuned for free text and
-// has documented false positives a realistic capture would hit: it reads
-// "from:alice@example.com" as DSN userinfo, and it refuses any key/value
-// pair whose key ends in a secret suffix whatever the value holds. An
-// author is usually an e-mail address and a collection may well be named
-// "passwords" or "password_resets", so screening these fields that way
-// would refuse valid provenance.
-//
-// The shape rule is not the weaker of the two. Each of the five syntaxes
-// EmbeddedCredentialReason recognizes needs punctuation this rule
-// forbids: a URL userinfo needs "://", a DSN userinfo needs ":", a
-// key/value pair needs "=", a JSON member needs a double quote and ":",
-// and an HTTP credential header needs ":". A value holding none of ':',
-// '=' and '"' therefore cannot express any of them and cannot trip the
-// credential screen either - which is what
-// TestCaptureShape_IsNotWeakerThanTheCredentialScreen proves, in both
-// directions, on the screen's own probes. Control characters and line
-// breaks are refused as well, so no field can smuggle a second line (an
-// "Authorization:" header line, say) into the file; so is a value that is
-// not valid UTF-8, which would reach the JSON as replacement characters,
-// and one padded with spaces, which names nothing that a lookup would
-// find.
-const maxCaptureFieldLength = 200
-
-// Refusal reasons returned by captureShapeReason.
-const (
-	captureShapeWhitespaceReason  = "must not start or end with whitespace"
-	captureShapeEncodingReason    = "must be valid UTF-8"
-	captureShapeControlReason     = "must not contain control characters or line breaks"
-	captureShapePunctuationReason = `must not contain ':', '=' or '"': a capture records an identifier, not a connection string, a key/value pair or a JSON object`
-)
-
-// captureShapeReason reports why value cannot be stored as capture
-// provenance (see the shape notes above), or ("", false) when it can. An
-// empty value passes: which provenance fields are required is decided by
-// QueryCapture.Validate, not here.
-func captureShapeReason(value string) (reason string, found bool) {
-	if value == "" {
-		return "", false
-	}
-	if strings.TrimSpace(value) != value {
-		return captureShapeWhitespaceReason, true
-	}
-	if !utf8.ValidString(value) {
-		return captureShapeEncodingReason, true
-	}
-	if len(value) > maxCaptureFieldLength {
-		return fmt.Sprintf("exceeds max length (%d): %d", maxCaptureFieldLength, len(value)), true
-	}
-	for _, r := range value {
-		switch {
-		case r == ':' || r == '=' || r == '"':
-			return captureShapePunctuationReason, true
-		case unicode.IsControl(r):
-			return captureShapeControlReason, true
-		}
-	}
-	return "", false
-}
+// recorded, never free text, so it gets identifierShapeReason, whose doc
+// comment (query_storage_screen.go) gives the rule, why it is the right
+// one for a field that names something, and why it is not the weaker of
+// the two screens. The same rule now covers every other identifier a
+// query pair persists, not only a capture's.
 
 // Validate returns an error if the capture provenance is incomplete: an
 // environment and a source are required, and every binding must name a
@@ -140,7 +80,7 @@ func (v QueryCapture) Validate() error {
 	for _, f := range []struct{ name, value string }{
 		{"author", v.Author}, {"environment", v.Environment}, {"source", v.Source}, {"collection", v.Collection},
 	} {
-		if reason, found := captureShapeReason(f.value); found {
+		if reason, found := identifierShapeReason(f.value); found {
 			return validation.NewErrBadRecordFieldValue(f.name, reason)
 		}
 	}
@@ -150,7 +90,7 @@ func (v QueryCapture) Validate() error {
 		if strings.TrimSpace(b.ParameterID) == "" {
 			return validation.NewErrBadRecordFieldValue(field, "parameterId is required")
 		}
-		if reason, found := captureShapeReason(b.ParameterID); found {
+		if reason, found := identifierShapeReason(b.ParameterID); found {
 			return validation.NewErrBadRecordFieldValue(field, "parameterId "+reason)
 		}
 		switch b.Origin {

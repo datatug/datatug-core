@@ -257,3 +257,93 @@ func TestEverySavePath_RefusesACredentialInThePurposeOrTheCapture(t *testing.T) 
 		})
 	}
 }
+
+// capturedQueryWithScreenedFields extends capturedQueryForSave with the
+// rest of what a query pair persists - a second, unbound parameter
+// carrying a title, a semantic Meta and a lookup, and a recordset
+// definition - so a save-path test can write a credential into fields
+// that only the storage sweep screens (screenQueryDefForStorage,
+// pkg/datatug/query_storage_screen.go). It must save unchanged on every
+// path.
+func capturedQueryWithScreenedFields() datatug.QueryDef {
+	q := capturedQueryForSave()
+	q.Tags = []string{"team:finance"}
+	q.UserIDs = []string{"google:12345"}
+	q.Parameters = append(q.Parameters, datatug.ParameterDef{
+		ID: "PasswordResetId", Type: "string", Title: "Password reset date",
+		Meta: &datatug.EntityFieldRef{Entity: "PasswordReset", Field: "ID"},
+		Lookup: &datatug.ParameterLookup{
+			DB:        "chinook",
+			SQL:       "SELECT id, Name FROM ApiKey WHERE token = @token",
+			KeyFields: []string{"ApiKeyId"},
+		},
+	})
+	q.Recordsets = []datatug.RecordsetDefinition{{
+		RecordsetBaseDef: datatug.RecordsetBaseDef{
+			ActiveIssues: &datatug.Issues{Schema: []string{"the password column has no not-null constraint"}},
+		},
+		Columns: datatug.RecordsetColumnDefs{{Name: "InvoiceId", Type: "integer"}},
+		Type:    "recordset",
+	}}
+	return q
+}
+
+// Hub AC query-pair-storage-guards-writes, for the fields the storage
+// sweep added: every save path - PutQuery, the legacy SaveQuery,
+// CreateQuery and UpdateQuery, and a project save - refuses a credential
+// in any string the query pair persists, with a typed bad-record error
+// naming the field and before anything reaches disk, and each of them
+// still saves the same query without the secret. The per-field matrix in
+// pkg/datatug covers all of them; these are the representatives of each
+// screened area, proven on all five save paths.
+func TestEverySavePath_RefusesACredentialInASweptField(t *testing.T) {
+	const urlWithPassword = "postgres://u:" + credentialProbe + "@h/db"
+	cases := []struct {
+		name, field string
+		mutate      func(q *datatug.QueryDef)
+	}{
+		{"a tag", "tags[0]", func(q *datatug.QueryDef) { q.Tags[0] = "Password=" + credentialProbe }},
+		{"a user id", "userIds[0]", func(q *datatug.QueryDef) { q.UserIDs[0] = urlWithPassword }},
+		{"a parameter id", "parameters[1].id", func(q *datatug.QueryDef) { q.Parameters[1].ID = urlWithPassword }},
+		{"a parameter type", "parameters[1].type", func(q *datatug.QueryDef) { q.Parameters[1].Type = urlWithPassword }},
+		{"a parameter title", "parameters[1].title", func(q *datatug.QueryDef) { q.Parameters[1].Title = urlWithPassword }},
+		{"a parameter's entity reference", "parameters[1].meta.entity", func(q *datatug.QueryDef) {
+			q.Parameters[1].Meta.Entity = urlWithPassword
+		}},
+		{"a parameter lookup's SQL", "parameters[1].lookup.sql", func(q *datatug.QueryDef) {
+			q.Parameters[1].Lookup.SQL = "SELECT 1 -- " + urlWithPassword
+		}},
+		{"a recordset column name", "recordsets[0].columns[0].name", func(q *datatug.QueryDef) {
+			q.Recordsets[0].Columns[0].Name = urlWithPassword
+		}},
+		{"a recordset type", "recordsets[0].type", func(q *datatug.QueryDef) { q.Recordsets[0].Type = urlWithPassword }},
+		{"a recordset schema issue", "recordsets[0].issues.schema[0]", func(q *datatug.QueryDef) {
+			q.Recordsets[0].ActiveIssues.Schema[0] = urlWithPassword
+		}},
+	}
+	ctx := context.Background()
+	for _, c := range cases {
+		for _, sp := range querySavePaths() {
+			t.Run(c.name+"/"+sp.name, func(t *testing.T) {
+				dir := t.TempDir()
+				q := capturedQueryWithScreenedFields()
+				c.mutate(&q)
+				err := sp.save(ctx, dir, q)
+				if err == nil {
+					t.Fatal("expected the write to be refused")
+				}
+				if !validation.IsBadRecordError(err) || !strings.Contains(err.Error(), c.field) {
+					t.Errorf("expected a bad-record error naming %q, got: %v", c.field, err)
+				}
+				assertNoFileHolds(t, dir, credentialProbe)
+			})
+		}
+	}
+	for _, sp := range querySavePaths() {
+		t.Run("control/"+sp.name, func(t *testing.T) {
+			if err := sp.save(ctx, t.TempDir(), capturedQueryWithScreenedFields()); err != nil {
+				t.Fatalf("expected the realistic query to save, got: %v", err)
+			}
+		})
+	}
+}

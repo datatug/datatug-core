@@ -229,11 +229,11 @@ func TestQueryCapture_Validate_AcceptsRealisticProvenance(t *testing.T) {
 // UTF-8, padding and an unbounded value.
 func TestQueryCapture_Validate_RefusesUnusableProvenanceShapes(t *testing.T) {
 	for _, tt := range []struct{ name, value, want string }{
-		{"a smuggled header line", "prod\nAuthorization: Bearer abc123", captureShapeControlReason},
-		{"a control character", "prod\x07", captureShapeControlReason},
-		{"invalid UTF-8", "prod\xff", captureShapeEncodingReason},
-		{"padding", " prod ", captureShapeWhitespaceReason},
-		{"an oversized value", strings.Repeat("p", maxCaptureFieldLength+1), "exceeds max length"},
+		{"a smuggled header line", "prod\nAuthorization: Bearer abc123", identifierShapeControlReason},
+		{"a control character", "prod\x07", identifierShapeControlReason},
+		{"invalid UTF-8", "prod\xff", identifierShapeEncodingReason},
+		{"padding", " prod ", identifierShapeWhitespaceReason},
+		{"an oversized value", strings.Repeat("p", maxIdentifierFieldLength+1), "exceeds max length"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			c := validQueryCapture()
@@ -249,7 +249,7 @@ func TestQueryCapture_Validate_RefusesUnusableProvenanceShapes(t *testing.T) {
 	}
 }
 
-// TestCaptureShape_IsNotWeakerThanTheCredentialScreen proves the trade the
+// TestIdentifierShape_IsNotWeakerThanTheCredentialScreen proves the trade the
 // shape rule makes (query_capture.go), in both directions: it refuses
 // everything the credential screen refuses among the probes, its accepted
 // values are ones the credential screen would also pass, and every
@@ -257,13 +257,13 @@ func TestQueryCapture_Validate_RefusesUnusableProvenanceShapes(t *testing.T) {
 // forbids - strip ':', '=' and '"' and EmbeddedCredentialReason no longer
 // fires on any of them, which is why a value free of those three
 // characters cannot express a credential at all.
-func TestCaptureShape_IsNotWeakerThanTheCredentialScreen(t *testing.T) {
+func TestIdentifierShape_IsNotWeakerThanTheCredentialScreen(t *testing.T) {
 	t.Run("both rules refuse every probe", func(t *testing.T) {
 		for _, probe := range captureCredentialProbes {
 			if _, found := EmbeddedCredentialReason(probe.value); !found {
 				t.Errorf("%s: the credential screen no longer refuses %q", probe.name, probe.value)
 			}
-			if _, found := captureShapeReason(probe.value); !found {
+			if _, found := identifierShapeReason(probe.value); !found {
 				t.Errorf("%s: the shape rule does not refuse %q", probe.name, probe.value)
 			}
 		}
@@ -304,7 +304,7 @@ func TestCaptureShape_IsNotWeakerThanTheCredentialScreen(t *testing.T) {
 			"dev-eu-1", "chinook@v2", "crm.readonly", "passwords", "password_resets",
 			"Customer/5/Invoice", "CustomerId", "PasswordResetId", "api_token_id",
 		} {
-			if reason, found := captureShapeReason(value); found {
+			if reason, found := identifierShapeReason(value); found {
 				t.Errorf("the shape rule refuses realistic provenance %q: %s", value, reason)
 			}
 			if reason, found := EmbeddedCredentialReason(value); found {

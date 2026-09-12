@@ -188,13 +188,18 @@ func (v QueryDefTarget) Validate() error {
 }
 
 // Validate returns error if not valid. A QueryDef is persisted to
-// git-tracked project files, so besides its structure it is screened for
-// credential material (query_credentials.go): its title, its purpose, its
-// text whatever the query type, every target and every parameter default.
-// Every save path validates through here. A query captured from
-// exploration is additionally checked for complete, consistent provenance,
-// whose fields are screened by shape instead
-// (QueryCapture.validateCaptureAgainst, query_capture.go).
+// git-tracked project files, so besides its structure every string it
+// persists is screened for credential material - by meaning
+// (EmbeddedCredentialReason, query_credentials.go) where the value is free
+// text, and by shape (identifierShapeReason, query_storage_screen.go)
+// where it names something. The fields with a bespoke refusal message are
+// screened inline below - the title, the purpose, the text whatever the
+// query type, every target and every parameter default; the rest are swept
+// by screenQueryDefForStorage, whose doc comment tables every persisted
+// string and the screen it gets. Every save path validates through here. A
+// query captured from exploration is additionally checked for complete,
+// consistent provenance (QueryCapture.validateCaptureAgainst,
+// query_capture.go).
 func (v QueryDef) Validate() error {
 	if err := v.ValidateWithOptions(true); err != nil {
 		return err
@@ -254,7 +259,11 @@ func (v QueryDef) Validate() error {
 			return validation.NewErrBadRecordFieldValue(fmt.Sprintf("parameters[%v].defaultValue", i), reason)
 		}
 	}
-	return nil
+	// Everything else the query pair persists - the IDs, the parameter and
+	// recordset metadata, the tags, the folder - is swept last, so a
+	// structural failure still reports itself rather than a screening
+	// refusal derived from it.
+	return screenQueryDefForStorage(v)
 }
 
 // queryTextSecretHint says how to keep a secret out of a query's text: for
