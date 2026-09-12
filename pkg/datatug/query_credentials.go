@@ -15,10 +15,12 @@ import (
 // A QueryDef is persisted to git-tracked project files, so no field that
 // can carry a secret may hold one. QueryDefTarget.Validate screens a
 // target's driver, catalog, protocol, host and username; QueryDef.Validate
-// screens the query's title, its text whatever the query type (SQL,
-// GraphQL, DTQL and HTTP alike: the text is the git-tracked body sidecar)
-// and every parameter default (strings, and maps, objects and arrays
-// walked recursively, whatever the parameter's declared type). Every save
+// screens the query's title, its purpose, its text whatever the query type
+// (SQL, GraphQL, DTQL and HTTP alike: the text is the git-tracked body
+// sidecar) and every parameter default (strings, and maps, objects and
+// arrays walked recursively, whatever the parameter's declared type). The
+// provenance a captured query records is screened by shape rather than by
+// this function, for reasons query_capture.go gives. Every save
 // path - PutQuery, SaveQuery, CreateQuery, UpdateQuery and a project save -
 // validates the QueryDef first, so each of them refuses such a write before
 // anything reaches disk. All of them use EmbeddedCredentialReason, which

@@ -178,3 +178,82 @@ func TestDemoProject1Queries_ResaveOnEverySavePath(t *testing.T) {
 		t.Errorf("LoadProject after the round trip: %v", err)
 	}
 }
+
+// capturedQueryForSave is a realistic query captured from exploration: an
+// e-mail author, a collection named after password resets, and a bound
+// semantic parameter. Every save path must accept it as it stands.
+func capturedQueryForSave() datatug.QueryDef {
+	var q datatug.QueryDef
+	q.ID, q.Title, q.Type, q.Text = "c", "Customer invoices", datatug.QueryTypeDTQL, "from: Invoice\n"
+	q.Purpose = "Which invoices does this customer have, and did any go unpaid?"
+	q.Parameters = datatug.Parameters{{ID: "CustomerId", Type: "integer", IsRequired: true}}
+	q.Capture = &datatug.QueryCapture{
+		Author:      "alice@example.com",
+		Environment: "prod",
+		Source:      "chinook@v2",
+		Collection:  "password_resets",
+		Bindings:    []datatug.QueryCaptureBinding{{ParameterID: "CustomerId", Origin: datatug.QueryCaptureOriginSelection}},
+	}
+	return q
+}
+
+// Hub AC query-pair-storage-guards-writes, for the two fields the capture
+// contract added: every save path - PutQuery, the legacy SaveQuery,
+// CreateQuery and UpdateQuery, and a project save - refuses a credential
+// in a query's purpose or in any string of its capture provenance, with a
+// typed bad-record error and before anything reaches disk; and each of
+// them still saves the realistic captured query the refusals are derived
+// from, so the refusals are the screening's and not a broken harness.
+func TestEverySavePath_RefusesACredentialInThePurposeOrTheCapture(t *testing.T) {
+	cases := []struct {
+		name, field string
+		mutate      func(q *datatug.QueryDef)
+	}{
+		{"purpose with a URL password", "purpose", func(q *datatug.QueryDef) {
+			q.Purpose = "rows from postgres://u:" + credentialProbe + "@h/db"
+		}},
+		{"purpose with a JSON password member", "purpose", func(q *datatug.QueryDef) {
+			q.Purpose = `checks whether {"password": "` + credentialProbe + `"} still works`
+		}},
+		{"capture author with a connection string", "author", func(q *datatug.QueryDef) {
+			q.Capture.Author = "Server=h;User Id=u;Password=" + credentialProbe + ";"
+		}},
+		{"capture environment with password=", "environment", func(q *datatug.QueryDef) {
+			q.Capture.Environment = "password=" + credentialProbe
+		}},
+		{"capture source with a URL password", "source", func(q *datatug.QueryDef) {
+			q.Capture.Source = "postgres://u:" + credentialProbe + "@h/db"
+		}},
+		{"capture collection with AccountKey=", "collection", func(q *datatug.QueryDef) {
+			q.Capture.Collection = "AccountKey=" + credentialProbe
+		}},
+		{"binding parameter id with token=", "bindings[0]", func(q *datatug.QueryDef) {
+			q.Capture.Bindings[0].ParameterID = "token=" + credentialProbe
+		}},
+	}
+	ctx := context.Background()
+	for _, c := range cases {
+		for _, sp := range querySavePaths() {
+			t.Run(c.name+"/"+sp.name, func(t *testing.T) {
+				dir := t.TempDir()
+				q := capturedQueryForSave()
+				c.mutate(&q)
+				err := sp.save(ctx, dir, q)
+				if err == nil {
+					t.Fatal("expected the write to be refused")
+				}
+				if !validation.IsBadRecordError(err) || !strings.Contains(err.Error(), c.field) {
+					t.Errorf("expected a bad-record error naming %q, got: %v", c.field, err)
+				}
+				assertNoFileHolds(t, dir, credentialProbe)
+			})
+		}
+	}
+	for _, sp := range querySavePaths() {
+		t.Run("control/"+sp.name, func(t *testing.T) {
+			if err := sp.save(ctx, t.TempDir(), capturedQueryForSave()); err != nil {
+				t.Fatalf("expected the realistic captured query to save, got: %v", err)
+			}
+		})
+	}
+}

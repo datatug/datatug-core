@@ -189,10 +189,11 @@ func (v QueryDefTarget) Validate() error {
 
 // Validate returns error if not valid. A QueryDef is persisted to
 // git-tracked project files, so besides its structure it is screened for
-// credential material (query_credentials.go): its title, its text whatever
-// the query type, every target and every parameter default. Every save
-// path validates through here. A query captured from exploration is
-// additionally checked for complete, consistent provenance
+// credential material (query_credentials.go): its title, its purpose, its
+// text whatever the query type, every target and every parameter default.
+// Every save path validates through here. A query captured from
+// exploration is additionally checked for complete, consistent provenance,
+// whose fields are screened by shape instead
 // (QueryCapture.validateCaptureAgainst, query_capture.go).
 func (v QueryDef) Validate() error {
 	if err := v.ValidateWithOptions(true); err != nil {
@@ -200,6 +201,13 @@ func (v QueryDef) Validate() error {
 	}
 	if reason, found := EmbeddedCredentialReason(v.Title); found {
 		return validation.NewErrBadRecordFieldValue("title", reason+"; a query's title is stored in git-tracked project files")
+	}
+	// Purpose is free text its author writes, exactly like Title, and is
+	// persisted to the same git-tracked JSON sidecar, so it gets the same
+	// credential screen: prose that merely mentions a password is allowed,
+	// a value that embeds one is not.
+	if reason, found := EmbeddedCredentialReason(v.Purpose); found {
+		return validation.NewErrBadRecordFieldValue("purpose", reason+"; a query's purpose is stored in git-tracked project files")
 	}
 	if v.Capture != nil {
 		if err := v.Capture.validateCaptureAgainst(v.Parameters); err != nil {
