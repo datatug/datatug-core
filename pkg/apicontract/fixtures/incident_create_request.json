@@ -1,0 +1,15 @@
+{
+  "storeId": "ops",
+  "project": "billing",
+  "environment": "prod",
+  "securityContextId": "ctx-1",
+  "mutationId": "mutation-create-1",
+  "title": "Invoices stuck",
+  "description": "Billing queue is not draining",
+  "projects": [
+    {
+      "storeId": "ops",
+      "projectId": "billing"
+    }
+  ]
+}

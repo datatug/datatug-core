@@ -1,0 +1,15 @@
+{
+  "storeId": "ops",
+  "project": "billing",
+  "environment": "prod",
+  "securityContextId": "ctx-1",
+  "mutationId": "mutation-merge-1",
+  "source": {
+    "storeId": "ops",
+    "incidentId": "INC-2"
+  },
+  "into": {
+    "storeId": "ops",
+    "incidentId": "INC-1"
+  }
+}

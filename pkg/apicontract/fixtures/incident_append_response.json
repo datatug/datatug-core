@@ -1,0 +1,45 @@
+{
+  "event": {
+    "id": "evt-2",
+    "seq": 2,
+    "at": "2026-09-12T10:01:00Z",
+    "visibleAt": "2026-09-12T10:01:00Z",
+    "incident": {
+      "storeId": "ops",
+      "incidentId": "INC-1"
+    },
+    "actor": {
+      "kind": "human",
+      "id": "alex",
+      "via": "api"
+    },
+    "type": "note.added",
+    "assertion": {
+      "kind": "claim"
+    },
+    "payload": {
+      "body": "checked retry queue"
+    }
+  },
+  "projection": {
+    "ref": {
+      "storeId": "ops",
+      "incidentId": "INC-1"
+    },
+    "uid": "6ddfe079-d5fe-4d77-b322-11b9a31a9766",
+    "title": "Invoices stuck",
+    "description": "Billing queue is not draining",
+    "status": "open",
+    "projects": [
+      {
+        "storeId": "ops",
+        "projectId": "billing"
+      }
+    ],
+    "notes": [
+      "checked retry queue"
+    ],
+    "lastSeq": 2
+  },
+  "replayed": false
+}

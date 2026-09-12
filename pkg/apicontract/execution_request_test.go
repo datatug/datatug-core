@@ -32,7 +32,7 @@ func TestExecutionRequest_JSONFieldNames(t *testing.T) {
 			t.Errorf("missing key %q in %s", key, data)
 		}
 	}
-	for _, key := range []string{"source", "dtql", "snapshotId", "limit"} {
+	for _, key := range []string{"storeId", "source", "dtql", "snapshotId", "limit", "incident"} {
 		if _, ok := generic[key]; ok {
 			t.Errorf("expected %q to be omitted when absent, got %s", key, data)
 		}

@@ -75,6 +75,28 @@ func TestFixtures_RoundTrip(t *testing.T) {
 	t.Run("execution_request_adhoc.json", func(t *testing.T) { roundTrip[apicontract.ExecutionRequest](t, "execution_request_adhoc.json") })
 	t.Run("execution_request_snapshot.json", func(t *testing.T) { roundTrip[apicontract.ExecutionRequest](t, "execution_request_snapshot.json") })
 
+	t.Run("incident_create_request.json", func(t *testing.T) {
+		roundTrip[apicontract.IncidentCreateRequest](t, "incident_create_request.json")
+	})
+	t.Run("incident_response.json", func(t *testing.T) {
+		roundTrip[apicontract.IncidentResponse](t, "incident_response.json")
+	})
+	t.Run("incident_list_response.json", func(t *testing.T) {
+		roundTrip[apicontract.IncidentListResponse](t, "incident_list_response.json")
+	})
+	t.Run("incident_append_request.json", func(t *testing.T) {
+		roundTrip[apicontract.IncidentAppendRequest](t, "incident_append_request.json")
+	})
+	t.Run("incident_append_response.json", func(t *testing.T) {
+		roundTrip[apicontract.IncidentAppendResponse](t, "incident_append_response.json")
+	})
+	t.Run("incident_merge_request.json", func(t *testing.T) {
+		roundTrip[apicontract.IncidentMergeRequest](t, "incident_merge_request.json")
+	})
+	t.Run("incident_merge_response.json", func(t *testing.T) {
+		roundTrip[apicontract.IncidentMergeResponse](t, "incident_merge_response.json")
+	})
+
 	t.Run("applicable_request.json", func(t *testing.T) { roundTrip[apicontract.ApplicableRequest](t, "applicable_request.json") })
 	t.Run("related_request.json", func(t *testing.T) { roundTrip[apicontract.RelatedRequest](t, "related_request.json") })
 	t.Run("related_rows_request.json", func(t *testing.T) { roundTrip[apicontract.RelatedRowsRequest](t, "related_rows_request.json") })

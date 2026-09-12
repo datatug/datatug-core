@@ -1,0 +1,34 @@
+{
+  "source": {
+    "ref": {
+      "storeId": "ops",
+      "incidentId": "INC-2"
+    },
+    "uid": "5fb4ea28-40ae-4d41-9bcb-f89b752f3802",
+    "title": "Duplicate invoices alert",
+    "status": "closed",
+    "mergedInto": {
+      "storeId": "ops",
+      "incidentId": "INC-1"
+    },
+    "lastSeq": 3
+  },
+  "into": {
+    "ref": {
+      "storeId": "ops",
+      "incidentId": "INC-1"
+    },
+    "uid": "6ddfe079-d5fe-4d77-b322-11b9a31a9766",
+    "title": "Invoices stuck",
+    "description": "Billing queue is not draining",
+    "status": "open",
+    "projects": [
+      {
+        "storeId": "ops",
+        "projectId": "billing"
+      }
+    ],
+    "lastSeq": 4
+  },
+  "replayed": false
+}

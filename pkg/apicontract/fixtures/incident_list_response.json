@@ -1,0 +1,21 @@
+{
+  "incidents": [
+    {
+      "ref": {
+        "storeId": "ops",
+        "incidentId": "INC-1"
+      },
+      "uid": "6ddfe079-d5fe-4d77-b322-11b9a31a9766",
+      "title": "Invoices stuck",
+      "description": "Billing queue is not draining",
+      "status": "open",
+      "projects": [
+        {
+          "storeId": "ops",
+          "projectId": "billing"
+        }
+      ],
+      "lastSeq": 1
+    }
+  ]
+}

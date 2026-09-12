@@ -101,8 +101,8 @@ type Mutation struct {
 }
 
 func (m Mutation) Validate() error {
-	if !validSegment(m.MutationID) {
-		return fmt.Errorf("incidents: invalid mutationId %q", m.MutationID)
+	if err := ValidateMutationID(m.MutationID); err != nil {
+		return err
 	}
 	if err := m.Incident.Validate(); err != nil {
 		return err
@@ -123,8 +123,8 @@ type MergeMutation struct {
 }
 
 func (m MergeMutation) Validate() error {
-	if !validSegment(m.MutationID) {
-		return fmt.Errorf("incidents: invalid mutationId %q", m.MutationID)
+	if err := ValidateMutationID(m.MutationID); err != nil {
+		return err
 	}
 	if err := m.Source.Validate(); err != nil {
 		return err
@@ -137,6 +137,15 @@ func (m MergeMutation) Validate() error {
 	}
 	if m.Source == m.Into {
 		return fmt.Errorf("incidents: source and destination must differ")
+	}
+	return nil
+}
+
+// ValidateMutationID applies the store-wide receipt key rules to every
+// transport and storage mutation before the identifier is used as a path.
+func ValidateMutationID(value string) error {
+	if !validSegment(value) {
+		return fmt.Errorf("incidents: invalid mutationId %q", value)
 	}
 	return nil
 }
