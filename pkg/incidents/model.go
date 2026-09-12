@@ -17,10 +17,10 @@ type IncidentRef struct {
 }
 
 func (r IncidentRef) Validate() error {
-	if strings.TrimSpace(r.StoreID) == "" || strings.TrimSpace(r.StoreID) != r.StoreID || strings.Contains(r.StoreID, "/") {
+	if !validSegment(r.StoreID) {
 		return fmt.Errorf("incidents: invalid storeId %q", r.StoreID)
 	}
-	if strings.TrimSpace(r.IncidentID) == "" || strings.TrimSpace(r.IncidentID) != r.IncidentID || strings.Contains(r.IncidentID, "/") {
+	if !validSegment(r.IncidentID) {
 		return fmt.Errorf("incidents: invalid incidentId %q", r.IncidentID)
 	}
 	return nil
@@ -46,10 +46,10 @@ type ProjectRef struct {
 }
 
 func (r ProjectRef) Validate() error {
-	if strings.TrimSpace(r.StoreID) == "" || strings.TrimSpace(r.StoreID) != r.StoreID || strings.Contains(r.StoreID, "/") {
+	if !validSegment(r.StoreID) {
 		return fmt.Errorf("incidents: invalid project storeId %q", r.StoreID)
 	}
-	if strings.TrimSpace(r.ProjectID) == "" || strings.TrimSpace(r.ProjectID) != r.ProjectID {
+	if !validSegment(r.ProjectID) {
 		return fmt.Errorf("incidents: projectId is required")
 	}
 	return nil

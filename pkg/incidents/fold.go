@@ -141,10 +141,10 @@ func (r ArtifactRef) Validate() error {
 }
 
 func (r ExecutionRef) Validate() error {
-	if strings.TrimSpace(r.StoreID) == "" || strings.TrimSpace(r.StoreID) != r.StoreID || strings.Contains(r.StoreID, "/") {
+	if !validSegment(r.StoreID) {
 		return fmt.Errorf("invalid execution storeId")
 	}
-	if strings.TrimSpace(r.ProjectID) == "" || strings.TrimSpace(r.ProjectID) != r.ProjectID || strings.TrimSpace(r.ExecutionID) == "" || strings.TrimSpace(r.ExecutionID) != r.ExecutionID {
+	if !validSegment(r.ProjectID) || !validSegment(r.ExecutionID) {
 		return fmt.Errorf("execution projectId and executionId are required")
 	}
 	return nil
@@ -154,7 +154,7 @@ func (r ProjectArtifactRef) Validate() error {
 	if err := (ProjectRef{StoreID: r.StoreID, ProjectID: r.ProjectID, Environment: r.Environment}).Validate(); err != nil {
 		return err
 	}
-	if strings.TrimSpace(r.ID) == "" || strings.TrimSpace(r.ID) != r.ID {
+	if !validSegment(r.ID) {
 		return fmt.Errorf("artifact id is required and canonical")
 	}
 	return nil
