@@ -31,8 +31,10 @@ func Fold(events []Event, at *time.Time) (Incident, error) {
 		} else if event.Incident != projection.Ref {
 			return Incident{}, fmt.Errorf("incidents: event incident %s does not match %s", event.Incident, projection.Ref)
 		}
-		if err := projection.apply(event); err != nil {
-			return Incident{}, fmt.Errorf("incidents: event %d: %w", event.Seq, err)
+		if event.ImportedFrom == nil {
+			if err := projection.apply(event); err != nil {
+				return Incident{}, fmt.Errorf("incidents: event %d: %w", event.Seq, err)
+			}
 		}
 		projection.LastSeq = event.Seq
 	}
@@ -51,6 +53,14 @@ func (e Event) Validate() error {
 	}
 	if err := e.Incident.Validate(); err != nil {
 		return err
+	}
+	if e.ImportedFrom != nil {
+		if e.Seq == 1 {
+			return fmt.Errorf("first event cannot be imported")
+		}
+		if err := e.ImportedFrom.Validate(e.Incident); err != nil {
+			return err
+		}
 	}
 	if e.Actor.Kind != ActorHuman && e.Actor.Kind != ActorAgent && e.Actor.Kind != ActorSystem {
 		return fmt.Errorf("invalid actor kind %q", e.Actor.Kind)

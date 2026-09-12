@@ -42,6 +42,45 @@ func TestFoldUsesVisibilityTimeAndIsByteDeterministic(t *testing.T) {
 	require.Equal(t, first, second)
 }
 
+func TestFoldKeepsImportedEventsAsInertTimelineEvidence(t *testing.T) {
+	destination := IncidentRef{StoreID: "ops", IncidentID: "INC-1"}
+	source := IncidentRef{StoreID: "ops", IncidentID: "INC-2"}
+	createdAt := mustTime(t, "2026-09-12T10:00:00Z")
+	mergeAt := mustTime(t, "2026-09-12T11:00:00Z")
+	events := []Event{
+		createdEvent(t, destination, createdAt),
+		{
+			ID: "merge-1-import-1", Seq: 2, At: createdAt.Add(-time.Hour), VisibleAt: mergeAt,
+			Incident:     destination,
+			ImportedFrom: &ImportedEventRef{Incident: source, EventID: "source-created", Seq: 1},
+			Actor:        Actor{Kind: ActorHuman, ID: "source-owner"}, Type: EventIncidentCreated,
+			Assertion: Assertion{Kind: AssertionClaim},
+			Payload:   mustJSON(t, CreatedPayload{UID: "e665a6dd-a6f1-4c07-9931-3bb61399be12", Title: "Source incident"}),
+		},
+		{
+			ID: "merge-1-import-2", Seq: 3, At: createdAt.Add(-30 * time.Minute), VisibleAt: mergeAt,
+			Incident:     destination,
+			ImportedFrom: &ImportedEventRef{Incident: source, EventID: "source-note", Seq: 2},
+			Actor:        Actor{Kind: ActorHuman, ID: "source-owner"}, Type: EventNoteAdded,
+			Assertion: Assertion{Kind: AssertionClaim},
+			Payload:   mustJSON(t, NoteAddedPayload{Body: "source-only note"}),
+		},
+	}
+
+	beforeMerge := mergeAt.Add(-time.Nanosecond)
+	before, err := Fold(events, &beforeMerge)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), before.LastSeq)
+	require.Equal(t, "Invoices stuck", before.Title)
+	require.Empty(t, before.Notes)
+
+	after, err := Fold(events, nil)
+	require.NoError(t, err)
+	require.Equal(t, uint64(3), after.LastSeq)
+	require.Equal(t, "Invoices stuck", after.Title)
+	require.Empty(t, after.Notes)
+}
+
 func TestFoldValidatesInferenceAndLifecycle(t *testing.T) {
 	ref := IncidentRef{StoreID: "ops", IncidentID: "INC-1"}
 	at := mustTime(t, "2026-09-12T10:00:00Z")

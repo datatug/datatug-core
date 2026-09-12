@@ -126,6 +126,36 @@ func TestEventValidation(t *testing.T) {
 	require.NoError(t, agent.Validate())
 }
 
+func TestImportedEventValidation(t *testing.T) {
+	destination := IncidentRef{StoreID: "ops", IncidentID: "INC-1"}
+	source := IncidentRef{StoreID: "ops", IncidentID: "INC-2"}
+	at := time.Date(2026, 9, 12, 10, 0, 0, 0, time.UTC)
+	valid := eventWithPayload(t, destination, 2, at, EventNoteAdded, NoteAddedPayload{Body: "source note"})
+	valid.ImportedFrom = &ImportedEventRef{Incident: source, EventID: "source-event-1", Seq: 1}
+	require.NoError(t, valid.Validate())
+
+	tests := []struct {
+		name string
+		edit func(*Event)
+	}{
+		{"first event", func(e *Event) { e.Seq = 1 }},
+		{"same incident", func(e *Event) { e.ImportedFrom.Incident = destination }},
+		{"different store", func(e *Event) { e.ImportedFrom.Incident.StoreID = "other" }},
+		{"invalid source incident", func(e *Event) { e.ImportedFrom.Incident.IncidentID = "bad/incident" }},
+		{"missing source event id", func(e *Event) { e.ImportedFrom.EventID = "" }},
+		{"zero source sequence", func(e *Event) { e.ImportedFrom.Seq = 0 }},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			event := valid
+			importedFrom := *valid.ImportedFrom
+			event.ImportedFrom = &importedFrom
+			test.edit(&event)
+			require.Error(t, event.Validate())
+		})
+	}
+}
+
 func TestEventValidationRejectsInvalidTypedPayloadsDirectly(t *testing.T) {
 	ref := IncidentRef{StoreID: "ops", IncidentID: "INC-1"}
 	at := time.Date(2026, 9, 12, 10, 0, 0, 0, time.UTC)
