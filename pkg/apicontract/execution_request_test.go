@@ -190,3 +190,16 @@ func TestExecutionRequest_Validate_Limit(t *testing.T) {
 		t.Error("expected an error: limit must be positive")
 	}
 }
+
+func TestExecutionRequest_IncidentRef(t *testing.T) {
+	request := validExecutionRequestSaved()
+	request.StoreID = "ops"
+	request.Incident = &IncidentRef{StoreID: "ops", IncidentID: "INC-1"}
+	if err := request.Validate(); err != nil {
+		t.Fatalf("qualified incident request should be valid: %v", err)
+	}
+	request.Incident.IncidentID = "bad/id"
+	if err := request.Validate(); err == nil {
+		t.Fatal("invalid incident ref should be rejected")
+	}
+}

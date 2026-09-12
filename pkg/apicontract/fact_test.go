@@ -114,3 +114,31 @@ func TestFact_EnabledFalseAndOriginManualAreValidPresentValues(t *testing.T) {
 		t.Errorf("expected valid, got: %v", err)
 	}
 }
+
+func TestFact_IncidentCohortFields(t *testing.T) {
+	fact := Fact{
+		ID: "f1", Entity: "Invoice", Field: "ID",
+		Value: NewStringValue("inv-1"), Origin: FactOriginContext, Enabled: true,
+		Role: FactRoleAffected, Layer: "hypothesis:H17",
+	}
+	if err := fact.Validate(); err != nil {
+		t.Fatalf("valid incident cohort fact: %v", err)
+	}
+	fact.Role = "administrator"
+	if err := fact.Validate(); err == nil {
+		t.Fatal("unknown cohort role should be rejected")
+	}
+	fact.Role = FactRoleAffected
+	for _, layer := range []string{"canonical", "participant:anna", "question:q1"} {
+		fact.Layer = layer
+		if err := fact.Validate(); err != nil {
+			t.Errorf("expected layer %q to be valid: %v", layer, err)
+		}
+	}
+	for _, layer := range []string{"admin", "hypothesis:", "participant: anna", "question: "} {
+		fact.Layer = layer
+		if err := fact.Validate(); err == nil {
+			t.Errorf("expected layer %q to be rejected", layer)
+		}
+	}
+}

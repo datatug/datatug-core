@@ -24,6 +24,7 @@ func (e BindingOriginEntry) Validate() error {
 // silently binds from stored browser context." api-contract.md
 // "Endpoint table".
 type ExecutionRequest struct {
+	StoreID           string                `json:"storeId,omitempty"`
 	Project           string                `json:"project"`
 	Environment       string                `json:"environment"`
 	SecurityContextID string                `json:"securityContextId"`
@@ -35,6 +36,7 @@ type ExecutionRequest struct {
 	Mode              string                `json:"mode"` // live | snapshot
 	SnapshotID        string                `json:"snapshotId,omitempty"`
 	Limit             *int                  `json:"limit,omitempty"`
+	Incident          *IncidentRef          `json:"incident,omitempty"`
 }
 
 const (
@@ -49,6 +51,11 @@ const (
 // closed set, snapshot Mode requires a SnapshotID; Limit, when present, is
 // within (0, 500] - "Default result limit is 100 and maximum is 500."
 func (r ExecutionRequest) Validate() error {
+	if r.StoreID != "" {
+		if err := (Scope{StoreID: r.StoreID, Project: r.Project, Environment: r.Environment, SecurityContextID: r.SecurityContextID}).Validate(); err != nil {
+			return err
+		}
+	}
 	if err := requireNonEmpty("project", r.Project); err != nil {
 		return err
 	}
@@ -100,6 +107,11 @@ func (r ExecutionRequest) Validate() error {
 	if r.Limit != nil {
 		if *r.Limit <= 0 || *r.Limit > executionMaxLimit {
 			return &ValidationError{Field: "limit", Message: fmt.Sprintf("must be between 1 and %d, got %d", executionMaxLimit, *r.Limit)}
+		}
+	}
+	if r.Incident != nil {
+		if err := r.Incident.Validate(); err != nil {
+			return &ValidationError{Field: "incident", Message: err.Error()}
 		}
 	}
 	return nil
