@@ -95,6 +95,18 @@ func TestFoldKeepsImportedEventsAsInertTimelineEvidence(t *testing.T) {
 	interleaved[3].Seq = 4
 	_, err = Fold(interleaved, nil)
 	require.ErrorContains(t, err, "not contiguous")
+
+	mixedSource := append([]Event(nil), events...)
+	mixedSource[2].ImportedFrom = &ImportedEventRef{
+		Incident: IncidentRef{StoreID: "ops", IncidentID: "INC-3"}, EventID: "third-note", Seq: 2, MergeID: "merge-1",
+	}
+	_, err = Fold(mixedSource, nil)
+	require.ErrorContains(t, err, "mixes source incidents")
+
+	reordered := append([]Event(nil), events...)
+	reordered[2].ImportedFrom = &ImportedEventRef{Incident: source, EventID: "source-note", Seq: 3, MergeID: "merge-1"}
+	_, err = Fold(reordered, nil)
+	require.ErrorContains(t, err, "source sequence is not contiguous")
 }
 
 func TestFoldValidatesInferenceAndLifecycle(t *testing.T) {

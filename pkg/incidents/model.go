@@ -233,7 +233,8 @@ type OutcomePayload struct {
 }
 
 type MergedPayload struct {
-	Into IncidentRef `json:"into"`
+	Into    IncidentRef `json:"into"`
+	MergeID string      `json:"mergeId"`
 }
 
 type NoteAddedPayload struct {

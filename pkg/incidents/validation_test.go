@@ -222,7 +222,7 @@ func TestFoldRejectsInvalidStreamsAndPayloads(t *testing.T) {
 	_, err = Fold([]Event{created, resolved, badOutcomeJSON}, nil)
 	require.ErrorContains(t, err, "invalid payload")
 
-	badMergeJSON := eventWithPayload(t, ref, 2, at.Add(time.Minute), EventIncidentMerged, MergedPayload{Into: IncidentRef{StoreID: "ops", IncidentID: "INC-2"}})
+	badMergeJSON := eventWithPayload(t, ref, 2, at.Add(time.Minute), EventIncidentMerged, MergedPayload{Into: IncidentRef{StoreID: "ops", IncidentID: "INC-2"}, MergeID: "merge-1"})
 	badMergeJSON.Payload = json.RawMessage(`{`)
 	_, err = Fold([]Event{created, badMergeJSON}, nil)
 	require.ErrorContains(t, err, "invalid payload")
@@ -281,14 +281,14 @@ func TestFoldLifecycleAndMerge(t *testing.T) {
 	_, err = Fold([]Event{created, badStatus}, nil)
 	require.ErrorContains(t, err, "invalid status")
 
-	merged := eventWithPayload(t, ref, 2, at.Add(time.Minute), EventIncidentMerged, MergedPayload{Into: IncidentRef{StoreID: "ops", IncidentID: "INC-9"}})
+	merged := eventWithPayload(t, ref, 2, at.Add(time.Minute), EventIncidentMerged, MergedPayload{Into: IncidentRef{StoreID: "ops", IncidentID: "INC-9"}, MergeID: "merge-1"})
 	mergedProjection, err := Fold([]Event{created, merged}, nil)
 	require.NoError(t, err)
 	require.Equal(t, StatusClosed, mergedProjection.Status)
 	require.Equal(t, "ops/INC-9", mergedProjection.MergedInto.String())
 	require.Empty(t, mergedProjection.Outcome)
 
-	selfMerge := eventWithPayload(t, ref, 2, at.Add(time.Minute), EventIncidentMerged, MergedPayload{Into: ref})
+	selfMerge := eventWithPayload(t, ref, 2, at.Add(time.Minute), EventIncidentMerged, MergedPayload{Into: ref, MergeID: "merge-1"})
 	require.ErrorContains(t, selfMerge.Validate(), "itself")
 
 	noteAfterMerge := eventWithPayload(t, ref, 3, at.Add(2*time.Minute), EventNoteAdded, NoteAddedPayload{Body: "too late"})

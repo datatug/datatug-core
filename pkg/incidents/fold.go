@@ -40,6 +40,8 @@ func validateEventStream(events []Event) error {
 	var previousVisibleAt time.Time
 	var activeMergeID string
 	var activeMergeVisibleAt time.Time
+	var activeMergeSource IncidentRef
+	var activeSourceSeq uint64
 	completedMerges := make(map[string]struct{})
 	for i, event := range events {
 		expectedSeq := uint64(i + 1)
@@ -71,6 +73,11 @@ func validateEventStream(events []Event) error {
 			}
 			activeMergeID = mergeID
 			activeMergeVisibleAt = event.VisibleAt
+			activeMergeSource = event.ImportedFrom.Incident
+			activeSourceSeq = event.ImportedFrom.Seq
+			if activeSourceSeq != 1 {
+				return fmt.Errorf("incidents: imported merge %q must start at source sequence 1", mergeID)
+			}
 			continue
 		}
 		if mergeID != activeMergeID {
@@ -80,11 +87,23 @@ func validateEventStream(events []Event) error {
 			}
 			activeMergeID = mergeID
 			activeMergeVisibleAt = event.VisibleAt
+			activeMergeSource = event.ImportedFrom.Incident
+			activeSourceSeq = event.ImportedFrom.Seq
+			if activeSourceSeq != 1 {
+				return fmt.Errorf("incidents: imported merge %q must start at source sequence 1", mergeID)
+			}
 			continue
 		}
 		if !event.VisibleAt.Equal(activeMergeVisibleAt) {
 			return fmt.Errorf("incidents: imported merge %q has split visibility", mergeID)
 		}
+		if event.ImportedFrom.Incident != activeMergeSource {
+			return fmt.Errorf("incidents: imported merge %q mixes source incidents", mergeID)
+		}
+		if event.ImportedFrom.Seq != activeSourceSeq+1 {
+			return fmt.Errorf("incidents: imported merge %q source sequence is not contiguous", mergeID)
+		}
+		activeSourceSeq = event.ImportedFrom.Seq
 	}
 	return nil
 }
@@ -326,6 +345,9 @@ func (e Event) validatePayload() error {
 		}
 		if payload.Into == e.Incident {
 			return fmt.Errorf("incident cannot merge into itself")
+		}
+		if !validSegment(payload.MergeID) {
+			return fmt.Errorf("merged payload requires valid mergeId")
 		}
 	case EventNoteAdded:
 		var payload NoteAddedPayload
