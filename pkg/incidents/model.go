@@ -176,6 +176,7 @@ type ImportedEventRef struct {
 	Incident IncidentRef `json:"incident"`
 	EventID  string      `json:"eventId"`
 	Seq      uint64      `json:"seq"`
+	MergeID  string      `json:"mergeId"`
 }
 
 func (r ImportedEventRef) Validate(destination IncidentRef) error {
@@ -188,8 +189,8 @@ func (r ImportedEventRef) Validate(destination IncidentRef) error {
 	if r.Incident == destination {
 		return fmt.Errorf("imported event must come from a different incident")
 	}
-	if strings.TrimSpace(r.EventID) == "" || r.Seq == 0 {
-		return fmt.Errorf("imported event id and positive seq are required")
+	if strings.TrimSpace(r.EventID) == "" || r.Seq == 0 || !validSegment(r.MergeID) {
+		return fmt.Errorf("imported event id, positive seq, and valid mergeId are required")
 	}
 	return nil
 }

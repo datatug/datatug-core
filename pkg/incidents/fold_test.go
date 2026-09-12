@@ -52,7 +52,7 @@ func TestFoldKeepsImportedEventsAsInertTimelineEvidence(t *testing.T) {
 		{
 			ID: "merge-1-import-1", Seq: 2, At: createdAt.Add(-time.Hour), VisibleAt: mergeAt,
 			Incident:     destination,
-			ImportedFrom: &ImportedEventRef{Incident: source, EventID: "source-created", Seq: 1},
+			ImportedFrom: &ImportedEventRef{Incident: source, EventID: "source-created", Seq: 1, MergeID: "merge-1"},
 			Actor:        Actor{Kind: ActorHuman, ID: "source-owner"}, Type: EventIncidentCreated,
 			Assertion: Assertion{Kind: AssertionClaim},
 			Payload:   mustJSON(t, CreatedPayload{UID: "e665a6dd-a6f1-4c07-9931-3bb61399be12", Title: "Source incident"}),
@@ -60,7 +60,7 @@ func TestFoldKeepsImportedEventsAsInertTimelineEvidence(t *testing.T) {
 		{
 			ID: "merge-1-import-2", Seq: 3, At: createdAt.Add(-30 * time.Minute), VisibleAt: mergeAt,
 			Incident:     destination,
-			ImportedFrom: &ImportedEventRef{Incident: source, EventID: "source-note", Seq: 2},
+			ImportedFrom: &ImportedEventRef{Incident: source, EventID: "source-note", Seq: 2, MergeID: "merge-1"},
 			Actor:        Actor{Kind: ActorHuman, ID: "source-owner"}, Type: EventNoteAdded,
 			Assertion: Assertion{Kind: AssertionClaim},
 			Payload:   mustJSON(t, NoteAddedPayload{Body: "source-only note"}),
@@ -79,6 +79,22 @@ func TestFoldKeepsImportedEventsAsInertTimelineEvidence(t *testing.T) {
 	require.Equal(t, uint64(3), after.LastSeq)
 	require.Equal(t, "Invoices stuck", after.Title)
 	require.Empty(t, after.Notes)
+
+	atMerge, err := Fold(events, &mergeAt)
+	require.NoError(t, err)
+	require.Equal(t, after, atMerge)
+
+	splitVisibility := append([]Event(nil), events...)
+	splitVisibility[2].VisibleAt = mergeAt.Add(time.Second)
+	_, err = Fold(splitVisibility, nil)
+	require.ErrorContains(t, err, "split visibility")
+
+	interleaved := append([]Event(nil), events...)
+	interleaved[2] = eventWithPayload(t, destination, 3, mergeAt, EventNoteAdded, NoteAddedPayload{Body: "local note"})
+	interleaved = append(interleaved, events[2])
+	interleaved[3].Seq = 4
+	_, err = Fold(interleaved, nil)
+	require.ErrorContains(t, err, "not contiguous")
 }
 
 func TestFoldValidatesInferenceAndLifecycle(t *testing.T) {

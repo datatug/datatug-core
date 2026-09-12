@@ -131,7 +131,7 @@ func TestImportedEventValidation(t *testing.T) {
 	source := IncidentRef{StoreID: "ops", IncidentID: "INC-2"}
 	at := time.Date(2026, 9, 12, 10, 0, 0, 0, time.UTC)
 	valid := eventWithPayload(t, destination, 2, at, EventNoteAdded, NoteAddedPayload{Body: "source note"})
-	valid.ImportedFrom = &ImportedEventRef{Incident: source, EventID: "source-event-1", Seq: 1}
+	valid.ImportedFrom = &ImportedEventRef{Incident: source, EventID: "source-event-1", Seq: 1, MergeID: "merge-1"}
 	require.NoError(t, valid.Validate())
 
 	tests := []struct {
@@ -144,6 +144,8 @@ func TestImportedEventValidation(t *testing.T) {
 		{"invalid source incident", func(e *Event) { e.ImportedFrom.Incident.IncidentID = "bad/incident" }},
 		{"missing source event id", func(e *Event) { e.ImportedFrom.EventID = "" }},
 		{"zero source sequence", func(e *Event) { e.ImportedFrom.Seq = 0 }},
+		{"missing merge id", func(e *Event) { e.ImportedFrom.MergeID = "" }},
+		{"invalid merge id", func(e *Event) { e.ImportedFrom.MergeID = "../merge" }},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
