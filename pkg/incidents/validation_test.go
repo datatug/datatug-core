@@ -231,6 +231,11 @@ func TestFoldRejectsInvalidStreamsAndPayloads(t *testing.T) {
 	_, err = Fold([]Event{created, badMergeRef}, nil)
 	require.Error(t, err)
 
+	badMergeID := eventWithPayload(t, ref, 2, at.Add(time.Minute), EventIncidentMerged, MergedPayload{
+		Into: IncidentRef{StoreID: "ops", IncidentID: "INC-2"},
+	})
+	require.ErrorContains(t, badMergeID.Validate(), "valid mergeId")
+
 	badNoteJSON := eventWithPayload(t, ref, 2, at.Add(time.Minute), EventNoteAdded, NoteAddedPayload{Body: "hello"})
 	badNoteJSON.Payload = json.RawMessage(`{`)
 	_, err = Fold([]Event{created, badNoteJSON}, nil)

@@ -1,6 +1,7 @@
 package apicontract
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -230,5 +231,38 @@ func TestDecodeStrict_RejectsClientSuppliedPrincipalOrRole(t *testing.T) {
 	body = `{"project":"p1","environment":"local","securityContextId":"sc1","role":"admin"}`
 	if err := DecodeStrict([]byte(body), &v); err == nil {
 		t.Fatal("expected an error: client-supplied role must be rejected")
+	}
+}
+
+func TestAddJSONFieldsCoversEncodingJSONFieldSelection(t *testing.T) {
+	type embedded struct {
+		Promoted string
+	}
+	type fixture struct {
+		embedded
+		Ignored  string `json:"-"`
+		Default  string
+		Explicit string `json:"explicit"`
+		private  string
+	}
+	fields, ok := jsonObjectFields(reflect.TypeOf(fixture{}))
+	if !ok {
+		t.Fatal("fixture should expose JSON object fields")
+	}
+	for _, name := range []string{"promoted", "default", "explicit"} {
+		if fields[foldJSONName(name)] == nil {
+			t.Errorf("missing folded field %q", name)
+		}
+	}
+	for _, name := range []string{"ignored", "private"} {
+		if fields[foldJSONName(name)] != nil {
+			t.Errorf("unexpected field %q", name)
+		}
+	}
+}
+
+func TestFoldRuneTraversesSimpleCaseOrbit(t *testing.T) {
+	if got := foldRune('k'); got != 'K' {
+		t.Fatalf("foldRune('k') = %q, want 'K'", got)
 	}
 }

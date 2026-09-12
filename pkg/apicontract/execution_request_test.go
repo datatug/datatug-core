@@ -203,3 +203,11 @@ func TestExecutionRequest_IncidentRef(t *testing.T) {
 		t.Fatal("invalid incident ref should be rejected")
 	}
 }
+
+func TestExecutionRequest_RejectsInvalidQualifiedScope(t *testing.T) {
+	request := validExecutionRequestSaved()
+	request.StoreID = "bad/store"
+	if err := request.Validate(); err == nil {
+		t.Fatal("invalid qualified store scope should be rejected")
+	}
+}

@@ -107,6 +107,39 @@ func TestFoldKeepsImportedEventsAsInertTimelineEvidence(t *testing.T) {
 	reordered[2].ImportedFrom = &ImportedEventRef{Incident: source, EventID: "source-note", Seq: 3, MergeID: "merge-1"}
 	_, err = Fold(reordered, nil)
 	require.ErrorContains(t, err, "source sequence is not contiguous")
+
+	visibilityReversed := append([]Event(nil), events...)
+	visibilityReversed[2].VisibleAt = mergeAt.Add(-time.Second)
+	_, err = Fold(visibilityReversed, nil)
+	require.ErrorContains(t, err, "visibleAt precedes prior event")
+
+	startsAfterFirstSourceEvent := append([]Event(nil), events[:2]...)
+	startsAfterFirstSourceEvent[1].ImportedFrom = &ImportedEventRef{
+		Incident: source, EventID: "source-note", Seq: 2, MergeID: "merge-1",
+	}
+	_, err = Fold(startsAfterFirstSourceEvent, nil)
+	require.ErrorContains(t, err, "must start at source sequence 1")
+
+	secondMerge := append([]Event(nil), events...)
+	secondMerge[2].ImportedFrom = &ImportedEventRef{
+		Incident: source, EventID: "source-created-again", Seq: 1, MergeID: "merge-2",
+	}
+	_, err = Fold(secondMerge, nil)
+	require.NoError(t, err)
+
+	secondMergeStartsLate := append([]Event(nil), secondMerge...)
+	secondMergeStartsLate[2].ImportedFrom = &ImportedEventRef{
+		Incident: source, EventID: "source-note-again", Seq: 2, MergeID: "merge-2",
+	}
+	_, err = Fold(secondMergeStartsLate, nil)
+	require.ErrorContains(t, err, "must start at source sequence 1")
+
+	reopensCompletedMerge := append([]Event(nil), secondMerge...)
+	reopensCompletedMerge = append(reopensCompletedMerge, events[1])
+	reopensCompletedMerge[3].ID = "merge-1-import-again"
+	reopensCompletedMerge[3].Seq = 4
+	_, err = Fold(reopensCompletedMerge, nil)
+	require.ErrorContains(t, err, "not contiguous")
 }
 
 func TestFoldValidatesInferenceAndLifecycle(t *testing.T) {
