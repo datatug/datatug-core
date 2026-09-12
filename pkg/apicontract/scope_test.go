@@ -48,3 +48,23 @@ func TestScope_Validate(t *testing.T) {
 		})
 	}
 }
+
+func TestScope_StoreIDIsOptionalButValidated(t *testing.T) {
+	withoutStore := Scope{Project: "demo", Environment: "default", SecurityContextID: "ctx-1"}
+	if err := withoutStore.Validate(); err != nil {
+		t.Fatalf("primary-store scope should remain valid: %v", err)
+	}
+	withStore := withoutStore
+	withStore.StoreID = "ops"
+	if err := withStore.Validate(); err != nil {
+		t.Fatalf("qualified scope should be valid: %v", err)
+	}
+	withStore.StoreID = "bad/store"
+	if err := withStore.Validate(); err == nil {
+		t.Fatal("store id containing slash should be rejected")
+	}
+	withStore.StoreID = " ops"
+	if err := withStore.Validate(); err == nil {
+		t.Fatal("store id with surrounding whitespace should be rejected")
+	}
+}

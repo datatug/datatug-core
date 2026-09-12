@@ -32,7 +32,7 @@ func TestExecutionRequest_JSONFieldNames(t *testing.T) {
 			t.Errorf("missing key %q in %s", key, data)
 		}
 	}
-	for _, key := range []string{"source", "dtql", "snapshotId", "limit"} {
+	for _, key := range []string{"storeId", "source", "dtql", "snapshotId", "limit", "incident"} {
 		if _, ok := generic[key]; ok {
 			t.Errorf("expected %q to be omitted when absent, got %s", key, data)
 		}
@@ -188,5 +188,26 @@ func TestExecutionRequest_Validate_Limit(t *testing.T) {
 	zero.Limit = &zeroLimit
 	if err := zero.Validate(); err == nil {
 		t.Error("expected an error: limit must be positive")
+	}
+}
+
+func TestExecutionRequest_IncidentRef(t *testing.T) {
+	request := validExecutionRequestSaved()
+	request.StoreID = "ops"
+	request.Incident = &IncidentRef{StoreID: "ops", IncidentID: "INC-1"}
+	if err := request.Validate(); err != nil {
+		t.Fatalf("qualified incident request should be valid: %v", err)
+	}
+	request.Incident.IncidentID = "bad/id"
+	if err := request.Validate(); err == nil {
+		t.Fatal("invalid incident ref should be rejected")
+	}
+}
+
+func TestExecutionRequest_RejectsInvalidQualifiedScope(t *testing.T) {
+	request := validExecutionRequestSaved()
+	request.StoreID = "bad/store"
+	if err := request.Validate(); err == nil {
+		t.Fatal("invalid qualified store scope should be rejected")
 	}
 }

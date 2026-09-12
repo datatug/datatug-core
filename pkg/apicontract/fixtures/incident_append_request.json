@@ -1,0 +1,22 @@
+{
+  "storeId": "ops",
+  "project": "billing",
+  "environment": "prod",
+  "securityContextId": "ctx-1",
+  "mutationId": "mutation-note-1",
+  "incident": {
+    "storeId": "ops",
+    "incidentId": "INC-1"
+  },
+  "expectedSeq": 1,
+  "event": {
+    "at": "2026-09-12T10:01:00Z",
+    "type": "note.added",
+    "assertion": {
+      "kind": "claim"
+    },
+    "payload": {
+      "body": "checked retry queue"
+    }
+  }
+}
