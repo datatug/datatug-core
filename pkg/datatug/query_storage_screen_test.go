@@ -249,6 +249,10 @@ func TestQueryDefStorageScreen_AcceptsRealisticContent(t *testing.T) {
 		{"a provider-qualified user id", func(q *QueryDef) { q.UserIDs[0] = "google:12345" }},
 		{"an e-mail user id", func(q *QueryDef) { q.UserIDs[0] = "alice@example.com" }},
 		{"a column named password_hash", func(q *QueryDef) { q.Recordsets[0].Columns[0].Name = "password_hash" }},
+		{"a column name containing a colon", func(q *QueryDef) { q.Recordsets[0].Columns[0].Name = "ledger:entry" }},
+		{"a quoted column name containing an escaped quote", func(q *QueryDef) { q.Recordsets[0].Columns[0].Name = `Customer"Name` }},
+		{"a column name containing an equals sign", func(q *QueryDef) { q.Recordsets[0].Columns[0].Name = "left=right" }},
+		{"a parameterized numeric column type", func(q *QueryDef) { q.Recordsets[0].Columns[0].Type = "NUMERIC(10,2)" }},
 		{"a key over a password column", func(q *QueryDef) {
 			q.Recordsets[0].PrimaryKey = &UniqueKey{Name: "PK_PasswordReset", Columns: []string{"PasswordResetId"}}
 		}},
@@ -319,17 +323,17 @@ var queryStorageFieldDecisions = map[string]string{
 	"recordsets[].jsonSchema":                    "credential",
 	"recordsets[].files[]":                       "credential",
 	"recordsets[].errors[]":                      "credential",
-	"recordsets[].primaryKey.name":               "identifier",
-	"recordsets[].primaryKey.columns[]":          "identifier",
-	"recordsets[].foreignKeys[].name":            "identifier",
-	"recordsets[].foreignKeys[].columns[]":       "identifier",
+	"recordsets[].primaryKey.name":               "metadata identifier",
+	"recordsets[].primaryKey.columns[]":          "metadata identifier",
+	"recordsets[].foreignKeys[].name":            "metadata identifier",
+	"recordsets[].foreignKeys[].columns[]":       "metadata identifier",
 	"recordsets[].foreignKeys[].matchOption":     "identifier",
 	"recordsets[].foreignKeys[].updateRule":      "identifier",
 	"recordsets[].foreignKeys[].deleteRule":      "identifier",
-	"recordsets[].alternateKey[].name":           "identifier",
-	"recordsets[].alternateKey[].columns[]":      "identifier",
+	"recordsets[].alternateKey[].name":           "metadata identifier",
+	"recordsets[].alternateKey[].columns[]":      "metadata identifier",
 	"recordsets[].issues.schema[]":               "credential",
-	"recordsets[].columns[].name":                "identifier",
+	"recordsets[].columns[].name":                "metadata identifier",
 	"recordsets[].columns[].type":                "identifier",
 	"recordsets[].columns[].meta.entity":         "identifier",
 	"recordsets[].columns[].meta.field":          "identifier",
@@ -372,12 +376,12 @@ func TestQueryDefStorageScreen_CoversEveryPersistedStringField(t *testing.T) {
 	for _, c := range storageScreenCases() {
 		path := indexed.Replace(c.path)
 		tested[path] = true
-		if got := queryStorageFieldDecisions[path]; got != "identifier" && got != "credential" {
+		if got := queryStorageFieldDecisions[path]; got != "identifier" && got != "metadata identifier" && got != "credential" {
 			t.Errorf("storageScreenCases covers %q, which the table says is %q rather than screened here", c.path, got)
 		}
 	}
 	for path, decision := range queryStorageFieldDecisions {
-		if (decision == "identifier" || decision == "credential") && !tested[path] {
+		if (decision == "identifier" || decision == "metadata identifier" || decision == "credential") && !tested[path] {
 			t.Errorf("%q is screened by screenQueryDefForStorage but has no case in storageScreenCases", path)
 		}
 	}

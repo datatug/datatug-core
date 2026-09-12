@@ -56,6 +56,23 @@ const (
 // ("", false) when it can. An empty value passes: which fields are
 // required is decided by each type's own Validate, not here.
 func identifierShapeReason(value string) (reason string, found bool) {
+	if reason, found := identifierEnvelopeReason(value); found {
+		return reason, found
+	}
+	for _, r := range value {
+		if r == ':' || r == '=' || r == '"' {
+			return identifierShapePunctuationReason, true
+		}
+	}
+	return "", false
+}
+
+// identifierEnvelopeReason applies the shape rules shared by strict IDs and
+// database metadata identifiers. Database column and constraint names may
+// legitimately contain punctuation, so their additional protection is the
+// semantic credential screen rather than identifierShapeReason's punctuation
+// ban.
+func identifierEnvelopeReason(value string) (reason string, found bool) {
 	if value == "" {
 		return "", false
 	}
@@ -69,10 +86,7 @@ func identifierShapeReason(value string) (reason string, found bool) {
 		return fmt.Sprintf("exceeds max length (%d): %d", maxIdentifierFieldLength, len(value)), true
 	}
 	for _, r := range value {
-		switch {
-		case r == ':' || r == '=' || r == '"':
-			return identifierShapePunctuationReason, true
-		case unicode.IsControl(r):
+		if unicode.IsControl(r) {
 			return identifierShapeControlReason, true
 		}
 	}
@@ -150,17 +164,17 @@ const storedQueryHint = "a query is stored in git-tracked project files"
 //	recordsets[].files[]                          credential - a path may hold a ':'
 //	recordsets[].errors[]                         credential - free prose, and a driver
 //	                                              error can echo a connection string
-//	recordsets[].primaryKey.name                  identifier
-//	recordsets[].primaryKey.columns[]             identifier
-//	recordsets[].foreignKeys[].name               identifier
-//	recordsets[].foreignKeys[].columns[]          identifier
+//	recordsets[].primaryKey.name                  metadata identifier
+//	recordsets[].primaryKey.columns[]             metadata identifier
+//	recordsets[].foreignKeys[].name               metadata identifier
+//	recordsets[].foreignKeys[].columns[]          metadata identifier
 //	recordsets[].foreignKeys[].matchOption        identifier
 //	recordsets[].foreignKeys[].updateRule         identifier
 //	recordsets[].foreignKeys[].deleteRule         identifier
-//	recordsets[].alternateKey[].name              identifier
-//	recordsets[].alternateKey[].columns[]         identifier
+//	recordsets[].alternateKey[].name              metadata identifier
+//	recordsets[].alternateKey[].columns[]         metadata identifier
 //	recordsets[].issues.schema[]                  credential - free prose diagnostics
-//	recordsets[].columns[].name                   identifier
+//	recordsets[].columns[].name                   metadata identifier
 //	recordsets[].columns[].type                   identifier
 //	recordsets[].columns[].meta.entity            identifier
 //	recordsets[].columns[].meta.field             identifier
@@ -201,6 +215,21 @@ func (s *queryStorageScreen) identifier(field, value string) {
 	}
 	if reason, found := identifierShapeReason(value); found {
 		s.err = validation.NewErrBadRecordFieldValue(field, reason)
+	}
+}
+
+// metadataIdentifier screens a name supplied by a database schema. Unlike a
+// query parameter ID, these names can legitimately contain ':', '=' or '"'.
+func (s *queryStorageScreen) metadataIdentifier(field, value string) {
+	if s.err != nil {
+		return
+	}
+	if reason, found := identifierEnvelopeReason(value); found {
+		s.err = validation.NewErrBadRecordFieldValue(field, reason)
+		return
+	}
+	if reason, found := EmbeddedCredentialReason(value); found {
+		s.err = validation.NewErrBadRecordFieldValue(field, reason+"; "+storedQueryHint)
 	}
 }
 
@@ -271,8 +300,10 @@ func (s *queryStorageScreen) uniqueKey(at string, key *UniqueKey) {
 	if key == nil {
 		return
 	}
-	s.identifier(at+".name", key.Name)
-	s.identifiers(at+".columns", key.Columns)
+	s.metadataIdentifier(at+".name", key.Name)
+	for i, column := range key.Columns {
+		s.metadataIdentifier(fmt.Sprintf("%s.columns[%d]", at, i), column)
+	}
 }
 
 func (s *queryStorageScreen) parameters(parameters Parameters) {
@@ -312,8 +343,10 @@ func (s *queryStorageScreen) recordsets(recordsets []RecordsetDefinition) {
 				continue
 			}
 			fkAt := fmt.Sprintf("%sforeignKeys[%d].", at, k)
-			s.identifier(fkAt+"name", fk.Name)
-			s.identifiers(fkAt+"columns", fk.Columns)
+			s.metadataIdentifier(fkAt+"name", fk.Name)
+			for columnIndex, column := range fk.Columns {
+				s.metadataIdentifier(fmt.Sprintf("%scolumns[%d]", fkAt, columnIndex), column)
+			}
 			s.identifier(fkAt+"matchOption", fk.MatchOption)
 			s.identifier(fkAt+"updateRule", fk.UpdateRule)
 			s.identifier(fkAt+"deleteRule", fk.DeleteRule)
@@ -326,7 +359,7 @@ func (s *queryStorageScreen) recordsets(recordsets []RecordsetDefinition) {
 		}
 		for j, c := range r.Columns {
 			colAt := fmt.Sprintf("%scolumns[%d].", at, j)
-			s.identifier(colAt+"name", c.Name)
+			s.metadataIdentifier(colAt+"name", c.Name)
 			s.identifier(colAt+"type", c.Type)
 			s.entityFieldRef(colAt+"meta", c.Meta)
 			s.identifiers(colAt+"hideIf.parameters", c.HideIf.Parameters)
