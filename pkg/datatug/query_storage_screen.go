@@ -1,7 +1,9 @@
 package datatug
 
 import (
+	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -160,7 +162,8 @@ const storedQueryHint = "a query is stored in git-tracked project files"
 //	                                              which confines it to a closed set, is
 //	                                              never reached on the query path
 //	recordsets[].type                             identifier - likewise unvalidated here
-//	recordsets[].jsonSchema                       credential - free JSON text
+//	recordsets[].jsonSchema                       credential except JSON member names,
+//	                                              which are schema property names
 //	recordsets[].files[]                          credential - a path may hold a ':'
 //	recordsets[].errors[]                         credential - free prose, and a driver
 //	                                              error can echo a connection string
@@ -241,6 +244,52 @@ func (s *queryStorageScreen) prose(field, value string) {
 	if reason, found := EmbeddedCredentialReason(value); found {
 		s.err = validation.NewErrBadRecordFieldValue(field, reason+"; "+storedQueryHint)
 	}
+}
+
+func (s *queryStorageScreen) jsonSchema(field, value string) {
+	if s.err != nil {
+		return
+	}
+	if value == "" {
+		return
+	}
+	if reason, found := embeddedCredentialReasonWithoutJSON(value); found {
+		s.err = validation.NewErrBadRecordFieldValue(field, reason+"; "+storedQueryHint)
+		return
+	}
+	var schema any
+	if err := json.Unmarshal([]byte(value), &schema); err != nil {
+		s.err = validation.NewErrBadRecordFieldValue(field, "must be valid JSON Schema: "+err.Error())
+		return
+	}
+	if reason, found := jsonSchemaValueCredentialReason(schema); found {
+		s.err = validation.NewErrBadRecordFieldValue(field, reason+"; "+storedQueryHint)
+	}
+}
+
+func jsonSchemaValueCredentialReason(v any) (reason string, found bool) {
+	switch v := v.(type) {
+	case string:
+		return EmbeddedCredentialReason(v)
+	case []any:
+		for _, item := range v {
+			if reason, found := jsonSchemaValueCredentialReason(item); found {
+				return reason, true
+			}
+		}
+	case map[string]any:
+		keys := make([]string, 0, len(v))
+		for key := range v {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			if reason, found := jsonSchemaValueCredentialReason(v[key]); found {
+				return reason, true
+			}
+		}
+	}
+	return "", false
 }
 
 func (s *queryStorageScreen) identifiers(field string, values []string) {
@@ -334,7 +383,7 @@ func (s *queryStorageScreen) recordsets(recordsets []RecordsetDefinition) {
 		s.prose(at+"title", r.Title)
 		s.identifier(at+"access", r.Access)
 		s.identifier(at+"type", r.Type)
-		s.prose(at+"jsonSchema", r.JSONSchema)
+		s.jsonSchema(at+"jsonSchema", r.JSONSchema)
 		s.proseList(at+"files", r.Files)
 		s.proseList(at+"errors", r.Errors)
 		s.uniqueKey(at+"primaryKey", r.PrimaryKey)
@@ -360,7 +409,7 @@ func (s *queryStorageScreen) recordsets(recordsets []RecordsetDefinition) {
 		for j, c := range r.Columns {
 			colAt := fmt.Sprintf("%scolumns[%d].", at, j)
 			s.metadataIdentifier(colAt+"name", c.Name)
-			s.identifier(colAt+"type", c.Type)
+			s.metadataIdentifier(colAt+"type", c.Type)
 			s.entityFieldRef(colAt+"meta", c.Meta)
 			s.identifiers(colAt+"hideIf.parameters", c.HideIf.Parameters)
 		}

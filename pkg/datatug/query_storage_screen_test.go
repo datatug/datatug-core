@@ -253,6 +253,9 @@ func TestQueryDefStorageScreen_AcceptsRealisticContent(t *testing.T) {
 		{"a quoted column name containing an escaped quote", func(q *QueryDef) { q.Recordsets[0].Columns[0].Name = `Customer"Name` }},
 		{"a column name containing an equals sign", func(q *QueryDef) { q.Recordsets[0].Columns[0].Name = "left=right" }},
 		{"a parameterized numeric column type", func(q *QueryDef) { q.Recordsets[0].Columns[0].Type = "NUMERIC(10,2)" }},
+		{"a qualified quoted column type", func(q *QueryDef) { q.Recordsets[0].Columns[0].Type = `"public"."currency_code"` }},
+		{"an enum column type containing equals", func(q *QueryDef) { q.Recordsets[0].Columns[0].Type = `enum('left=right')` }},
+		{"a vendor column type containing colon", func(q *QueryDef) { q.Recordsets[0].Columns[0].Type = `DateTime64(3, 'UTC'):CODEC(DoubleDelta)` }},
 		{"a key over a password column", func(q *QueryDef) {
 			q.Recordsets[0].PrimaryKey = &UniqueKey{Name: "PK_PasswordReset", Columns: []string{"PasswordResetId"}}
 		}},
@@ -261,7 +264,7 @@ func TestQueryDefStorageScreen_AcceptsRealisticContent(t *testing.T) {
 			q.Recordsets[0].ActiveIssues.Schema[0] = "the password column has no not-null constraint"
 		}},
 		{"a JSON schema declaring a password property", func(q *QueryDef) {
-			q.Recordsets[0].JSONSchema = `{"type":"object","properties":{"password":{"type":"string"}}}`
+			q.Recordsets[0].JSONSchema = `{"type":"object","properties":{"password":{"type":["string","null"],"minLength":8,"format":"password","description":"User password"},"apiToken":{"$ref":"#/$defs/token"}},"$defs":{"token":{"type":"string","minLength":12}}}`
 		}},
 		{"a windows-style recordset file path", func(q *QueryDef) {
 			q.Recordsets[0].Files[0] = `C:\data\recordsets\invoices.json`
@@ -277,6 +280,24 @@ func TestQueryDefStorageScreen_AcceptsRealisticContent(t *testing.T) {
 				t.Fatalf("expected the query to be accepted, got: %v", err)
 			}
 		})
+	}
+}
+
+func TestQueryDefStorageScreen_RefusesCredentialInJSONSchemaStringValue(t *testing.T) {
+	q := queryDefWithEveryPersistedField()
+	q.Recordsets[0].JSONSchema = `{"description":"Authorization: Bearer s3cr3t-value"}`
+	err := q.Validate()
+	if err == nil || !strings.Contains(err.Error(), "recordsets[0].jsonSchema") {
+		t.Fatalf("expected the schema description credential to be refused, got: %v", err)
+	}
+}
+
+func TestQueryDefStorageScreen_RefusesMalformedJSONSchema(t *testing.T) {
+	q := queryDefWithEveryPersistedField()
+	q.Recordsets[0].JSONSchema = `{"description":"Authorization: Bearer s3cr3t-value"`
+	err := q.Validate()
+	if err == nil || !strings.Contains(err.Error(), "recordsets[0].jsonSchema") {
+		t.Fatalf("expected malformed JSON Schema to be refused, got: %v", err)
 	}
 }
 
@@ -334,7 +355,7 @@ var queryStorageFieldDecisions = map[string]string{
 	"recordsets[].alternateKey[].columns[]":      "metadata identifier",
 	"recordsets[].issues.schema[]":               "credential",
 	"recordsets[].columns[].name":                "metadata identifier",
-	"recordsets[].columns[].type":                "identifier",
+	"recordsets[].columns[].type":                "metadata identifier",
 	"recordsets[].columns[].meta.entity":         "identifier",
 	"recordsets[].columns[].meta.field":          "identifier",
 	"recordsets[].columns[].hideIf.parameters[]": "identifier",

@@ -54,7 +54,8 @@ import (
 //     is a pagination cursor, not a secret, and is allowed.
 //   - An HTTP credential header line with a literal value:
 //     "Authorization: Bearer abc", "Proxy-Authorization:", "X-API-Key:",
-//     "Api-Key:", "X-Auth-Token:" and "X-Access-Token:", also when the
+//     "Api-Key:", "X-Auth-Token:", "X-Access-Token:" and provider-specific
+//     names ending in a secret key, plus Cookie and Set-Cookie, also when the
 //     line is a comment ("# ", "// ", "-- ", "/* " or " * " before the
 //     header name), since a header pasted into a SQL or GraphQL comment
 //     is stored in git all the same.
@@ -129,12 +130,17 @@ var (
 	// follows is read by keyValueValue.
 	keyValuePattern = regexp.MustCompile(`(?:^|[;&?,\s{('"])([A-Za-z0-9_.\-]+)[ \t]*=[ \t]*`)
 
-	// jsonMemberPattern matches a JSON object member with a string value.
-	jsonMemberPattern = regexp.MustCompile(`"([^"\\]{1,128})"\s*:\s*"((?:[^"\\]|\\.)*)"`)
+	// jsonMemberStartPattern stops at the colon, so a value can never consume
+	// the opening quote of a later embedded member. RE2 keeps discovery linear
+	// on malformed input; keys are deliberately unbounded so a long prefix
+	// cannot hide a recognized secret suffix.
+	jsonMemberStartPattern = regexp.MustCompile(`"((?:[^"\\]|\\.)*)"\s*:\s*`)
+	jsonStringValuePattern = regexp.MustCompile(`^"(?:[^"\\]|\\.){0,1000}"`)
 
-	// httpCredentialHeaderPattern matches an HTTP header line that carries
-	// a credential, optionally inside a comment (#, //, --, /* or *).
-	httpCredentialHeaderPattern = regexp.MustCompile(`(?im)^[ \t]*(?:(?:#|//|--|/\*|\*)[ \t]*)?(authorization|proxy-authorization|x-api-key|api-key|x-auth-token|x-access-token)[ \t]*:[ \t]*([^\r\n]*)`)
+	// httpHeaderPattern matches an HTTP header line, optionally inside a
+	// comment (#, //, --, /* or *). The validator decides whether its
+	// normalized name can carry a credential.
+	httpHeaderPattern = regexp.MustCompile(`(?im)^[ \t]*(?:(?:#|//|--|/\*|\*)[ \t]*)?([a-z0-9_-]+)[ \t]*:[ \t]*([^\r\n]*)`)
 
 	// placeholderValuePattern matches a value that names a secret instead
 	// of holding one.
@@ -168,6 +174,20 @@ func EmbeddedCredentialReason(value string) (reason string, found bool) {
 		dsnCredentialReason,
 		keyValueCredentialReason,
 		jsonCredentialReason,
+		httpHeaderCredentialReason,
+	} {
+		if reason, found := check(value); found {
+			return reason, true
+		}
+	}
+	return "", false
+}
+
+func embeddedCredentialReasonWithoutJSON(value string) (reason string, found bool) {
+	for _, check := range [...]func(string) (string, bool){
+		urlCredentialReason,
+		dsnCredentialReason,
+		keyValueCredentialReason,
 		httpHeaderCredentialReason,
 	} {
 		if reason, found := check(value); found {
@@ -264,31 +284,109 @@ func keyValueValue(s string) string {
 	return s
 }
 
-// jsonCredentialReason checks every JSON object member with a string value.
+// jsonCredentialReason checks JSON members wherever they appear, including
+// inside otherwise non-JSON SQL, GraphQL or DTQL text.
 func jsonCredentialReason(value string) (reason string, found bool) {
-	for _, m := range jsonMemberPattern.FindAllStringSubmatch(value, -1) {
-		if isSecretKey(m[1]) && !isNonSecretValue(m[2]) {
+	for pass := 0; pass < 32; pass++ {
+		if reason, found := jsonCredentialReasonPass(value); found {
+			return reason, true
+		}
+		// Collapse backslash runs before escaped quotes. Each continuing pass
+		// materially shrinks the value, so deeply stringified JSON is handled
+		// in amortized linear work rather than one backslash per pass.
+		unescaped := strings.ReplaceAll(value, `\\`, `\`)
+		unescaped = strings.ReplaceAll(unescaped, `\"`, `"`)
+		if unescaped == value {
+			break
+		}
+		value = unescaped
+	}
+	return "", false
+}
+
+func jsonCredentialReasonPass(value string) (reason string, found bool) {
+	for _, match := range jsonMemberStartPattern.FindAllStringSubmatchIndex(value, -1) {
+		keyToken := value[match[2]:match[3]]
+		key, err := decodeJSONString(`"` + keyToken + `"`)
+		if err != nil || !isSecretKey(key) {
+			continue
+		}
+		rest := value[match[1]:]
+		if rest == "" {
+			continue
+		}
+		if rest[0] == '"' {
+			token := jsonStringValuePattern.FindString(rest)
+			if token == "" {
+				return jsonSecretReason, true
+			}
+			secret, err := decodeJSONString(token)
+			if err != nil || !isNonSecretValue(secret) {
+				return jsonSecretReason, true
+			}
+			continue
+		}
+		if strings.HasPrefix(rest, "true") || strings.HasPrefix(rest, "false") || strings.HasPrefix(rest, "null") || strings.HasPrefix(rest, "{}") || strings.HasPrefix(rest, "[]") {
+			continue
+		}
+		if rest[0] == '{' || rest[0] == '[' || rest[0] == '-' || rest[0] >= '0' && rest[0] <= '9' {
 			return jsonSecretReason, true
 		}
 	}
 	return "", false
 }
 
+func decodeJSONString(token string) (value string, err error) {
+	err = json.Unmarshal([]byte(token), &value)
+	return value, err
+}
+
 // httpHeaderCredentialReason checks every HTTP credential header line.
 func httpHeaderCredentialReason(value string) (reason string, found bool) {
-	for _, m := range httpCredentialHeaderPattern.FindAllStringSubmatch(value, -1) {
+	for _, m := range httpHeaderPattern.FindAllStringSubmatch(value, -1) {
 		// A block comment may close on the header's own line.
 		header, credential := strings.ToLower(m[1]), strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(m[2]), "*/"))
+		if !isCredentialHeader(header) {
+			continue
+		}
 		if header == "authorization" || header == "proxy-authorization" {
 			if fields := strings.Fields(credential); len(fields) > 0 && httpAuthSchemes[strings.ToLower(fields[0])] {
 				credential = strings.Join(fields[1:], " ")
 			}
 		}
-		if !isNonSecretValue(credential) {
+		if !isNonSecretHeaderValue(header, credential) {
 			return httpHeaderReason, true
 		}
 	}
 	return "", false
+}
+
+func isNonSecretHeaderValue(header, value string) bool {
+	if header != "cookie" && header != "set-cookie" {
+		return isNonSecretValue(value)
+	}
+	for _, part := range strings.Split(value, ";") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		_, cookieValue, found := strings.Cut(part, "=")
+		if !found || !isNonSecretValue(cookieValue) {
+			return false
+		}
+	}
+	return true
+}
+
+func isCredentialHeader(header string) bool {
+	switch header {
+	case "authorization", "proxy-authorization", "cookie", "set-cookie":
+		return true
+	case "token", "apikey":
+		return true
+	default:
+		return (strings.Contains(header, "-") || strings.Contains(header, "_")) && isSecretKey(header)
+	}
 }
 
 // isSecretKey reports whether key names a secret (see the package's
@@ -366,7 +464,7 @@ func jsonValueCredentialReason(v any) (reason string, found bool) {
 		}
 		sort.Strings(keys)
 		for _, k := range keys {
-			if s, isString := v[k].(string); isString && isSecretKey(k) && !isNonSecretValue(s) {
+			if isSecretKey(k) && !isNonSecretJSONValue(v[k]) {
 				return secretMapKeyReason + strconv.Quote(k), true
 			}
 			if reason, found := EmbeddedCredentialReason(k); found {
@@ -378,4 +476,33 @@ func jsonValueCredentialReason(v any) (reason string, found bool) {
 		}
 	}
 	return "", false
+}
+
+func isNonSecretJSONValue(v any) bool {
+	switch v := v.(type) {
+	case nil:
+		return true
+	case string:
+		return isNonSecretValue(v)
+	case bool:
+		return true
+	case []any:
+		return len(v) == 0
+	case map[string]any:
+		if len(v) == 0 {
+			return true
+		}
+		// A JSON Schema property named password/token describes data rather
+		// than holding it. Preserve the common descriptor form while still
+		// rejecting arbitrary objects beneath secret-named keys.
+		if typ, ok := v["type"].(string); ok && len(v) == 1 {
+			switch typ {
+			case "array", "boolean", "integer", "null", "number", "object", "string":
+				return true
+			}
+		}
+		return false
+	default:
+		return false
+	}
 }

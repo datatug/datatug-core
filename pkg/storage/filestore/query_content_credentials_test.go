@@ -320,6 +320,9 @@ func TestEverySavePath_RefusesACredentialInASweptField(t *testing.T) {
 		{"a recordset schema issue", "recordsets[0].issues.schema[0]", func(q *datatug.QueryDef) {
 			q.Recordsets[0].ActiveIssues.Schema[0] = urlWithPassword
 		}},
+		{"a JSON Schema description", "recordsets[0].jsonSchema", func(q *datatug.QueryDef) {
+			q.Recordsets[0].JSONSchema = `{"description":"Authorization: Bearer ` + credentialProbe + `"}`
+		}},
 	}
 	ctx := context.Background()
 	for _, c := range cases {
@@ -345,5 +348,49 @@ func TestEverySavePath_RefusesACredentialInASweptField(t *testing.T) {
 				t.Fatalf("expected the realistic query to save, got: %v", err)
 			}
 		})
+	}
+}
+
+func TestEverySavePath_RefusesStructuredDefaultsAndCredentialHeaders(t *testing.T) {
+	cases := []struct {
+		name, field string
+		mutate      func(q *datatug.QueryDef)
+	}{
+		{"numeric token default", "defaultValue", func(q *datatug.QueryDef) {
+			q.Parameters[0].Type = "any"
+			q.Parameters[0].DefaultValue = map[string]any{"token": 123456789}
+		}},
+		{"nested password default", "defaultValue", func(q *datatug.QueryDef) {
+			q.Parameters[0].Type = "any"
+			q.Parameters[0].DefaultValue = map[string]any{"password": map[string]any{"value": credentialProbe}}
+		}},
+		{"array api key default", "defaultValue", func(q *datatug.QueryDef) {
+			q.Parameters[0].Type = "any"
+			q.Parameters[0].DefaultValue = map[string]any{"api_key": []any{credentialProbe}}
+		}},
+		{"cookie header", "text", func(q *datatug.QueryDef) {
+			q.Type, q.Text = datatug.QueryTypeHTTP, "GET https://example.com\nCookie: sessionid="+credentialProbe
+		}},
+		{"provider token header", "text", func(q *datatug.QueryDef) {
+			q.Type, q.Text = datatug.QueryTypeHTTP, "GET https://example.com\nX-Amz-Security-Token: "+credentialProbe
+		}},
+	}
+	ctx := context.Background()
+	for _, c := range cases {
+		for _, sp := range querySavePaths() {
+			t.Run(c.name+"/"+sp.name, func(t *testing.T) {
+				dir := t.TempDir()
+				q := capturedQueryForSave()
+				c.mutate(&q)
+				err := sp.save(ctx, dir, q)
+				if err == nil {
+					t.Fatal("expected the write to be refused")
+				}
+				if !validation.IsBadRecordError(err) || !strings.Contains(err.Error(), c.field) {
+					t.Errorf("expected a bad-record error naming %q, got: %v", c.field, err)
+				}
+				assertNoFileHolds(t, dir, credentialProbe)
+			})
+		}
 	}
 }

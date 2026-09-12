@@ -1,6 +1,7 @@
 package datatug
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -162,6 +163,37 @@ func TestEmbeddedCredentialReason_DocumentedLimits(t *testing.T) {
 	}
 }
 
+func TestEmbeddedCredentialReason_MalformedJSONConsumesInputMonotonically(t *testing.T) {
+	value := strings.Repeat(`"\`, 64*1024)
+	if _, found := EmbeddedCredentialReason(value); found {
+		t.Fatal("malformed JSON without a credential must not be refused")
+	}
+}
+
+func TestEmbeddedCredentialReason_MalformedAndStringifiedJSONCannotHideASecret(t *testing.T) {
+	values := []string{
+		`"\ malformed prefix {"token":123456789}`,
+		`"{\"password\":{\"value\":\"s3cr3t-value\"}}"`,
+		`"safe":"junk {"token":123456789}`,
+		`{"` + strings.Repeat("x", 513) + `password":"s3cr3t-value"}`,
+		`{"api\u005fkey":"s3cr3t-value"}`,
+	}
+	deep := `{"token":123456789}`
+	for range 8 {
+		encoded, err := json.Marshal(deep)
+		if err != nil {
+			t.Fatal(err)
+		}
+		deep = string(encoded)
+	}
+	values = append(values, deep)
+	for _, value := range values {
+		if _, found := EmbeddedCredentialReason(value); !found {
+			t.Errorf("expected a hidden credential in %q to be refused", value)
+		}
+	}
+}
+
 func TestQueryDefTarget_Validate_CredentialsInEveryConnectionField(t *testing.T) {
 	const secret = "Server=h;User Id=u;Password=secret;"
 	for name, target := range map[string]QueryDefTarget{
@@ -246,6 +278,22 @@ func TestQueryDef_Validate_ScreensHTTPQueryText(t *testing.T) {
 		"GET https://api.example.com/x\nAuthorization: Bearer abc",
 		"GET https://api.example.com/x?api_key=abc123",
 		"POST https://api.example.com/login\nContent-Type: application/json\n\n{\"user\":\"u\",\"password\":\"secret\"}",
+		"POST https://api.example.com/login\n\n{\"token\":123456789}",
+		"POST https://api.example.com/login\n\n{\"password\":{\"value\":\"secret\"}}",
+		"POST https://api.example.com/login\n\n{\"api_key\":[\"secret\"]}",
+		"SELECT capture('{\"token\":123456789}')",
+		"GET https://api.example.com/x\nCookie: sessionid=secret",
+		"GET https://api.example.com/x\nPrivate-Token: secret",
+		"GET https://api.example.com/x\nX-Amz-Security-Token: secret",
+		"GET https://api.example.com/x\nX-Goog-Api-Key: secret",
+		"GET https://api.example.com/x\nToken: secret",
+		"GET https://api.example.com/x\nApiKey: secret",
+		"GET https://api.example.com/x\nX_API_KEY: secret",
+		"query { viewer { payload: {\"token\":123456789} } }",
+		"SELECT '{not JSON {\"password\":{\"value\":\"secret\"}} ...}'",
+		`POST https://api.example.com/login
+
+{"to\u006ben":123456789}`,
 	} {
 		v := newQueryDef("HTTP", text)
 		err := v.Validate()
@@ -257,6 +305,10 @@ func TestQueryDef_Validate_ScreensHTTPQueryText(t *testing.T) {
 		"GET https://api.example.com/items?page_token=abc",
 		"GET https://api.example.com/x\nAuthorization: Bearer {{token}}",
 		"POST https://api.example.com/x\n\n{\"token_count\": 5}",
+		"POST https://api.example.com/x\n\n{\"token\": null}",
+		"POST https://api.example.com/x\n\n{\"password\": \"{password}\"}",
+		"GET https://api.example.com/x\nPrivate-Token: {token}",
+		"GET https://api.example.com/x\nCookie: sessionid={token}",
 	} {
 		if err := newQueryDef("HTTP", text).Validate(); err != nil {
 			t.Errorf("expected HTTP text %q to be allowed, got: %v", text, err)
