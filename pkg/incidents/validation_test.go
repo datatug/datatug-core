@@ -126,6 +126,38 @@ func TestEventValidation(t *testing.T) {
 	require.NoError(t, agent.Validate())
 }
 
+func TestImportedEventValidation(t *testing.T) {
+	destination := IncidentRef{StoreID: "ops", IncidentID: "INC-1"}
+	source := IncidentRef{StoreID: "ops", IncidentID: "INC-2"}
+	at := time.Date(2026, 9, 12, 10, 0, 0, 0, time.UTC)
+	valid := eventWithPayload(t, destination, 2, at, EventNoteAdded, NoteAddedPayload{Body: "source note"})
+	valid.ImportedFrom = &ImportedEventRef{Incident: source, EventID: "source-event-1", Seq: 1, MergeID: "merge-1"}
+	require.NoError(t, valid.Validate())
+
+	tests := []struct {
+		name string
+		edit func(*Event)
+	}{
+		{"first event", func(e *Event) { e.Seq = 1 }},
+		{"same incident", func(e *Event) { e.ImportedFrom.Incident = destination }},
+		{"different store", func(e *Event) { e.ImportedFrom.Incident.StoreID = "other" }},
+		{"invalid source incident", func(e *Event) { e.ImportedFrom.Incident.IncidentID = "bad/incident" }},
+		{"missing source event id", func(e *Event) { e.ImportedFrom.EventID = "" }},
+		{"zero source sequence", func(e *Event) { e.ImportedFrom.Seq = 0 }},
+		{"missing merge id", func(e *Event) { e.ImportedFrom.MergeID = "" }},
+		{"invalid merge id", func(e *Event) { e.ImportedFrom.MergeID = "../merge" }},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			event := valid
+			importedFrom := *valid.ImportedFrom
+			event.ImportedFrom = &importedFrom
+			test.edit(&event)
+			require.Error(t, event.Validate())
+		})
+	}
+}
+
 func TestEventValidationRejectsInvalidTypedPayloadsDirectly(t *testing.T) {
 	ref := IncidentRef{StoreID: "ops", IncidentID: "INC-1"}
 	at := time.Date(2026, 9, 12, 10, 0, 0, 0, time.UTC)
@@ -190,7 +222,7 @@ func TestFoldRejectsInvalidStreamsAndPayloads(t *testing.T) {
 	_, err = Fold([]Event{created, resolved, badOutcomeJSON}, nil)
 	require.ErrorContains(t, err, "invalid payload")
 
-	badMergeJSON := eventWithPayload(t, ref, 2, at.Add(time.Minute), EventIncidentMerged, MergedPayload{Into: IncidentRef{StoreID: "ops", IncidentID: "INC-2"}})
+	badMergeJSON := eventWithPayload(t, ref, 2, at.Add(time.Minute), EventIncidentMerged, MergedPayload{Into: IncidentRef{StoreID: "ops", IncidentID: "INC-2"}, MergeID: "merge-1"})
 	badMergeJSON.Payload = json.RawMessage(`{`)
 	_, err = Fold([]Event{created, badMergeJSON}, nil)
 	require.ErrorContains(t, err, "invalid payload")
@@ -249,14 +281,14 @@ func TestFoldLifecycleAndMerge(t *testing.T) {
 	_, err = Fold([]Event{created, badStatus}, nil)
 	require.ErrorContains(t, err, "invalid status")
 
-	merged := eventWithPayload(t, ref, 2, at.Add(time.Minute), EventIncidentMerged, MergedPayload{Into: IncidentRef{StoreID: "ops", IncidentID: "INC-9"}})
+	merged := eventWithPayload(t, ref, 2, at.Add(time.Minute), EventIncidentMerged, MergedPayload{Into: IncidentRef{StoreID: "ops", IncidentID: "INC-9"}, MergeID: "merge-1"})
 	mergedProjection, err := Fold([]Event{created, merged}, nil)
 	require.NoError(t, err)
 	require.Equal(t, StatusClosed, mergedProjection.Status)
 	require.Equal(t, "ops/INC-9", mergedProjection.MergedInto.String())
 	require.Empty(t, mergedProjection.Outcome)
 
-	selfMerge := eventWithPayload(t, ref, 2, at.Add(time.Minute), EventIncidentMerged, MergedPayload{Into: ref})
+	selfMerge := eventWithPayload(t, ref, 2, at.Add(time.Minute), EventIncidentMerged, MergedPayload{Into: ref, MergeID: "merge-1"})
 	require.ErrorContains(t, selfMerge.Validate(), "itself")
 
 	noteAfterMerge := eventWithPayload(t, ref, 3, at.Add(2*time.Minute), EventNoteAdded, NoteAddedPayload{Body: "too late"})

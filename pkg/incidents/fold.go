@@ -10,29 +10,23 @@ import (
 )
 
 func Fold(events []Event, at *time.Time) (Incident, error) {
+	if err := validateEventStream(events); err != nil {
+		return Incident{}, err
+	}
 	var projection Incident
-	var expectedSeq uint64 = 1
 	for _, event := range events {
 		if at != nil && event.VisibleAt.After(*at) {
 			continue
 		}
-		if event.Seq != expectedSeq {
-			return Incident{}, fmt.Errorf("incidents: expected sequence %d, got %d", expectedSeq, event.Seq)
-		}
-		expectedSeq++
-		if err := event.Validate(); err != nil {
-			return Incident{}, fmt.Errorf("incidents: event %d: %w", event.Seq, err)
-		}
 		if event.Seq == 1 {
-			if event.Type != EventIncidentCreated {
-				return Incident{}, fmt.Errorf("incidents: first event must be incident.created")
-			}
 			projection.Ref = event.Incident
 		} else if event.Incident != projection.Ref {
 			return Incident{}, fmt.Errorf("incidents: event incident %s does not match %s", event.Incident, projection.Ref)
 		}
-		if err := projection.apply(event); err != nil {
-			return Incident{}, fmt.Errorf("incidents: event %d: %w", event.Seq, err)
+		if event.ImportedFrom == nil {
+			if err := projection.apply(event); err != nil {
+				return Incident{}, fmt.Errorf("incidents: event %d: %w", event.Seq, err)
+			}
 		}
 		projection.LastSeq = event.Seq
 	}
@@ -40,6 +34,78 @@ func Fold(events []Event, at *time.Time) (Incident, error) {
 		return Incident{}, fmt.Errorf("incidents: no visible events")
 	}
 	return projection, nil
+}
+
+func validateEventStream(events []Event) error {
+	var previousVisibleAt time.Time
+	var activeMergeID string
+	var activeMergeVisibleAt time.Time
+	var activeMergeSource IncidentRef
+	var activeSourceSeq uint64
+	completedMerges := make(map[string]struct{})
+	for i, event := range events {
+		expectedSeq := uint64(i + 1)
+		if event.Seq != expectedSeq {
+			return fmt.Errorf("incidents: expected sequence %d, got %d", expectedSeq, event.Seq)
+		}
+		if err := event.Validate(); err != nil {
+			return fmt.Errorf("incidents: event %d: %w", event.Seq, err)
+		}
+		if event.Seq == 1 && event.Type != EventIncidentCreated {
+			return fmt.Errorf("incidents: first event must be incident.created")
+		}
+		if !previousVisibleAt.IsZero() && event.VisibleAt.Before(previousVisibleAt) {
+			return fmt.Errorf("incidents: event %d visibleAt precedes prior event", event.Seq)
+		}
+		previousVisibleAt = event.VisibleAt
+
+		if event.ImportedFrom == nil {
+			if activeMergeID != "" {
+				completedMerges[activeMergeID] = struct{}{}
+				activeMergeID = ""
+			}
+			continue
+		}
+		mergeID := event.ImportedFrom.MergeID
+		if activeMergeID == "" {
+			if _, completed := completedMerges[mergeID]; completed {
+				return fmt.Errorf("incidents: imported merge %q is not contiguous", mergeID)
+			}
+			activeMergeID = mergeID
+			activeMergeVisibleAt = event.VisibleAt
+			activeMergeSource = event.ImportedFrom.Incident
+			activeSourceSeq = event.ImportedFrom.Seq
+			if activeSourceSeq != 1 {
+				return fmt.Errorf("incidents: imported merge %q must start at source sequence 1", mergeID)
+			}
+			continue
+		}
+		if mergeID != activeMergeID {
+			completedMerges[activeMergeID] = struct{}{}
+			if _, completed := completedMerges[mergeID]; completed {
+				return fmt.Errorf("incidents: imported merge %q is not contiguous", mergeID)
+			}
+			activeMergeID = mergeID
+			activeMergeVisibleAt = event.VisibleAt
+			activeMergeSource = event.ImportedFrom.Incident
+			activeSourceSeq = event.ImportedFrom.Seq
+			if activeSourceSeq != 1 {
+				return fmt.Errorf("incidents: imported merge %q must start at source sequence 1", mergeID)
+			}
+			continue
+		}
+		if !event.VisibleAt.Equal(activeMergeVisibleAt) {
+			return fmt.Errorf("incidents: imported merge %q has split visibility", mergeID)
+		}
+		if event.ImportedFrom.Incident != activeMergeSource {
+			return fmt.Errorf("incidents: imported merge %q mixes source incidents", mergeID)
+		}
+		if event.ImportedFrom.Seq != activeSourceSeq+1 {
+			return fmt.Errorf("incidents: imported merge %q source sequence is not contiguous", mergeID)
+		}
+		activeSourceSeq = event.ImportedFrom.Seq
+	}
+	return nil
 }
 
 func (e Event) Validate() error {
@@ -51,6 +117,14 @@ func (e Event) Validate() error {
 	}
 	if err := e.Incident.Validate(); err != nil {
 		return err
+	}
+	if e.ImportedFrom != nil {
+		if e.Seq == 1 {
+			return fmt.Errorf("first event cannot be imported")
+		}
+		if err := e.ImportedFrom.Validate(e.Incident); err != nil {
+			return err
+		}
 	}
 	if e.Actor.Kind != ActorHuman && e.Actor.Kind != ActorAgent && e.Actor.Kind != ActorSystem {
 		return fmt.Errorf("invalid actor kind %q", e.Actor.Kind)
@@ -271,6 +345,9 @@ func (e Event) validatePayload() error {
 		}
 		if payload.Into == e.Incident {
 			return fmt.Errorf("incident cannot merge into itself")
+		}
+		if !validSegment(payload.MergeID) {
+			return fmt.Errorf("merged payload requires valid mergeId")
 		}
 	case EventNoteAdded:
 		var payload NoteAddedPayload

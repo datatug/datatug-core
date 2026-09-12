@@ -156,16 +156,43 @@ const (
 )
 
 type Event struct {
-	ID        string          `json:"id"`
-	Seq       uint64          `json:"seq"`
-	At        time.Time       `json:"at"`
-	VisibleAt time.Time       `json:"visibleAt"`
-	Incident  IncidentRef     `json:"incident"`
-	Actor     Actor           `json:"actor"`
-	Type      EventType       `json:"type"`
-	Assertion Assertion       `json:"assertion"`
-	Refs      []ArtifactRef   `json:"refs,omitempty"`
-	Payload   json.RawMessage `json:"payload"`
+	ID        string      `json:"id"`
+	Seq       uint64      `json:"seq"`
+	At        time.Time   `json:"at"`
+	VisibleAt time.Time   `json:"visibleAt"`
+	Incident  IncidentRef `json:"incident"`
+	// ImportedFrom preserves the original identity of an event copied by a
+	// merge. Imported events remain timeline evidence but do not mutate the
+	// survivor's active projection.
+	ImportedFrom *ImportedEventRef `json:"importedFrom,omitempty"`
+	Actor        Actor             `json:"actor"`
+	Type         EventType         `json:"type"`
+	Assertion    Assertion         `json:"assertion"`
+	Refs         []ArtifactRef     `json:"refs,omitempty"`
+	Payload      json.RawMessage   `json:"payload"`
+}
+
+type ImportedEventRef struct {
+	Incident IncidentRef `json:"incident"`
+	EventID  string      `json:"eventId"`
+	Seq      uint64      `json:"seq"`
+	MergeID  string      `json:"mergeId"`
+}
+
+func (r ImportedEventRef) Validate(destination IncidentRef) error {
+	if err := r.Incident.Validate(); err != nil {
+		return err
+	}
+	if r.Incident.StoreID != destination.StoreID {
+		return fmt.Errorf("imported event must come from the destination store")
+	}
+	if r.Incident == destination {
+		return fmt.Errorf("imported event must come from a different incident")
+	}
+	if strings.TrimSpace(r.EventID) == "" || r.Seq == 0 || !validSegment(r.MergeID) {
+		return fmt.Errorf("imported event id, positive seq, and valid mergeId are required")
+	}
+	return nil
 }
 
 type Status string
@@ -206,7 +233,8 @@ type OutcomePayload struct {
 }
 
 type MergedPayload struct {
-	Into IncidentRef `json:"into"`
+	Into    IncidentRef `json:"into"`
+	MergeID string      `json:"mergeId"`
 }
 
 type NoteAddedPayload struct {
