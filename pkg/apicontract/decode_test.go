@@ -245,6 +245,7 @@ func TestAddJSONFieldsCoversEncodingJSONFieldSelection(t *testing.T) {
 		Explicit string `json:"explicit"`
 		private  string
 	}
+	_ = fixture{}.private // Keep the unexported-field case visible to the unused-field linter.
 	fields, ok := jsonObjectFields(reflect.TypeOf(fixture{}))
 	if !ok {
 		t.Fatal("fixture should expose JSON object fields")
