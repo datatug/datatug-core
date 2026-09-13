@@ -36,6 +36,9 @@
         "projectId": "billing"
       }
     ],
+    "canonicalContext": {
+      "facts": []
+    },
     "notes": [
       "checked retry queue"
     ],

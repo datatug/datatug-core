@@ -11,6 +11,9 @@
       "storeId": "ops",
       "incidentId": "INC-1"
     },
+    "canonicalContext": {
+      "facts": []
+    },
     "lastSeq": 3
   },
   "into": {
@@ -28,6 +31,9 @@
         "projectId": "billing"
       }
     ],
+    "canonicalContext": {
+      "facts": []
+    },
     "lastSeq": 4
   },
   "replayed": false

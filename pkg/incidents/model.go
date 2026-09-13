@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/datatug/datatug-core/pkg/investigation"
 )
 
 // IncidentRef is the globally unambiguous identity of an incident.
@@ -218,10 +220,12 @@ const (
 )
 
 type CreatedPayload struct {
-	UID         string       `json:"uid"`
-	Title       string       `json:"title"`
-	Description string       `json:"description"`
-	Projects    []ProjectRef `json:"projects,omitempty"`
+	UID              string           `json:"uid"`
+	Title            string           `json:"title"`
+	Description      string           `json:"description"`
+	Projects         []ProjectRef     `json:"projects,omitempty"`
+	Reporter         Actor            `json:"reporter"`
+	CanonicalContext CanonicalContext `json:"canonicalContext"`
 }
 
 type StatusPayload struct {
@@ -241,16 +245,40 @@ type NoteAddedPayload struct {
 	Body string `json:"body"`
 }
 
+// Note retains the stable source event identity required to re-check human
+// text visibility without keying a policy decision by its sensitive body.
+type Note struct {
+	EventID string `json:"eventId"`
+	Body    string `json:"body"`
+}
+
+type ParticipantRole string
+
+const ParticipantReporter ParticipantRole = "reporter"
+
+type Participant struct {
+	Actor Actor           `json:"actor"`
+	Role  ParticipantRole `json:"role"`
+}
+
+// CanonicalContext is an alias, not an incident-specific model. Incidents and
+// the transport appendix consume the same Investigation Context type.
+type CanonicalContext = investigation.Context
+
 // Incident is the deterministic current or historical projection.
 type Incident struct {
-	Ref         IncidentRef  `json:"ref"`
-	UID         string       `json:"uid"`
-	Title       string       `json:"title"`
-	Description string       `json:"description,omitempty"`
-	Status      Status       `json:"status"`
-	Outcome     Outcome      `json:"outcome,omitempty"`
-	MergedInto  *IncidentRef `json:"mergedInto,omitempty"`
-	Projects    []ProjectRef `json:"projects,omitempty"`
-	Notes       []string     `json:"notes,omitempty"`
-	LastSeq     uint64       `json:"lastSeq"`
+	Ref              IncidentRef      `json:"ref"`
+	UID              string           `json:"uid"`
+	Title            string           `json:"title"`
+	Description      string           `json:"description,omitempty"`
+	Status           Status           `json:"status"`
+	Outcome          Outcome          `json:"outcome,omitempty"`
+	MergedInto       *IncidentRef     `json:"mergedInto,omitempty"`
+	Projects         []ProjectRef     `json:"projects,omitempty"`
+	Participants     []Participant    `json:"participants,omitempty"`
+	CanonicalContext CanonicalContext `json:"canonicalContext"`
+	AssetRefs        []ArtifactRef    `json:"assetRefs,omitempty"`
+	NoteEntries      []Note           `json:"noteEntries,omitempty"`
+	Notes            []string         `json:"notes,omitempty"`
+	LastSeq          uint64           `json:"lastSeq"`
 }

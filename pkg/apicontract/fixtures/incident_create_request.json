@@ -11,5 +11,8 @@
       "storeId": "ops",
       "projectId": "billing"
     }
-  ]
+  ],
+  "canonicalContext": {
+    "facts": []
+  }
 }
