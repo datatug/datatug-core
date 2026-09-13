@@ -401,7 +401,7 @@ func TestExecutionSeriesContracts(t *testing.T) {
 		t.Fatal("invalid binding should be rejected")
 	}
 	invalidRequest = request
-	invalidRequest.Scope.Project = ""
+	invalidRequest.Project = ""
 	if err := invalidRequest.Validate(); err == nil {
 		t.Fatal("invalid scope should be rejected")
 	}
