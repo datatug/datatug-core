@@ -65,17 +65,18 @@ func (r PhysicalRef) Validate() error {
 }
 
 type Fact struct {
-	ID       string        `json:"id"`
-	Entity   string        `json:"entity"`
-	Field    string        `json:"field"`
-	Value    TypedValue    `json:"value"`
-	Origin   string        `json:"origin"`
-	Physical *PhysicalRef  `json:"physical,omitempty"`
-	Mapping  string        `json:"mapping,omitempty"`
-	Enabled  bool          `json:"enabled"`
-	Role     string        `json:"role,omitempty"`
-	Layer    string        `json:"layer,omitempty"`
-	Scope    *ProjectScope `json:"scope,omitempty"`
+	ID        string        `json:"id"`
+	Entity    string        `json:"entity"`
+	Field     string        `json:"field"`
+	Value     TypedValue    `json:"value"`
+	Condition string        `json:"condition,omitempty"`
+	Origin    string        `json:"origin"`
+	Physical  *PhysicalRef  `json:"physical,omitempty"`
+	Mapping   string        `json:"mapping,omitempty"`
+	Enabled   bool          `json:"enabled"`
+	Role      string        `json:"role,omitempty"`
+	Layer     string        `json:"layer,omitempty"`
+	Scope     *ProjectScope `json:"scope,omitempty"`
 }
 
 // FactKey is the comparable, server-qualified identity policy adapters use.
@@ -106,6 +107,16 @@ const (
 
 	FactMappingDeclared = "declared"
 	FactMappingInferred = "inferred"
+
+	// An omitted condition has the canonical equality meaning. Non-default
+	// predicates must survive transport and persistence explicitly so a caller
+	// can never silently turn `Customer.ID > 5` into equality.
+	FactConditionEqual              = "=="
+	FactConditionNotEqual           = "!="
+	FactConditionGreaterThan        = ">"
+	FactConditionGreaterThanOrEqual = ">="
+	FactConditionLessThan           = "<"
+	FactConditionLessThanOrEqual    = "<="
 )
 
 func (f Fact) Validate() error {
@@ -120,6 +131,15 @@ func (f Fact) Validate() error {
 	}
 	if err := f.Value.Validate(); err != nil {
 		return err
+	}
+	if f.Condition != "" {
+		if err := requireOneOf("condition", f.Condition,
+			FactConditionEqual, FactConditionNotEqual,
+			FactConditionGreaterThan, FactConditionGreaterThanOrEqual,
+			FactConditionLessThan, FactConditionLessThanOrEqual,
+		); err != nil {
+			return err
+		}
 	}
 	if err := requireOneOf("origin", f.Origin, FactOriginSelection, FactOriginContext, FactOriginManual); err != nil {
 		return err

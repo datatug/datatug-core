@@ -91,7 +91,7 @@ func TestPhysicalFactAndContextValidation(t *testing.T) {
 
 	valid := Fact{
 		ID: "customer-id", Entity: "Customer", Field: "ID", Value: NewIntegerValue("5"),
-		Origin: FactOriginSelection, Physical: &physical, Mapping: FactMappingDeclared,
+		Condition: FactConditionGreaterThan, Origin: FactOriginSelection, Physical: &physical, Mapping: FactMappingDeclared,
 		Enabled: true, Role: FactRoleAffected, Layer: "canonical",
 	}
 	require.NoError(t, valid.Validate())
@@ -112,6 +112,7 @@ func TestPhysicalFactAndContextValidation(t *testing.T) {
 		func(f *Fact) { f.Value = NewIntegerValue("05") }, func(f *Fact) { f.Origin = "derived" },
 		func(f *Fact) { f.Physical = &PhysicalRef{Source: "crm"} }, func(f *Fact) { f.Mapping = "guessed" },
 		func(f *Fact) { f.Role = "administrator" }, func(f *Fact) { f.Layer = "hypothesis:" },
+		func(f *Fact) { f.Condition = "contains" },
 	}
 	for _, mutate := range mutations {
 		candidate := valid
@@ -121,6 +122,7 @@ func TestPhysicalFactAndContextValidation(t *testing.T) {
 
 	minimal := valid
 	minimal.Physical, minimal.Mapping, minimal.Role, minimal.Layer = nil, "", "", ""
+	minimal.Condition = ""
 	minimal.Origin = FactOriginManual
 	require.NoError(t, minimal.Validate())
 	minimal.Origin = FactOriginContext
@@ -216,7 +218,7 @@ func TestProjectScopePreservesIncidentProjectRefSegmentRules(t *testing.T) {
 func TestPolicyFactViews(t *testing.T) {
 	fact := Fact{
 		ID: "customer-email", Entity: "Customer", Field: "Email", Value: NewStringValue("secret@example.com"),
-		Origin: FactOriginContext, Physical: &PhysicalRef{Source: "crm", Collection: "Customer", Column: "Email"},
+		Condition: FactConditionNotEqual, Origin: FactOriginContext, Physical: &PhysicalRef{Source: "crm", Collection: "Customer", Column: "Email"},
 		Mapping: FactMappingInferred, Enabled: true, Role: FactRoleAffected, Layer: "canonical",
 	}
 	visible := VisibleFact(fact)
@@ -234,6 +236,7 @@ func TestPolicyFactViews(t *testing.T) {
 	redactedJSON, err := json.Marshal(redacted)
 	require.NoError(t, err)
 	require.Contains(t, string(redactedJSON), `"value":{"redacted":true}`)
+	require.Contains(t, string(redactedJSON), `"condition":"!="`)
 	require.NotContains(t, string(redactedJSON), "physical")
 	withoutField := RedactedFact(fact, false)
 	require.Empty(t, withoutField.Field)
@@ -271,6 +274,7 @@ func TestPolicyFactViews(t *testing.T) {
 		{ID: "f", Entity: "Customer", Value: RedactedValue(), Origin: FactOriginContext, Mapping: FactMappingDeclared},
 		{ID: "f", Entity: "Customer", Value: RedactedValue(), Origin: FactOriginContext, Role: "admin"},
 		{ID: "f", Entity: "Customer", Value: RedactedValue(), Origin: FactOriginContext, Layer: "question:"},
+		{ID: "f", Entity: "Customer", Value: RedactedValue(), Condition: "contains", Origin: FactOriginContext},
 	}
 	for _, view := range invalidViews {
 		require.Error(t, view.Validate())

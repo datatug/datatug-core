@@ -13,6 +13,7 @@ import (
 
 func TestCreateMutationProjectsReporterAndCanonicalFacts(t *testing.T) {
 	mutation := task3CreateMutation()
+	mutation.CanonicalContext.Facts[0].Condition = investigation.FactConditionGreaterThan
 	require.NoError(t, mutation.Validate())
 
 	event := task3CreatedEvent(mutation)
@@ -20,6 +21,7 @@ func TestCreateMutationProjectsReporterAndCanonicalFacts(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []Participant{{Actor: mutation.Reporter, Role: ParticipantReporter}}, projection.Participants)
 	require.Equal(t, mutation.CanonicalContext, projection.CanonicalContext)
+	require.Equal(t, investigation.FactConditionGreaterThan, projection.CanonicalContext.Facts[0].Condition)
 
 	bad := mutation
 	bad.Reporter = Actor{}
@@ -27,6 +29,28 @@ func TestCreateMutationProjectsReporterAndCanonicalFacts(t *testing.T) {
 	bad = mutation
 	bad.CanonicalContext.Facts[0].Value = investigation.NewIntegerValue("007")
 	require.Error(t, bad.Validate())
+}
+
+func TestSearchAndSimilarityKeepPredicateIdentity(t *testing.T) {
+	greater := task3Projection("INC-1", "Greater", StatusOpen)
+	greater.CanonicalContext.Facts[0].Condition = investigation.FactConditionGreaterThan
+	less := task3Projection("INC-2", "Less", StatusOpen)
+	less.CanonicalContext.Facts[0].Condition = investigation.FactConditionLessThan
+	equal := task3Projection("INC-3", "Equal", StatusOpen)
+
+	greaterView := ApplyIncidentView(greater, visiblePolicyFor(greater.CanonicalContext.Facts...))
+	lessView := ApplyIncidentView(less, visiblePolicyFor(less.CanonicalContext.Facts...))
+	equalView := ApplyIncidentView(equal, visiblePolicyFor(equal.CanonicalContext.Facts...))
+	wanted := greater.CanonicalContext.Facts[0]
+	query := SearchQuery{Facts: []FactSignal{{Entity: wanted.Entity, Field: wanted.Field, Value: wanted.Value, Condition: wanted.Condition}}}
+
+	require.Len(t, Search([]IncidentView{greaterView}, query), 1)
+	require.Empty(t, Search([]IncidentView{lessView, equalView}, query))
+	for _, match := range Similar(greaterView, []IncidentView{lessView, equalView}) {
+		for _, signal := range match.MatchedSignals {
+			require.NotEqual(t, SignalFact, signal.Kind)
+		}
+	}
 }
 
 func TestApplyViewPolicyRedactsWithoutMutatingStoredEvents(t *testing.T) {

@@ -22,6 +22,13 @@ const (
 
 	FactMappingDeclared = investigation.FactMappingDeclared
 	FactMappingInferred = investigation.FactMappingInferred
+
+	FactConditionEqual              = investigation.FactConditionEqual
+	FactConditionNotEqual           = investigation.FactConditionNotEqual
+	FactConditionGreaterThan        = investigation.FactConditionGreaterThan
+	FactConditionGreaterThanOrEqual = investigation.FactConditionGreaterThanOrEqual
+	FactConditionLessThan           = investigation.FactConditionLessThan
+	FactConditionLessThanOrEqual    = investigation.FactConditionLessThanOrEqual
 )
 
 // InvestigationContext is the shared ordered context carried by an

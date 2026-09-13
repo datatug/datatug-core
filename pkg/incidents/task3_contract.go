@@ -394,14 +394,18 @@ func validFilterValue(value string) bool {
 }
 
 type FactSignal struct {
-	Entity string                   `json:"entity"`
-	Field  string                   `json:"field"`
-	Value  investigation.TypedValue `json:"value"`
+	Entity    string                   `json:"entity"`
+	Field     string                   `json:"field"`
+	Value     investigation.TypedValue `json:"value"`
+	Condition string                   `json:"condition,omitempty"`
 }
 
 func (s FactSignal) Validate() error {
 	if strings.TrimSpace(s.Entity) == "" || strings.TrimSpace(s.Field) == "" {
 		return fmt.Errorf("fact signal requires entity and field")
+	}
+	if !validFactCondition(s.Condition) {
+		return fmt.Errorf("invalid fact signal condition %q", s.Condition)
 	}
 	return s.Value.Validate()
 }
@@ -552,7 +556,7 @@ func similaritySignals(left, right IncidentView) ([]MatchedSignal, int) {
 		if fact.Value.Value == nil {
 			continue
 		}
-		signal := FactSignal{Entity: fact.Entity, Field: fact.Field, Value: *fact.Value.Value}
+		signal := FactSignal{Entity: fact.Entity, Field: fact.Field, Value: *fact.Value.Value, Condition: fact.Condition}
 		if hasFact(right, signal) {
 			signals = append(signals, MatchedSignal{Kind: SignalFact, Value: factSignalKey(signal)})
 		}
@@ -598,7 +602,7 @@ func similaritySignals(left, right IncidentView) ([]MatchedSignal, int) {
 
 func hasFact(incident IncidentView, wanted FactSignal) bool {
 	for _, fact := range incident.CanonicalContext.Facts {
-		if fact.Value.Value != nil && fact.Entity == wanted.Entity && fact.Field == wanted.Field && *fact.Value.Value == wanted.Value {
+		if fact.Value.Value != nil && fact.Entity == wanted.Entity && fact.Field == wanted.Field && normalizedFactCondition(fact.Condition) == normalizedFactCondition(wanted.Condition) && *fact.Value.Value == wanted.Value {
 			return true
 		}
 	}
@@ -607,7 +611,32 @@ func hasFact(incident IncidentView, wanted FactSignal) bool {
 
 func factSignalKey(signal FactSignal) string {
 	value, _ := json.Marshal(signal.Value)
-	return signal.Entity + "." + signal.Field + "=" + string(value)
+	operator := "="
+	if condition := normalizedFactCondition(signal.Condition); condition != investigation.FactConditionEqual {
+		operator = condition
+	}
+	return signal.Entity + "." + signal.Field + operator + string(value)
+}
+
+func normalizedFactCondition(condition string) string {
+	if condition == "" {
+		return investigation.FactConditionEqual
+	}
+	return condition
+}
+
+func validFactCondition(condition string) bool {
+	switch normalizedFactCondition(condition) {
+	case investigation.FactConditionEqual,
+		investigation.FactConditionNotEqual,
+		investigation.FactConditionGreaterThan,
+		investigation.FactConditionGreaterThanOrEqual,
+		investigation.FactConditionLessThan,
+		investigation.FactConditionLessThanOrEqual:
+		return true
+	default:
+		return false
+	}
 }
 
 func hasMatchingAsset(refs []ArtifactRef, wanted ArtifactRef) bool {

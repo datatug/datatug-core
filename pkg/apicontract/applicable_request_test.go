@@ -74,3 +74,22 @@ func TestApplicableRequest_Validate_InvalidFactInValues(t *testing.T) {
 		t.Error("expected an error: a Fact in values missing its required id")
 	}
 }
+
+func TestApplicableRequest_Validate_PreservesPredicateForFailClosedBinding(t *testing.T) {
+	r := validApplicableRequest()
+	r.Values[0].Condition = FactConditionGreaterThan
+	if err := r.Validate(); err != nil {
+		t.Errorf("expected applicability to accept a predicate for the agent to report as unbound, got: %v", err)
+	}
+	data, err := json.Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var decoded ApplicableRequest
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	if decoded.Values[0].Condition != FactConditionGreaterThan {
+		t.Fatalf("expected non-equality condition on the wire, got %s", data)
+	}
+}
