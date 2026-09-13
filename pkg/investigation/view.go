@@ -65,23 +65,24 @@ func (v *ValueView) UnmarshalJSON(data []byte) error {
 // existing fact JSON shape when visible and substitutes only value when the
 // serving adapter's current policy says it must be redacted.
 type FactView struct {
-	ID       string        `json:"id"`
-	Entity   string        `json:"entity"`
-	Field    string        `json:"field,omitempty"`
-	Value    ValueView     `json:"value"`
-	Origin   string        `json:"origin"`
-	Physical *PhysicalRef  `json:"physical,omitempty"`
-	Mapping  string        `json:"mapping,omitempty"`
-	Enabled  bool          `json:"enabled"`
-	Role     string        `json:"role,omitempty"`
-	Layer    string        `json:"layer,omitempty"`
-	Scope    *ProjectScope `json:"scope,omitempty"`
+	ID        string        `json:"id"`
+	Entity    string        `json:"entity"`
+	Field     string        `json:"field,omitempty"`
+	Value     ValueView     `json:"value"`
+	Condition string        `json:"condition,omitempty"`
+	Origin    string        `json:"origin"`
+	Physical  *PhysicalRef  `json:"physical,omitempty"`
+	Mapping   string        `json:"mapping,omitempty"`
+	Enabled   bool          `json:"enabled"`
+	Role      string        `json:"role,omitempty"`
+	Layer     string        `json:"layer,omitempty"`
+	Scope     *ProjectScope `json:"scope,omitempty"`
 }
 
 func VisibleFact(fact Fact) FactView {
 	return FactView{
 		ID: fact.ID, Entity: fact.Entity, Field: fact.Field, Value: VisibleValue(fact.Value),
-		Origin: fact.Origin, Physical: clonePhysicalRef(fact.Physical), Mapping: fact.Mapping, Enabled: fact.Enabled,
+		Condition: fact.Condition, Origin: fact.Origin, Physical: clonePhysicalRef(fact.Physical), Mapping: fact.Mapping, Enabled: fact.Enabled,
 		Role: fact.Role, Layer: fact.Layer, Scope: cloneProjectScope(fact.Scope),
 	}
 }
@@ -93,7 +94,7 @@ func RedactedFact(fact Fact, includeField bool) FactView {
 	}
 	return FactView{
 		ID: fact.ID, Entity: fact.Entity, Field: field, Value: RedactedValue(),
-		Origin: fact.Origin, Enabled: fact.Enabled, Role: fact.Role, Layer: fact.Layer,
+		Condition: fact.Condition, Origin: fact.Origin, Enabled: fact.Enabled, Role: fact.Role, Layer: fact.Layer,
 		Scope: cloneProjectScope(fact.Scope),
 	}
 }
@@ -130,13 +131,22 @@ func (f FactView) Validate() error {
 		}
 		canonical := Fact{
 			ID: f.ID, Entity: f.Entity, Field: f.Field, Value: *f.Value.Value,
-			Origin: f.Origin, Physical: f.Physical, Mapping: f.Mapping, Enabled: f.Enabled,
+			Condition: f.Condition, Origin: f.Origin, Physical: f.Physical, Mapping: f.Mapping, Enabled: f.Enabled,
 			Role: f.Role, Layer: f.Layer, Scope: f.Scope,
 		}
 		return canonical.Validate()
 	}
 	if err := requireOneOf("origin", f.Origin, FactOriginSelection, FactOriginContext, FactOriginManual); err != nil {
 		return err
+	}
+	if f.Condition != "" {
+		if err := requireOneOf("condition", f.Condition,
+			FactConditionEqual, FactConditionNotEqual,
+			FactConditionGreaterThan, FactConditionGreaterThanOrEqual,
+			FactConditionLessThan, FactConditionLessThanOrEqual,
+		); err != nil {
+			return err
+		}
 	}
 	if f.Physical != nil || f.Mapping != "" {
 		return fmt.Errorf("redacted fact view cannot expose physical mapping")

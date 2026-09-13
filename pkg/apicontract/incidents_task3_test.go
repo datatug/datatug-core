@@ -155,12 +155,17 @@ func TestIncidentCreateBindsFactScopesToRequestProjects(t *testing.T) {
 	secondary := incidents.ProjectRef{StoreID: "warehouse", ProjectID: "payments", Environment: "staging"}
 	fact := investigation.Fact{
 		ID: "customer-id", Entity: "Customer", Field: "ID", Value: NewIntegerValue("5"),
-		Origin: FactOriginManual, Enabled: true, Scope: &primaryScope,
+		Condition: investigation.FactConditionGreaterThan, Origin: FactOriginManual, Enabled: true, Scope: &primaryScope,
 	}
 	request := IncidentCreateRequest{IncidentScope: primary, MutationID: "create-1", Title: "Invoice issue", Projects: []incidents.ProjectRef{secondary}}
 	request.CanonicalContext.Facts = []investigation.Fact{fact}
 	require.NoError(t, request.Validate())
 	require.NoError(t, request.ValidateResolvedProject(primaryScope))
+	wire, err := json.Marshal(request)
+	require.NoError(t, err)
+	var decoded IncidentCreateRequest
+	require.NoError(t, DecodeStrict(wire, &decoded))
+	require.Equal(t, investigation.FactConditionGreaterThan, decoded.CanonicalContext.Facts[0].Condition)
 
 	dedicated := request
 	dedicatedScope := primaryScope
@@ -205,7 +210,7 @@ func TestIncidentReadEnvelopesCarryRedactionWithoutPhysicalMapping(t *testing.T)
 	stored := validIncidentProjection("INC-1")
 	stored.CanonicalContext = investigation.Context{Facts: []investigation.Fact{{
 		ID: "customer-email", Entity: "Customer", Field: "Email",
-		Value: investigation.NewStringValue("secret@example.com"), Origin: investigation.FactOriginContext,
+		Value: investigation.NewStringValue("secret@example.com"), Condition: investigation.FactConditionNotEqual, Origin: investigation.FactOriginContext,
 		Physical: &investigation.PhysicalRef{Source: "crm", Collection: "Customer", Column: "Email"},
 		Enabled:  true, Layer: "canonical",
 	}}}
@@ -213,6 +218,7 @@ func TestIncidentReadEnvelopesCarryRedactionWithoutPhysicalMapping(t *testing.T)
 		stored.CanonicalContext.Facts[0].Key(): incidents.FactValueRedacted,
 	}})
 	redactedEvent := redactedCreatedEvent(t, view)
+	require.Equal(t, investigation.FactConditionNotEqual, view.CanonicalContext.Facts[0].Condition)
 
 	source := view
 	source.Ref.IncidentID = "INC-2"

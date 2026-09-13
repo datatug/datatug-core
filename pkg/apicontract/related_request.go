@@ -36,6 +36,9 @@ func (r RelatedRequest) Validate() error {
 	if err := r.Fact.Validate(); err != nil {
 		return &ValidationError{Field: "fact", Message: err.Error()}
 	}
+	if r.Fact.Condition != "" && r.Fact.Condition != FactConditionEqual {
+		return &ValidationError{Field: "fact", Message: fmt.Sprintf("condition %q is not supported for related discovery", r.Fact.Condition)}
+	}
 	if r.Limit != nil {
 		if *r.Limit <= 0 || *r.Limit > relatedMaxItems {
 			return &ValidationError{Field: "limit", Message: fmt.Sprintf("must be between 1 and %d, got %d", relatedMaxItems, *r.Limit)}

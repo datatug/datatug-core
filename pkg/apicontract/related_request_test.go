@@ -81,6 +81,18 @@ func TestRelatedRequest_Validate_InvalidFact(t *testing.T) {
 	}
 }
 
+func TestRelatedRequest_Validate_RejectsUnsupportedPredicate(t *testing.T) {
+	r := validRelatedRequest()
+	r.Fact.Condition = FactConditionLessThan
+	if err := r.Validate(); err == nil {
+		t.Error("expected non-equality predicate to fail closed for related discovery")
+	}
+	r.Fact.Condition = FactConditionEqual
+	if err := r.Validate(); err != nil {
+		t.Errorf("expected explicit equality to remain supported, got: %v", err)
+	}
+}
+
 func TestRelatedRequest_Validate_Limit(t *testing.T) {
 	within := validRelatedRequest()
 	limit := 50
