@@ -10,7 +10,7 @@ on:
       - 'src/**'
       - '.github/workflows/*.yml'
     tags:
-      - 'v[0-9]+\.[0-9]+\.[0-9]+' # Push events to matching v*, i.e. v20.15.10
+      - 'v[0-9]+.[0-9]+.[0-9]+' # Push events to matching v*, i.e. v20.15.10
   pull_request:
     branches:
       - '**'
@@ -19,6 +19,10 @@ on:
       - '**/*.go'
       - 'src/**'
       - '.github/workflows/*.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
 
