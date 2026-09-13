@@ -4,30 +4,40 @@ import "fmt"
 
 // RelatedRowsRequest is POST semantic/related/rows's request body: "Scope +
 // {lookupId:string,value:TypedValue,limit?:number}" - api-contract.md
-// "Endpoint table". Scope's three fields are flattened into the top level of
-// the JSON body, exactly like ExecutionRequest, never nested under a
-// "scope" key - confirmed against the live server (Task 12 lane S77).
+// "Endpoint table". Scope's fields are flattened into the top level of the
+// JSON body, exactly like ExecutionRequest, never nested under a "scope" key.
+// StoreID is additive and optional for legacy single-store callers; when it is
+// omitted, the server resolves the configured primary store.
 // LookupID is "an opaque handle to a server-validated relationship... not
 // authority. Each rows request revalidates the relationship, value type,
 // current source policy and limit" (api-contract.md "Bounded lookups and
 // HTTP") - this type only enforces it is present and nonempty; the server
 // revalidates everything it names.
 type RelatedRowsRequest struct {
+	StoreID           string     `json:"storeId,omitempty"`
 	Project           string     `json:"project"`
 	Environment       string     `json:"environment"`
 	SecurityContextID string     `json:"securityContextId"`
 	LookupID          string     `json:"lookupId"`
 	Value             TypedValue `json:"value"`
 	Limit             *int       `json:"limit,omitempty"`
+	Record            bool       `json:"record,omitempty"`
+	Snapshot          bool       `json:"snapshot,omitempty"`
 }
 
 // Validate enforces Project/Environment/SecurityContextID and LookupID are
-// required, Value is itself valid, and Limit, when present, is within
+// required, validates StoreID when supplied, validates Value, and requires
+// Limit, when present, to be within
 // (0, executionMaxLimit] - this endpoint returns a Result, the same shape
 // exec/run_query returns, so it is bound by the same "Default result limit
 // is 100 and maximum is 500" rule (api-contract.md "Bounded lookups and
 // HTTP") ExecutionRequest.Limit already enforces.
 func (r RelatedRowsRequest) Validate() error {
+	if r.StoreID != "" {
+		if err := (Scope{StoreID: r.StoreID, Project: r.Project, Environment: r.Environment, SecurityContextID: r.SecurityContextID}).Validate(); err != nil {
+			return err
+		}
+	}
 	if err := requireNonEmpty("project", r.Project); err != nil {
 		return err
 	}
@@ -47,6 +57,9 @@ func (r RelatedRowsRequest) Validate() error {
 		if *r.Limit <= 0 || *r.Limit > executionMaxLimit {
 			return &ValidationError{Field: "limit", Message: fmt.Sprintf("must be between 1 and %d, got %d", executionMaxLimit, *r.Limit)}
 		}
+	}
+	if r.Snapshot && !r.Record {
+		return &ValidationError{Field: "snapshot", Message: "requires record to be true"}
 	}
 	return nil
 }

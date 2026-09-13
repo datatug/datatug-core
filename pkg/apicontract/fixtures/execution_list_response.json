@@ -1,0 +1,32 @@
+{
+  "executions": [
+    {
+      "ref": {
+        "storeId": "evidence",
+        "projectId": "billing",
+        "executionId": "exec-1"
+      },
+      "scope": {
+        "storeId": "source-store",
+        "project": "billing",
+        "environment": "production"
+      },
+      "queryId": "invoices/stuck",
+      "queryRevision": "e01d44c",
+      "executedAt": "2026-09-13T10:00:00Z",
+      "durationMs": 42,
+      "rowCount": 1,
+      "resultFingerprint": "ea45c1edea9daf92a2341c73efe178589be648542483a5e9bd6d2fd621ee9f0d",
+      "snapshotRef": "snapshot-1",
+      "snapshotState": {
+        "availability": "available",
+        "changedAt": "2026-09-13T10:00:00Z"
+      },
+      "incident": {
+        "storeId": "incidents",
+        "incidentId": "INC-1"
+      }
+    }
+  ],
+  "truncated": false
+}

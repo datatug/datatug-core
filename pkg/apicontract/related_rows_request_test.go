@@ -7,6 +7,7 @@ import (
 
 func validRelatedRowsRequest() RelatedRowsRequest {
 	return RelatedRowsRequest{
+		StoreID:           "project-store",
 		Project:           "demo-project-1",
 		Environment:       "local",
 		SecurityContextID: "sc1",
@@ -27,7 +28,7 @@ func TestRelatedRowsRequest_JSONFieldNames(t *testing.T) {
 	if err := json.Unmarshal(data, &generic); err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"project", "environment", "securityContextId", "lookupId", "value", "limit"} {
+	for _, key := range []string{"storeId", "project", "environment", "securityContextId", "lookupId", "value", "limit"} {
 		if _, ok := generic[key]; !ok {
 			t.Errorf("missing key %q in %s", key, data)
 		}
@@ -35,7 +36,9 @@ func TestRelatedRowsRequest_JSONFieldNames(t *testing.T) {
 }
 
 func TestRelatedRowsRequest_JSONFieldNames_LimitOmittedWhenAbsent(t *testing.T) {
-	data, err := json.Marshal(validRelatedRowsRequest())
+	request := validRelatedRowsRequest()
+	request.StoreID = ""
+	data, err := json.Marshal(request)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,15 +49,59 @@ func TestRelatedRowsRequest_JSONFieldNames_LimitOmittedWhenAbsent(t *testing.T) 
 	if _, ok := generic["limit"]; ok {
 		t.Errorf("expected %q to be omitted when absent, got %s", "limit", data)
 	}
+	for _, key := range []string{"storeId", "record", "snapshot"} {
+		if _, ok := generic[key]; ok {
+			t.Errorf("expected %q to be omitted when absent, got %s", key, data)
+		}
+	}
+}
+
+func TestRelatedRowsRequest_RecordAndSnapshot(t *testing.T) {
+	recorded := validRelatedRowsRequest()
+	recorded.Record = true
+	recorded.Snapshot = true
+	if err := recorded.Validate(); err != nil {
+		t.Fatalf("recorded snapshot should be valid: %v", err)
+	}
+	data, err := json.Marshal(recorded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var generic map[string]json.RawMessage
+	if err := json.Unmarshal(data, &generic); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"record", "snapshot"} {
+		if _, ok := generic[key]; !ok {
+			t.Errorf("missing key %q in %s", key, data)
+		}
+	}
+
+	withoutRecord := validRelatedRowsRequest()
+	withoutRecord.Snapshot = true
+	if err := withoutRecord.Validate(); err == nil {
+		t.Fatal("snapshot without record should be rejected")
+	}
 }
 
 func TestRelatedRowsRequest_Validate_Valid(t *testing.T) {
 	if err := validRelatedRowsRequest().Validate(); err != nil {
 		t.Errorf("expected valid, got: %v", err)
 	}
+	legacy := validRelatedRowsRequest()
+	legacy.StoreID = ""
+	if err := legacy.Validate(); err != nil {
+		t.Errorf("expected legacy request without storeId to remain valid, got: %v", err)
+	}
 }
 
 func TestRelatedRowsRequest_Validate_RequiredScopeFields(t *testing.T) {
+	invalidStore := validRelatedRowsRequest()
+	invalidStore.StoreID = "not/canonical"
+	if err := invalidStore.Validate(); err == nil {
+		t.Error("expected an error: supplied storeId must be canonical")
+	}
+
 	missingProject := validRelatedRowsRequest()
 	missingProject.Project = ""
 	if err := missingProject.Validate(); err == nil {
@@ -71,6 +118,31 @@ func TestRelatedRowsRequest_Validate_RequiredScopeFields(t *testing.T) {
 	missingSC.SecurityContextID = ""
 	if err := missingSC.Validate(); err == nil {
 		t.Error("expected an error: missing securityContextId")
+	}
+}
+
+func TestRelatedRowsRequest_DecodeStrictQualifiedScope(t *testing.T) {
+	body := []byte(`{"storeId":"project-store","project":"demo-project-1","environment":"local","securityContextId":"sc1","lookupId":"lookup-1","value":{"type":"integer","value":"5"}}`)
+	var request RelatedRowsRequest
+	if err := DecodeStrict(body, &request); err != nil {
+		t.Fatalf("qualified related rows request rejected: %v", err)
+	}
+	if err := request.Validate(); err != nil {
+		t.Fatalf("qualified related rows request failed validation: %v", err)
+	}
+}
+
+func TestRelatedRowsRequest_DecodeStrictLegacyScope(t *testing.T) {
+	body := []byte(`{"project":"demo-project-1","environment":"local","securityContextId":"sc1","lookupId":"lookup-1","value":{"type":"integer","value":"5"}}`)
+	var request RelatedRowsRequest
+	if err := DecodeStrict(body, &request); err != nil {
+		t.Fatalf("legacy related rows request rejected: %v", err)
+	}
+	if err := request.Validate(); err != nil {
+		t.Fatalf("legacy related rows request failed validation: %v", err)
+	}
+	if request.StoreID != "" {
+		t.Fatalf("legacy request storeId = %q, want empty for server primary-store resolution", request.StoreID)
 	}
 }
 

@@ -14,7 +14,7 @@ func validResult() Result {
 			},
 		},
 		Limitations:     []Limitation{},
-		BindingsApplied: []Binding{{ParameterID: "CustomerId", Value: NewIntegerValue("5"), Origin: "selection", OriginEvidence: "client-reported"}},
+		BindingsApplied: []Binding{{ParameterID: "CustomerId", Value: ScalarValue(NewIntegerValue("5")), Origin: "selection", OriginEvidence: "client-reported", FactID: "f1"}},
 		Provenance: Provenance{
 			Source:           "chinook",
 			Mode:             "live",
@@ -45,6 +45,9 @@ func TestResult_JSONFieldNames(t *testing.T) {
 			t.Errorf("missing top-level key %q in %s", key, data)
 		}
 	}
+	if _, ok := generic["execution"]; ok {
+		t.Errorf("execution should be omitted when absent in %s", data)
+	}
 	recordset, _ := generic["recordset"].(map[string]any)
 	for _, key := range []string{"columns", "rows"} {
 		if _, ok := recordset[key]; !ok {
@@ -56,6 +59,42 @@ func TestResult_JSONFieldNames(t *testing.T) {
 		if _, ok := provenance[key]; !ok {
 			t.Errorf("missing provenance key %q", key)
 		}
+	}
+}
+
+func TestResult_Execution(t *testing.T) {
+	recorded := validResult()
+	recorded.Execution = &ExecutionRef{StoreID: "evidence", ProjectID: "billing", ExecutionID: "exec-1"}
+	if err := recorded.Validate(); err != nil {
+		t.Fatalf("recorded result should be valid: %v", err)
+	}
+	data, err := json.Marshal(recorded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var generic map[string]json.RawMessage
+	if err := json.Unmarshal(data, &generic); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := generic["execution"]; !ok {
+		t.Fatalf("execution missing from %s", data)
+	}
+
+	recorded.Execution.ExecutionID = "bad/id"
+	if err := recorded.Validate(); err == nil {
+		t.Fatal("non-canonical execution ref should be rejected")
+	}
+	var legacy Result
+	if err := DecodeStrict([]byte(`{"recordset":{"columns":[],"rows":[]},"limitations":[],"bindingsApplied":[],"provenance":{"source":"s","mode":"live","observedAt":"2026-09-13T10:00:00Z","executionProfile":"protected"},"truncated":false,"recordId":"exec-1"}`), &legacy); err == nil {
+		t.Fatal("strict decode must reject legacy bare recordId")
+	}
+}
+
+func TestProvenance_RejectsLegacyIncident(t *testing.T) {
+	var provenance Provenance
+	data := []byte(`{"source":"chinook","mode":"live","observedAt":"2026-09-09T12:00:00Z","executionProfile":"protected","incident":{"storeId":"ops","incidentId":"INC-1"}}`)
+	if err := DecodeStrict(data, &provenance); err == nil {
+		t.Fatal("incident must have exactly one location on ExecutionRecord")
 	}
 }
 
@@ -135,7 +174,7 @@ func TestResult_Validate_InvalidLimitation(t *testing.T) {
 
 func TestResult_Validate_InvalidBindingApplied(t *testing.T) {
 	r := validResult()
-	r.BindingsApplied = []Binding{{ParameterID: "p", Value: NewIntegerValue("bad"), Origin: "selection", OriginEvidence: "client-reported"}}
+	r.BindingsApplied = []Binding{{ParameterID: "p", Value: ScalarValue(NewIntegerValue("bad")), Origin: "selection", OriginEvidence: "client-reported", FactID: "f1"}}
 	if err := r.Validate(); err == nil {
 		t.Error("expected an error: invalid applied binding")
 	}

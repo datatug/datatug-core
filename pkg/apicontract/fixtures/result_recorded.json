@@ -1,0 +1,45 @@
+{
+  "recordset": {
+    "columns": [
+      {
+        "name": "InvoiceId",
+        "type": "integer"
+      }
+    ],
+    "rows": [
+      [
+        {
+          "type": "integer",
+          "value": "42"
+        }
+      ]
+    ]
+  },
+  "limitations": [],
+  "bindingsApplied": [
+    {
+      "parameterId": "CustomerId",
+      "value": {
+        "type": "integer",
+        "value": "5"
+      },
+      "origin": "selection",
+      "originEvidence": "client-reported",
+      "factId": "fact-5"
+    }
+  ],
+  "provenance": {
+    "source": "billing-db",
+    "collection": "Invoice",
+    "queryId": "invoices/stuck",
+    "mode": "live",
+    "observedAt": "2026-09-13T10:00:00Z",
+    "executionProfile": "protected"
+  },
+  "truncated": false,
+  "execution": {
+    "storeId": "evidence",
+    "projectId": "billing",
+    "executionId": "exec-1"
+  }
+}

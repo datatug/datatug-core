@@ -1,0 +1,38 @@
+{
+  "execution": {
+    "storeId": "evidence",
+    "projectId": "billing",
+    "executionId": "exec-1"
+  },
+  "snapshotRef": "snapshot-1",
+  "snapshotState": {
+    "availability": "available",
+    "changedAt": "2026-09-13T10:00:00Z"
+  },
+  "recordset": {
+    "columns": [
+      {
+        "name": "InvoiceId",
+        "type": "integer"
+      }
+    ],
+    "rows": [
+      [
+        {
+          "type": "integer",
+          "value": "42"
+        }
+      ]
+    ]
+  },
+  "limitations": [
+    {
+      "policy": "support",
+      "rowsFiltered": false,
+      "hiddenColumns": [
+        "Customer.Email"
+      ]
+    }
+  ],
+  "truncated": true
+}

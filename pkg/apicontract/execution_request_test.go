@@ -11,8 +11,8 @@ func validExecutionRequestSaved() ExecutionRequest {
 		Environment:       "local",
 		SecurityContextID: "sc1",
 		QueryID:           "customers/customer-purchases-by-genre",
-		Parameters:        map[string]TypedValue{"CustomerId": NewIntegerValue("5")},
-		BindingOrigins:    []BindingOriginEntry{{ParameterID: "CustomerId", Origin: "selection"}},
+		Parameters:        map[string]TypedValueOrSet{"CustomerId": ScalarValue(NewIntegerValue("5"))},
+		BindingOrigins:    []BindingOriginEntry{{ParameterID: "CustomerId", Origin: "selection", FactID: "f1"}},
 		Mode:              "live",
 	}
 }
@@ -32,10 +32,90 @@ func TestExecutionRequest_JSONFieldNames(t *testing.T) {
 			t.Errorf("missing key %q in %s", key, data)
 		}
 	}
-	for _, key := range []string{"storeId", "source", "dtql", "snapshotId", "limit", "incident"} {
+	for _, key := range []string{"storeId", "source", "dtql", "snapshotId", "limit", "incident", "record", "snapshot", "measurementProjections"} {
 		if _, ok := generic[key]; ok {
 			t.Errorf("expected %q to be omitted when absent, got %s", key, data)
 		}
+	}
+}
+
+func TestExecutionRequest_RecordAndSnapshot(t *testing.T) {
+	recorded := validExecutionRequestSaved()
+	recorded.Record = true
+	recorded.Snapshot = true
+	if err := recorded.Validate(); err != nil {
+		t.Fatalf("recorded snapshot should be valid: %v", err)
+	}
+	data, err := json.Marshal(recorded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var generic map[string]json.RawMessage
+	if err := json.Unmarshal(data, &generic); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"record", "snapshot"} {
+		if _, ok := generic[key]; !ok {
+			t.Errorf("missing key %q in %s", key, data)
+		}
+	}
+
+	withoutRecord := validExecutionRequestSaved()
+	withoutRecord.Snapshot = true
+	if err := withoutRecord.Validate(); err == nil {
+		t.Fatal("snapshot without record should be rejected")
+	}
+}
+
+func TestExecutionRequest_MeasurementProjectionsRequireRecordingAndUniqueIDs(t *testing.T) {
+	request := validExecutionRequestSaved()
+	request.Record = true
+	request.MeasurementProjections = []MeasurementProjection{
+		{ID: "row-count", Aggregate: MeasurementAggregateRowCount},
+		{ID: "total", Column: "Total", Aggregate: MeasurementAggregateSum},
+	}
+	if err := request.Validate(); err != nil {
+		t.Fatalf("valid measurement projections rejected: %v", err)
+	}
+	withoutRecord := request
+	withoutRecord.Record = false
+	if err := withoutRecord.Validate(); err == nil {
+		t.Fatal("measurement projections without recording should be rejected")
+	}
+	duplicate := request
+	duplicate.MeasurementProjections = append([]MeasurementProjection(nil), request.MeasurementProjections...)
+	duplicate.MeasurementProjections[1].ID = "row-count"
+	if err := duplicate.Validate(); err == nil {
+		t.Fatal("duplicate projection ids should be rejected")
+	}
+	badShape := request
+	badShape.MeasurementProjections = []MeasurementProjection{{ID: "bad", Column: "Total", Aggregate: MeasurementAggregateRowCount}}
+	if err := badShape.Validate(); err == nil {
+		t.Fatal("rowCount with a column should be rejected")
+	}
+}
+
+func TestExecutionRequest_SetBindingAndAdHocRejection(t *testing.T) {
+	set := mustTypedValueSet(t, NewIntegerValue("1"), NewIntegerValue("2"))
+	request := validExecutionRequestSaved()
+	request.Parameters["CustomerId"] = SetValue(set)
+	request.BindingOrigins[0].FactID = ""
+	request.BindingOrigins[0].ValueFactIDs = [][]string{{"fact-1"}, {"fact-2"}}
+	if err := request.Validate(); err != nil {
+		t.Fatalf("valid saved-query set rejected: %v", err)
+	}
+	misaligned := request
+	misaligned.BindingOrigins = append([]BindingOriginEntry(nil), request.BindingOrigins...)
+	misaligned.BindingOrigins[0].ValueFactIDs = [][]string{{"fact-1"}}
+	if err := misaligned.Validate(); err == nil {
+		t.Fatal("misaligned set provenance should be rejected")
+	}
+	adhoc := request
+	adhoc.QueryID = ""
+	adhoc.DTQL = "from: Customer"
+	adhoc.Source = "source-1"
+	if err := adhoc.Validate(); err == nil {
+		t.Fatal("ad-hoc DTQL must reject set values")
 	}
 }
 
@@ -84,7 +164,7 @@ func TestExecutionRequest_Validate_RequiredScopeFields(t *testing.T) {
 
 func TestExecutionRequest_Validate_UnknownParameterValue(t *testing.T) {
 	r := validExecutionRequestSaved()
-	r.Parameters["CustomerId"] = NewIntegerValue("not-canonical")
+	r.Parameters["CustomerId"] = ScalarValue(NewIntegerValue("not-canonical"))
 	if err := r.Validate(); err == nil {
 		t.Error("expected an error: invalid parameter value")
 	}
@@ -99,7 +179,7 @@ func TestExecutionRequest_Validate_BindingOriginsMustMatchParameterKeysExactly(t
 	}
 
 	missing := validExecutionRequestSaved()
-	missing.Parameters["Extra"] = NewStringValue("x")
+	missing.Parameters["Extra"] = ScalarValue(NewStringValue("x"))
 	if err := missing.Validate(); err == nil {
 		t.Error("expected an error: parameters has a key with no matching bindingOrigins entry")
 	}

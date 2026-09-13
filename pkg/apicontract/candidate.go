@@ -27,16 +27,29 @@ func (t CandidateTarget) Validate() error {
 // derived - declared, inferred or manual - distinctly. "a missing parameter
 // still has an explanation."
 type ChainStep struct {
-	ParameterID string `json:"parameterId"`
-	FactID      string `json:"factId,omitempty"`
-	Explanation string `json:"explanation"`
+	ParameterID  string     `json:"parameterId"`
+	FactID       string     `json:"factId,omitempty"`
+	ValueFactIDs [][]string `json:"valueFactIds,omitempty"`
+	Explanation  string     `json:"explanation"`
 }
 
 func (c ChainStep) Validate() error {
-	if err := requireNonEmpty("parameterId", c.ParameterID); err != nil {
+	if err := requireCanonicalString("parameterId", c.ParameterID); err != nil {
 		return err
 	}
-	return requireNonEmpty("explanation", c.Explanation)
+	if err := requireNonEmpty("explanation", c.Explanation); err != nil {
+		return err
+	}
+	if c.FactID != "" && c.ValueFactIDs != nil {
+		return &ValidationError{Field: "factId/valueFactIds", Message: "must not both be present"}
+	}
+	if c.FactID != "" {
+		return validateFactID("factId", c.FactID)
+	}
+	if c.ValueFactIDs != nil {
+		return validateFactIDGroups(c.ValueFactIDs)
+	}
+	return nil
 }
 
 // Ambiguous names a parameter with more than one distinct candidate value
@@ -88,14 +101,33 @@ func (c Candidate) Validate() error {
 	if c.SelectedSource != "" && len(c.Targets) != 1 {
 		return &ValidationError{Field: "selectedSource", Message: fmt.Sprintf("must be set only when exactly one target remains, got %d", len(c.Targets))}
 	}
-	for i, b := range c.Bindings {
-		if err := b.Validate(); err != nil {
-			return &ValidationError{Field: "bindings", Message: fmt.Sprintf("index %d: %s", i, err)}
-		}
+	if err := validateBindings("bindings", c.Bindings); err != nil {
+		return err
 	}
+	bindingsByParameter := make(map[string]Binding, len(c.Bindings))
+	for _, binding := range c.Bindings {
+		bindingsByParameter[binding.ParameterID] = binding
+	}
+	chainByParameter := make(map[string]ChainStep, len(c.Chain))
 	for i, step := range c.Chain {
 		if err := step.Validate(); err != nil {
 			return &ValidationError{Field: "chain", Message: fmt.Sprintf("index %d: %s", i, err)}
+		}
+		if _, exists := chainByParameter[step.ParameterID]; exists {
+			return &ValidationError{Field: "chain", Message: fmt.Sprintf("duplicate parameter %q", step.ParameterID)}
+		}
+		chainByParameter[step.ParameterID] = step
+		if binding, bound := bindingsByParameter[step.ParameterID]; bound {
+			if binding.FactID != step.FactID || !equalFactIDGroups(binding.ValueFactIDs, step.ValueFactIDs) {
+				return &ValidationError{Field: "chain", Message: fmt.Sprintf("parameter %q provenance must match its binding", step.ParameterID)}
+			}
+		} else if step.FactID != "" || step.ValueFactIDs != nil {
+			return &ValidationError{Field: "chain", Message: fmt.Sprintf("parameter %q attributes facts without a binding", step.ParameterID)}
+		}
+	}
+	for _, binding := range c.Bindings {
+		if _, exists := chainByParameter[binding.ParameterID]; !exists {
+			return &ValidationError{Field: "chain", Message: fmt.Sprintf("missing step for bound parameter %q", binding.ParameterID)}
 		}
 	}
 	for i, a := range c.Ambiguous {
@@ -107,4 +139,21 @@ func (c Candidate) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func equalFactIDGroups(left, right [][]string) bool {
+	if (left == nil) != (right == nil) || len(left) != len(right) {
+		return false
+	}
+	for i := range left {
+		if len(left[i]) != len(right[i]) {
+			return false
+		}
+		for j := range left[i] {
+			if left[i][j] != right[i][j] {
+				return false
+			}
+		}
+	}
+	return true
 }

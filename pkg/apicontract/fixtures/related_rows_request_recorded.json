@@ -1,0 +1,13 @@
+{
+  "storeId": "project-store",
+  "project": "billing",
+  "environment": "production",
+  "securityContextId": "sc-abc123",
+  "lookupId": "invoices/by-customer",
+  "value": {
+    "type": "integer",
+    "value": "5"
+  },
+  "record": true,
+  "snapshot": true
+}

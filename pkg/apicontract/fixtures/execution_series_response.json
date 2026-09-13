@@ -1,0 +1,28 @@
+{
+  "points": [
+    {
+      "executedAt": "2026-09-13T10:00:00Z",
+      "execution": {
+        "storeId": "evidence",
+        "projectId": "billing",
+        "executionId": "exec-1"
+      },
+      "completeness": "complete",
+      "value": {
+        "type": "integer",
+        "value": "1"
+      }
+    },
+    {
+      "executedAt": "2026-09-13T11:00:00Z",
+      "execution": {
+        "storeId": "evidence",
+        "projectId": "billing",
+        "executionId": "exec-2"
+      },
+      "completeness": "unavailable",
+      "reason": "truncated"
+    }
+  ],
+  "omitted": true
+}

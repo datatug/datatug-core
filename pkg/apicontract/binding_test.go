@@ -8,7 +8,7 @@ import (
 func TestBinding_JSONFieldNames(t *testing.T) {
 	b := Binding{
 		ParameterID:    "CustomerId",
-		Value:          NewIntegerValue("5"),
+		Value:          ScalarValue(NewIntegerValue("5")),
 		Origin:         "selection",
 		OriginEvidence: "client-reported",
 		FactID:         "f1",
@@ -24,7 +24,7 @@ func TestBinding_JSONFieldNames(t *testing.T) {
 }
 
 func TestBinding_FactIDOmittedWhenAbsent(t *testing.T) {
-	b := Binding{ParameterID: "CustomerId", Value: NewIntegerValue("5"), Origin: "default", OriginEvidence: "server-default"}
+	b := Binding{ParameterID: "CustomerId", Value: ScalarValue(NewIntegerValue("5")), Origin: "default", OriginEvidence: "server-default"}
 	data, err := json.Marshal(b)
 	if err != nil {
 		t.Fatal(err)
@@ -36,12 +36,12 @@ func TestBinding_FactIDOmittedWhenAbsent(t *testing.T) {
 }
 
 func TestBinding_Validate(t *testing.T) {
-	valid := Binding{ParameterID: "CustomerId", Value: NewIntegerValue("5"), Origin: "selection", OriginEvidence: "client-reported"}
+	valid := Binding{ParameterID: "CustomerId", Value: ScalarValue(NewIntegerValue("5")), Origin: "selection", OriginEvidence: "client-reported", FactID: "f1"}
 	if err := valid.Validate(); err != nil {
 		t.Errorf("expected valid, got: %v", err)
 	}
 
-	validDefault := Binding{ParameterID: "CustomerId", Value: NewIntegerValue("5"), Origin: "default", OriginEvidence: "server-default"}
+	validDefault := Binding{ParameterID: "CustomerId", Value: ScalarValue(NewIntegerValue("5")), Origin: "default", OriginEvidence: "server-default"}
 	if err := validDefault.Validate(); err != nil {
 		t.Errorf("expected valid, got: %v", err)
 	}
@@ -66,7 +66,7 @@ func TestBinding_Validate(t *testing.T) {
 }
 
 func TestBinding_Validate_InvalidValue(t *testing.T) {
-	b := Binding{ParameterID: "p", Value: NewIntegerValue("not-canonical"), Origin: "selection", OriginEvidence: "client-reported"}
+	b := Binding{ParameterID: "p", Value: ScalarValue(NewIntegerValue("not-canonical")), Origin: "selection", OriginEvidence: "client-reported", FactID: "f1"}
 	if err := b.Validate(); err == nil {
 		t.Error("expected an error: invalid value")
 	}
@@ -77,12 +77,12 @@ func TestBinding_ServerDefaultOriginEvidencePairing(t *testing.T) {
 	// validated against the query definition" - and conversely a
 	// selection/context/manual origin's binding "remains explicitly
 	// client-reported" - so the two fields cannot be mismatched.
-	mismatched := Binding{ParameterID: "p", Value: NewBooleanValue(true), Origin: "default", OriginEvidence: "client-reported"}
+	mismatched := Binding{ParameterID: "p", Value: ScalarValue(NewBooleanValue(true)), Origin: "default", OriginEvidence: "client-reported"}
 	if err := mismatched.Validate(); err == nil {
 		t.Error("expected an error: origin=default must pair with originEvidence=server-default")
 	}
 
-	mismatched2 := Binding{ParameterID: "p", Value: NewBooleanValue(true), Origin: "selection", OriginEvidence: "server-default"}
+	mismatched2 := Binding{ParameterID: "p", Value: ScalarValue(NewBooleanValue(true)), Origin: "selection", OriginEvidence: "server-default", FactID: "f1"}
 	if err := mismatched2.Validate(); err == nil {
 		t.Error("expected an error: a client origin must not be labeled server-default")
 	}
