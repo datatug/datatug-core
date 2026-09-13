@@ -1,11 +1,16 @@
 {
-  "id": "exec-1",
+  "ref": {
+    "storeId": "evidence",
+    "projectId": "billing",
+    "executionId": "exec-1"
+  },
   "scope": {
+    "storeId": "source-store",
     "project": "billing",
     "environment": "production"
   },
   "queryId": "invoices/stuck",
-  "queryRevision": "a837758",
+  "queryRevision": "e01d44c",
   "parameters": {
     "CustomerId": {
       "type": "integer",
@@ -20,7 +25,8 @@
         "value": "5"
       },
       "origin": "selection",
-      "originEvidence": "client-reported"
+      "originEvidence": "client-reported",
+      "factId": "fact-5"
     }
   ],
   "principal": {
@@ -32,6 +38,7 @@
       "support"
     ]
   },
+  "policyFingerprint": "aa02d5bbadc86d4f9ef4d3131f64fe120f0d2e9d7f04b5f75214d4ef60b9c8ba",
   "executedAt": "2026-09-13T10:00:00Z",
   "durationMs": 42,
   "limitations": [],
@@ -41,13 +48,49 @@
     "queryId": "invoices/stuck",
     "mode": "live",
     "observedAt": "2026-09-13T10:00:00Z",
-    "executionProfile": "protected",
-    "incident": {
-      "storeId": "ops",
-      "incidentId": "INC-1"
-    }
+    "executionProfile": "protected"
   },
+  "authorizedFields": [
+    {
+      "storeId": "source-store",
+      "project": "billing",
+      "environment": "production",
+      "source": "billing-db",
+      "collection": "Invoice",
+      "column": "Total",
+      "entity": "Invoice",
+      "field": "Total"
+    }
+  ],
   "rowCount": 2,
   "resultFingerprint": "aa02d5bbadc86d4f9ef4d3131f64fe120f0d2e9d7f04b5f75214d4ef60b9c8ba",
-  "snapshotRef": "snapshot-1"
+  "snapshotRef": "snapshot-1",
+  "incident": {
+    "storeId": "incidents",
+    "incidentId": "INC-1"
+  },
+  "grantUses": [
+    {
+      "incident": {
+        "storeId": "incidents",
+        "incidentId": "INC-1"
+      },
+      "grantId": "grant-1",
+      "approvalMutationId": "approve-1"
+    }
+  ],
+  "measurements": [
+    {
+      "projection": {
+        "id": "invoice-total",
+        "column": "Total",
+        "aggregate": "sum"
+      },
+      "completeness": "complete",
+      "value": {
+        "type": "decimal",
+        "value": "19.95"
+      }
+    }
+  ]
 }

@@ -27,16 +27,29 @@ func (t CandidateTarget) Validate() error {
 // derived - declared, inferred or manual - distinctly. "a missing parameter
 // still has an explanation."
 type ChainStep struct {
-	ParameterID string `json:"parameterId"`
-	FactID      string `json:"factId,omitempty"`
-	Explanation string `json:"explanation"`
+	ParameterID  string     `json:"parameterId"`
+	FactID       string     `json:"factId,omitempty"`
+	ValueFactIDs [][]string `json:"valueFactIds,omitempty"`
+	Explanation  string     `json:"explanation"`
 }
 
 func (c ChainStep) Validate() error {
-	if err := requireNonEmpty("parameterId", c.ParameterID); err != nil {
+	if err := requireCanonicalString("parameterId", c.ParameterID); err != nil {
 		return err
 	}
-	return requireNonEmpty("explanation", c.Explanation)
+	if err := requireNonEmpty("explanation", c.Explanation); err != nil {
+		return err
+	}
+	if c.FactID != "" && c.ValueFactIDs != nil {
+		return &ValidationError{Field: "factId/valueFactIds", Message: "must not both be present"}
+	}
+	if c.FactID != "" {
+		return validateFactID("factId", c.FactID)
+	}
+	if c.ValueFactIDs != nil {
+		return validateFactIDGroups(c.ValueFactIDs)
+	}
+	return nil
 }
 
 // Ambiguous names a parameter with more than one distinct candidate value

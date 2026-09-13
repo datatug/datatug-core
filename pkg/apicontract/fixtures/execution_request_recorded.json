@@ -12,5 +12,11 @@
     "incidentId": "INC-1"
   },
   "record": true,
-  "snapshot": true
+  "snapshot": true,
+  "measurementProjections": [
+    {
+      "id": "row-count",
+      "aggregate": "rowCount"
+    }
+  ]
 }

@@ -1,9 +1,23 @@
 {
-  "storeId": "ops",
+  "storeId": "evidence",
   "project": "billing",
   "environment": "production",
   "securityContextId": "sc-abc123",
-  "queryId": "invoices/stuck",
-  "bindingsApplied": [],
-  "projection": {}
+  "partition": {
+    "evidenceStoreId": "evidence",
+    "sourceScope": {
+      "storeId": "source-store",
+      "project": "billing",
+      "environment": "production"
+    },
+    "source": "billing-db",
+    "policyFingerprint": "aa02d5bbadc86d4f9ef4d3131f64fe120f0d2e9d7f04b5f75214d4ef60b9c8ba",
+    "queryId": "invoices/stuck",
+    "queryRevision": "e01d44c",
+    "bindingsApplied": [],
+    "projection": {
+      "id": "row-count",
+      "aggregate": "rowCount"
+    }
+  }
 }

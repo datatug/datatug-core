@@ -23,12 +23,12 @@
     "queryId": "invoices/stuck",
     "mode": "live",
     "observedAt": "2026-09-13T10:00:00Z",
-    "executionProfile": "protected",
-    "incident": {
-      "storeId": "ops",
-      "incidentId": "INC-1"
-    }
+    "executionProfile": "protected"
   },
   "truncated": false,
-  "recordId": "exec-1"
+  "execution": {
+    "storeId": "evidence",
+    "projectId": "billing",
+    "executionId": "exec-1"
+  }
 }

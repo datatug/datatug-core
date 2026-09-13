@@ -1,4 +1,13 @@
 {
-  "recordId": "exec-1",
-  "snapshotExpiredAt": "2026-10-13T10:00:00Z"
+  "execution": {
+    "storeId": "evidence",
+    "projectId": "billing",
+    "executionId": "exec-1"
+  },
+  "snapshotRef": "snapshot-1",
+  "snapshotState": {
+    "availability": "expired",
+    "changedAt": "2026-10-13T10:00:00Z",
+    "reason": "retention"
+  }
 }

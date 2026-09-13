@@ -1,5 +1,14 @@
 {
-  "recordId": "exec-1",
+  "execution": {
+    "storeId": "evidence",
+    "projectId": "billing",
+    "executionId": "exec-1"
+  },
+  "snapshotRef": "snapshot-1",
+  "snapshotState": {
+    "availability": "available",
+    "changedAt": "2026-09-13T10:00:00Z"
+  },
   "recordset": {
     "columns": [
       {

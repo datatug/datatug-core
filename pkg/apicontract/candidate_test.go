@@ -80,7 +80,7 @@ func TestCandidate_Validate(t *testing.T) {
 	}
 
 	badBinding := validCandidate()
-	badBinding.Bindings = []Binding{{ParameterID: "p", Value: NewIntegerValue("bad"), Origin: "selection", OriginEvidence: "client-reported"}}
+	badBinding.Bindings = []Binding{{ParameterID: "p", Value: ScalarValue(NewIntegerValue("bad")), Origin: "selection", OriginEvidence: "client-reported", FactID: "f1"}}
 	if err := badBinding.Validate(); err == nil {
 		t.Error("expected an error: invalid binding")
 	}

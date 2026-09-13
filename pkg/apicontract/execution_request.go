@@ -6,16 +6,29 @@ import "fmt"
 // parameter - "never influences authorization". api-contract.md
 // "Endpoint table".
 type BindingOriginEntry struct {
-	ParameterID string `json:"parameterId"`
-	Origin      string `json:"origin"` // selection | context | manual | default
-	FactID      string `json:"factId,omitempty"`
+	ParameterID  string     `json:"parameterId"`
+	Origin       string     `json:"origin"` // selection | context | manual | default
+	FactID       string     `json:"factId,omitempty"`
+	ValueFactIDs [][]string `json:"valueFactIds,omitempty"`
 }
 
 func (e BindingOriginEntry) Validate() error {
-	if err := requireNonEmpty("parameterId", e.ParameterID); err != nil {
+	if err := requireCanonicalString("parameterId", e.ParameterID); err != nil {
 		return err
 	}
-	return requireOneOf("origin", e.Origin, BindingOriginSelection, BindingOriginContext, BindingOriginManual, BindingOriginDefault)
+	if err := requireOneOf("origin", e.Origin, BindingOriginSelection, BindingOriginContext, BindingOriginManual, BindingOriginDefault); err != nil {
+		return err
+	}
+	if e.FactID != "" && e.ValueFactIDs != nil {
+		return &ValidationError{Field: "factId/valueFactIds", Message: "must not both be present"}
+	}
+	if e.FactID != "" {
+		return validateFactID("factId", e.FactID)
+	}
+	if e.ValueFactIDs != nil {
+		return validateFactIDGroups(e.ValueFactIDs)
+	}
+	return nil
 }
 
 // ExecutionRequest is POST exec/run_query's request body. "For ad-hoc DTQL,
@@ -24,21 +37,22 @@ func (e BindingOriginEntry) Validate() error {
 // silently binds from stored browser context." api-contract.md
 // "Endpoint table".
 type ExecutionRequest struct {
-	StoreID           string                `json:"storeId,omitempty"`
-	Project           string                `json:"project"`
-	Environment       string                `json:"environment"`
-	SecurityContextID string                `json:"securityContextId"`
-	Source            string                `json:"source,omitempty"`
-	QueryID           string                `json:"queryId,omitempty"`
-	DTQL              string                `json:"dtql,omitempty"`
-	Parameters        map[string]TypedValue `json:"parameters"`
-	BindingOrigins    []BindingOriginEntry  `json:"bindingOrigins"`
-	Mode              string                `json:"mode"` // live | snapshot
-	SnapshotID        string                `json:"snapshotId,omitempty"`
-	Limit             *int                  `json:"limit,omitempty"`
-	Incident          *IncidentRef          `json:"incident,omitempty"`
-	Record            bool                  `json:"record,omitempty"`
-	Snapshot          bool                  `json:"snapshot,omitempty"`
+	StoreID                string                     `json:"storeId,omitempty"`
+	Project                string                     `json:"project"`
+	Environment            string                     `json:"environment"`
+	SecurityContextID      string                     `json:"securityContextId"`
+	Source                 string                     `json:"source,omitempty"`
+	QueryID                string                     `json:"queryId,omitempty"`
+	DTQL                   string                     `json:"dtql,omitempty"`
+	Parameters             map[string]TypedValueOrSet `json:"parameters"`
+	BindingOrigins         []BindingOriginEntry       `json:"bindingOrigins"`
+	Mode                   string                     `json:"mode"` // live | snapshot
+	SnapshotID             string                     `json:"snapshotId,omitempty"`
+	Limit                  *int                       `json:"limit,omitempty"`
+	Incident               *IncidentRef               `json:"incident,omitempty"`
+	Record                 bool                       `json:"record,omitempty"`
+	Snapshot               bool                       `json:"snapshot,omitempty"`
+	MeasurementProjections []MeasurementProjection    `json:"measurementProjections,omitempty"`
 }
 
 const (
@@ -51,7 +65,7 @@ const (
 // valid; BindingOrigins is checked for exactly the submitted Parameters keys
 // - no more, no fewer - and each entry is itself valid; Mode is one of the
 // closed set, snapshot Mode requires a SnapshotID; Limit, when present, is
-// within (0, 500] - "Default result limit is 100 and maximum is 500."
+// within (0, 500]; snapshot and measurement projections require recording.
 func (r ExecutionRequest) Validate() error {
 	if r.StoreID != "" {
 		if err := (Scope{StoreID: r.StoreID, Project: r.Project, Environment: r.Environment, SecurityContextID: r.SecurityContextID}).Validate(); err != nil {
@@ -76,8 +90,14 @@ func (r ExecutionRequest) Validate() error {
 		return &ValidationError{Field: "source", Message: "is required for ad-hoc dtql"}
 	}
 	for key, value := range r.Parameters {
+		if err := requireCanonicalString("parameters", key); err != nil {
+			return err
+		}
 		if err := value.Validate(); err != nil {
 			return &ValidationError{Field: "parameters", Message: fmt.Sprintf("%s: %s", key, err)}
+		}
+		if hasDTQL && value.IsSet() {
+			return &ValidationError{Field: "parameters", Message: fmt.Sprintf("%s: set values are not accepted for ad-hoc dtql", key)}
 		}
 	}
 	submitted := make(map[string]bool, len(r.BindingOrigins))
@@ -91,6 +111,10 @@ func (r ExecutionRequest) Validate() error {
 		submitted[e.ParameterID] = true
 		if _, ok := r.Parameters[e.ParameterID]; !ok {
 			return &ValidationError{Field: "bindingOrigins", Message: fmt.Sprintf("names parameter %q, which is not in parameters", e.ParameterID)}
+		}
+		value := r.Parameters[e.ParameterID]
+		if err := validateValueFactProvenance(e.Origin, value, e.FactID, e.ValueFactIDs); err != nil {
+			return &ValidationError{Field: "bindingOrigins", Message: fmt.Sprintf("index %d: %s", i, err)}
 		}
 	}
 	for key := range r.Parameters {
@@ -118,6 +142,19 @@ func (r ExecutionRequest) Validate() error {
 	}
 	if r.Snapshot && !r.Record {
 		return &ValidationError{Field: "snapshot", Message: "requires record to be true"}
+	}
+	if len(r.MeasurementProjections) > 0 && !r.Record {
+		return &ValidationError{Field: "measurementProjections", Message: "requires record to be true"}
+	}
+	projectionIDs := make(map[string]struct{}, len(r.MeasurementProjections))
+	for i, projection := range r.MeasurementProjections {
+		if err := projection.Validate(); err != nil {
+			return &ValidationError{Field: "measurementProjections", Message: fmt.Sprintf("index %d: %s", i, err)}
+		}
+		if _, ok := projectionIDs[projection.ID]; ok {
+			return &ValidationError{Field: "measurementProjections", Message: fmt.Sprintf("duplicate id %q", projection.ID)}
+		}
+		projectionIDs[projection.ID] = struct{}{}
 	}
 	return nil
 }

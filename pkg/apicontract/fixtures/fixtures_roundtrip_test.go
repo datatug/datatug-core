@@ -55,6 +55,7 @@ func TestFixtures_RoundTrip(t *testing.T) {
 	t.Run("typed_value_date.json", func(t *testing.T) { roundTrip[apicontract.TypedValue](t, "typed_value_date.json") })
 	t.Run("typed_value_datetime.json", func(t *testing.T) { roundTrip[apicontract.TypedValue](t, "typed_value_datetime.json") })
 	t.Run("typed_value_null.json", func(t *testing.T) { roundTrip[apicontract.TypedValue](t, "typed_value_null.json") })
+	t.Run("typed_value_set.json", func(t *testing.T) { roundTrip[apicontract.TypedValueSet](t, "typed_value_set.json") })
 
 	t.Run("agent_info.json", func(t *testing.T) { roundTrip[apicontract.AgentInfo](t, "agent_info.json") })
 	t.Run("agent_info_no_principal_roles.json", func(t *testing.T) { roundTrip[apicontract.AgentInfo](t, "agent_info_no_principal_roles.json") })

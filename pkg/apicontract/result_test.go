@@ -14,7 +14,7 @@ func validResult() Result {
 			},
 		},
 		Limitations:     []Limitation{},
-		BindingsApplied: []Binding{{ParameterID: "CustomerId", Value: NewIntegerValue("5"), Origin: "selection", OriginEvidence: "client-reported"}},
+		BindingsApplied: []Binding{{ParameterID: "CustomerId", Value: ScalarValue(NewIntegerValue("5")), Origin: "selection", OriginEvidence: "client-reported", FactID: "f1"}},
 		Provenance: Provenance{
 			Source:           "chinook",
 			Mode:             "live",
@@ -45,8 +45,8 @@ func TestResult_JSONFieldNames(t *testing.T) {
 			t.Errorf("missing top-level key %q in %s", key, data)
 		}
 	}
-	if _, ok := generic["recordId"]; ok {
-		t.Errorf("recordId should be omitted when absent in %s", data)
+	if _, ok := generic["execution"]; ok {
+		t.Errorf("execution should be omitted when absent in %s", data)
 	}
 	recordset, _ := generic["recordset"].(map[string]any)
 	for _, key := range []string{"columns", "rows"} {
@@ -62,9 +62,9 @@ func TestResult_JSONFieldNames(t *testing.T) {
 	}
 }
 
-func TestResult_RecordID(t *testing.T) {
+func TestResult_Execution(t *testing.T) {
 	recorded := validResult()
-	recorded.RecordID = "exec-1"
+	recorded.Execution = &ExecutionRef{StoreID: "evidence", ProjectID: "billing", ExecutionID: "exec-1"}
 	if err := recorded.Validate(); err != nil {
 		t.Fatalf("recorded result should be valid: %v", err)
 	}
@@ -76,25 +76,25 @@ func TestResult_RecordID(t *testing.T) {
 	if err := json.Unmarshal(data, &generic); err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := generic["recordId"]; !ok {
-		t.Fatalf("recordId missing from %s", data)
+	if _, ok := generic["execution"]; !ok {
+		t.Fatalf("execution missing from %s", data)
 	}
 
-	recorded.RecordID = "bad/id"
+	recorded.Execution.ExecutionID = "bad/id"
 	if err := recorded.Validate(); err == nil {
-		t.Fatal("non-canonical recordId should be rejected")
+		t.Fatal("non-canonical execution ref should be rejected")
+	}
+	var legacy Result
+	if err := DecodeStrict([]byte(`{"recordset":{"columns":[],"rows":[]},"limitations":[],"bindingsApplied":[],"provenance":{"source":"s","mode":"live","observedAt":"2026-09-13T10:00:00Z","executionProfile":"protected"},"truncated":false,"recordId":"exec-1"}`), &legacy); err == nil {
+		t.Fatal("strict decode must reject legacy bare recordId")
 	}
 }
 
-func TestProvenance_Incident(t *testing.T) {
-	provenance := validResult().Provenance
-	provenance.Incident = &IncidentRef{StoreID: "ops", IncidentID: "INC-1"}
-	if err := provenance.Validate(); err != nil {
-		t.Fatalf("incident provenance should be valid: %v", err)
-	}
-	provenance.Incident.IncidentID = "bad/id"
-	if err := provenance.Validate(); err == nil {
-		t.Fatal("invalid incident provenance should be rejected")
+func TestProvenance_RejectsLegacyIncident(t *testing.T) {
+	var provenance Provenance
+	data := []byte(`{"source":"chinook","mode":"live","observedAt":"2026-09-09T12:00:00Z","executionProfile":"protected","incident":{"storeId":"ops","incidentId":"INC-1"}}`)
+	if err := DecodeStrict(data, &provenance); err == nil {
+		t.Fatal("incident must have exactly one location on ExecutionRecord")
 	}
 }
 
@@ -174,7 +174,7 @@ func TestResult_Validate_InvalidLimitation(t *testing.T) {
 
 func TestResult_Validate_InvalidBindingApplied(t *testing.T) {
 	r := validResult()
-	r.BindingsApplied = []Binding{{ParameterID: "p", Value: NewIntegerValue("bad"), Origin: "selection", OriginEvidence: "client-reported"}}
+	r.BindingsApplied = []Binding{{ParameterID: "p", Value: ScalarValue(NewIntegerValue("bad")), Origin: "selection", OriginEvidence: "client-reported", FactID: "f1"}}
 	if err := r.Validate(); err == nil {
 		t.Error("expected an error: invalid applied binding")
 	}
