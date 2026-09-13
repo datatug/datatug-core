@@ -1,0 +1,45 @@
+{
+  "storeId": "ops",
+  "project": "billing",
+  "environment": "prod",
+  "securityContextId": "ctx-1",
+  "mutationId": "mutation-context-add-1",
+  "incident": {
+    "storeId": "ops",
+    "incidentId": "INC-1"
+  },
+  "expectedSeq": 1,
+  "event": {
+    "at": "2026-09-13T12:01:00Z",
+    "type": "context.fact.added",
+    "assertion": {
+      "kind": "observation"
+    },
+    "refs": [
+      {
+        "kind": "hypothesis",
+        "id": "H17"
+      }
+    ],
+    "payload": {
+      "fact": {
+        "id": "customer-11",
+        "entity": "Customer",
+        "field": "ID",
+        "value": {
+          "type": "integer",
+          "value": "11"
+        },
+        "origin": "context",
+        "enabled": true,
+        "role": "suspected",
+        "layer": "hypothesis:H17",
+        "scope": {
+          "storeId": "projects",
+          "projectId": "billing",
+          "environment": "prod"
+        }
+      }
+    }
+  }
+}

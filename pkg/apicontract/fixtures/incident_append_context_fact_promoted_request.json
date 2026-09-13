@@ -1,0 +1,37 @@
+{
+  "storeId": "ops",
+  "project": "billing",
+  "environment": "prod",
+  "securityContextId": "ctx-1",
+  "mutationId": "mutation-context-promote-1",
+  "incident": {
+    "storeId": "ops",
+    "incidentId": "INC-1"
+  },
+  "expectedSeq": 2,
+  "event": {
+    "at": "2026-09-13T12:02:00Z",
+    "type": "context.fact.promoted",
+    "assertion": {
+      "kind": "claim"
+    },
+    "refs": [
+      {
+        "kind": "hypothesis",
+        "id": "H17"
+      }
+    ],
+    "payload": {
+      "fact": {
+        "scope": {
+          "storeId": "projects",
+          "projectId": "billing",
+          "environment": "prod"
+        },
+        "id": "customer-11",
+        "layer": "hypothesis:H17"
+      },
+      "role": "affected"
+    }
+  }
+}

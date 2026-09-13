@@ -151,13 +151,11 @@ func (f FactView) Validate() error {
 	if f.Physical != nil || f.Mapping != "" {
 		return fmt.Errorf("redacted fact view cannot expose physical mapping")
 	}
-	if f.Role != "" {
-		if err := requireOneOf("role", f.Role, FactRoleAffected, FactRoleHealthyControl, FactRoleSuspected, FactRoleExcluded, FactRoleRecovered); err != nil {
-			return err
-		}
+	if err := ValidateFactRole(f.Role); err != nil {
+		return err
 	}
-	if f.Layer != "" && !validFactLayer(f.Layer) {
-		return &ValidationError{Field: "layer", Message: "must be canonical or a nonempty hypothesis:, participant:, or question: overlay"}
+	if err := ValidateFactLayer(f.Layer); err != nil {
+		return err
 	}
 	if f.Scope != nil {
 		if err := f.Scope.Validate(); err != nil {
@@ -187,7 +185,7 @@ func (c ContextView) Validate() error {
 		if err := fact.Validate(); err != nil {
 			return fmt.Errorf("fact %d: %w", index, err)
 		}
-		key := FactKey{FactID: fact.ID}
+		key := FactKey{FactID: fact.ID, Layer: NormalizeFactLayer(fact.Layer)}
 		if fact.Scope != nil {
 			key.Scope = *fact.Scope
 		}

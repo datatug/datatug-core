@@ -19,6 +19,7 @@ const (
 	FactRoleSuspected      = investigation.FactRoleSuspected
 	FactRoleExcluded       = investigation.FactRoleExcluded
 	FactRoleRecovered      = investigation.FactRoleRecovered
+	FactLayerCanonical     = investigation.FactLayerCanonical
 
 	FactMappingDeclared = investigation.FactMappingDeclared
 	FactMappingInferred = investigation.FactMappingInferred

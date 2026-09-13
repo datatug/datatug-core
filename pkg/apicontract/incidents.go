@@ -102,6 +102,25 @@ type IncidentAppendRequest struct {
 	Event       IncidentEventInput    `json:"event"`
 }
 
+// validateStrictNestedJSON lets DecodeStrict validate the type selected by an
+// event discriminator even though Payload is retained as json.RawMessage for
+// append-only storage.
+func (r *IncidentAppendRequest) validateStrictNestedJSON() error {
+	switch r.Event.Type {
+	case incidents.EventContextFactAdded:
+		var payload incidents.ContextFactAddedPayload
+		return DecodeStrict(r.Event.Payload, &payload)
+	case incidents.EventContextFactPromoted:
+		var payload incidents.ContextFactPromotedPayload
+		return DecodeStrict(r.Event.Payload, &payload)
+	case incidents.EventContextFactRejected:
+		var payload incidents.ContextFactRejectedPayload
+		return DecodeStrict(r.Event.Payload, &payload)
+	default:
+		return nil
+	}
+}
+
 func (r IncidentAppendRequest) Validate() error {
 	if err := r.IncidentScope.Validate(); err != nil {
 		return err
