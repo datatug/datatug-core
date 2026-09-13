@@ -200,6 +200,9 @@ func (r ExecutionListRequest) Validate() error {
 	if err := r.Scope.Validate(); err != nil {
 		return err
 	}
+	if r.QueryID != "" && strings.TrimSpace(r.QueryID) != r.QueryID {
+		return &ValidationError{Field: "queryId", Message: "must be canonical"}
+	}
 	if r.IncidentID != "" {
 		if err := validateExecutionID("incidentId", r.IncidentID); err != nil {
 			return err
@@ -316,6 +319,9 @@ func (r ExecutionSeriesRequest) Validate() error {
 	}
 	if err := requireNonEmpty("queryId", r.QueryID); err != nil {
 		return err
+	}
+	if strings.TrimSpace(r.QueryID) != r.QueryID {
+		return &ValidationError{Field: "queryId", Message: "must be canonical"}
 	}
 	for i, binding := range r.BindingsApplied {
 		if err := binding.Validate(); err != nil {

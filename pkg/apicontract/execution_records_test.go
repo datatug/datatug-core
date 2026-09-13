@@ -277,6 +277,7 @@ func TestExecutionListContracts(t *testing.T) {
 	}
 	for name, mutate := range map[string]func(*ExecutionListRequest){
 		"scope":    func(r *ExecutionListRequest) { r.Project = "" },
+		"query":    func(r *ExecutionListRequest) { r.QueryID = " invoices/stuck " },
 		"incident": func(r *ExecutionListRequest) { r.IncidentID = "bad/id" },
 		"since":    func(r *ExecutionListRequest) { r.Since = "bad" },
 		"until":    func(r *ExecutionListRequest) { r.Until = "bad" },
@@ -340,6 +341,9 @@ func TestSnapshotReadResponse_IsEvidenceNotResult(t *testing.T) {
 	if err := (SnapshotReadResponse{RecordID: "exec-1"}).Validate(); err == nil {
 		t.Fatal("response without rows or explicit expiry should be rejected")
 	}
+	if err := (SnapshotReadResponse{RecordID: "bad/id", Recordset: &recordset}).Validate(); err == nil {
+		t.Fatal("invalid recordId should be rejected")
+	}
 	invalidExpired := expired
 	invalidExpired.Recordset = &recordset
 	if err := invalidExpired.Validate(); err == nil {
@@ -394,6 +398,10 @@ func TestExecutionSeriesContracts(t *testing.T) {
 	invalidRequest.QueryID = ""
 	if err := invalidRequest.Validate(); err == nil {
 		t.Fatal("missing queryId should be rejected")
+	}
+	invalidRequest.QueryID = " invoices/stuck "
+	if err := invalidRequest.Validate(); err == nil {
+		t.Fatal("non-canonical queryId should be rejected")
 	}
 	invalidRequest = request
 	invalidRequest.BindingsApplied = []Binding{{}}
