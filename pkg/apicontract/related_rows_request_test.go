@@ -36,7 +36,9 @@ func TestRelatedRowsRequest_JSONFieldNames(t *testing.T) {
 }
 
 func TestRelatedRowsRequest_JSONFieldNames_LimitOmittedWhenAbsent(t *testing.T) {
-	data, err := json.Marshal(validRelatedRowsRequest())
+	request := validRelatedRowsRequest()
+	request.StoreID = ""
+	data, err := json.Marshal(request)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +49,7 @@ func TestRelatedRowsRequest_JSONFieldNames_LimitOmittedWhenAbsent(t *testing.T) 
 	if _, ok := generic["limit"]; ok {
 		t.Errorf("expected %q to be omitted when absent, got %s", "limit", data)
 	}
-	for _, key := range []string{"record", "snapshot"} {
+	for _, key := range []string{"storeId", "record", "snapshot"} {
 		if _, ok := generic[key]; ok {
 			t.Errorf("expected %q to be omitted when absent, got %s", key, data)
 		}
@@ -86,13 +88,18 @@ func TestRelatedRowsRequest_Validate_Valid(t *testing.T) {
 	if err := validRelatedRowsRequest().Validate(); err != nil {
 		t.Errorf("expected valid, got: %v", err)
 	}
+	legacy := validRelatedRowsRequest()
+	legacy.StoreID = ""
+	if err := legacy.Validate(); err != nil {
+		t.Errorf("expected legacy request without storeId to remain valid, got: %v", err)
+	}
 }
 
 func TestRelatedRowsRequest_Validate_RequiredScopeFields(t *testing.T) {
-	missingStore := validRelatedRowsRequest()
-	missingStore.StoreID = ""
-	if err := missingStore.Validate(); err == nil {
-		t.Error("expected an error: missing storeId")
+	invalidStore := validRelatedRowsRequest()
+	invalidStore.StoreID = "not/canonical"
+	if err := invalidStore.Validate(); err == nil {
+		t.Error("expected an error: supplied storeId must be canonical")
 	}
 
 	missingProject := validRelatedRowsRequest()
@@ -122,6 +129,20 @@ func TestRelatedRowsRequest_DecodeStrictQualifiedScope(t *testing.T) {
 	}
 	if err := request.Validate(); err != nil {
 		t.Fatalf("qualified related rows request failed validation: %v", err)
+	}
+}
+
+func TestRelatedRowsRequest_DecodeStrictLegacyScope(t *testing.T) {
+	body := []byte(`{"project":"demo-project-1","environment":"local","securityContextId":"sc1","lookupId":"lookup-1","value":{"type":"integer","value":"5"}}`)
+	var request RelatedRowsRequest
+	if err := DecodeStrict(body, &request); err != nil {
+		t.Fatalf("legacy related rows request rejected: %v", err)
+	}
+	if err := request.Validate(); err != nil {
+		t.Fatalf("legacy related rows request failed validation: %v", err)
+	}
+	if request.StoreID != "" {
+		t.Fatalf("legacy request storeId = %q, want empty for server primary-store resolution", request.StoreID)
 	}
 }
 

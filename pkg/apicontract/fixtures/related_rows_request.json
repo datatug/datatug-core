@@ -1,5 +1,4 @@
 {
-  "storeId": "project-store",
   "project": "demo-project-1",
   "environment": "local",
   "securityContextId": "sc-abc123",
