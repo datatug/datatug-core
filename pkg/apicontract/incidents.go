@@ -8,8 +8,9 @@ import (
 	"github.com/datatug/datatug-core/pkg/incidents"
 )
 
-// IncidentScope is carried by every incident mutation. StoreID selects the
-// incident store; the remaining fields bind the current project context.
+// IncidentScope is carried by every incident mutation. StoreID routes the
+// incident/evidence store; Project and Environment identify the source project
+// whose store the server resolves independently.
 type IncidentScope Scope
 
 func (s IncidentScope) Validate() error {
@@ -46,8 +47,23 @@ func (r IncidentCreateRequest) Validate() error {
 			return &ValidationError{Field: "projects", Message: fmt.Sprintf("index %d: %s", i, err)}
 		}
 	}
-	primary := incidents.ProjectRef{StoreID: r.StoreID, ProjectID: r.Project, Environment: r.Environment}
-	if err := validateCanonicalContextInput(r.CanonicalContext, primary, r.Projects); err != nil {
+	if err := r.CanonicalContext.ValidateScoped(); err != nil {
+		return &ValidationError{Field: "canonicalContext", Message: err.Error()}
+	}
+	return nil
+}
+
+// ValidateResolvedProject binds new fact provenance to the primary project
+// scope resolved by the server. IncidentScope.StoreID remains only the route
+// to the incident/evidence store and is not used as project provenance.
+func (r IncidentCreateRequest) ValidateResolvedProject(resolved incidents.ProjectRef) error {
+	if err := r.Validate(); err != nil {
+		return err
+	}
+	if resolved.ProjectID != r.Project || resolved.Environment != r.Environment {
+		return &ValidationError{Field: "resolvedProject", Message: "must match the requested project and environment"}
+	}
+	if err := validateCanonicalContextInput(r.CanonicalContext, resolved, r.Projects); err != nil {
 		return &ValidationError{Field: "canonicalContext", Message: err.Error()}
 	}
 	return nil
@@ -204,8 +220,9 @@ func validateCanonicalContextInput(context incidents.CanonicalContext, primary i
 	return context.ValidateAllowedScopes(primary, declared)
 }
 
-// IncidentListRequest is GET /datatug/incidents. Scope selects the current
-// store/project context; the remaining fields are derived event back-links.
+// IncidentListRequest is GET /datatug/incidents. Scope routes the incident
+// store and identifies the source project for server resolution; the remaining
+// fields are derived event back-links.
 type IncidentListRequest struct {
 	IncidentScope
 	Statuses []incidents.Status `json:"statuses,omitempty"`
@@ -218,17 +235,30 @@ func (r IncidentListRequest) Validate() error {
 	if err := r.IncidentScope.Validate(); err != nil {
 		return err
 	}
-	return r.ListQuery().Validate()
+	if err := (incidents.CandidateListQuery{Statuses: r.Statuses}).Validate(); err != nil {
+		return err
+	}
+	return (incidents.ListQuery{QueryID: r.QueryID, CheckID: r.CheckID, BoardID: r.BoardID}).ValidateArtifactFilters()
 }
 
-// ListQuery carries the validated request scope into both provider candidate
-// selection and current-policy backlink filtering without changing the HTTP
-// request's flat query-parameter shape.
-func (r IncidentListRequest) ListQuery() incidents.ListQuery {
-	return incidents.ListQuery{
-		Statuses: r.Statuses, StoreID: r.StoreID, ProjectID: r.Project, Environment: r.Environment,
+// ListQuery validates and carries the server-resolved project scope into both
+// provider candidate selection and current-policy backlink filtering.
+// IncidentScope's StoreID remains solely the incident/evidence-store route.
+func (r IncidentListRequest) ListQuery(resolved incidents.ProjectRef) (incidents.ListQuery, error) {
+	if err := r.Validate(); err != nil {
+		return incidents.ListQuery{}, err
+	}
+	if resolved.ProjectID != r.Project || resolved.Environment != r.Environment {
+		return incidents.ListQuery{}, &ValidationError{Field: "resolvedProject", Message: "must match the requested project and environment"}
+	}
+	query := incidents.ListQuery{
+		Statuses: r.Statuses, ProjectStoreID: resolved.StoreID, ProjectID: resolved.ProjectID, Environment: resolved.Environment,
 		QueryID: r.QueryID, CheckID: r.CheckID, BoardID: r.BoardID,
 	}
+	if err := query.Validate(); err != nil {
+		return incidents.ListQuery{}, err
+	}
+	return query, nil
 }
 
 type IncidentSearchRequest struct {

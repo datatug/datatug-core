@@ -254,23 +254,21 @@ func filterFacts(stored []investigation.Fact, policy ViewPolicy) investigation.C
 }
 
 type ListQuery struct {
-	Statuses    []Status `json:"statuses,omitempty"`
-	StoreID     string   `json:"storeId,omitempty"`
-	ProjectID   string   `json:"project,omitempty"`
-	Environment string   `json:"environment,omitempty"`
-	QueryID     string   `json:"query,omitempty"`
-	CheckID     string   `json:"check,omitempty"`
-	BoardID     string   `json:"board,omitempty"`
+	Statuses       []Status `json:"statuses,omitempty"`
+	ProjectStoreID string   `json:"projectStoreId,omitempty"`
+	ProjectID      string   `json:"project,omitempty"`
+	Environment    string   `json:"environment,omitempty"`
+	QueryID        string   `json:"query,omitempty"`
+	CheckID        string   `json:"check,omitempty"`
+	BoardID        string   `json:"board,omitempty"`
 }
 
 func (q ListQuery) Validate() error {
 	if err := q.Candidates().Validate(); err != nil {
 		return err
 	}
-	for name, value := range map[string]string{"query": q.QueryID, "check": q.CheckID, "board": q.BoardID} {
-		if value != "" && !validFilterValue(value) {
-			return fmt.Errorf("invalid %s filter", name)
-		}
+	if err := q.ValidateArtifactFilters(); err != nil {
+		return err
 	}
 	if (q.QueryID != "" || q.CheckID != "" || q.BoardID != "") && !q.hasProjectScope() {
 		return fmt.Errorf("artifact filters require a full project scope")
@@ -278,13 +276,24 @@ func (q ListQuery) Validate() error {
 	return nil
 }
 
+// ValidateArtifactFilters validates the public filter values before a serving
+// adapter resolves their project store and constructs the scoped ListQuery.
+func (q ListQuery) ValidateArtifactFilters() error {
+	for name, value := range map[string]string{"query": q.QueryID, "check": q.CheckID, "board": q.BoardID} {
+		if value != "" && !validFilterValue(value) {
+			return fmt.Errorf("invalid %s filter", name)
+		}
+	}
+	return nil
+}
+
 // CandidateListQuery is the provider-facing safe subset. Protected backlink
 // filters are applied only after current-policy IncidentViews are constructed.
 type CandidateListQuery struct {
-	Statuses    []Status `json:"statuses,omitempty"`
-	StoreID     string   `json:"storeId,omitempty"`
-	ProjectID   string   `json:"project,omitempty"`
-	Environment string   `json:"environment,omitempty"`
+	Statuses       []Status `json:"statuses,omitempty"`
+	ProjectStoreID string   `json:"projectStoreId,omitempty"`
+	ProjectID      string   `json:"project,omitempty"`
+	Environment    string   `json:"environment,omitempty"`
 }
 
 func (q CandidateListQuery) Validate() error {
@@ -299,7 +308,7 @@ func (q CandidateListQuery) Validate() error {
 	if !q.hasProjectScope() {
 		return fmt.Errorf("project filter requires store, project, and environment")
 	}
-	for name, value := range map[string]string{"store": q.StoreID, "project": q.ProjectID, "environment": q.Environment} {
+	for name, value := range map[string]string{"project store": q.ProjectStoreID, "project": q.ProjectID, "environment": q.Environment} {
 		if !validFilterValue(value) {
 			return fmt.Errorf("invalid %s filter", name)
 		}
@@ -308,7 +317,7 @@ func (q CandidateListQuery) Validate() error {
 }
 
 func (q ListQuery) Candidates() CandidateListQuery {
-	return CandidateListQuery{Statuses: q.Statuses, StoreID: q.StoreID, ProjectID: q.ProjectID, Environment: q.Environment}
+	return CandidateListQuery{Statuses: q.Statuses, ProjectStoreID: q.ProjectStoreID, ProjectID: q.ProjectID, Environment: q.Environment}
 }
 
 func MatchesListQuery(incident IncidentView, query ListQuery) bool {
@@ -357,15 +366,15 @@ func hasAssetFilter(incident IncidentView, kind RefKind, id string, project Proj
 }
 
 func (q CandidateListQuery) hasAnyProjectScope() bool {
-	return q.StoreID != "" || q.ProjectID != "" || q.Environment != ""
+	return q.ProjectStoreID != "" || q.ProjectID != "" || q.Environment != ""
 }
 
 func (q CandidateListQuery) hasProjectScope() bool {
-	return q.StoreID != "" && q.ProjectID != "" && q.Environment != ""
+	return q.ProjectStoreID != "" && q.ProjectID != "" && q.Environment != ""
 }
 
 func (q CandidateListQuery) projectScope() ProjectRef {
-	return ProjectRef{StoreID: q.StoreID, ProjectID: q.ProjectID, Environment: q.Environment}
+	return ProjectRef{StoreID: q.ProjectStoreID, ProjectID: q.ProjectID, Environment: q.Environment}
 }
 
 func (q ListQuery) hasAnyProjectScope() bool { return q.Candidates().hasAnyProjectScope() }

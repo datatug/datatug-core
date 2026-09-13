@@ -152,7 +152,7 @@ func TestWithheldAssetBacklinksUseStableEventProvenance(t *testing.T) {
 	require.Equal(t, 3, oneVisibleMatches[0].Score)
 	require.Equal(t, []MatchedSignal{{Kind: SignalCheck, Value: "invoice-health"}}, oneVisibleMatches[0].MatchedSignals)
 	require.Empty(t, Similar(noneVisible, []IncidentView{candidate}))
-	listQuery := ListQuery{StoreID: "ops", ProjectID: "billing", Environment: "prod", CheckID: "invoice-health"}
+	listQuery := ListQuery{ProjectStoreID: "ops", ProjectID: "billing", Environment: "prod", CheckID: "invoice-health"}
 	require.True(t, MatchesListQuery(oneVisible, listQuery))
 	require.False(t, MatchesListQuery(noneVisible, listQuery))
 
@@ -292,7 +292,7 @@ func TestListSearchAndSimilarityAreDeterministicAndExplainable(t *testing.T) {
 	recurrenceView := ApplyIncidentView(recurrence, visiblePolicyFor(recurrence.CanonicalContext.Facts...))
 	baseView := ApplyIncidentView(base, visiblePolicyFor(base.CanonicalContext.Facts...))
 
-	query := ListQuery{Statuses: []Status{StatusOpen}, StoreID: listScope.StoreID, ProjectID: listScope.ProjectID, Environment: listScope.Environment, CheckID: "stuck-invoices"}
+	query := ListQuery{Statuses: []Status{StatusOpen}, ProjectStoreID: listScope.StoreID, ProjectID: listScope.ProjectID, Environment: listScope.Environment, CheckID: "stuck-invoices"}
 	require.NoError(t, query.Validate())
 	require.True(t, MatchesListQuery(recurrenceView, query))
 	require.False(t, MatchesListQuery(baseView, query))
@@ -320,7 +320,7 @@ func TestListFiltersBindArtifactsToFullProjectScope(t *testing.T) {
 		{StoreID: requested.StoreID, ProjectID: "project-b", Environment: requested.Environment},
 	}
 	queryFor := func(kind RefKind) ListQuery {
-		query := ListQuery{StoreID: requested.StoreID, ProjectID: requested.ProjectID, Environment: requested.Environment}
+		query := ListQuery{ProjectStoreID: requested.StoreID, ProjectID: requested.ProjectID, Environment: requested.Environment}
 		switch kind {
 		case RefQuery:
 			query.QueryID = "shared-id"
@@ -343,7 +343,7 @@ func TestListFiltersBindArtifactsToFullProjectScope(t *testing.T) {
 
 	for _, wrong := range wrongScopes {
 		require.False(t, MatchesListQuery(viewFor([]ProjectRef{wrong}, RefQuery, wrong), ListQuery{
-			StoreID: requested.StoreID, ProjectID: requested.ProjectID, Environment: requested.Environment,
+			ProjectStoreID: requested.StoreID, ProjectID: requested.ProjectID, Environment: requested.Environment,
 		}), "project membership must include store and environment")
 		for _, kind := range []RefKind{RefQuery, RefCheck, RefBoard} {
 			view := viewFor([]ProjectRef{requested, wrong}, kind, wrong)

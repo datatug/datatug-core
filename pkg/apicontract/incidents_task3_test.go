@@ -15,13 +15,44 @@ func TestIncidentListSearchSimilarAndStreamContracts(t *testing.T) {
 	scope := validIncidentScope()
 	list := IncidentListRequest{IncidentScope: scope, Statuses: []incidents.Status{incidents.StatusOpen}, QueryID: "customers/invoices"}
 	require.NoError(t, list.Validate())
+	projectRepositoryScope := incidents.ProjectRef{StoreID: scope.StoreID, ProjectID: scope.Project, Environment: scope.Environment}
+	projectRepositoryQuery, err := list.ListQuery(projectRepositoryScope)
+	require.NoError(t, err)
 	require.Equal(t, incidents.ListQuery{
-		Statuses: list.Statuses, StoreID: scope.StoreID, ProjectID: scope.Project,
+		Statuses: list.Statuses, ProjectStoreID: scope.StoreID, ProjectID: scope.Project,
 		Environment: scope.Environment, QueryID: list.QueryID,
-	}, list.ListQuery())
+	}, projectRepositoryQuery)
 	encodedList, err := json.Marshal(list)
 	require.NoError(t, err)
 	require.JSONEq(t, `{"storeId":"ops","project":"billing","environment":"prod","securityContextId":"ctx-1","statuses":["open"],"query":"customers/invoices"}`, string(encodedList))
+	dedicatedScope := incidents.ProjectRef{StoreID: "projects", ProjectID: scope.Project, Environment: scope.Environment}
+	dedicatedQuery, err := list.ListQuery(dedicatedScope)
+	require.NoError(t, err)
+	require.Equal(t, "projects", dedicatedQuery.ProjectStoreID)
+	dedicatedView := validIncidentView("INC-99")
+	dedicatedView.Projects = []incidents.ProjectRef{dedicatedScope}
+	dedicatedView.AssetRefs = []incidents.ArtifactRef{{Kind: incidents.RefQuery, Artifact: &incidents.ProjectArtifactRef{
+		StoreID: dedicatedScope.StoreID, ProjectID: dedicatedScope.ProjectID,
+		Environment: dedicatedScope.Environment, ID: list.QueryID,
+	}}}
+	require.True(t, incidents.MatchesListQuery(dedicatedView, dedicatedQuery))
+	require.False(t, incidents.MatchesListQuery(dedicatedView, projectRepositoryQuery))
+	wrongResolved := dedicatedScope
+	wrongResolved.ProjectID = "other"
+	_, err = list.ListQuery(wrongResolved)
+	require.Error(t, err)
+	wrongResolved = dedicatedScope
+	wrongResolved.Environment = "staging"
+	_, err = list.ListQuery(wrongResolved)
+	require.Error(t, err)
+	wrongResolved = dedicatedScope
+	wrongResolved.StoreID = ""
+	_, err = list.ListQuery(wrongResolved)
+	require.Error(t, err)
+	badList := list
+	badList.Statuses = []incidents.Status{"paused"}
+	_, err = badList.ListQuery(dedicatedScope)
+	require.Error(t, err)
 	list.CheckID, list.BoardID = "stuck-invoices", "incident-board"
 	require.NoError(t, list.Validate())
 	list.Statuses = []incidents.Status{"paused"}
@@ -123,6 +154,27 @@ func TestIncidentCreateBindsFactScopesToRequestProjects(t *testing.T) {
 	request := IncidentCreateRequest{IncidentScope: primary, MutationID: "create-1", Title: "Invoice issue", Projects: []incidents.ProjectRef{secondary}}
 	request.CanonicalContext.Facts = []investigation.Fact{fact}
 	require.NoError(t, request.Validate())
+	require.NoError(t, request.ValidateResolvedProject(primaryScope))
+
+	dedicated := request
+	dedicatedScope := primaryScope
+	dedicatedScope.StoreID = "projects"
+	dedicated.CanonicalContext.Facts = []investigation.Fact{fact}
+	dedicated.CanonicalContext.Facts[0].Scope = &dedicatedScope
+	require.NoError(t, dedicated.Validate())
+	require.NoError(t, dedicated.ValidateResolvedProject(dedicatedScope))
+	require.Error(t, dedicated.ValidateResolvedProject(primaryScope))
+	require.Error(t, request.ValidateResolvedProject(dedicatedScope))
+	wrongResolved := primaryScope
+	wrongResolved.ProjectID = "other"
+	require.Error(t, request.ValidateResolvedProject(wrongResolved))
+	wrongResolved = primaryScope
+	wrongResolved.Environment = "staging"
+	require.Error(t, request.ValidateResolvedProject(wrongResolved))
+	badRequest := request
+	badRequest.Title = ""
+	require.Error(t, badRequest.ValidateResolvedProject(primaryScope))
+
 	secondaryFact := fact
 	secondaryFact.Scope = &secondary
 	request.CanonicalContext.Facts = append(request.CanonicalContext.Facts, secondaryFact)
@@ -138,7 +190,8 @@ func TestIncidentCreateBindsFactScopesToRequestProjects(t *testing.T) {
 		scope := *candidate.CanonicalContext.Facts[0].Scope
 		candidate.CanonicalContext.Facts[0].Scope = &scope
 		mutate(&candidate)
-		require.Error(t, candidate.Validate())
+		require.NoError(t, candidate.Validate())
+		require.Error(t, candidate.ValidateResolvedProject(primaryScope))
 	}
 }
 

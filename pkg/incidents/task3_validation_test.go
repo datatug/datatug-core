@@ -119,23 +119,23 @@ func TestTask3ListAndSearchValidation(t *testing.T) {
 		{Kind: RefBoard, Artifact: &ProjectArtifactRef{StoreID: scope.StoreID, ProjectID: scope.ProjectID, Environment: scope.Environment, ID: "invoice-board"}},
 	}
 	view := ApplyIncidentView(incident, visiblePolicyFor(incident.CanonicalContext.Facts...))
-	query := ListQuery{Statuses: []Status{StatusOpen}, StoreID: scope.StoreID, ProjectID: scope.ProjectID, Environment: scope.Environment, QueryID: "invoice-query", CheckID: "invoice-check", BoardID: "invoice-board"}
+	query := ListQuery{Statuses: []Status{StatusOpen}, ProjectStoreID: scope.StoreID, ProjectID: scope.ProjectID, Environment: scope.Environment, QueryID: "invoice-query", CheckID: "invoice-check", BoardID: "invoice-board"}
 	require.True(t, MatchesListQuery(view, query))
-	require.False(t, MatchesListQuery(view, ListQuery{StoreID: "ops", ProjectID: "other", Environment: "prod"}))
-	require.False(t, MatchesListQuery(view, ListQuery{StoreID: scope.StoreID, ProjectID: scope.ProjectID, Environment: scope.Environment, QueryID: "other"}))
-	require.NoError(t, (CandidateListQuery{Statuses: []Status{StatusOpen}, StoreID: scope.StoreID, ProjectID: scope.ProjectID, Environment: scope.Environment}).Validate())
+	require.False(t, MatchesListQuery(view, ListQuery{ProjectStoreID: "ops", ProjectID: "other", Environment: "prod"}))
+	require.False(t, MatchesListQuery(view, ListQuery{ProjectStoreID: scope.StoreID, ProjectID: scope.ProjectID, Environment: scope.Environment, QueryID: "other"}))
+	require.NoError(t, (CandidateListQuery{Statuses: []Status{StatusOpen}, ProjectStoreID: scope.StoreID, ProjectID: scope.ProjectID, Environment: scope.Environment}).Validate())
 	require.Error(t, (CandidateListQuery{Statuses: []Status{"invalid"}}).Validate())
 	require.Equal(t,
-		CandidateListQuery{Statuses: []Status{StatusOpen}, StoreID: scope.StoreID, ProjectID: scope.ProjectID, Environment: scope.Environment},
-		(ListQuery{Statuses: []Status{StatusOpen}, StoreID: scope.StoreID, ProjectID: scope.ProjectID, Environment: scope.Environment, CheckID: "hidden"}).Candidates(),
+		CandidateListQuery{Statuses: []Status{StatusOpen}, ProjectStoreID: scope.StoreID, ProjectID: scope.ProjectID, Environment: scope.Environment},
+		(ListQuery{Statuses: []Status{StatusOpen}, ProjectStoreID: scope.StoreID, ProjectID: scope.ProjectID, Environment: scope.Environment, CheckID: "hidden"}).Candidates(),
 	)
-	require.False(t, MatchesListQuery(view, ListQuery{StoreID: scope.StoreID, ProjectID: scope.ProjectID, Environment: scope.Environment, BoardID: "other"}))
+	require.False(t, MatchesListQuery(view, ListQuery{ProjectStoreID: scope.StoreID, ProjectID: scope.ProjectID, Environment: scope.Environment, BoardID: "other"}))
 
 	for _, query := range []ListQuery{
 		{Statuses: []Status{"paused"}},
-		{StoreID: "ops", ProjectID: " bad", Environment: "prod"},
-		{StoreID: "ops", ProjectID: "billing"},
-		{StoreID: "ops", ProjectID: "billing", Environment: "prod", QueryID: "bad\nvalue"},
+		{ProjectStoreID: "ops", ProjectID: " bad", Environment: "prod"},
+		{ProjectStoreID: "ops", ProjectID: "billing"},
+		{ProjectStoreID: "ops", ProjectID: "billing", Environment: "prod", QueryID: "bad\nvalue"},
 		{},
 	} {
 		if len(query.Statuses) == 0 && query.ProjectID == "" && query.QueryID == "" {
