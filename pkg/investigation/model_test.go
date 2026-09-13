@@ -125,10 +125,92 @@ func TestPhysicalFactAndContextValidation(t *testing.T) {
 	require.NoError(t, minimal.Validate())
 	minimal.Origin = FactOriginContext
 	require.NoError(t, minimal.Validate())
+	require.NotNil(t, VisibleFact(minimal).Value.Value)
 
 	require.NoError(t, (Context{Facts: []Fact{valid}}).Validate())
 	require.Error(t, (Context{Facts: []Fact{{}}}).Validate())
 	require.Error(t, (Context{Facts: []Fact{valid, valid}}).Validate())
+}
+
+func TestScopedFactsRoundTripAndUseScopeQualifiedIdentity(t *testing.T) {
+	primary := ProjectScope{StoreID: "projects-a", ProjectID: "billing", Environment: "prod"}
+	secondary := ProjectScope{StoreID: "projects-b", ProjectID: "billing", Environment: "prod"}
+	physical := PhysicalRef{Source: "crm", Collection: "Customer", Column: "Email"}
+	fact := Fact{
+		ID: "customer-email", Entity: "Customer", Field: "Email", Value: NewStringValue("a@b.com"),
+		Origin: FactOriginContext, Physical: &physical, Enabled: true, Layer: "canonical", Scope: &primary,
+	}
+	other := fact
+	other.Scope = &secondary
+	context := Context{Facts: []Fact{fact, other}}
+	require.NoError(t, context.Validate())
+	require.NoError(t, context.ValidateScoped())
+	require.NoError(t, context.ValidateAllowedScopes(primary, []ProjectScope{secondary}))
+	require.NotEqual(t, fact.Key(), other.Key())
+
+	wire, err := json.Marshal(context)
+	require.NoError(t, err)
+	var roundTrip Context
+	require.NoError(t, json.Unmarshal(wire, &roundTrip))
+	require.Equal(t, context, roundTrip)
+
+	unscoped := context
+	unscoped.Facts = append([]Fact(nil), context.Facts...)
+	unscoped.Facts[0].Scope = nil
+	require.NoError(t, unscoped.Validate()) // legacy stored contexts remain readable
+	require.Error(t, unscoped.ValidateScoped())
+	require.Error(t, unscoped.ValidateAllowedScopes(primary, []ProjectScope{secondary}))
+
+	for _, invalid := range []ProjectScope{
+		{ProjectID: "billing"},
+		{StoreID: "projects-a"},
+	} {
+		require.Error(t, invalid.Validate())
+		require.Error(t, invalid.ValidateFactScope())
+	}
+	badPrimary := primary
+	badPrimary.Environment = ""
+	require.Error(t, context.ValidateAllowedScopes(badPrimary, []ProjectScope{secondary}))
+	require.Error(t, (Context{Facts: []Fact{other}}).ValidateAllowedScopes(primary, nil))
+	require.NoError(t, (Context{Facts: []Fact{fact}}).ValidateAllowedScopes(primary, nil))
+	invalidScope := fact
+	invalidScope.Scope = &ProjectScope{StoreID: "projects-a"}
+	require.Error(t, invalidScope.Validate())
+	require.Error(t, (Context{Facts: []Fact{invalidScope}}).ValidateScoped())
+	invalidEnvironment := context
+	invalidEnvironment.Facts = append([]Fact(nil), context.Facts...)
+	badEnvironmentScope := *invalidEnvironment.Facts[0].Scope
+	badEnvironmentScope.Environment = "bad/env"
+	invalidEnvironment.Facts[0].Scope = &badEnvironmentScope
+	require.NoError(t, invalidEnvironment.Validate()) // legacy ProjectRef compatibility
+	require.Error(t, invalidEnvironment.ValidateScoped())
+
+	visible := VisibleFact(fact)
+	require.NoError(t, visible.Validate())
+	require.NotSame(t, fact.Scope, visible.Scope)
+	require.NotSame(t, fact.Physical, visible.Physical)
+	invalidView := visible
+	invalidView.Value = RedactedValue()
+	invalidView.Physical = nil
+	invalidView.Mapping = ""
+	invalidView.Scope = &ProjectScope{StoreID: "projects-a"}
+	require.Error(t, invalidView.Validate())
+	require.NoError(t, (ContextView{Facts: []FactView{visible}}).Validate())
+}
+
+func TestProjectScopePreservesIncidentProjectRefSegmentRules(t *testing.T) {
+	valid := ProjectScope{StoreID: "ops", ProjectID: "billing", Environment: "legacy unchecked/environment"}
+	require.NoError(t, valid.Validate())
+	for _, invalidSegment := range []string{"", ".", "..", " bad", "bad ", "bad/path", `bad\path`, "bad\npath"} {
+		for _, mutate := range []func(*ProjectScope){
+			func(scope *ProjectScope) { scope.StoreID = invalidSegment },
+			func(scope *ProjectScope) { scope.ProjectID = invalidSegment },
+		} {
+			candidate := valid
+			mutate(&candidate)
+			require.Error(t, candidate.Validate(), "%q", invalidSegment)
+		}
+	}
 }
 
 func TestPolicyFactViews(t *testing.T) {

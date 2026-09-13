@@ -294,6 +294,7 @@ func (p *Incident) apply(event Event) error {
 	}
 	for _, ref := range event.Refs {
 		if ref.Kind == RefQuery || ref.Kind == RefCheck || ref.Kind == RefBoard {
+			p.AssetRefEntries = appendUniqueAssetRefEntry(p.AssetRefEntries, AssetRefEntry{EventID: event.ID, Ref: ref})
 			p.AssetRefs = appendUniqueArtifactRef(p.AssetRefs, ref)
 		}
 	}
@@ -414,7 +415,17 @@ func appendUniqueArtifactRef(refs []ArtifactRef, candidate ArtifactRef) []Artifa
 			return refs
 		}
 	}
-	return append(refs, candidate)
+	return append(refs, cloneArtifactRef(candidate))
+}
+
+func appendUniqueAssetRefEntry(entries []AssetRefEntry, candidate AssetRefEntry) []AssetRefEntry {
+	for _, entry := range entries {
+		if entry.EventID == candidate.EventID && artifactRefsEqual(entry.Ref, candidate.Ref) {
+			return entries
+		}
+	}
+	candidate.Ref = cloneArtifactRef(candidate.Ref)
+	return append(entries, candidate)
 }
 
 func artifactRefsEqual(left, right ArtifactRef) bool {

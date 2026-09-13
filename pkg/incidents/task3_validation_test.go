@@ -30,12 +30,12 @@ func TestTask3ProjectionAndViewValidationFailures(t *testing.T) {
 	for _, mutate := range mutations {
 		candidate := valid
 		candidate.Participants = append([]Participant(nil), valid.Participants...)
-		candidate.CanonicalContext.Facts = append([]investigation.Fact(nil), valid.CanonicalContext.Facts...)
+		candidate.CanonicalContext.Facts = cloneFacts(valid.CanonicalContext.Facts)
 		mutate(&candidate)
 		require.Error(t, candidate.Validate())
 	}
 
-	view := ApplyIncidentView(valid, ViewPolicy{})
+	view := ApplyIncidentView(valid, visiblePolicyFor(valid.CanonicalContext.Facts...))
 	require.NoError(t, view.Validate())
 	badView := view
 	badView.Title = ""
@@ -53,11 +53,13 @@ func TestTask3CreateMutationValidationFailures(t *testing.T) {
 		func(m *CreateMutation) { m.Reporter.ID = "" },
 		func(m *CreateMutation) { m.Projects[0].ProjectID = "" },
 		func(m *CreateMutation) { m.CanonicalContext.Facts[0].Value = investigation.NewIntegerValue("01") },
+		func(m *CreateMutation) { m.CanonicalContext.Facts[0].Scope = nil },
+		func(m *CreateMutation) { m.CanonicalContext.Facts[0].Scope.Environment = "" },
 	}
 	for _, mutate := range mutations {
 		candidate := valid
 		candidate.Projects = append([]ProjectRef(nil), valid.Projects...)
-		candidate.CanonicalContext.Facts = append([]investigation.Fact(nil), valid.CanonicalContext.Facts...)
+		candidate.CanonicalContext.Facts = cloneFacts(valid.CanonicalContext.Facts)
 		mutate(&candidate)
 		require.Error(t, candidate.Validate())
 	}
@@ -65,7 +67,7 @@ func TestTask3CreateMutationValidationFailures(t *testing.T) {
 
 func TestTask3CreatedViewValidationFailures(t *testing.T) {
 	event := task3CreatedEvent(task3CreateMutation())
-	view, visible, err := ApplyEventView(event, ViewPolicy{})
+	view, visible, err := ApplyEventView(event, visiblePolicyFor(task3CreateMutation().CanonicalContext.Facts...))
 	require.NoError(t, err)
 	require.True(t, visible)
 	require.NoError(t, view.ValidateView())
@@ -115,10 +117,14 @@ func TestTask3ListAndSearchValidation(t *testing.T) {
 		{Kind: RefCheck, Artifact: &ProjectArtifactRef{StoreID: "ops", ProjectID: "billing", ID: "invoice-check"}},
 		{Kind: RefBoard, Artifact: &ProjectArtifactRef{StoreID: "ops", ProjectID: "billing", ID: "invoice-board"}},
 	}
-	require.True(t, MatchesListQuery(incident, ListQuery{Statuses: []Status{StatusOpen}, ProjectID: "billing", QueryID: "invoice-query", CheckID: "invoice-check", BoardID: "invoice-board"}))
-	require.False(t, MatchesListQuery(incident, ListQuery{ProjectID: "other"}))
-	require.False(t, MatchesListQuery(incident, ListQuery{QueryID: "other"}))
-	require.False(t, MatchesListQuery(incident, ListQuery{BoardID: "other"}))
+	view := ApplyIncidentView(incident, visiblePolicyFor(incident.CanonicalContext.Facts...))
+	require.True(t, MatchesListQuery(view, ListQuery{Statuses: []Status{StatusOpen}, ProjectID: "billing", QueryID: "invoice-query", CheckID: "invoice-check", BoardID: "invoice-board"}))
+	require.False(t, MatchesListQuery(view, ListQuery{ProjectID: "other"}))
+	require.False(t, MatchesListQuery(view, ListQuery{QueryID: "other"}))
+	require.NoError(t, (CandidateListQuery{Statuses: []Status{StatusOpen}, ProjectID: "billing"}).Validate())
+	require.Error(t, (CandidateListQuery{Statuses: []Status{"invalid"}}).Validate())
+	require.Equal(t, CandidateListQuery{Statuses: []Status{StatusOpen}, ProjectID: "billing"}, (ListQuery{Statuses: []Status{StatusOpen}, ProjectID: "billing", CheckID: "hidden"}).Candidates())
+	require.False(t, MatchesListQuery(view, ListQuery{BoardID: "other"}))
 
 	for _, query := range []ListQuery{
 		{Statuses: []Status{"paused"}}, {ProjectID: " bad"}, {QueryID: "bad\nvalue"}, {CheckID: ""},
@@ -136,13 +142,13 @@ func TestTask3ListAndSearchValidation(t *testing.T) {
 	require.Error(t, (SearchQuery{Facts: []FactSignal{{}}}).Validate())
 	require.Empty(t, Search(nil, SearchQuery{}))
 
-	view := ApplyIncidentView(incident, ViewPolicy{})
 	require.Empty(t, Search([]IncidentView{view}, SearchQuery{Text: "unmatched"}))
 	require.Empty(t, Search([]IncidentView{view}, SearchQuery{Text: "invoice", Facts: []FactSignal{{Entity: "Customer", Field: "Email", Value: investigation.NewStringValue("other")}}}))
 }
 
 func TestTask3MatchValidationAndSimilaritySignals(t *testing.T) {
-	view := ApplyIncidentView(task3Projection("INC-1", "Canadian invoice failure", StatusOpen), ViewPolicy{})
+	projection := task3Projection("INC-1", "Canadian invoice failure", StatusOpen)
+	view := ApplyIncidentView(projection, visiblePolicyFor(projection.CanonicalContext.Facts...))
 	for _, kind := range []SignalKind{SignalText, SignalFact, SignalQuery, SignalCheck, SignalBoard, SignalProject} {
 		require.NoError(t, (MatchedSignal{Kind: kind, Value: "match"}).Validate())
 	}

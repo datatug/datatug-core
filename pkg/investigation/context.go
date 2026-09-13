@@ -3,7 +3,50 @@ package investigation
 import (
 	"fmt"
 	"strings"
+	"unicode"
 )
+
+// ProjectScope is persisted provenance for a fact or cross-project reference.
+// It deliberately excludes the request-only securityContextId.
+type ProjectScope struct {
+	StoreID     string `json:"storeId"`
+	ProjectID   string `json:"projectId"`
+	Environment string `json:"environment,omitempty"`
+}
+
+func (s ProjectScope) Validate() error {
+	if !validScopeSegment(s.StoreID) {
+		return fmt.Errorf("invalid project storeId %q", s.StoreID)
+	}
+	if !validScopeSegment(s.ProjectID) {
+		return fmt.Errorf("projectId is required")
+	}
+	return nil
+}
+
+// ValidateFactScope strengthens the legacy ProjectRef-compatible validation
+// with the explicit canonical environment required for newly attached facts.
+func (s ProjectScope) ValidateFactScope() error {
+	if err := s.Validate(); err != nil {
+		return err
+	}
+	if !validScopeSegment(s.Environment) {
+		return fmt.Errorf("environment is required and canonical")
+	}
+	return nil
+}
+
+func validScopeSegment(value string) bool {
+	if value == "" || strings.TrimSpace(value) != value || value == "." || value == ".." || strings.ContainsAny(value, `/\`) {
+		return false
+	}
+	for _, r := range value {
+		if unicode.IsControl(r) {
+			return false
+		}
+	}
+	return true
+}
 
 type PhysicalRef struct {
 	Source     string `json:"source"`
@@ -22,16 +65,32 @@ func (r PhysicalRef) Validate() error {
 }
 
 type Fact struct {
-	ID       string       `json:"id"`
-	Entity   string       `json:"entity"`
-	Field    string       `json:"field"`
-	Value    TypedValue   `json:"value"`
-	Origin   string       `json:"origin"`
-	Physical *PhysicalRef `json:"physical,omitempty"`
-	Mapping  string       `json:"mapping,omitempty"`
-	Enabled  bool         `json:"enabled"`
-	Role     string       `json:"role,omitempty"`
-	Layer    string       `json:"layer,omitempty"`
+	ID       string        `json:"id"`
+	Entity   string        `json:"entity"`
+	Field    string        `json:"field"`
+	Value    TypedValue    `json:"value"`
+	Origin   string        `json:"origin"`
+	Physical *PhysicalRef  `json:"physical,omitempty"`
+	Mapping  string        `json:"mapping,omitempty"`
+	Enabled  bool          `json:"enabled"`
+	Role     string        `json:"role,omitempty"`
+	Layer    string        `json:"layer,omitempty"`
+	Scope    *ProjectScope `json:"scope,omitempty"`
+}
+
+// FactKey is the comparable, server-qualified identity policy adapters use.
+// Fact IDs are unique only within their persisted project scope.
+type FactKey struct {
+	Scope  ProjectScope
+	FactID string
+}
+
+func (f Fact) Key() FactKey {
+	key := FactKey{FactID: f.ID}
+	if f.Scope != nil {
+		key.Scope = *f.Scope
+	}
+	return key
 }
 
 const (
@@ -83,6 +142,11 @@ func (f Fact) Validate() error {
 	if f.Layer != "" && !validFactLayer(f.Layer) {
 		return &ValidationError{Field: "layer", Message: "must be canonical or a nonempty hypothesis:, participant:, or question: overlay"}
 	}
+	if f.Scope != nil {
+		if err := f.Scope.Validate(); err != nil {
+			return &ValidationError{Field: "scope", Message: err.Error()}
+		}
+	}
 	return nil
 }
 
@@ -106,15 +170,62 @@ type Context struct {
 }
 
 func (c Context) Validate() error {
-	seen := make(map[string]bool, len(c.Facts))
+	seen := make(map[FactKey]bool, len(c.Facts))
 	for index, fact := range c.Facts {
 		if err := fact.Validate(); err != nil {
 			return fmt.Errorf("fact %d: %w", index, err)
 		}
-		if seen[fact.ID] {
-			return fmt.Errorf("duplicate fact id %q", fact.ID)
+		key := fact.Key()
+		if seen[key] {
+			return fmt.Errorf("duplicate fact id %q in project scope", fact.ID)
 		}
-		seen[fact.ID] = true
+		seen[key] = true
 	}
 	return nil
+}
+
+// ValidateScoped is the creation boundary for new persisted contexts. Legacy
+// contexts without scope remain readable through Validate, but new facts must
+// name an explicit server store, project, and environment.
+func (c Context) ValidateScoped() error {
+	if err := c.Validate(); err != nil {
+		return err
+	}
+	for index, fact := range c.Facts {
+		if fact.Scope == nil {
+			return fmt.Errorf("fact %d: scope with environment is required", index)
+		}
+		if err := fact.Scope.ValidateFactScope(); err != nil {
+			return fmt.Errorf("fact %d: scope: %w", index, err)
+		}
+	}
+	return nil
+}
+
+// ValidateAllowedScopes binds new facts to the request's primary project or
+// one explicitly declared secondary. Authorization is still performed by the
+// serving adapter; this helper only prevents invented provenance.
+func (c Context) ValidateAllowedScopes(primary ProjectScope, declared []ProjectScope) error {
+	if err := c.ValidateScoped(); err != nil {
+		return err
+	}
+	if err := primary.ValidateFactScope(); err != nil {
+		return fmt.Errorf("primary project: %w", err)
+	}
+	for index, fact := range c.Facts {
+		if *fact.Scope == primary || containsProjectScope(declared, *fact.Scope) {
+			continue
+		}
+		return fmt.Errorf("fact %d: scope is neither the primary project nor a declared secondary", index)
+	}
+	return nil
+}
+
+func containsProjectScope(scopes []ProjectScope, wanted ProjectScope) bool {
+	for _, scope := range scopes {
+		if scope == wanted {
+			return true
+		}
+	}
+	return false
 }

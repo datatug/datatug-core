@@ -15,6 +15,11 @@ func TestProjectAndExecutionRefsValidate(t *testing.T) {
 	require.Error(t, (ProjectRef{StoreID: "ops"}).Validate())
 	require.Error(t, (ProjectRef{StoreID: " ops", ProjectID: "billing"}).Validate())
 	require.Error(t, (ProjectRef{StoreID: "ops", ProjectID: " billing"}).Validate())
+	for _, invalid := range []string{".", "..", `bad\path`, "bad\npath"} {
+		require.Error(t, (ProjectRef{StoreID: invalid, ProjectID: "billing"}).Validate())
+		require.Error(t, (ProjectRef{StoreID: "ops", ProjectID: invalid}).Validate())
+	}
+	require.NoError(t, (ProjectRef{StoreID: "ops", ProjectID: "billing", Environment: "legacy/unchecked"}).Validate())
 
 	require.NoError(t, (ExecutionRef{StoreID: "ops", ProjectID: "billing", ExecutionID: "exec-1"}).Validate())
 	require.Error(t, (ExecutionRef{StoreID: "", ProjectID: "billing", ExecutionID: "exec-1"}).Validate())

@@ -78,12 +78,20 @@ func TestIncidentTask3RequestAndResponseValidationFailures(t *testing.T) {
 	create := IncidentCreateRequest{IncidentScope: scope, MutationID: "create-1", Title: "Invoice alert"}
 	create.CanonicalContext.Facts = []investigation.Fact{{}}
 	require.Error(t, create.Validate())
+	create.CanonicalContext.Facts = []investigation.Fact{{
+		ID: "customer-id", Entity: "Customer", Field: "ID", Value: NewIntegerValue("5"),
+		Origin: FactOriginContext, Enabled: true,
+	}}
+	require.Error(t, create.Validate())
 }
 
 func TestIncidentContextUsesCanonicalAPIContractFact(t *testing.T) {
+	scope := ProjectScope{StoreID: "ops", ProjectID: "billing", Environment: "prod"}
+	acceptIncidentScope := func(incidents.ProjectRef) {}
+	acceptIncidentScope(scope)
 	canonical := Fact{
 		ID: "customer-id", Entity: "Customer", Field: "ID", Value: NewIntegerValue("5"),
-		Origin: FactOriginContext, Enabled: true, Role: FactRoleAffected, Layer: "canonical",
+		Origin: FactOriginContext, Enabled: true, Role: FactRoleAffected, Layer: "canonical", Scope: &scope,
 	}
 	incident := incidents.Incident{CanonicalContext: incidents.CanonicalContext{Facts: []investigation.Fact{canonical}}}
 	apiJSON, err := json.Marshal(canonical)
@@ -97,6 +105,36 @@ func TestIncidentContextUsesCanonicalAPIContractFact(t *testing.T) {
 	require.Equal(t, canonical, roundTrip)
 }
 
+func TestIncidentCreateBindsFactScopesToRequestProjects(t *testing.T) {
+	primary := validIncidentScope()
+	primaryScope := investigation.ProjectScope{StoreID: primary.StoreID, ProjectID: primary.Project, Environment: primary.Environment}
+	secondary := incidents.ProjectRef{StoreID: "warehouse", ProjectID: "payments", Environment: "staging"}
+	fact := investigation.Fact{
+		ID: "customer-id", Entity: "Customer", Field: "ID", Value: NewIntegerValue("5"),
+		Origin: FactOriginManual, Enabled: true, Scope: &primaryScope,
+	}
+	request := IncidentCreateRequest{IncidentScope: primary, MutationID: "create-1", Title: "Invoice issue", Projects: []incidents.ProjectRef{secondary}}
+	request.CanonicalContext.Facts = []investigation.Fact{fact}
+	require.NoError(t, request.Validate())
+	secondaryFact := fact
+	secondaryFact.Scope = &secondary
+	request.CanonicalContext.Facts = append(request.CanonicalContext.Facts, secondaryFact)
+	require.NoError(t, request.Validate())
+
+	for _, mutate := range []func(*IncidentCreateRequest){
+		func(r *IncidentCreateRequest) { r.CanonicalContext.Facts[0].Scope.StoreID = "foreign" },
+		func(r *IncidentCreateRequest) { r.CanonicalContext.Facts[0].Scope.ProjectID = "undeclared" },
+		func(r *IncidentCreateRequest) { r.CanonicalContext.Facts[0].Scope.Environment = "staging" },
+	} {
+		candidate := request
+		candidate.CanonicalContext.Facts = append([]investigation.Fact(nil), request.CanonicalContext.Facts...)
+		scope := *candidate.CanonicalContext.Facts[0].Scope
+		candidate.CanonicalContext.Facts[0].Scope = &scope
+		mutate(&candidate)
+		require.Error(t, candidate.Validate())
+	}
+}
+
 func TestIncidentReadEnvelopesCarryRedactionWithoutPhysicalMapping(t *testing.T) {
 	stored := validIncidentProjection("INC-1")
 	stored.CanonicalContext = investigation.Context{Facts: []investigation.Fact{{
@@ -105,8 +143,8 @@ func TestIncidentReadEnvelopesCarryRedactionWithoutPhysicalMapping(t *testing.T)
 		Physical: &investigation.PhysicalRef{Source: "crm", Collection: "Customer", Column: "Email"},
 		Enabled:  true, Layer: "canonical",
 	}}}
-	view := incidents.ApplyIncidentView(stored, incidents.ViewPolicy{Facts: map[string]incidents.FactVisibility{
-		"customer-email": incidents.FactValueRedacted,
+	view := incidents.ApplyIncidentView(stored, incidents.ViewPolicy{Facts: map[investigation.FactKey]incidents.FactVisibility{
+		stored.CanonicalContext.Facts[0].Key(): incidents.FactValueRedacted,
 	}})
 	redactedEvent := redactedCreatedEvent(t, view)
 

@@ -111,6 +111,7 @@ type CreateMutation struct {
 	Description      string           `json:"description,omitempty"`
 	At               time.Time        `json:"at"`
 	Reporter         Actor            `json:"reporter"`
+	PrimaryProject   ProjectRef       `json:"primaryProject"`
 	Projects         []ProjectRef     `json:"projects,omitempty"`
 	CanonicalContext CanonicalContext `json:"canonicalContext"`
 }
@@ -130,7 +131,7 @@ func (m CreateMutation) Validate() error {
 			return fmt.Errorf("incidents: project %d: %w", i, err)
 		}
 	}
-	if err := m.CanonicalContext.Validate(); err != nil {
+	if err := m.CanonicalContext.ValidateAllowedScopes(m.PrimaryProject, m.Projects); err != nil {
 		return fmt.Errorf("incidents: canonical context: %w", err)
 	}
 	return nil
@@ -218,7 +219,7 @@ type Store interface {
 type APIStore interface {
 	Store
 	Create(ctx context.Context, mutation CreateMutation) (CreateResult, error)
-	List(ctx context.Context, query ListQuery) ([]Incident, error)
+	List(ctx context.Context, query CandidateListQuery) ([]Incident, error)
 	Watch(ctx context.Context, query WatchQuery) (EventStream, error)
 }
 

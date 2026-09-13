@@ -46,7 +46,8 @@ func (r IncidentCreateRequest) Validate() error {
 			return &ValidationError{Field: "projects", Message: fmt.Sprintf("index %d: %s", i, err)}
 		}
 	}
-	if err := validateCanonicalContextInput(r.CanonicalContext); err != nil {
+	primary := incidents.ProjectRef{StoreID: r.StoreID, ProjectID: r.Project, Environment: r.Environment}
+	if err := validateCanonicalContextInput(r.CanonicalContext, primary, r.Projects); err != nil {
 		return &ValidationError{Field: "canonicalContext", Message: err.Error()}
 	}
 	return nil
@@ -199,8 +200,8 @@ func validateIncidentProjection(incident incidents.IncidentView) error {
 	return incident.Validate()
 }
 
-func validateCanonicalContextInput(context incidents.CanonicalContext) error {
-	return context.Validate()
+func validateCanonicalContextInput(context incidents.CanonicalContext, primary incidents.ProjectRef, declared []incidents.ProjectRef) error {
+	return context.ValidateAllowedScopes(primary, declared)
 }
 
 // IncidentListRequest is GET /datatug/incidents. Scope selects the current

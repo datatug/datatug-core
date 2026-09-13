@@ -52,6 +52,29 @@ func (i Incident) Validate() error {
 			return fmt.Errorf("asset ref %d: %w", index, err)
 		}
 	}
+	if len(i.AssetRefEntries) > 0 {
+		derived := make([]ArtifactRef, 0, len(i.AssetRefEntries))
+		for index, entry := range i.AssetRefEntries {
+			if !validSegment(entry.EventID) {
+				return fmt.Errorf("asset ref entry %d requires a valid eventId", index)
+			}
+			if entry.Ref.Kind != RefQuery && entry.Ref.Kind != RefCheck && entry.Ref.Kind != RefBoard {
+				return fmt.Errorf("asset ref entry %d must be a query, check, or board ref", index)
+			}
+			if err := entry.Ref.Validate(); err != nil {
+				return fmt.Errorf("asset ref entry %d: %w", index, err)
+			}
+			for prior := 0; prior < index; prior++ {
+				if i.AssetRefEntries[prior].EventID == entry.EventID && artifactRefsEqual(i.AssetRefEntries[prior].Ref, entry.Ref) {
+					return fmt.Errorf("duplicate asset ref entry for event %q", entry.EventID)
+				}
+			}
+			derived = appendUniqueArtifactRef(derived, entry.Ref)
+		}
+		if !artifactRefSlicesEqual(derived, i.AssetRefs) {
+			return fmt.Errorf("asset ref entries must derive assetRefs exactly and in order")
+		}
+	}
 	for _, participant := range i.Participants {
 		if participant.Role != ParticipantReporter {
 			return fmt.Errorf("invalid participant role %q", participant.Role)
@@ -88,7 +111,9 @@ const (
 // policy evaluator. It is deliberately not persisted and performs no policy
 // evaluation itself.
 type ViewPolicy struct {
-	Facts          map[string]FactVisibility
+	// Facts is a complete, scope-qualified decision set. Missing decisions are
+	// hidden fail-closed; adapters must emit FactVisible for authorized facts.
+	Facts          map[investigation.FactKey]FactVisibility
 	WithheldEvents map[string]bool
 }
 
@@ -134,13 +159,29 @@ func (i Incident) validateWithoutContext() error {
 func ApplyIncidentView(stored Incident, policy ViewPolicy) IncidentView {
 	return IncidentView{
 		Ref: stored.Ref, UID: stored.UID, Title: stored.Title, Description: stored.Description,
-		Status: stored.Status, Outcome: stored.Outcome, MergedInto: stored.MergedInto,
+		Status: stored.Status, Outcome: stored.Outcome, MergedInto: cloneIncidentRef(stored.MergedInto),
 		Projects:         append([]ProjectRef(nil), stored.Projects...),
 		Participants:     append([]Participant(nil), stored.Participants...),
 		CanonicalContext: filterFacts(stored.CanonicalContext.Facts, policy),
-		AssetRefs:        append([]ArtifactRef(nil), stored.AssetRefs...), Notes: filterNotes(stored, policy),
+		AssetRefs:        filterAssetRefs(stored, policy), Notes: filterNotes(stored, policy),
 		LastSeq: stored.LastSeq,
 	}
+}
+
+func filterAssetRefs(stored Incident, policy ViewPolicy) []ArtifactRef {
+	if len(stored.AssetRefEntries) == 0 {
+		if len(policy.WithheldEvents) > 0 {
+			return nil
+		}
+		return cloneArtifactRefs(stored.AssetRefs)
+	}
+	refs := make([]ArtifactRef, 0, len(stored.AssetRefs))
+	for _, entry := range stored.AssetRefEntries {
+		if !policy.WithheldEvents[entry.EventID] {
+			refs = appendUniqueArtifactRef(refs, entry.Ref)
+		}
+	}
+	return refs
 }
 
 func filterNotes(stored Incident, policy ViewPolicy) []string {
@@ -164,7 +205,9 @@ func ApplyEventView(stored Event, policy ViewPolicy) (Event, bool, error) {
 		return Event{}, false, nil
 	}
 	view := stored
-	view.Refs = append([]ArtifactRef(nil), stored.Refs...)
+	view.ImportedFrom = cloneImportedEventRef(stored.ImportedFrom)
+	view.Refs = cloneArtifactRefs(stored.Refs)
+	view.Payload = append(json.RawMessage(nil), stored.Payload...)
 	if stored.Type == EventIncidentCreated {
 		var payload CreatedPayload
 		if err := decodePayload(stored.Payload, &payload); err != nil {
@@ -196,13 +239,15 @@ type CreatedViewPayload struct {
 func filterFacts(stored []investigation.Fact, policy ViewPolicy) investigation.ContextView {
 	view := make([]investigation.FactView, 0, len(stored))
 	for _, fact := range stored {
-		switch policy.Facts[fact.ID] {
+		switch policy.Facts[fact.Key()] {
 		case FactHidden:
 			continue
 		case FactValueRedacted:
 			view = append(view, investigation.RedactedFact(fact, true))
-		default:
+		case FactVisible:
 			view = append(view, investigation.VisibleFact(fact))
+		default:
+			continue
 		}
 	}
 	return investigation.ContextView{Facts: view}
@@ -217,12 +262,10 @@ type ListQuery struct {
 }
 
 func (q ListQuery) Validate() error {
-	for _, status := range q.Statuses {
-		if !validStatus(status) {
-			return fmt.Errorf("invalid status %q", status)
-		}
+	if err := q.Candidates().Validate(); err != nil {
+		return err
 	}
-	for name, value := range map[string]string{"project": q.ProjectID, "query": q.QueryID, "check": q.CheckID, "board": q.BoardID} {
+	for name, value := range map[string]string{"query": q.QueryID, "check": q.CheckID, "board": q.BoardID} {
 		if value != "" && !validFilterValue(value) {
 			return fmt.Errorf("invalid %s filter", name)
 		}
@@ -230,7 +273,30 @@ func (q ListQuery) Validate() error {
 	return nil
 }
 
-func MatchesListQuery(incident Incident, query ListQuery) bool {
+// CandidateListQuery is the provider-facing safe subset. Protected backlink
+// filters are applied only after current-policy IncidentViews are constructed.
+type CandidateListQuery struct {
+	Statuses  []Status `json:"statuses,omitempty"`
+	ProjectID string   `json:"project,omitempty"`
+}
+
+func (q CandidateListQuery) Validate() error {
+	for _, status := range q.Statuses {
+		if !validStatus(status) {
+			return fmt.Errorf("invalid status %q", status)
+		}
+	}
+	if q.ProjectID != "" && !validFilterValue(q.ProjectID) {
+		return fmt.Errorf("invalid project filter")
+	}
+	return nil
+}
+
+func (q ListQuery) Candidates() CandidateListQuery {
+	return CandidateListQuery{Statuses: q.Statuses, ProjectID: q.ProjectID}
+}
+
+func MatchesListQuery(incident IncidentView, query ListQuery) bool {
 	if len(query.Statuses) > 0 && !containsStatus(query.Statuses, incident.Status) {
 		return false
 	}
@@ -249,7 +315,7 @@ func containsStatus(values []Status, wanted Status) bool {
 	return false
 }
 
-func hasProject(incident Incident, projectID string) bool {
+func hasProject(incident IncidentView, projectID string) bool {
 	for _, project := range incident.Projects {
 		if project.ProjectID == projectID {
 			return true
@@ -258,7 +324,7 @@ func hasProject(incident Incident, projectID string) bool {
 	return false
 }
 
-func hasAssetFilter(incident Incident, kind RefKind, id string) bool {
+func hasAssetFilter(incident IncidentView, kind RefKind, id string) bool {
 	if id == "" {
 		return true
 	}
@@ -515,6 +581,67 @@ func hasExactProject(projects []ProjectRef, wanted ProjectRef) bool {
 		}
 	}
 	return false
+}
+
+func cloneIncidentRef(value *IncidentRef) *IncidentRef {
+	if value == nil {
+		return nil
+	}
+	cloned := *value
+	return &cloned
+}
+
+func cloneImportedEventRef(value *ImportedEventRef) *ImportedEventRef {
+	if value == nil {
+		return nil
+	}
+	cloned := *value
+	return &cloned
+}
+
+func cloneArtifactRefs(refs []ArtifactRef) []ArtifactRef {
+	if refs == nil {
+		return nil
+	}
+	cloned := make([]ArtifactRef, len(refs))
+	for index, ref := range refs {
+		cloned[index] = cloneArtifactRef(ref)
+	}
+	return cloned
+}
+
+func cloneArtifactRef(ref ArtifactRef) ArtifactRef {
+	cloned := ref
+	cloned.Incident = cloneIncidentRef(ref.Incident)
+	if ref.Project != nil {
+		value := *ref.Project
+		cloned.Project = &value
+	}
+	if ref.Execution != nil {
+		value := *ref.Execution
+		cloned.Execution = &value
+	}
+	if ref.Artifact != nil {
+		value := *ref.Artifact
+		cloned.Artifact = &value
+	}
+	if ref.Comparison != nil {
+		value := *ref.Comparison
+		cloned.Comparison = &value
+	}
+	return cloned
+}
+
+func artifactRefSlicesEqual(left, right []ArtifactRef) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for index := range left {
+		if !artifactRefsEqual(left[index], right[index]) {
+			return false
+		}
+	}
+	return true
 }
 
 func sharedTextTokens(left, right string) []string {

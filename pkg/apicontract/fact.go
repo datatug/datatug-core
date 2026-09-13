@@ -5,6 +5,10 @@ import "github.com/datatug/datatug-core/pkg/investigation"
 // Fact is an alias of the one canonical Investigation Context fact model.
 type Fact = investigation.Fact
 
+// ProjectScope is persisted fact provenance; request Scope additionally
+// carries the current security-context staleness token and remains separate.
+type ProjectScope = investigation.ProjectScope
+
 const (
 	FactOriginSelection = investigation.FactOriginSelection
 	FactOriginContext   = investigation.FactOriginContext
