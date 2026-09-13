@@ -218,7 +218,17 @@ func (r IncidentListRequest) Validate() error {
 	if err := r.IncidentScope.Validate(); err != nil {
 		return err
 	}
-	return (incidents.ListQuery{Statuses: r.Statuses, ProjectID: r.Project, QueryID: r.QueryID, CheckID: r.CheckID, BoardID: r.BoardID}).Validate()
+	return r.ListQuery().Validate()
+}
+
+// ListQuery carries the validated request scope into both provider candidate
+// selection and current-policy backlink filtering without changing the HTTP
+// request's flat query-parameter shape.
+func (r IncidentListRequest) ListQuery() incidents.ListQuery {
+	return incidents.ListQuery{
+		Statuses: r.Statuses, StoreID: r.StoreID, ProjectID: r.Project, Environment: r.Environment,
+		QueryID: r.QueryID, CheckID: r.CheckID, BoardID: r.BoardID,
+	}
 }
 
 type IncidentSearchRequest struct {

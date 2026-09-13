@@ -15,6 +15,13 @@ func TestIncidentListSearchSimilarAndStreamContracts(t *testing.T) {
 	scope := validIncidentScope()
 	list := IncidentListRequest{IncidentScope: scope, Statuses: []incidents.Status{incidents.StatusOpen}, QueryID: "customers/invoices"}
 	require.NoError(t, list.Validate())
+	require.Equal(t, incidents.ListQuery{
+		Statuses: list.Statuses, StoreID: scope.StoreID, ProjectID: scope.Project,
+		Environment: scope.Environment, QueryID: list.QueryID,
+	}, list.ListQuery())
+	encodedList, err := json.Marshal(list)
+	require.NoError(t, err)
+	require.JSONEq(t, `{"storeId":"ops","project":"billing","environment":"prod","securityContextId":"ctx-1","statuses":["open"],"query":"customers/invoices"}`, string(encodedList))
 	list.CheckID, list.BoardID = "stuck-invoices", "incident-board"
 	require.NoError(t, list.Validate())
 	list.Statuses = []incidents.Status{"paused"}

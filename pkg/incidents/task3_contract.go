@@ -254,11 +254,13 @@ func filterFacts(stored []investigation.Fact, policy ViewPolicy) investigation.C
 }
 
 type ListQuery struct {
-	Statuses  []Status `json:"statuses,omitempty"`
-	ProjectID string   `json:"project,omitempty"`
-	QueryID   string   `json:"query,omitempty"`
-	CheckID   string   `json:"check,omitempty"`
-	BoardID   string   `json:"board,omitempty"`
+	Statuses    []Status `json:"statuses,omitempty"`
+	StoreID     string   `json:"storeId,omitempty"`
+	ProjectID   string   `json:"project,omitempty"`
+	Environment string   `json:"environment,omitempty"`
+	QueryID     string   `json:"query,omitempty"`
+	CheckID     string   `json:"check,omitempty"`
+	BoardID     string   `json:"board,omitempty"`
 }
 
 func (q ListQuery) Validate() error {
@@ -270,14 +272,19 @@ func (q ListQuery) Validate() error {
 			return fmt.Errorf("invalid %s filter", name)
 		}
 	}
+	if (q.QueryID != "" || q.CheckID != "" || q.BoardID != "") && !q.hasProjectScope() {
+		return fmt.Errorf("artifact filters require a full project scope")
+	}
 	return nil
 }
 
 // CandidateListQuery is the provider-facing safe subset. Protected backlink
 // filters are applied only after current-policy IncidentViews are constructed.
 type CandidateListQuery struct {
-	Statuses  []Status `json:"statuses,omitempty"`
-	ProjectID string   `json:"project,omitempty"`
+	Statuses    []Status `json:"statuses,omitempty"`
+	StoreID     string   `json:"storeId,omitempty"`
+	ProjectID   string   `json:"project,omitempty"`
+	Environment string   `json:"environment,omitempty"`
 }
 
 func (q CandidateListQuery) Validate() error {
@@ -286,24 +293,36 @@ func (q CandidateListQuery) Validate() error {
 			return fmt.Errorf("invalid status %q", status)
 		}
 	}
-	if q.ProjectID != "" && !validFilterValue(q.ProjectID) {
-		return fmt.Errorf("invalid project filter")
+	if !q.hasAnyProjectScope() {
+		return nil
+	}
+	if !q.hasProjectScope() {
+		return fmt.Errorf("project filter requires store, project, and environment")
+	}
+	for name, value := range map[string]string{"store": q.StoreID, "project": q.ProjectID, "environment": q.Environment} {
+		if !validFilterValue(value) {
+			return fmt.Errorf("invalid %s filter", name)
+		}
 	}
 	return nil
 }
 
 func (q ListQuery) Candidates() CandidateListQuery {
-	return CandidateListQuery{Statuses: q.Statuses, ProjectID: q.ProjectID}
+	return CandidateListQuery{Statuses: q.Statuses, StoreID: q.StoreID, ProjectID: q.ProjectID, Environment: q.Environment}
 }
 
 func MatchesListQuery(incident IncidentView, query ListQuery) bool {
 	if len(query.Statuses) > 0 && !containsStatus(query.Statuses, incident.Status) {
 		return false
 	}
-	if query.ProjectID != "" && !hasProject(incident, query.ProjectID) {
+	if query.hasAnyProjectScope() && (!query.hasProjectScope() || !hasProject(incident, query.projectScope())) {
 		return false
 	}
-	return hasAssetFilter(incident, RefQuery, query.QueryID) && hasAssetFilter(incident, RefCheck, query.CheckID) && hasAssetFilter(incident, RefBoard, query.BoardID)
+	if (query.QueryID != "" || query.CheckID != "" || query.BoardID != "") && !query.hasProjectScope() {
+		return false
+	}
+	scope := query.projectScope()
+	return hasAssetFilter(incident, RefQuery, query.QueryID, scope) && hasAssetFilter(incident, RefCheck, query.CheckID, scope) && hasAssetFilter(incident, RefBoard, query.BoardID, scope)
 }
 
 func containsStatus(values []Status, wanted Status) bool {
@@ -315,26 +334,45 @@ func containsStatus(values []Status, wanted Status) bool {
 	return false
 }
 
-func hasProject(incident IncidentView, projectID string) bool {
+func hasProject(incident IncidentView, wanted ProjectRef) bool {
 	for _, project := range incident.Projects {
-		if project.ProjectID == projectID {
+		if project == wanted {
 			return true
 		}
 	}
 	return false
 }
 
-func hasAssetFilter(incident IncidentView, kind RefKind, id string) bool {
+func hasAssetFilter(incident IncidentView, kind RefKind, id string, project ProjectRef) bool {
 	if id == "" {
 		return true
 	}
 	for _, ref := range incident.AssetRefs {
-		if ref.Kind == kind && ref.Artifact != nil && ref.Artifact.ID == id {
+		if ref.Kind == kind && ref.Artifact != nil && ref.Artifact.ID == id &&
+			ref.Artifact.StoreID == project.StoreID && ref.Artifact.ProjectID == project.ProjectID && ref.Artifact.Environment == project.Environment {
 			return true
 		}
 	}
 	return false
 }
+
+func (q CandidateListQuery) hasAnyProjectScope() bool {
+	return q.StoreID != "" || q.ProjectID != "" || q.Environment != ""
+}
+
+func (q CandidateListQuery) hasProjectScope() bool {
+	return q.StoreID != "" && q.ProjectID != "" && q.Environment != ""
+}
+
+func (q CandidateListQuery) projectScope() ProjectRef {
+	return ProjectRef{StoreID: q.StoreID, ProjectID: q.ProjectID, Environment: q.Environment}
+}
+
+func (q ListQuery) hasAnyProjectScope() bool { return q.Candidates().hasAnyProjectScope() }
+
+func (q ListQuery) hasProjectScope() bool { return q.Candidates().hasProjectScope() }
+
+func (q ListQuery) projectScope() ProjectRef { return q.Candidates().projectScope() }
 
 func validFilterValue(value string) bool {
 	if strings.TrimSpace(value) != value || value == "" {

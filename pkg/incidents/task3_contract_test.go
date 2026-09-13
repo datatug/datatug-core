@@ -152,8 +152,9 @@ func TestWithheldAssetBacklinksUseStableEventProvenance(t *testing.T) {
 	require.Equal(t, 3, oneVisibleMatches[0].Score)
 	require.Equal(t, []MatchedSignal{{Kind: SignalCheck, Value: "invoice-health"}}, oneVisibleMatches[0].MatchedSignals)
 	require.Empty(t, Similar(noneVisible, []IncidentView{candidate}))
-	require.True(t, MatchesListQuery(oneVisible, ListQuery{CheckID: "invoice-health"}))
-	require.False(t, MatchesListQuery(noneVisible, ListQuery{CheckID: "invoice-health"}))
+	listQuery := ListQuery{StoreID: "ops", ProjectID: "billing", Environment: "prod", CheckID: "invoice-health"}
+	require.True(t, MatchesListQuery(oneVisible, listQuery))
+	require.False(t, MatchesListQuery(noneVisible, listQuery))
 
 	legacy := projection
 	legacy.AssetRefEntries = nil
@@ -278,9 +279,12 @@ func TestIncidentNoteEntriesMustRemainCanonical(t *testing.T) {
 }
 
 func TestListSearchAndSimilarityAreDeterministicAndExplainable(t *testing.T) {
+	listScope := ProjectRef{StoreID: "ops", ProjectID: "billing", Environment: "prod"}
 	base := task3Projection("INC-1", "Canadian invoices stuck", StatusResolved)
-	base.AssetRefs = []ArtifactRef{{Kind: RefCheck, Artifact: &ProjectArtifactRef{StoreID: "ops", ProjectID: "billing", ID: "stuck-invoices"}}}
+	base.Projects = []ProjectRef{listScope}
+	base.AssetRefs = []ArtifactRef{{Kind: RefCheck, Artifact: &ProjectArtifactRef{StoreID: listScope.StoreID, ProjectID: listScope.ProjectID, Environment: listScope.Environment, ID: "stuck-invoices"}}}
 	recurrence := task3Projection("INC-2", "Invoice totals missing again", StatusOpen)
+	recurrence.Projects = []ProjectRef{listScope}
 	recurrence.AssetRefs = append([]ArtifactRef(nil), base.AssetRefs...)
 	unrelated := task3Projection("INC-3", "Canadian carrier delay", StatusOpen)
 	unrelated.CanonicalContext.Facts[0].Value = investigation.NewIntegerValue("99")
@@ -288,7 +292,7 @@ func TestListSearchAndSimilarityAreDeterministicAndExplainable(t *testing.T) {
 	recurrenceView := ApplyIncidentView(recurrence, visiblePolicyFor(recurrence.CanonicalContext.Facts...))
 	baseView := ApplyIncidentView(base, visiblePolicyFor(base.CanonicalContext.Facts...))
 
-	query := ListQuery{Statuses: []Status{StatusOpen}, CheckID: "stuck-invoices"}
+	query := ListQuery{Statuses: []Status{StatusOpen}, StoreID: listScope.StoreID, ProjectID: listScope.ProjectID, Environment: listScope.Environment, CheckID: "stuck-invoices"}
 	require.NoError(t, query.Validate())
 	require.True(t, MatchesListQuery(recurrenceView, query))
 	require.False(t, MatchesListQuery(baseView, query))
@@ -306,6 +310,52 @@ func TestListSearchAndSimilarityAreDeterministicAndExplainable(t *testing.T) {
 	require.Equal(t, base.Ref, matches[0].Incident.Ref)
 	require.Greater(t, matches[0].Score, matches[1].Score)
 	require.NotEmpty(t, matches[0].MatchedSignals)
+}
+
+func TestListFiltersBindArtifactsToFullProjectScope(t *testing.T) {
+	requested := ProjectRef{StoreID: "store-a", ProjectID: "project-a", Environment: "prod"}
+	wrongScopes := []ProjectRef{
+		{StoreID: "store-b", ProjectID: requested.ProjectID, Environment: requested.Environment},
+		{StoreID: requested.StoreID, ProjectID: requested.ProjectID, Environment: "staging"},
+		{StoreID: requested.StoreID, ProjectID: "project-b", Environment: requested.Environment},
+	}
+	queryFor := func(kind RefKind) ListQuery {
+		query := ListQuery{StoreID: requested.StoreID, ProjectID: requested.ProjectID, Environment: requested.Environment}
+		switch kind {
+		case RefQuery:
+			query.QueryID = "shared-id"
+		case RefCheck:
+			query.CheckID = "shared-id"
+		case RefBoard:
+			query.BoardID = "shared-id"
+		}
+		return query
+	}
+	viewFor := func(projects []ProjectRef, kind RefKind, artifactScope ProjectRef) IncidentView {
+		incident := task3Projection("INC-10", "Scoped filter", StatusOpen)
+		incident.Projects = projects
+		incident.AssetRefs = []ArtifactRef{{Kind: kind, Artifact: &ProjectArtifactRef{
+			StoreID: artifactScope.StoreID, ProjectID: artifactScope.ProjectID,
+			Environment: artifactScope.Environment, ID: "shared-id",
+		}}}
+		return ApplyIncidentView(incident, visiblePolicyFor(incident.CanonicalContext.Facts...))
+	}
+
+	for _, wrong := range wrongScopes {
+		require.False(t, MatchesListQuery(viewFor([]ProjectRef{wrong}, RefQuery, wrong), ListQuery{
+			StoreID: requested.StoreID, ProjectID: requested.ProjectID, Environment: requested.Environment,
+		}), "project membership must include store and environment")
+		for _, kind := range []RefKind{RefQuery, RefCheck, RefBoard} {
+			view := viewFor([]ProjectRef{requested, wrong}, kind, wrong)
+			require.False(t, MatchesListQuery(view, queryFor(kind)), "%s ref under %+v must not match %+v", kind, wrong, requested)
+			require.True(t, MatchesListQuery(viewFor([]ProjectRef{requested, wrong}, kind, requested), queryFor(kind)))
+		}
+	}
+
+	require.Error(t, (ListQuery{ProjectID: requested.ProjectID, QueryID: "shared-id"}).Validate())
+	require.False(t, MatchesListQuery(viewFor([]ProjectRef{requested}, RefQuery, requested), ListQuery{ProjectID: requested.ProjectID, QueryID: "shared-id"}))
+	require.Error(t, (ListQuery{QueryID: "shared-id"}).Validate())
+	require.False(t, MatchesListQuery(viewFor([]ProjectRef{requested}, RefQuery, requested), ListQuery{QueryID: "shared-id"}))
 }
 
 func TestCursorAndWatchContracts(t *testing.T) {
