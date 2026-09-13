@@ -57,6 +57,7 @@ func TestCheckNoDuplicateKeysFor(t *testing.T) {
 }
 
 func TestObjectFieldsAndFolding(t *testing.T) {
+	_ = objectTarget{hidden: "ignored"}
 	fields, ok := ObjectFields(reflect.TypeOf(objectTarget{}))
 	if !ok {
 		t.Fatal("struct fields were not detected")
