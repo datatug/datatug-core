@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	contractfixtures "github.com/datatug/datatug-core/pkg/apicontract/fixtures"
 	"github.com/datatug/datatug-core/pkg/incidents"
 	"github.com/datatug/datatug-core/pkg/investigation"
 	"github.com/stretchr/testify/require"
@@ -31,6 +32,41 @@ func TestIncidentContextEventTransportStrictDecodeAndCompatibility(t *testing.T)
 	duplicateRole := strings.Replace(string(wire), `"role":"suspected"`, `"role":"suspected","role":"affected"`, 1)
 	require.ErrorContains(t, DecodeStrict([]byte(duplicateRole), &decoded), "duplicate key")
 
+	caseVariantPayloads := []struct {
+		name      string
+		eventType incidents.EventType
+		payload   json.RawMessage
+	}{
+		{
+			name:      "added fact role",
+			eventType: incidents.EventContextFactAdded,
+			payload:   json.RawMessage(`{"fact":{"id":"customer-11","entity":"Customer","field":"ID","value":{"type":"integer","value":"11"},"origin":"context","enabled":true,"role":"suspected","Role":"affected","layer":"hypothesis:H17","scope":{"storeId":"projects","projectId":"billing","environment":"prod"}}}`),
+		},
+		{
+			name:      "promoted role",
+			eventType: incidents.EventContextFactPromoted,
+			payload:   json.RawMessage(`{"fact":{"scope":{"storeId":"projects","projectId":"billing","environment":"prod"},"id":"customer-11","layer":"hypothesis:H17"},"role":"affected","Role":"excluded"}`),
+		},
+		{
+			name:      "rejected layer",
+			eventType: incidents.EventContextFactRejected,
+			payload:   json.RawMessage(`{"layer":"hypothesis:H17","Layer":"hypothesis:H12"}`),
+		},
+	}
+	for _, tt := range caseVariantPayloads {
+		t.Run(tt.name, func(t *testing.T) {
+			candidate := validAppendRequest()
+			candidate.Event.Type = tt.eventType
+			candidate.Event.Payload = tt.payload
+			require.ErrorContains(t, candidate.Validate(), "duplicate key")
+
+			candidateWire, err := json.Marshal(candidate)
+			require.NoError(t, err)
+			var strict IncidentAppendRequest
+			require.ErrorContains(t, DecodeStrict(candidateWire, &strict), "duplicate key")
+		})
+	}
+
 	request.Event.Payload = json.RawMessage(`{"fact":{"id":"customer-11","entity":"Customer","field":"ID","value":{"type":"integer","value":"11"},"origin":"context","enabled":true,"role":"suspected","layer":"hypothesis:H17","scope":{"storeId":"projects","projectId":"billing","environment":"prod"}},"unexpected":true}`)
 	require.ErrorContains(t, request.Validate(), "unknown field")
 
@@ -38,6 +74,22 @@ func TestIncidentContextEventTransportStrictDecodeAndCompatibility(t *testing.T)
 	legacy.Event.Type = incidents.EventNoteAdded
 	legacy.Event.Payload = mustMarshalAPI(t, incidents.NoteAddedPayload{Body: "legacy note"})
 	require.NoError(t, legacy.Validate())
+}
+
+func TestIncidentContextEventFixturesStrictDecode(t *testing.T) {
+	for _, name := range []string{
+		"incident_append_context_fact_added_request.json",
+		"incident_append_context_fact_promoted_request.json",
+		"incident_append_context_fact_rejected_request.json",
+	} {
+		t.Run(name, func(t *testing.T) {
+			wire, err := contractfixtures.Read(name)
+			require.NoError(t, err)
+			var request IncidentAppendRequest
+			require.NoError(t, DecodeStrict(wire, &request))
+			require.NoError(t, request.Validate())
+		})
+	}
 }
 
 func TestIncidentPromotionTransportDoesNotInventHypothesisRefRequirement(t *testing.T) {

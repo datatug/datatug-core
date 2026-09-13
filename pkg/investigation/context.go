@@ -165,6 +165,15 @@ func IsOverlayFactLayer(layer string) bool {
 	return layer != "" && layer != FactLayerCanonical && ValidateFactLayer(layer) == nil
 }
 
+// ValidateFactRole owns the shared cohort-role vocabulary. An omitted role is
+// valid for facts that do not participate in a cohort.
+func ValidateFactRole(role string) error {
+	if role == "" {
+		return nil
+	}
+	return requireOneOf("role", role, FactRoleAffected, FactRoleHealthyControl, FactRoleSuspected, FactRoleExcluded, FactRoleRecovered)
+}
+
 func (f Fact) Validate() error {
 	if err := requireNonEmpty("id", f.ID); err != nil {
 		return err
@@ -200,10 +209,8 @@ func (f Fact) Validate() error {
 			return err
 		}
 	}
-	if f.Role != "" {
-		if err := requireOneOf("role", f.Role, FactRoleAffected, FactRoleHealthyControl, FactRoleSuspected, FactRoleExcluded, FactRoleRecovered); err != nil {
-			return err
-		}
+	if err := ValidateFactRole(f.Role); err != nil {
+		return err
 	}
 	if err := ValidateFactLayer(f.Layer); err != nil {
 		return err

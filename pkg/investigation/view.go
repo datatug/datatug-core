@@ -151,10 +151,8 @@ func (f FactView) Validate() error {
 	if f.Physical != nil || f.Mapping != "" {
 		return fmt.Errorf("redacted fact view cannot expose physical mapping")
 	}
-	if f.Role != "" {
-		if err := requireOneOf("role", f.Role, FactRoleAffected, FactRoleHealthyControl, FactRoleSuspected, FactRoleExcluded, FactRoleRecovered); err != nil {
-			return err
-		}
+	if err := ValidateFactRole(f.Role); err != nil {
+		return err
 	}
 	if err := ValidateFactLayer(f.Layer); err != nil {
 		return err

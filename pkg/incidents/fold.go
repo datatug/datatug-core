@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 	"time"
 
+	"github.com/datatug/datatug-core/internal/jsonstrict"
 	"github.com/datatug/datatug-core/pkg/investigation"
 )
 
@@ -331,6 +333,9 @@ func (p *Incident) apply(event Event) error {
 		if contextLayerRejected(p.ContextRejections, payload.Layer) {
 			return fmt.Errorf("overlay %q is already rejected", payload.Layer)
 		}
+		if contextLayerPromoted(p.ContextPromotions, payload.Layer) {
+			return fmt.Errorf("cannot reject promoted overlay %q", payload.Layer)
+		}
 		if !contextLayerHasFacts(p.CanonicalContext.Facts, payload.Layer) {
 			return fmt.Errorf("overlay %q has no facts", payload.Layer)
 		}
@@ -352,6 +357,9 @@ func validatedPayload[T any](data json.RawMessage) T {
 }
 
 func decodePayload(data json.RawMessage, dst any) error {
+	if err := jsonstrict.CheckNoDuplicateKeysFor(data, reflect.TypeOf(dst)); err != nil {
+		return fmt.Errorf("invalid payload: %w", err)
+	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(dst); err != nil {

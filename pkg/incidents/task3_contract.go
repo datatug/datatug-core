@@ -153,26 +153,7 @@ func (i IncidentView) Validate() error {
 	if err := i.CanonicalContext.Validate(); err != nil {
 		return err
 	}
-	seenEvents := make(map[string]bool, len(i.ContextPromotions)+len(i.ContextRejections))
-	for index, promotion := range i.ContextPromotions {
-		if err := promotion.Validate(); err != nil {
-			return fmt.Errorf("context promotion %d: %w", index, err)
-		}
-		if seenEvents[promotion.EventID] {
-			return fmt.Errorf("duplicate context history eventId %q", promotion.EventID)
-		}
-		seenEvents[promotion.EventID] = true
-	}
-	for index, rejection := range i.ContextRejections {
-		if err := rejection.Validate(); err != nil {
-			return fmt.Errorf("context overlay rejection %d: %w", index, err)
-		}
-		if seenEvents[rejection.EventID] {
-			return fmt.Errorf("duplicate context history eventId %q", rejection.EventID)
-		}
-		seenEvents[rejection.EventID] = true
-	}
-	return nil
+	return validateContextHistoryTransitions(i.ContextPromotions, i.ContextRejections)
 }
 
 func (i Incident) validateWithoutContext() error {

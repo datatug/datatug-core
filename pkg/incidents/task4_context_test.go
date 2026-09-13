@@ -89,6 +89,26 @@ func TestContextOverlayRejectionRetainsFactsAndClosesTransitions(t *testing.T) {
 	require.ErrorContains(t, err, "already rejected")
 }
 
+func TestContextOverlayCannotBeRejectedAfterPromotion(t *testing.T) {
+	ref := IncidentRef{StoreID: "ops", IncidentID: "INC-1"}
+	start := time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC)
+	scope := investigation.ProjectScope{StoreID: "projects", ProjectID: "billing", Environment: "prod"}
+	overlay := investigation.Fact{
+		ID: "customer-12", Entity: "Customer", Field: "ID", Value: investigation.NewIntegerValue("12"),
+		Origin: investigation.FactOriginContext, Enabled: true, Role: investigation.FactRoleSuspected,
+		Layer: "hypothesis:H12", Scope: &scope,
+	}
+	created := task4CreatedEvent(t, ref, start)
+	added := eventWithPayload(t, ref, 2, start.Add(time.Minute), EventContextFactAdded, ContextFactAddedPayload{Fact: overlay})
+	promoted := eventWithPayload(t, ref, 3, start.Add(2*time.Minute), EventContextFactPromoted, ContextFactPromotedPayload{
+		Fact: ContextFactRef{Scope: scope, ID: overlay.ID, Layer: overlay.Layer}, Role: investigation.FactRoleAffected,
+	})
+	rejected := eventWithPayload(t, ref, 4, start.Add(3*time.Minute), EventContextFactRejected, ContextFactRejectedPayload{Layer: overlay.Layer})
+
+	_, err := Fold([]Event{created, added, promoted, rejected}, nil)
+	require.ErrorContains(t, err, "promoted overlay")
+}
+
 func TestContextEventValidationFailsClosed(t *testing.T) {
 	ref := IncidentRef{StoreID: "ops", IncidentID: "INC-1"}
 	at := time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC)
@@ -108,6 +128,7 @@ func TestContextEventValidationFailsClosed(t *testing.T) {
 		{"unscoped added fact", EventContextFactAdded, ContextFactAddedPayload{Fact: func() investigation.Fact { f := validFact; f.Scope = nil; return f }()}},
 		{"bad added layer", EventContextFactAdded, ContextFactAddedPayload{Fact: func() investigation.Fact { f := validFact; f.Layer = "hypothesis:"; return f }()}},
 		{"missing promotion fact", EventContextFactPromoted, ContextFactPromotedPayload{Role: investigation.FactRoleAffected}},
+		{"missing promotion role", EventContextFactPromoted, ContextFactPromotedPayload{Fact: validRef}},
 		{"canonical promotion source", EventContextFactPromoted, ContextFactPromotedPayload{Fact: ContextFactRef{Scope: scope, ID: validFact.ID, Layer: investigation.FactLayerCanonical}, Role: investigation.FactRoleAffected}},
 		{"bad promotion role", EventContextFactPromoted, ContextFactPromotedPayload{Fact: validRef, Role: "observer"}},
 		{"canonical rejection", EventContextFactRejected, ContextFactRejectedPayload{Layer: investigation.FactLayerCanonical}},
@@ -152,31 +173,49 @@ func TestContextPayloadAndHistoryValidationFailsClosed(t *testing.T) {
 	require.Error(t, (ContextRejection{}).Validate())
 	require.Error(t, (FactSignal{Entity: "Customer", Field: "ID", Value: investigation.NewIntegerValue("11"), Condition: "contains"}).Validate())
 
-	projection := task4PromotedProjection(t)
-	require.NoError(t, projection.Validate())
-	mutations := []func(*Incident){
+	promotedProjection := task4PromotedProjection(t)
+	require.NoError(t, promotedProjection.Validate())
+	promotionMutations := []func(*Incident){
 		func(i *Incident) { i.ContextPromotions[0].EventID = "" },
 		func(i *Incident) { i.ContextPromotions = append(i.ContextPromotions, i.ContextPromotions[0]) },
+		func(i *Incident) {
+			duplicate := i.ContextPromotions[0]
+			duplicate.EventID = "evt-5"
+			i.ContextPromotions = append(i.ContextPromotions, duplicate)
+		},
 		func(i *Incident) { i.ContextPromotions[0].Fact.ID = "missing" },
 		func(i *Incident) { i.CanonicalContext.Facts = i.CanonicalContext.Facts[:1] },
 		func(i *Incident) { i.CanonicalContext.Facts[1].Value = investigation.NewIntegerValue("12") },
+		func(i *Incident) {
+			i.ContextRejections = []ContextRejection{{EventID: "evt-5", Layer: i.ContextPromotions[0].Fact.Layer}}
+		},
+	}
+	for _, mutate := range promotionMutations {
+		candidate := promotedProjection
+		candidate.CanonicalContext.Facts = cloneFacts(promotedProjection.CanonicalContext.Facts)
+		candidate.ContextPromotions = append([]ContextPromotion(nil), promotedProjection.ContextPromotions...)
+		mutate(&candidate)
+		require.Error(t, candidate.Validate())
+	}
+
+	rejectedProjection := task4RejectedProjection(t)
+	require.NoError(t, rejectedProjection.Validate())
+	rejectionMutations := []func(*Incident){
 		func(i *Incident) { i.ContextRejections[0].EventID = "" },
-		func(i *Incident) { i.ContextRejections[0].EventID = i.ContextPromotions[0].EventID },
 		func(i *Incident) { i.ContextRejections[0].Layer = "hypothesis:H12" },
 		func(i *Incident) {
 			i.ContextRejections = append(i.ContextRejections, ContextRejection{EventID: "evt-5", Layer: i.ContextRejections[0].Layer})
 		},
 	}
-	for _, mutate := range mutations {
-		candidate := projection
-		candidate.CanonicalContext.Facts = cloneFacts(projection.CanonicalContext.Facts)
-		candidate.ContextPromotions = append([]ContextPromotion(nil), projection.ContextPromotions...)
-		candidate.ContextRejections = append([]ContextRejection(nil), projection.ContextRejections...)
+	for _, mutate := range rejectionMutations {
+		candidate := rejectedProjection
+		candidate.CanonicalContext.Facts = cloneFacts(rejectedProjection.CanonicalContext.Facts)
+		candidate.ContextRejections = append([]ContextRejection(nil), rejectedProjection.ContextRejections...)
 		mutate(&candidate)
 		require.Error(t, candidate.Validate())
 	}
 
-	view := ApplyIncidentView(projection, visiblePolicyFor(projection.CanonicalContext.Facts...))
+	view := ApplyIncidentView(promotedProjection, visiblePolicyFor(promotedProjection.CanonicalContext.Facts...))
 	require.NoError(t, view.Validate())
 	badView := view
 	badView.ContextPromotions = []ContextPromotion{{}}
@@ -185,11 +224,24 @@ func TestContextPayloadAndHistoryValidationFailsClosed(t *testing.T) {
 	badView.ContextPromotions = append(append([]ContextPromotion(nil), view.ContextPromotions...), view.ContextPromotions[0])
 	require.Error(t, badView.Validate())
 	badView = view
+	duplicatePromotion := view.ContextPromotions[0]
+	duplicatePromotion.EventID = "evt-5"
+	badView.ContextPromotions = append(append([]ContextPromotion(nil), view.ContextPromotions...), duplicatePromotion)
+	require.Error(t, badView.Validate())
+	badView = view
 	badView.ContextRejections = []ContextRejection{{}}
 	require.Error(t, badView.Validate())
 	badView = view
 	badView.ContextRejections = append(append([]ContextRejection(nil), view.ContextRejections...), ContextRejection{EventID: view.ContextPromotions[0].EventID, Layer: "hypothesis:H17"})
 	require.Error(t, badView.Validate())
+	badView = view
+	badView.ContextRejections = []ContextRejection{{EventID: "evt-5", Layer: view.ContextPromotions[0].Fact.Layer}}
+	require.Error(t, badView.Validate())
+
+	rejectedView := ApplyIncidentView(rejectedProjection, visiblePolicyFor(rejectedProjection.CanonicalContext.Facts...))
+	require.NoError(t, rejectedView.Validate())
+	rejectedView.ContextRejections = append(rejectedView.ContextRejections, rejectedView.ContextRejections[0])
+	require.Error(t, rejectedView.Validate())
 }
 
 func TestContextEventViewValidationAndMalformedPayloads(t *testing.T) {
@@ -249,12 +301,12 @@ func TestContextEventViewValidationAndMalformedPayloads(t *testing.T) {
 	badView.Payload = mustJSON(t, viewPayload)
 	require.Error(t, badView.ValidateView())
 
-	projection := task4PromotedProjection(t)
+	projection := task4RejectedProjection(t)
 	policy := visiblePolicyFor(projection.CanonicalContext.Facts...)
 	policy.WithheldEvents = map[string]bool{projection.ContextRejections[0].EventID: true}
 	filtered := ApplyIncidentView(projection, policy)
 	require.Empty(t, filtered.ContextRejections)
-	require.Len(t, filtered.ContextPromotions, 1)
+	require.Empty(t, filtered.ContextPromotions)
 }
 
 func TestContextEventFoldRejectsMissingOrDuplicateFactsAndLayers(t *testing.T) {
@@ -366,7 +418,26 @@ func task4PromotedProjection(t *testing.T) Incident {
 		eventWithPayload(t, ref, 3, start.Add(2*time.Minute), EventContextFactPromoted, ContextFactPromotedPayload{
 			Fact: ContextFactRef{Scope: scope, ID: fact.ID, Layer: fact.Layer}, Role: investigation.FactRoleAffected,
 		}),
-		eventWithPayload(t, ref, 4, start.Add(3*time.Minute), EventContextFactRejected, ContextFactRejectedPayload{Layer: fact.Layer}),
+	}
+	projection, err := Fold(events, nil)
+	require.NoError(t, err)
+	return projection
+}
+
+func task4RejectedProjection(t *testing.T) Incident {
+	t.Helper()
+	ref := IncidentRef{StoreID: "ops", IncidentID: "INC-1"}
+	start := time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC)
+	scope := investigation.ProjectScope{StoreID: "projects", ProjectID: "billing", Environment: "prod"}
+	fact := investigation.Fact{
+		ID: "customer-11", Entity: "Customer", Field: "ID", Value: investigation.NewIntegerValue("11"),
+		Origin: investigation.FactOriginContext, Enabled: true, Role: investigation.FactRoleSuspected,
+		Layer: "hypothesis:H17", Scope: &scope,
+	}
+	events := []Event{
+		task4CreatedEvent(t, ref, start),
+		eventWithPayload(t, ref, 2, start.Add(time.Minute), EventContextFactAdded, ContextFactAddedPayload{Fact: fact}),
+		eventWithPayload(t, ref, 3, start.Add(2*time.Minute), EventContextFactRejected, ContextFactRejectedPayload{Layer: fact.Layer}),
 	}
 	projection, err := Fold(events, nil)
 	require.NoError(t, err)

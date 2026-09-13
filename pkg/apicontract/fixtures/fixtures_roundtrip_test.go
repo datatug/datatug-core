@@ -155,6 +155,13 @@ func TestFixtures_RoundTrip(t *testing.T) {
 	t.Run("incident_append_request.json", func(t *testing.T) {
 		roundTrip[apicontract.IncidentAppendRequest](t, "incident_append_request.json")
 	})
+	for _, name := range []string{
+		"incident_append_context_fact_added_request.json",
+		"incident_append_context_fact_promoted_request.json",
+		"incident_append_context_fact_rejected_request.json",
+	} {
+		t.Run(name, func(t *testing.T) { roundTrip[apicontract.IncidentAppendRequest](t, name) })
+	}
 	t.Run("incident_append_response.json", func(t *testing.T) {
 		roundTrip[apicontract.IncidentAppendResponse](t, "incident_append_response.json")
 	})

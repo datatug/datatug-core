@@ -99,7 +99,10 @@ func TestPhysicalFactAndContextValidation(t *testing.T) {
 		candidate := valid
 		candidate.Role = role
 		require.NoError(t, candidate.Validate())
+		require.NoError(t, ValidateFactRole(role))
 	}
+	require.NoError(t, ValidateFactRole(""))
+	require.Error(t, ValidateFactRole("administrator"))
 	for _, layer := range []string{"hypothesis:H1", "participant:alex", "question:q1"} {
 		candidate := valid
 		candidate.Layer = layer

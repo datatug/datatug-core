@@ -104,16 +104,10 @@ func (r ContextRejection) Validate() error {
 }
 
 func validateCanonicalRole(role string) error {
-	switch role {
-	case investigation.FactRoleAffected,
-		investigation.FactRoleHealthyControl,
-		investigation.FactRoleSuspected,
-		investigation.FactRoleExcluded,
-		investigation.FactRoleRecovered:
-		return nil
-	default:
-		return fmt.Errorf("invalid canonical cohort role %q", role)
+	if role == "" {
+		return fmt.Errorf("canonical cohort role is required")
 	}
+	return investigation.ValidateFactRole(role)
 }
 
 func validateContextHypothesisRefs(refs []ArtifactRef, layer string) error {
@@ -159,6 +153,15 @@ func contextLayerRejected(rejections []ContextRejection, layer string) bool {
 	return false
 }
 
+func contextLayerPromoted(promotions []ContextPromotion, layer string) bool {
+	for _, promotion := range promotions {
+		if investigation.NormalizeFactLayer(promotion.Fact.Layer) == investigation.NormalizeFactLayer(layer) {
+			return true
+		}
+	}
+	return false
+}
+
 func cloneContextFact(fact investigation.Fact) investigation.Fact {
 	cloned := fact
 	if fact.Physical != nil {
@@ -173,15 +176,10 @@ func cloneContextFact(fact investigation.Fact) investigation.Fact {
 }
 
 func (i Incident) validateContextHistory() error {
-	seenEvents := make(map[string]bool, len(i.ContextPromotions)+len(i.ContextRejections))
+	if err := validateContextHistoryTransitions(i.ContextPromotions, i.ContextRejections); err != nil {
+		return err
+	}
 	for index, promotion := range i.ContextPromotions {
-		if err := promotion.Validate(); err != nil {
-			return fmt.Errorf("context promotion %d: %w", index, err)
-		}
-		if seenEvents[promotion.EventID] {
-			return fmt.Errorf("duplicate context history eventId %q", promotion.EventID)
-		}
-		seenEvents[promotion.EventID] = true
 		sourceIndex := contextFactIndex(i.CanonicalContext.Facts, promotion.Fact)
 		if sourceIndex < 0 {
 			return fmt.Errorf("context promotion %d source fact is missing", index)
@@ -200,6 +198,34 @@ func (i Incident) validateContextHistory() error {
 		}
 	}
 	for index, rejection := range i.ContextRejections {
+		if !contextLayerHasFacts(i.CanonicalContext.Facts, rejection.Layer) {
+			return fmt.Errorf("context overlay rejection %d layer has no facts", index)
+		}
+	}
+	return nil
+}
+
+func validateContextHistoryTransitions(promotions []ContextPromotion, rejections []ContextRejection) error {
+	seenEvents := make(map[string]bool, len(promotions)+len(rejections))
+	promotedFacts := make(map[investigation.FactKey]bool, len(promotions))
+	promotedLayers := make(map[string]bool, len(promotions))
+	for index, promotion := range promotions {
+		if err := promotion.Validate(); err != nil {
+			return fmt.Errorf("context promotion %d: %w", index, err)
+		}
+		if seenEvents[promotion.EventID] {
+			return fmt.Errorf("duplicate context history eventId %q", promotion.EventID)
+		}
+		seenEvents[promotion.EventID] = true
+		key := promotion.Fact.Key()
+		if promotedFacts[key] {
+			return fmt.Errorf("context fact %q in layer %q is promoted more than once", promotion.Fact.ID, promotion.Fact.Layer)
+		}
+		promotedFacts[key] = true
+		promotedLayers[investigation.NormalizeFactLayer(promotion.Fact.Layer)] = true
+	}
+	seenRejections := make(map[string]bool, len(rejections))
+	for index, rejection := range rejections {
 		if err := rejection.Validate(); err != nil {
 			return fmt.Errorf("context overlay rejection %d: %w", index, err)
 		}
@@ -207,13 +233,13 @@ func (i Incident) validateContextHistory() error {
 			return fmt.Errorf("duplicate context history eventId %q", rejection.EventID)
 		}
 		seenEvents[rejection.EventID] = true
-		if !contextLayerHasFacts(i.CanonicalContext.Facts, rejection.Layer) {
-			return fmt.Errorf("context overlay rejection %d layer has no facts", index)
+		layer := investigation.NormalizeFactLayer(rejection.Layer)
+		if seenRejections[layer] {
+			return fmt.Errorf("context overlay %q is rejected more than once", rejection.Layer)
 		}
-		for prior := 0; prior < index; prior++ {
-			if i.ContextRejections[prior].Layer == rejection.Layer {
-				return fmt.Errorf("context overlay %q is rejected more than once", rejection.Layer)
-			}
+		seenRejections[layer] = true
+		if promotedLayers[layer] {
+			return fmt.Errorf("context overlay %q cannot be both promoted and rejected", rejection.Layer)
 		}
 	}
 	return nil
