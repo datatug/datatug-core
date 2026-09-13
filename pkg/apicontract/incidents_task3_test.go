@@ -49,6 +49,12 @@ func TestIncidentListSearchSimilarAndStreamContracts(t *testing.T) {
 	wrongResolved.StoreID = ""
 	_, err = list.ListQuery(wrongResolved)
 	require.Error(t, err)
+	for _, invalidStoreID := range []string{"..", "bad/path", "bad\nstore"} {
+		wrongResolved = dedicatedScope
+		wrongResolved.StoreID = invalidStoreID
+		_, err = list.ListQuery(wrongResolved)
+		require.Error(t, err, invalidStoreID)
+	}
 	badList := list
 	badList.Statuses = []incidents.Status{"paused"}
 	_, err = badList.ListQuery(dedicatedScope)

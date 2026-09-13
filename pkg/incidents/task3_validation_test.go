@@ -125,6 +125,9 @@ func TestTask3ListAndSearchValidation(t *testing.T) {
 	require.False(t, MatchesListQuery(view, ListQuery{ProjectStoreID: scope.StoreID, ProjectID: scope.ProjectID, Environment: scope.Environment, QueryID: "other"}))
 	require.NoError(t, (CandidateListQuery{Statuses: []Status{StatusOpen}, ProjectStoreID: scope.StoreID, ProjectID: scope.ProjectID, Environment: scope.Environment}).Validate())
 	require.Error(t, (CandidateListQuery{Statuses: []Status{"invalid"}}).Validate())
+	for _, invalidStoreID := range []string{"..", "bad/path", "bad\nstore"} {
+		require.Error(t, (CandidateListQuery{ProjectStoreID: invalidStoreID, ProjectID: scope.ProjectID, Environment: scope.Environment}).Validate(), invalidStoreID)
+	}
 	require.Equal(t,
 		CandidateListQuery{Statuses: []Status{StatusOpen}, ProjectStoreID: scope.StoreID, ProjectID: scope.ProjectID, Environment: scope.Environment},
 		(ListQuery{Statuses: []Status{StatusOpen}, ProjectStoreID: scope.StoreID, ProjectID: scope.ProjectID, Environment: scope.Environment, CheckID: "hidden"}).Candidates(),
@@ -135,6 +138,7 @@ func TestTask3ListAndSearchValidation(t *testing.T) {
 		{Statuses: []Status{"paused"}},
 		{ProjectStoreID: "ops", ProjectID: " bad", Environment: "prod"},
 		{ProjectStoreID: "ops", ProjectID: "billing"},
+		{ProjectStoreID: "ops", ProjectID: "billing", Environment: "prod", QueryID: " bad"},
 		{ProjectStoreID: "ops", ProjectID: "billing", Environment: "prod", QueryID: "bad\nvalue"},
 		{},
 	} {

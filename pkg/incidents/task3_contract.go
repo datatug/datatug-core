@@ -308,10 +308,8 @@ func (q CandidateListQuery) Validate() error {
 	if !q.hasProjectScope() {
 		return fmt.Errorf("project filter requires store, project, and environment")
 	}
-	for name, value := range map[string]string{"project store": q.ProjectStoreID, "project": q.ProjectID, "environment": q.Environment} {
-		if !validFilterValue(value) {
-			return fmt.Errorf("invalid %s filter", name)
-		}
+	if err := q.projectScope().ValidateFactScope(); err != nil {
+		return fmt.Errorf("invalid project filter: %w", err)
 	}
 	return nil
 }

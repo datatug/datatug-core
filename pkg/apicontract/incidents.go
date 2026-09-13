@@ -248,15 +248,15 @@ func (r IncidentListRequest) ListQuery(resolved incidents.ProjectRef) (incidents
 	if err := r.Validate(); err != nil {
 		return incidents.ListQuery{}, err
 	}
+	if err := resolved.ValidateFactScope(); err != nil {
+		return incidents.ListQuery{}, &ValidationError{Field: "resolvedProject", Message: err.Error()}
+	}
 	if resolved.ProjectID != r.Project || resolved.Environment != r.Environment {
 		return incidents.ListQuery{}, &ValidationError{Field: "resolvedProject", Message: "must match the requested project and environment"}
 	}
 	query := incidents.ListQuery{
 		Statuses: r.Statuses, ProjectStoreID: resolved.StoreID, ProjectID: resolved.ProjectID, Environment: resolved.Environment,
 		QueryID: r.QueryID, CheckID: r.CheckID, BoardID: r.BoardID,
-	}
-	if err := query.Validate(); err != nil {
-		return incidents.ListQuery{}, err
 	}
 	return query, nil
 }
