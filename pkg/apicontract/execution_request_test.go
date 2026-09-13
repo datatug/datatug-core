@@ -32,10 +32,38 @@ func TestExecutionRequest_JSONFieldNames(t *testing.T) {
 			t.Errorf("missing key %q in %s", key, data)
 		}
 	}
-	for _, key := range []string{"storeId", "source", "dtql", "snapshotId", "limit", "incident"} {
+	for _, key := range []string{"storeId", "source", "dtql", "snapshotId", "limit", "incident", "record", "snapshot"} {
 		if _, ok := generic[key]; ok {
 			t.Errorf("expected %q to be omitted when absent, got %s", key, data)
 		}
+	}
+}
+
+func TestExecutionRequest_RecordAndSnapshot(t *testing.T) {
+	recorded := validExecutionRequestSaved()
+	recorded.Record = true
+	recorded.Snapshot = true
+	if err := recorded.Validate(); err != nil {
+		t.Fatalf("recorded snapshot should be valid: %v", err)
+	}
+	data, err := json.Marshal(recorded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var generic map[string]json.RawMessage
+	if err := json.Unmarshal(data, &generic); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"record", "snapshot"} {
+		if _, ok := generic[key]; !ok {
+			t.Errorf("missing key %q in %s", key, data)
+		}
+	}
+
+	withoutRecord := validExecutionRequestSaved()
+	withoutRecord.Snapshot = true
+	if err := withoutRecord.Validate(); err == nil {
+		t.Fatal("snapshot without record should be rejected")
 	}
 }
 

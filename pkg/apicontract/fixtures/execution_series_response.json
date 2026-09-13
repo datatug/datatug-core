@@ -1,0 +1,21 @@
+{
+  "points": [
+    {
+      "executedAt": "2026-09-13T10:00:00Z",
+      "value": {
+        "type": "integer",
+        "value": "37"
+      },
+      "recordId": "exec-1"
+    },
+    {
+      "executedAt": "2026-09-13T11:00:00Z",
+      "value": {
+        "type": "integer",
+        "value": "19"
+      },
+      "recordId": "exec-2"
+    }
+  ],
+  "omittedCount": 1
+}

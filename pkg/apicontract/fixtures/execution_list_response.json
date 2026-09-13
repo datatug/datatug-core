@@ -1,0 +1,23 @@
+{
+  "executions": [
+    {
+      "id": "exec-1",
+      "scope": {
+        "project": "billing",
+        "environment": "production"
+      },
+      "queryId": "invoices/stuck",
+      "queryRevision": "a837758",
+      "executedAt": "2026-09-13T10:00:00Z",
+      "durationMs": 42,
+      "rowCount": 2,
+      "resultFingerprint": "aa02d5bbadc86d4f9ef4d3131f64fe120f0d2e9d7f04b5f75214d4ef60b9c8ba",
+      "snapshotRef": "snapshot-1",
+      "incident": {
+        "storeId": "ops",
+        "incidentId": "INC-1"
+      }
+    }
+  ],
+  "truncated": false
+}

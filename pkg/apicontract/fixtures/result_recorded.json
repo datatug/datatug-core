@@ -1,0 +1,34 @@
+{
+  "recordset": {
+    "columns": [
+      {
+        "name": "InvoiceId",
+        "type": "integer"
+      }
+    ],
+    "rows": [
+      [
+        {
+          "type": "integer",
+          "value": "42"
+        }
+      ]
+    ]
+  },
+  "limitations": [],
+  "bindingsApplied": [],
+  "provenance": {
+    "source": "billing-db",
+    "collection": "Invoice",
+    "queryId": "invoices/stuck",
+    "mode": "live",
+    "observedAt": "2026-09-13T10:00:00Z",
+    "executionProfile": "protected",
+    "incident": {
+      "storeId": "ops",
+      "incidentId": "INC-1"
+    }
+  },
+  "truncated": false,
+  "recordId": "exec-1"
+}

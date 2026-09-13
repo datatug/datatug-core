@@ -19,6 +19,8 @@ type RelatedRowsRequest struct {
 	LookupID          string     `json:"lookupId"`
 	Value             TypedValue `json:"value"`
 	Limit             *int       `json:"limit,omitempty"`
+	Record            bool       `json:"record,omitempty"`
+	Snapshot          bool       `json:"snapshot,omitempty"`
 }
 
 // Validate enforces Project/Environment/SecurityContextID and LookupID are
@@ -47,6 +49,9 @@ func (r RelatedRowsRequest) Validate() error {
 		if *r.Limit <= 0 || *r.Limit > executionMaxLimit {
 			return &ValidationError{Field: "limit", Message: fmt.Sprintf("must be between 1 and %d, got %d", executionMaxLimit, *r.Limit)}
 		}
+	}
+	if r.Snapshot && !r.Record {
+		return &ValidationError{Field: "snapshot", Message: "requires record to be true"}
 	}
 	return nil
 }

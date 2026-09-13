@@ -37,6 +37,8 @@ type ExecutionRequest struct {
 	SnapshotID        string                `json:"snapshotId,omitempty"`
 	Limit             *int                  `json:"limit,omitempty"`
 	Incident          *IncidentRef          `json:"incident,omitempty"`
+	Record            bool                  `json:"record,omitempty"`
+	Snapshot          bool                  `json:"snapshot,omitempty"`
 }
 
 const (
@@ -113,6 +115,9 @@ func (r ExecutionRequest) Validate() error {
 		if err := r.Incident.Validate(); err != nil {
 			return &ValidationError{Field: "incident", Message: err.Error()}
 		}
+	}
+	if r.Snapshot && !r.Record {
+		return &ValidationError{Field: "snapshot", Message: "requires record to be true"}
 	}
 	return nil
 }

@@ -1,0 +1,29 @@
+{
+  "recordId": "exec-1",
+  "recordset": {
+    "columns": [
+      {
+        "name": "InvoiceId",
+        "type": "integer"
+      }
+    ],
+    "rows": [
+      [
+        {
+          "type": "integer",
+          "value": "42"
+        }
+      ]
+    ]
+  },
+  "limitations": [
+    {
+      "policy": "support",
+      "rowsFiltered": false,
+      "hiddenColumns": [
+        "Customer.Email"
+      ]
+    }
+  ],
+  "truncated": true
+}

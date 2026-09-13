@@ -1,0 +1,11 @@
+{
+  "storeId": "ops",
+  "project": "billing",
+  "environment": "production",
+  "securityContextId": "sc-abc123",
+  "queryId": "invoices/stuck",
+  "incidentId": "INC-1",
+  "since": "2026-09-13T09:00:00Z",
+  "until": "2026-09-13T11:00:00Z",
+  "limit": 100
+}

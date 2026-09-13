@@ -74,6 +74,7 @@ func TestFixtures_RoundTrip(t *testing.T) {
 	t.Run("execution_request_saved.json", func(t *testing.T) { roundTrip[apicontract.ExecutionRequest](t, "execution_request_saved.json") })
 	t.Run("execution_request_adhoc.json", func(t *testing.T) { roundTrip[apicontract.ExecutionRequest](t, "execution_request_adhoc.json") })
 	t.Run("execution_request_snapshot.json", func(t *testing.T) { roundTrip[apicontract.ExecutionRequest](t, "execution_request_snapshot.json") })
+	t.Run("execution_request_recorded.json", func(t *testing.T) { roundTrip[apicontract.ExecutionRequest](t, "execution_request_recorded.json") })
 
 	t.Run("incident_create_request.json", func(t *testing.T) {
 		roundTrip[apicontract.IncidentCreateRequest](t, "incident_create_request.json")
@@ -100,6 +101,9 @@ func TestFixtures_RoundTrip(t *testing.T) {
 	t.Run("applicable_request.json", func(t *testing.T) { roundTrip[apicontract.ApplicableRequest](t, "applicable_request.json") })
 	t.Run("related_request.json", func(t *testing.T) { roundTrip[apicontract.RelatedRequest](t, "related_request.json") })
 	t.Run("related_rows_request.json", func(t *testing.T) { roundTrip[apicontract.RelatedRowsRequest](t, "related_rows_request.json") })
+	t.Run("related_rows_request_recorded.json", func(t *testing.T) {
+		roundTrip[apicontract.RelatedRowsRequest](t, "related_rows_request_recorded.json")
+	})
 
 	t.Run("result_live.json", func(t *testing.T) { roundTrip[apicontract.Result](t, "result_live.json") })
 	t.Run("result_restricted.json", func(t *testing.T) { roundTrip[apicontract.Result](t, "result_restricted.json") })
@@ -109,6 +113,29 @@ func TestFixtures_RoundTrip(t *testing.T) {
 	t.Run("result_opaque_privileged.json", func(t *testing.T) { roundTrip[apicontract.Result](t, "result_opaque_privileged.json") })
 	t.Run("result_snapshot.json", func(t *testing.T) { roundTrip[apicontract.Result](t, "result_snapshot.json") })
 	t.Run("result_truncated.json", func(t *testing.T) { roundTrip[apicontract.Result](t, "result_truncated.json") })
+	t.Run("result_recorded.json", func(t *testing.T) { roundTrip[apicontract.Result](t, "result_recorded.json") })
+
+	t.Run("execution_record.json", func(t *testing.T) {
+		roundTrip[apicontract.ExecutionRecord](t, "execution_record.json")
+	})
+	t.Run("execution_list_request.json", func(t *testing.T) {
+		roundTrip[apicontract.ExecutionListRequest](t, "execution_list_request.json")
+	})
+	t.Run("execution_list_response.json", func(t *testing.T) {
+		roundTrip[apicontract.ExecutionListResponse](t, "execution_list_response.json")
+	})
+	t.Run("execution_snapshot_response.json", func(t *testing.T) {
+		roundTrip[apicontract.SnapshotReadResponse](t, "execution_snapshot_response.json")
+	})
+	t.Run("execution_snapshot_expired_response.json", func(t *testing.T) {
+		roundTrip[apicontract.SnapshotReadResponse](t, "execution_snapshot_expired_response.json")
+	})
+	t.Run("execution_series_request.json", func(t *testing.T) {
+		roundTrip[apicontract.ExecutionSeriesRequest](t, "execution_series_request.json")
+	})
+	t.Run("execution_series_response.json", func(t *testing.T) {
+		roundTrip[apicontract.ExecutionSeriesResponse](t, "execution_series_response.json")
+	})
 
 	t.Run("capture_query_request_create.json", func(t *testing.T) {
 		roundTrip[apicontract.CaptureQueryRequest](t, "capture_query_request_create.json")

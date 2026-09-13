@@ -45,6 +45,9 @@ func TestResult_JSONFieldNames(t *testing.T) {
 			t.Errorf("missing top-level key %q in %s", key, data)
 		}
 	}
+	if _, ok := generic["recordId"]; ok {
+		t.Errorf("recordId should be omitted when absent in %s", data)
+	}
 	recordset, _ := generic["recordset"].(map[string]any)
 	for _, key := range []string{"columns", "rows"} {
 		if _, ok := recordset[key]; !ok {
@@ -56,6 +59,42 @@ func TestResult_JSONFieldNames(t *testing.T) {
 		if _, ok := provenance[key]; !ok {
 			t.Errorf("missing provenance key %q", key)
 		}
+	}
+}
+
+func TestResult_RecordID(t *testing.T) {
+	recorded := validResult()
+	recorded.RecordID = "exec-1"
+	if err := recorded.Validate(); err != nil {
+		t.Fatalf("recorded result should be valid: %v", err)
+	}
+	data, err := json.Marshal(recorded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var generic map[string]json.RawMessage
+	if err := json.Unmarshal(data, &generic); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := generic["recordId"]; !ok {
+		t.Fatalf("recordId missing from %s", data)
+	}
+
+	recorded.RecordID = "bad/id"
+	if err := recorded.Validate(); err == nil {
+		t.Fatal("non-canonical recordId should be rejected")
+	}
+}
+
+func TestProvenance_Incident(t *testing.T) {
+	provenance := validResult().Provenance
+	provenance.Incident = &IncidentRef{StoreID: "ops", IncidentID: "INC-1"}
+	if err := provenance.Validate(); err != nil {
+		t.Fatalf("incident provenance should be valid: %v", err)
+	}
+	provenance.Incident.IncidentID = "bad/id"
+	if err := provenance.Validate(); err == nil {
+		t.Fatal("invalid incident provenance should be rejected")
 	}
 }
 

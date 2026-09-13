@@ -46,6 +46,39 @@ func TestRelatedRowsRequest_JSONFieldNames_LimitOmittedWhenAbsent(t *testing.T) 
 	if _, ok := generic["limit"]; ok {
 		t.Errorf("expected %q to be omitted when absent, got %s", "limit", data)
 	}
+	for _, key := range []string{"record", "snapshot"} {
+		if _, ok := generic[key]; ok {
+			t.Errorf("expected %q to be omitted when absent, got %s", key, data)
+		}
+	}
+}
+
+func TestRelatedRowsRequest_RecordAndSnapshot(t *testing.T) {
+	recorded := validRelatedRowsRequest()
+	recorded.Record = true
+	recorded.Snapshot = true
+	if err := recorded.Validate(); err != nil {
+		t.Fatalf("recorded snapshot should be valid: %v", err)
+	}
+	data, err := json.Marshal(recorded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var generic map[string]json.RawMessage
+	if err := json.Unmarshal(data, &generic); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"record", "snapshot"} {
+		if _, ok := generic[key]; !ok {
+			t.Errorf("missing key %q in %s", key, data)
+		}
+	}
+
+	withoutRecord := validRelatedRowsRequest()
+	withoutRecord.Snapshot = true
+	if err := withoutRecord.Validate(); err == nil {
+		t.Fatal("snapshot without record should be rejected")
+	}
 }
 
 func TestRelatedRowsRequest_Validate_Valid(t *testing.T) {

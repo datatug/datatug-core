@@ -79,13 +79,14 @@ const (
 // protected DTQL still receives protected provenance. api-contract.md
 // "Shared JSON types" / "Security and errors".
 type Provenance struct {
-	Source           string `json:"source"`
-	Collection       string `json:"collection,omitempty"`
-	QueryID          string `json:"queryId,omitempty"`
-	Mode             string `json:"mode"` // live | snapshot
-	SnapshotID       string `json:"snapshotId,omitempty"`
-	ObservedAt       string `json:"observedAt"`
-	ExecutionProfile string `json:"executionProfile"` // protected | opaque-privileged
+	Source           string       `json:"source"`
+	Collection       string       `json:"collection,omitempty"`
+	QueryID          string       `json:"queryId,omitempty"`
+	Mode             string       `json:"mode"` // live | snapshot
+	SnapshotID       string       `json:"snapshotId,omitempty"`
+	ObservedAt       string       `json:"observedAt"`
+	ExecutionProfile string       `json:"executionProfile"` // protected | opaque-privileged
+	Incident         *IncidentRef `json:"incident,omitempty"`
 }
 
 // Validate enforces Source and ObservedAt are required (ObservedAt must be
@@ -111,6 +112,11 @@ func (p Provenance) Validate() error {
 	if err := requireOneOf("executionProfile", p.ExecutionProfile, ExecutionProfileProtected, ExecutionProfileOpaquePrivileged); err != nil {
 		return err
 	}
+	if p.Incident != nil {
+		if err := p.Incident.Validate(); err != nil {
+			return &ValidationError{Field: "incident", Message: err.Error()}
+		}
+	}
 	return nil
 }
 
@@ -123,6 +129,7 @@ type Result struct {
 	BindingsApplied []Binding    `json:"bindingsApplied"`
 	Provenance      Provenance   `json:"provenance"`
 	Truncated       bool         `json:"truncated"`
+	RecordID        string       `json:"recordId,omitempty"`
 }
 
 // Validate enforces Recordset, every Limitation, every applied Binding and
@@ -143,6 +150,11 @@ func (r Result) Validate() error {
 	}
 	if err := r.Provenance.Validate(); err != nil {
 		return err
+	}
+	if r.RecordID != "" {
+		if err := validateExecutionID("recordId", r.RecordID); err != nil {
+			return err
+		}
 	}
 	return nil
 }

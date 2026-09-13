@@ -1,0 +1,53 @@
+{
+  "id": "exec-1",
+  "scope": {
+    "project": "billing",
+    "environment": "production"
+  },
+  "queryId": "invoices/stuck",
+  "queryRevision": "a837758",
+  "parameters": {
+    "CustomerId": {
+      "type": "integer",
+      "value": "5"
+    }
+  },
+  "bindingsApplied": [
+    {
+      "parameterId": "CustomerId",
+      "value": {
+        "type": "integer",
+        "value": "5"
+      },
+      "origin": "selection",
+      "originEvidence": "client-reported"
+    }
+  ],
+  "principal": {
+    "id": "alex",
+    "roles": [
+      "admin"
+    ],
+    "groups": [
+      "support"
+    ]
+  },
+  "executedAt": "2026-09-13T10:00:00Z",
+  "durationMs": 42,
+  "limitations": [],
+  "provenance": {
+    "source": "billing-db",
+    "collection": "Invoice",
+    "queryId": "invoices/stuck",
+    "mode": "live",
+    "observedAt": "2026-09-13T10:00:00Z",
+    "executionProfile": "protected",
+    "incident": {
+      "storeId": "ops",
+      "incidentId": "INC-1"
+    }
+  },
+  "rowCount": 2,
+  "resultFingerprint": "aa02d5bbadc86d4f9ef4d3131f64fe120f0d2e9d7f04b5f75214d4ef60b9c8ba",
+  "snapshotRef": "snapshot-1"
+}
