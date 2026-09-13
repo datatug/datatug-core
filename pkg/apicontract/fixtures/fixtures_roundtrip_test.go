@@ -3,6 +3,7 @@ package fixtures
 import (
 	"bytes"
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/apicontract"
@@ -39,6 +40,71 @@ func roundTrip[T validator](t *testing.T, name string) {
 	reencoded = append(reencoded, '\n')
 	if !bytes.Equal(reencoded, data) {
 		t.Errorf("%s does not round-trip byte-for-byte:\n got: %s\nwant: %s", name, reencoded, data)
+	}
+}
+
+func readFixture[T validator](t *testing.T, name string) T {
+	t.Helper()
+	data, err := Read(name)
+	if err != nil {
+		t.Fatalf("%s: %v", name, err)
+	}
+	var value T
+	if err := json.Unmarshal(data, &value); err != nil {
+		t.Fatalf("%s: unmarshal: %v", name, err)
+	}
+	if err := value.Validate(); err != nil {
+		t.Fatalf("%s: validate: %v", name, err)
+	}
+	return value
+}
+
+func TestExecutionEvidenceFixturesDescribeOneCoherentRun(t *testing.T) {
+	record := readFixture[apicontract.ExecutionRecord](t, "execution_record.json")
+	result := readFixture[apicontract.Result](t, "result_recorded.json")
+	seriesRequest := readFixture[apicontract.ExecutionSeriesRequest](t, "execution_series_request.json")
+	series := readFixture[apicontract.ExecutionSeriesResponse](t, "execution_series_response.json")
+
+	if result.Execution == nil || *result.Execution != record.Ref {
+		t.Fatalf("result execution = %#v, record ref = %#v", result.Execution, record.Ref)
+	}
+	if len(result.Recordset.Rows) != record.RowCount {
+		t.Fatalf("result rows = %d, record rowCount = %d", len(result.Recordset.Rows), record.RowCount)
+	}
+	if !reflect.DeepEqual(result.BindingsApplied, record.BindingsApplied) || !reflect.DeepEqual(result.Limitations, record.Limitations) || result.Provenance != record.Provenance {
+		t.Fatalf("result execution metadata does not match immutable record")
+	}
+	fingerprint, err := apicontract.FingerprintRecordset(result.Recordset)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fingerprint != record.ResultFingerprint {
+		t.Fatalf("result fingerprint = %s, record fingerprint = %s", fingerprint, record.ResultFingerprint)
+	}
+	if len(record.AuthorizedFields) != len(result.Recordset.Columns) {
+		t.Fatalf("authorized fields = %d, result columns = %d", len(record.AuthorizedFields), len(result.Recordset.Columns))
+	}
+	for i, column := range result.Recordset.Columns {
+		if record.AuthorizedFields[i].Column != column.Name {
+			t.Fatalf("authorized field %d = %q, result column = %q", i, record.AuthorizedFields[i].Column, column.Name)
+		}
+	}
+	if len(record.Measurements) != 1 || record.Measurements[0].Projection != seriesRequest.Partition.Projection {
+		t.Fatalf("record projection = %#v, series projection = %#v", record.Measurements, seriesRequest.Partition.Projection)
+	}
+	partition := seriesRequest.Partition
+	if partition.EvidenceStoreID != record.Ref.StoreID || partition.SourceScope != record.Scope || partition.Source != record.Provenance.Source ||
+		partition.PolicyFingerprint != record.PolicyFingerprint || partition.QueryID != record.QueryID || partition.QueryRevision != record.QueryRevision ||
+		partition.DTQLHash != record.DTQLHash || !reflect.DeepEqual(partition.BindingsApplied, record.BindingsApplied) {
+		t.Fatalf("series partition %#v does not match record identity %#v", partition, record)
+	}
+	if len(series.Points) == 0 || series.Points[0].Execution != record.Ref {
+		t.Fatalf("first series point does not reference record %#v", record.Ref)
+	}
+	measurement := record.Measurements[0]
+	point := series.Points[0]
+	if measurement.Completeness != point.Completeness || measurement.Value == nil || point.Value == nil || *measurement.Value != *point.Value {
+		t.Fatalf("series point %#v does not match retained measurement %#v", point, measurement)
 	}
 }
 

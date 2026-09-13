@@ -15,8 +15,8 @@
       "queryRevision": "e01d44c",
       "executedAt": "2026-09-13T10:00:00Z",
       "durationMs": 42,
-      "rowCount": 2,
-      "resultFingerprint": "aa02d5bbadc86d4f9ef4d3131f64fe120f0d2e9d7f04b5f75214d4ef60b9c8ba",
+      "rowCount": 1,
+      "resultFingerprint": "ea45c1edea9daf92a2341c73efe178589be648542483a5e9bd6d2fd621ee9f0d",
       "snapshotRef": "snapshot-1",
       "snapshotState": {
         "availability": "available",

@@ -7,9 +7,12 @@ import (
 
 func validCandidate() Candidate {
 	return Candidate{
-		QueryID:  "customer-invoices",
-		Targets:  []CandidateTarget{{Source: "chinook-local", Label: "Local Chinook"}},
-		Bindings: []Binding{},
+		QueryID: "customer-invoices",
+		Targets: []CandidateTarget{{Source: "chinook-local", Label: "Local Chinook"}},
+		Bindings: []Binding{{
+			ParameterID: "CustomerId", Value: ScalarValue(NewIntegerValue("5")),
+			Origin: BindingOriginSelection, OriginEvidence: BindingOriginEvidenceClientReported, FactID: "f1",
+		}},
 		Chain: []ChainStep{
 			{ParameterID: "CustomerId", FactID: "f1", Explanation: "declared mapping Customer.ID"},
 		},
@@ -122,10 +125,54 @@ func TestCandidate_Validate_MissingParameterStillHasChainExplanation(t *testing.
 	// "a missing parameter still has an explanation"
 	c := validCandidate()
 	c.State = "needs-input"
+	c.Bindings = []Binding{}
 	c.Missing = []string{"CustomerId"}
 	c.Chain = []ChainStep{{ParameterID: "CustomerId", Explanation: "no selected or context fact for Customer.ID"}}
 	if err := c.Validate(); err != nil {
 		t.Errorf("expected valid, got: %v", err)
+	}
+}
+
+func TestCandidate_ValidateBindingChainAttribution(t *testing.T) {
+	set := mustTypedValueSet(t, NewIntegerValue("1"), NewIntegerValue("2"))
+	valid := validCandidate()
+	valid.Bindings = []Binding{{
+		ParameterID: "CustomerIds", Value: SetValue(set), Origin: BindingOriginSelection,
+		OriginEvidence: BindingOriginEvidenceClientReported,
+		ValueFactIDs:   [][]string{{"fact-1"}, {"fact-2", "fact-3"}},
+	}}
+	valid.Chain = []ChainStep{{
+		ParameterID: "CustomerIds", Explanation: "selected cohort",
+		ValueFactIDs: [][]string{{"fact-1"}, {"fact-2", "fact-3"}},
+	}}
+	if err := valid.Validate(); err != nil {
+		t.Fatalf("valid binding/chain attribution rejected: %v", err)
+	}
+	for name, mutate := range map[string]func(*Candidate){
+		"missing":     func(c *Candidate) { c.Chain = nil },
+		"extra group": func(c *Candidate) { c.Chain[0].ValueFactIDs = append(c.Chain[0].ValueFactIDs, []string{"fact-4"}) },
+		"swapped groups": func(c *Candidate) {
+			c.Chain[0].ValueFactIDs[0], c.Chain[0].ValueFactIDs[1] = c.Chain[0].ValueFactIDs[1], c.Chain[0].ValueFactIDs[0]
+		},
+		"duplicated group":   func(c *Candidate) { c.Chain[0].ValueFactIDs[1] = []string{"fact-1"} },
+		"contradicting fact": func(c *Candidate) { c.Chain[0].ValueFactIDs[1] = []string{"fact-4"} },
+		"duplicated step":    func(c *Candidate) { c.Chain = append(c.Chain, c.Chain[0]) },
+		"extra attribution": func(c *Candidate) {
+			c.Chain = append(c.Chain, ChainStep{ParameterID: "Other", FactID: "fact-9", Explanation: "contradiction"})
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			candidate := valid
+			candidate.Chain = append([]ChainStep(nil), valid.Chain...)
+			candidate.Chain[0].ValueFactIDs = make([][]string, len(valid.Chain[0].ValueFactIDs))
+			for i := range valid.Chain[0].ValueFactIDs {
+				candidate.Chain[0].ValueFactIDs[i] = append([]string(nil), valid.Chain[0].ValueFactIDs[i]...)
+			}
+			mutate(&candidate)
+			if err := candidate.Validate(); err == nil {
+				t.Fatal("expected binding/chain contradiction")
+			}
+		})
 	}
 }
 

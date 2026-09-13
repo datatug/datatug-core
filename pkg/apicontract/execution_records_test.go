@@ -9,6 +9,7 @@ import (
 )
 
 const testFingerprint = "aa02d5bbadc86d4f9ef4d3131f64fe120f0d2e9d7f04b5f75214d4ef60b9c8ba"
+const testRecordsetFingerprint = "ea45c1edea9daf92a2341c73efe178589be648542483a5e9bd6d2fd621ee9f0d"
 
 func valuePointer(value TypedValue) *TypedValue { return &value }
 
@@ -42,18 +43,18 @@ func validExecutionRecord() ExecutionRecord {
 		},
 		AuthorizedFields: []FieldAccessRef{{
 			StoreID: "source-store", Project: "billing", Environment: "production", Source: "billing-db",
-			Collection: "Invoice", Column: "Total", Entity: "Invoice", Field: "Total",
+			Collection: "Invoice", Column: "InvoiceId", Entity: "Invoice", Field: "ID",
 		}},
-		RowCount:          2,
-		ResultFingerprint: testFingerprint,
+		RowCount:          1,
+		ResultFingerprint: testRecordsetFingerprint,
 		SnapshotRef:       "snapshot-1",
 		Incident:          &incident,
 		GrantUses: []GrantRef{{
 			Incident: incident, GrantID: "grant-1", ApprovalMutationID: "approve-1",
 		}},
 		Measurements: []ScalarMeasurement{{
-			Projection:   MeasurementProjection{ID: "invoice-total", Column: "Total", Aggregate: MeasurementAggregateSum},
-			Completeness: MeasurementComplete, Value: valuePointer(NewDecimalValue("19.95")),
+			Projection:   MeasurementProjection{ID: "row-count", Aggregate: MeasurementAggregateRowCount},
+			Completeness: MeasurementComplete, Value: valuePointer(NewIntegerValue("1")),
 		}},
 	}
 }
@@ -187,8 +188,13 @@ func TestExecutionRecord_ValidatesEveryNestedReceiptSurface(t *testing.T) {
 		"duplicate grant":           func(r *ExecutionRecord) { r.GrantUses = append(r.GrantUses, r.GrantUses[0]) },
 		"measurement":               func(r *ExecutionRecord) { r.Measurements[0].Value = valuePointer(NewStringValue("bad")) },
 		"duplicate measurement":     func(r *ExecutionRecord) { r.Measurements = append(r.Measurements, r.Measurements[0]) },
+		"contradictory row count":   func(r *ExecutionRecord) { r.Measurements[0].Value = valuePointer(NewIntegerValue("2")) },
 		"policy-limited aggregate": func(r *ExecutionRecord) {
 			r.Limitations = []Limitation{{Policy: "restricted", HiddenColumns: []string{}}}
+			r.Measurements[0] = ScalarMeasurement{
+				Projection:   MeasurementProjection{ID: "total", Column: "InvoiceId", Aggregate: MeasurementAggregateSum},
+				Completeness: MeasurementComplete, Value: valuePointer(NewIntegerValue("42")),
+			}
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -203,7 +209,7 @@ func TestExecutionRecord_ValidatesEveryNestedReceiptSurface(t *testing.T) {
 	rowCount.Limitations = []Limitation{{Policy: "restricted", HiddenColumns: []string{}}}
 	rowCount.Measurements[0] = ScalarMeasurement{
 		Projection:   MeasurementProjection{ID: "row-count", Aggregate: MeasurementAggregateRowCount},
-		Completeness: MeasurementComplete, Value: valuePointer(NewIntegerValue("2")),
+		Completeness: MeasurementComplete, Value: valuePointer(NewIntegerValue("1")),
 	}
 	if err := rowCount.Validate(); err != nil {
 		t.Fatalf("policy-limited rowCount should remain complete: %v", err)

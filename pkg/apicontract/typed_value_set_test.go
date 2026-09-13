@@ -65,6 +65,53 @@ func TestTypedValueSet_RejectsInvalidSets(t *testing.T) {
 	}
 }
 
+func TestTypedValueSet_UnmarshalAcceptsRequestOrderBeforeNormalization(t *testing.T) {
+	var set TypedValueSet
+	data := []byte(`{"type":"set","values":[{"type":"integer","value":"2"},{"type":"integer","value":"1"}]}`)
+	if err := json.Unmarshal(data, &set); err != nil {
+		t.Fatalf("valid request-order set failed to decode: %v", err)
+	}
+	if err := set.Validate(); err == nil {
+		t.Fatal("uncanonical set must remain invalid as recorded output")
+	}
+	normalized, groups, err := NormalizeTypedValueSet(set, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if groups != nil || !reflect.DeepEqual(normalized.Values, []TypedValue{NewIntegerValue("1"), NewIntegerValue("2")}) {
+		t.Fatalf("normalized = %#v, groups = %#v", normalized, groups)
+	}
+}
+
+func TestExecutionRequest_UnmarshalNormalizesSetAndFactGroupsTogether(t *testing.T) {
+	body := []byte(`{
+		"storeId":"project-store","project":"billing","environment":"production","securityContextId":"sc-1",
+		"queryId":"invoices/by-customers",
+		"parameters":{"CustomerIds":{"type":"set","values":[
+			{"type":"integer","value":"2"},{"type":"integer","value":"1"},{"type":"integer","value":"2"}
+		]}},
+		"bindingOrigins":[{"parameterId":"CustomerIds","origin":"selection","valueFactIds":[
+			["fact-2"],["fact-1"],["fact-2b","fact-2"]
+		]}],
+		"mode":"live"
+	}`)
+	var request ExecutionRequest
+	if err := json.Unmarshal(body, &request); err != nil {
+		t.Fatalf("request decode failed: %v", err)
+	}
+	if err := request.Validate(); err != nil {
+		t.Fatalf("normalized request rejected: %v", err)
+	}
+	value := request.Parameters["CustomerIds"]
+	if !reflect.DeepEqual(value.Set.Values, []TypedValue{NewIntegerValue("1"), NewIntegerValue("2")}) {
+		t.Fatalf("values = %#v", value.Set.Values)
+	}
+	wantGroups := [][]string{{"fact-1"}, {"fact-2", "fact-2b"}}
+	if !reflect.DeepEqual(request.BindingOrigins[0].ValueFactIDs, wantGroups) {
+		t.Fatalf("valueFactIds = %#v, want %#v", request.BindingOrigins[0].ValueFactIDs, wantGroups)
+	}
+}
+
 func TestTypedValueOrSet_StrictUnion(t *testing.T) {
 	set := mustTypedValueSet(t, NewStringValue("a"), NewStringValue("b"))
 	for _, value := range []TypedValueOrSet{ScalarValue(NewBooleanValue(false)), SetValue(set)} {

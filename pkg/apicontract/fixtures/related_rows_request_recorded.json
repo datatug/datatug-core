@@ -1,4 +1,5 @@
 {
+  "storeId": "project-store",
   "project": "billing",
   "environment": "production",
   "securityContextId": "sc-abc123",

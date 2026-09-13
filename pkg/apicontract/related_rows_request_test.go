@@ -7,6 +7,7 @@ import (
 
 func validRelatedRowsRequest() RelatedRowsRequest {
 	return RelatedRowsRequest{
+		StoreID:           "project-store",
 		Project:           "demo-project-1",
 		Environment:       "local",
 		SecurityContextID: "sc1",
@@ -27,7 +28,7 @@ func TestRelatedRowsRequest_JSONFieldNames(t *testing.T) {
 	if err := json.Unmarshal(data, &generic); err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"project", "environment", "securityContextId", "lookupId", "value", "limit"} {
+	for _, key := range []string{"storeId", "project", "environment", "securityContextId", "lookupId", "value", "limit"} {
 		if _, ok := generic[key]; !ok {
 			t.Errorf("missing key %q in %s", key, data)
 		}
@@ -88,6 +89,12 @@ func TestRelatedRowsRequest_Validate_Valid(t *testing.T) {
 }
 
 func TestRelatedRowsRequest_Validate_RequiredScopeFields(t *testing.T) {
+	missingStore := validRelatedRowsRequest()
+	missingStore.StoreID = ""
+	if err := missingStore.Validate(); err == nil {
+		t.Error("expected an error: missing storeId")
+	}
+
 	missingProject := validRelatedRowsRequest()
 	missingProject.Project = ""
 	if err := missingProject.Validate(); err == nil {
@@ -104,6 +111,17 @@ func TestRelatedRowsRequest_Validate_RequiredScopeFields(t *testing.T) {
 	missingSC.SecurityContextID = ""
 	if err := missingSC.Validate(); err == nil {
 		t.Error("expected an error: missing securityContextId")
+	}
+}
+
+func TestRelatedRowsRequest_DecodeStrictQualifiedScope(t *testing.T) {
+	body := []byte(`{"storeId":"project-store","project":"demo-project-1","environment":"local","securityContextId":"sc1","lookupId":"lookup-1","value":{"type":"integer","value":"5"}}`)
+	var request RelatedRowsRequest
+	if err := DecodeStrict(body, &request); err != nil {
+		t.Fatalf("qualified related rows request rejected: %v", err)
+	}
+	if err := request.Validate(); err != nil {
+		t.Fatalf("qualified related rows request failed validation: %v", err)
 	}
 }
 

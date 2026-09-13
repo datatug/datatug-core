@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"strings"
 	"time"
 
@@ -320,11 +321,26 @@ func (r ExecutionRecord) Validate() error {
 			return &ValidationError{Field: "measurements", Message: fmt.Sprintf("duplicate projection id %q", measurement.Projection.ID)}
 		}
 		seenMeasurements[measurement.Projection.ID] = struct{}{}
+		if measurement.Completeness == MeasurementComplete && measurement.Projection.Aggregate == MeasurementAggregateRowCount && !numericTypedValueEqualsInt(*measurement.Value, r.RowCount) {
+			return &ValidationError{Field: "measurements", Message: fmt.Sprintf("index %d: complete rowCount must equal record rowCount", i)}
+		}
 		if len(r.Limitations) > 0 && measurement.Completeness == MeasurementComplete && measurement.Projection.Aggregate != MeasurementAggregateRowCount {
 			return &ValidationError{Field: "measurements", Message: fmt.Sprintf("index %d: policy-limited results may complete only rowCount", i)}
 		}
 	}
 	return nil
+}
+
+func numericTypedValueEqualsInt(value TypedValue, expected int) bool {
+	want := new(big.Rat).SetInt64(int64(expected))
+	var got *big.Rat
+	switch value.Type {
+	case ValueTypeInteger, ValueTypeDecimal:
+		got, _ = new(big.Rat).SetString(value.Str)
+	case ValueTypeNumber:
+		got = new(big.Rat).SetFloat64(value.Num)
+	}
+	return got != nil && got.Cmp(want) == 0
 }
 
 // SnapshotState is mutable lifecycle state keyed separately by an immutable

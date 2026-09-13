@@ -16,7 +16,18 @@
     ]
   },
   "limitations": [],
-  "bindingsApplied": [],
+  "bindingsApplied": [
+    {
+      "parameterId": "CustomerId",
+      "value": {
+        "type": "integer",
+        "value": "5"
+      },
+      "origin": "selection",
+      "originEvidence": "client-reported",
+      "factId": "fact-5"
+    }
+  ],
   "provenance": {
     "source": "billing-db",
     "collection": "Invoice",

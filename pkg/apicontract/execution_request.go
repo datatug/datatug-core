@@ -55,6 +55,54 @@ type ExecutionRequest struct {
 	MeasurementProjections []MeasurementProjection    `json:"measurementProjections,omitempty"`
 }
 
+// UnmarshalJSON accepts valid request-order sets and canonicalizes their
+// values together with binding provenance before the request is validated.
+func (r *ExecutionRequest) UnmarshalJSON(data []byte) error {
+	type executionRequestWire ExecutionRequest
+	var parsed executionRequestWire
+	if err := DecodeStrict(data, &parsed); err != nil {
+		return fmt.Errorf("apicontract: ExecutionRequest: %w", err)
+	}
+	*r = ExecutionRequest(parsed)
+	if err := r.Normalize(); err != nil {
+		return fmt.Errorf("apicontract: ExecutionRequest: %w", err)
+	}
+	return nil
+}
+
+// Normalize canonicalizes every set parameter and preserves value-to-fact
+// group alignment. Programmatic request builders should call this before
+// Validate; JSON decoding calls it automatically.
+func (r *ExecutionRequest) Normalize() error {
+	originIndex := make(map[string]int, len(r.BindingOrigins))
+	for i, origin := range r.BindingOrigins {
+		if _, exists := originIndex[origin.ParameterID]; exists {
+			return &ValidationError{Field: "bindingOrigins", Message: fmt.Sprintf("duplicate entry for parameter %q", origin.ParameterID)}
+		}
+		originIndex[origin.ParameterID] = i
+	}
+	for parameterID, value := range r.Parameters {
+		if !value.IsSet() {
+			continue
+		}
+		var groups [][]string
+		index, hasOrigin := originIndex[parameterID]
+		if hasOrigin {
+			groups = r.BindingOrigins[index].ValueFactIDs
+		}
+		normalized, normalizedGroups, err := NormalizeTypedValueSet(*value.Set, groups)
+		if err != nil {
+			return &ValidationError{Field: "parameters", Message: fmt.Sprintf("%s: %s", parameterID, err)}
+		}
+		value.Set = &normalized
+		r.Parameters[parameterID] = value
+		if hasOrigin && groups != nil {
+			r.BindingOrigins[index].ValueFactIDs = normalizedGroups
+		}
+	}
+	return nil
+}
+
 const (
 	executionMaxLimit = 500
 )
