@@ -156,8 +156,8 @@ func (f FactView) Validate() error {
 			return err
 		}
 	}
-	if f.Layer != "" && !validFactLayer(f.Layer) {
-		return &ValidationError{Field: "layer", Message: "must be canonical or a nonempty hypothesis:, participant:, or question: overlay"}
+	if err := ValidateFactLayer(f.Layer); err != nil {
+		return err
 	}
 	if f.Scope != nil {
 		if err := f.Scope.Validate(); err != nil {
@@ -187,7 +187,7 @@ func (c ContextView) Validate() error {
 		if err := fact.Validate(); err != nil {
 			return fmt.Errorf("fact %d: %w", index, err)
 		}
-		key := FactKey{FactID: fact.ID}
+		key := FactKey{FactID: fact.ID, Layer: NormalizeFactLayer(fact.Layer)}
 		if fact.Scope != nil {
 			key.Scope = *fact.Scope
 		}

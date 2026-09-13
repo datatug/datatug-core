@@ -79,15 +79,17 @@ type Fact struct {
 	Scope     *ProjectScope `json:"scope,omitempty"`
 }
 
-// FactKey is the comparable, server-qualified identity policy adapters use.
-// Fact IDs are unique only within their persisted project scope.
+// FactKey is the comparable, server-qualified and layer-qualified identity
+// policy adapters use. The layer distinguishes a retained overlay original
+// from its canonical promotion copy.
 type FactKey struct {
 	Scope  ProjectScope
 	FactID string
+	Layer  string
 }
 
 func (f Fact) Key() FactKey {
-	key := FactKey{FactID: f.ID}
+	key := FactKey{FactID: f.ID, Layer: NormalizeFactLayer(f.Layer)}
 	if f.Scope != nil {
 		key.Scope = *f.Scope
 	}
@@ -105,6 +107,8 @@ const (
 	FactRoleExcluded       = "excluded"
 	FactRoleRecovered      = "recovered"
 
+	FactLayerCanonical = "canonical"
+
 	FactMappingDeclared = "declared"
 	FactMappingInferred = "inferred"
 
@@ -118,6 +122,48 @@ const (
 	FactConditionLessThan           = "<"
 	FactConditionLessThanOrEqual    = "<="
 )
+
+// NormalizeFactLayer preserves the transport compatibility rule that an
+// omitted layer means canonical.
+func NormalizeFactLayer(layer string) string {
+	if layer == "" {
+		return FactLayerCanonical
+	}
+	return layer
+}
+
+// ValidateFactLayer owns the shared layer vocabulary for every context
+// consumer. An omitted layer remains valid as the legacy canonical spelling.
+func ValidateFactLayer(layer string) error {
+	if layer == "" || layer == FactLayerCanonical {
+		return nil
+	}
+	for _, prefix := range []string{"hypothesis:", "participant:", "question:"} {
+		if strings.HasPrefix(layer, prefix) {
+			id := strings.TrimPrefix(layer, prefix)
+			if validFactLayerOwner(id) {
+				return nil
+			}
+		}
+	}
+	return &ValidationError{Field: "layer", Message: "must be canonical or a nonempty hypothesis:, participant:, or question: overlay"}
+}
+
+func validFactLayerOwner(id string) bool {
+	if id == "" || strings.TrimSpace(id) != id {
+		return false
+	}
+	for _, r := range id {
+		if unicode.IsControl(r) {
+			return false
+		}
+	}
+	return true
+}
+
+func IsOverlayFactLayer(layer string) bool {
+	return layer != "" && layer != FactLayerCanonical && ValidateFactLayer(layer) == nil
+}
 
 func (f Fact) Validate() error {
 	if err := requireNonEmpty("id", f.ID); err != nil {
@@ -159,8 +205,8 @@ func (f Fact) Validate() error {
 			return err
 		}
 	}
-	if f.Layer != "" && !validFactLayer(f.Layer) {
-		return &ValidationError{Field: "layer", Message: "must be canonical or a nonempty hypothesis:, participant:, or question: overlay"}
+	if err := ValidateFactLayer(f.Layer); err != nil {
+		return err
 	}
 	if f.Scope != nil {
 		if err := f.Scope.Validate(); err != nil {
@@ -168,19 +214,6 @@ func (f Fact) Validate() error {
 		}
 	}
 	return nil
-}
-
-func validFactLayer(layer string) bool {
-	if layer == "canonical" {
-		return true
-	}
-	for _, prefix := range []string{"hypothesis:", "participant:", "question:"} {
-		if strings.HasPrefix(layer, prefix) {
-			id := strings.TrimPrefix(layer, prefix)
-			return id != "" && strings.TrimSpace(id) == id
-		}
-	}
-	return false
 }
 
 // Context is the single canonical Investigation Context storage and transport

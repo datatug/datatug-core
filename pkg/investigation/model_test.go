@@ -105,7 +105,7 @@ func TestPhysicalFactAndContextValidation(t *testing.T) {
 		candidate.Layer = layer
 		require.NoError(t, candidate.Validate())
 	}
-	require.False(t, validFactLayer("admin"))
+	require.Error(t, ValidateFactLayer("admin"))
 
 	mutations := []func(*Fact){
 		func(f *Fact) { f.ID = "" }, func(f *Fact) { f.Entity = "" }, func(f *Fact) { f.Field = "" },
@@ -285,6 +285,34 @@ func TestPolicyFactViews(t *testing.T) {
 	require.NoError(t, contextView.Validate())
 	require.Error(t, (ContextView{Facts: []FactView{{}}}).Validate())
 	require.Error(t, (ContextView{Facts: []FactView{redacted, redacted}}).Validate())
+}
+
+func TestFactLayerHelpersAndLayerQualifiedIdentity(t *testing.T) {
+	scope := ProjectScope{StoreID: "ops", ProjectID: "billing", Environment: "prod"}
+	canonical := Fact{
+		ID: "customer-11", Entity: "Customer", Field: "ID", Value: NewStringValue("canonical"),
+		Origin: FactOriginContext, Enabled: true, Scope: &scope,
+	}
+	explicitCanonical := canonical
+	explicitCanonical.Layer = FactLayerCanonical
+	overlay := canonical
+	overlay.Layer = "hypothesis:H17"
+	overlay.Value = NewStringValue("overlay")
+
+	require.Equal(t, FactLayerCanonical, NormalizeFactLayer(""))
+	require.Equal(t, overlay.Layer, NormalizeFactLayer(overlay.Layer))
+	require.Equal(t, canonical.Key(), explicitCanonical.Key())
+	require.NotEqual(t, canonical.Key(), overlay.Key())
+	require.True(t, IsOverlayFactLayer(overlay.Layer))
+	require.False(t, IsOverlayFactLayer(""))
+	require.False(t, IsOverlayFactLayer(FactLayerCanonical))
+	require.False(t, IsOverlayFactLayer("admin"))
+	require.Error(t, ValidateFactLayer("hypothesis:H17\nsecret"))
+
+	context := Context{Facts: []Fact{canonical, overlay}}
+	require.NoError(t, context.Validate())
+	context.Facts = append(context.Facts, explicitCanonical)
+	require.ErrorContains(t, context.Validate(), "duplicate fact")
 }
 
 func valuePointer(value TypedValue) *TypedValue { return &value }

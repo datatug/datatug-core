@@ -138,11 +138,14 @@ type ComparisonRef struct {
 type EventType string
 
 const (
-	EventIncidentCreated EventType = "incident.created"
-	EventIncidentStatus  EventType = "incident.status"
-	EventIncidentOutcome EventType = "incident.outcome"
-	EventIncidentMerged  EventType = "incident.merged"
-	EventNoteAdded       EventType = "note.added"
+	EventIncidentCreated     EventType = "incident.created"
+	EventIncidentStatus      EventType = "incident.status"
+	EventIncidentOutcome     EventType = "incident.outcome"
+	EventIncidentMerged      EventType = "incident.merged"
+	EventNoteAdded           EventType = "note.added"
+	EventContextFactAdded    EventType = "context.fact.added"
+	EventContextFactPromoted EventType = "context.fact.promoted"
+	EventContextFactRejected EventType = "context.fact.rejected"
 )
 
 type Event struct {
@@ -262,19 +265,21 @@ type CanonicalContext = investigation.Context
 
 // Incident is the deterministic current or historical projection.
 type Incident struct {
-	Ref              IncidentRef      `json:"ref"`
-	UID              string           `json:"uid"`
-	Title            string           `json:"title"`
-	Description      string           `json:"description,omitempty"`
-	Status           Status           `json:"status"`
-	Outcome          Outcome          `json:"outcome,omitempty"`
-	MergedInto       *IncidentRef     `json:"mergedInto,omitempty"`
-	Projects         []ProjectRef     `json:"projects,omitempty"`
-	Participants     []Participant    `json:"participants,omitempty"`
-	CanonicalContext CanonicalContext `json:"canonicalContext"`
-	AssetRefs        []ArtifactRef    `json:"assetRefs,omitempty"`
-	AssetRefEntries  []AssetRefEntry  `json:"assetRefEntries,omitempty"`
-	NoteEntries      []Note           `json:"noteEntries,omitempty"`
-	Notes            []string         `json:"notes,omitempty"`
-	LastSeq          uint64           `json:"lastSeq"`
+	Ref               IncidentRef        `json:"ref"`
+	UID               string             `json:"uid"`
+	Title             string             `json:"title"`
+	Description       string             `json:"description,omitempty"`
+	Status            Status             `json:"status"`
+	Outcome           Outcome            `json:"outcome,omitempty"`
+	MergedInto        *IncidentRef       `json:"mergedInto,omitempty"`
+	Projects          []ProjectRef       `json:"projects,omitempty"`
+	Participants      []Participant      `json:"participants,omitempty"`
+	CanonicalContext  CanonicalContext   `json:"canonicalContext"`
+	ContextPromotions []ContextPromotion `json:"contextPromotions,omitempty"`
+	ContextRejections []ContextRejection `json:"contextRejections,omitempty"`
+	AssetRefs         []ArtifactRef      `json:"assetRefs,omitempty"`
+	AssetRefEntries   []AssetRefEntry    `json:"assetRefEntries,omitempty"`
+	NoteEntries       []Note             `json:"noteEntries,omitempty"`
+	Notes             []string           `json:"notes,omitempty"`
+	LastSeq           uint64             `json:"lastSeq"`
 }

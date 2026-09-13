@@ -96,7 +96,10 @@ func (i Incident) Validate() error {
 			return fmt.Errorf("note entries must align exactly with notes")
 		}
 	}
-	return i.CanonicalContext.Validate()
+	if err := i.CanonicalContext.Validate(); err != nil {
+		return err
+	}
+	return i.validateContextHistory()
 }
 
 type FactVisibility string
@@ -121,19 +124,21 @@ type ViewPolicy struct {
 // always contains canonical facts; only this read model may contain redaction
 // markers.
 type IncidentView struct {
-	Ref              IncidentRef               `json:"ref"`
-	UID              string                    `json:"uid"`
-	Title            string                    `json:"title"`
-	Description      string                    `json:"description,omitempty"`
-	Status           Status                    `json:"status"`
-	Outcome          Outcome                   `json:"outcome,omitempty"`
-	MergedInto       *IncidentRef              `json:"mergedInto,omitempty"`
-	Projects         []ProjectRef              `json:"projects,omitempty"`
-	Participants     []Participant             `json:"participants,omitempty"`
-	CanonicalContext investigation.ContextView `json:"canonicalContext"`
-	AssetRefs        []ArtifactRef             `json:"assetRefs,omitempty"`
-	Notes            []string                  `json:"notes,omitempty"`
-	LastSeq          uint64                    `json:"lastSeq"`
+	Ref               IncidentRef               `json:"ref"`
+	UID               string                    `json:"uid"`
+	Title             string                    `json:"title"`
+	Description       string                    `json:"description,omitempty"`
+	Status            Status                    `json:"status"`
+	Outcome           Outcome                   `json:"outcome,omitempty"`
+	MergedInto        *IncidentRef              `json:"mergedInto,omitempty"`
+	Projects          []ProjectRef              `json:"projects,omitempty"`
+	Participants      []Participant             `json:"participants,omitempty"`
+	CanonicalContext  investigation.ContextView `json:"canonicalContext"`
+	ContextPromotions []ContextPromotion        `json:"contextPromotions,omitempty"`
+	ContextRejections []ContextRejection        `json:"contextRejections,omitempty"`
+	AssetRefs         []ArtifactRef             `json:"assetRefs,omitempty"`
+	Notes             []string                  `json:"notes,omitempty"`
+	LastSeq           uint64                    `json:"lastSeq"`
 }
 
 func (i IncidentView) Validate() error {
@@ -145,7 +150,29 @@ func (i IncidentView) Validate() error {
 	if err := storedShape.validateWithoutContext(); err != nil {
 		return err
 	}
-	return i.CanonicalContext.Validate()
+	if err := i.CanonicalContext.Validate(); err != nil {
+		return err
+	}
+	seenEvents := make(map[string]bool, len(i.ContextPromotions)+len(i.ContextRejections))
+	for index, promotion := range i.ContextPromotions {
+		if err := promotion.Validate(); err != nil {
+			return fmt.Errorf("context promotion %d: %w", index, err)
+		}
+		if seenEvents[promotion.EventID] {
+			return fmt.Errorf("duplicate context history eventId %q", promotion.EventID)
+		}
+		seenEvents[promotion.EventID] = true
+	}
+	for index, rejection := range i.ContextRejections {
+		if err := rejection.Validate(); err != nil {
+			return fmt.Errorf("context overlay rejection %d: %w", index, err)
+		}
+		if seenEvents[rejection.EventID] {
+			return fmt.Errorf("duplicate context history eventId %q", rejection.EventID)
+		}
+		seenEvents[rejection.EventID] = true
+	}
+	return nil
 }
 
 func (i Incident) validateWithoutContext() error {
@@ -160,10 +187,12 @@ func ApplyIncidentView(stored Incident, policy ViewPolicy) IncidentView {
 	return IncidentView{
 		Ref: stored.Ref, UID: stored.UID, Title: stored.Title, Description: stored.Description,
 		Status: stored.Status, Outcome: stored.Outcome, MergedInto: cloneIncidentRef(stored.MergedInto),
-		Projects:         append([]ProjectRef(nil), stored.Projects...),
-		Participants:     append([]Participant(nil), stored.Participants...),
-		CanonicalContext: filterFacts(stored.CanonicalContext.Facts, policy),
-		AssetRefs:        filterAssetRefs(stored, policy), Notes: filterNotes(stored, policy),
+		Projects:          append([]ProjectRef(nil), stored.Projects...),
+		Participants:      append([]Participant(nil), stored.Participants...),
+		CanonicalContext:  filterFacts(stored.CanonicalContext.Facts, policy),
+		ContextPromotions: filterContextPromotions(stored.ContextPromotions, policy),
+		ContextRejections: filterContextRejections(stored.ContextRejections, policy),
+		AssetRefs:         filterAssetRefs(stored, policy), Notes: filterNotes(stored, policy),
 		LastSeq: stored.LastSeq,
 	}
 }
@@ -208,7 +237,8 @@ func ApplyEventView(stored Event, policy ViewPolicy) (Event, bool, error) {
 	view.ImportedFrom = cloneImportedEventRef(stored.ImportedFrom)
 	view.Refs = cloneArtifactRefs(stored.Refs)
 	view.Payload = append(json.RawMessage(nil), stored.Payload...)
-	if stored.Type == EventIncidentCreated {
+	switch stored.Type {
+	case EventIncidentCreated:
 		var payload CreatedPayload
 		if err := decodePayload(stored.Payload, &payload); err != nil {
 			return Event{}, false, err
@@ -223,8 +253,50 @@ func ApplyEventView(stored Event, policy ViewPolicy) (Event, bool, error) {
 		// marshaler, so an error is structurally unreachable.
 		data, _ := json.Marshal(viewPayload)
 		view.Payload = data
+	case EventContextFactAdded:
+		var payload ContextFactAddedPayload
+		if err := decodePayload(stored.Payload, &payload); err != nil {
+			return Event{}, false, err
+		}
+		switch policy.Facts[payload.Fact.Key()] {
+		case FactVisible:
+			// The detached payload clone above already preserves the stored event.
+		case FactValueRedacted:
+			data, _ := json.Marshal(ContextFactAddedViewPayload{Fact: investigation.RedactedFact(payload.Fact, true)})
+			view.Payload = data
+		default:
+			return Event{}, false, nil
+		}
+	case EventContextFactPromoted:
+		var payload ContextFactPromotedPayload
+		if err := decodePayload(stored.Payload, &payload); err != nil {
+			return Event{}, false, err
+		}
+		if policy.Facts[payload.Fact.Key()] == FactHidden || policy.Facts[payload.Fact.Key()] == "" {
+			return Event{}, false, nil
+		}
 	}
 	return view, true, nil
+}
+
+func filterContextPromotions(stored []ContextPromotion, policy ViewPolicy) []ContextPromotion {
+	filtered := make([]ContextPromotion, 0, len(stored))
+	for _, promotion := range stored {
+		if !policy.WithheldEvents[promotion.EventID] && policy.Facts[promotion.Fact.Key()] != FactHidden && policy.Facts[promotion.Fact.Key()] != "" {
+			filtered = append(filtered, promotion)
+		}
+	}
+	return filtered
+}
+
+func filterContextRejections(stored []ContextRejection, policy ViewPolicy) []ContextRejection {
+	filtered := make([]ContextRejection, 0, len(stored))
+	for _, rejection := range stored {
+		if !policy.WithheldEvents[rejection.EventID] {
+			filtered = append(filtered, rejection)
+		}
+	}
+	return filtered
 }
 
 type CreatedViewPayload struct {

@@ -7,6 +7,8 @@ import (
 	"io"
 	"strings"
 	"time"
+
+	"github.com/datatug/datatug-core/pkg/investigation"
 )
 
 func Fold(events []Event, at *time.Time) (Incident, error) {
@@ -202,6 +204,9 @@ func (r ArtifactRef) Validate() error {
 		}
 		return r.Execution.Validate()
 	case RefEvent, RefHypothesis:
+		if !validSegment(r.ID) {
+			return fmt.Errorf("%s ref id is required and canonical", r.Kind)
+		}
 		return nil
 	case RefFact, RefAnnotation, RefCheck, RefQuery, RefBoard:
 		if r.Artifact == nil {
@@ -291,6 +296,45 @@ func (p *Incident) apply(event Event) error {
 		payload := validatedPayload[NoteAddedPayload](event.Payload)
 		p.NoteEntries = append(p.NoteEntries, Note{EventID: event.ID, Body: payload.Body})
 		p.Notes = append(p.Notes, payload.Body)
+	case EventContextFactAdded:
+		payload := validatedPayload[ContextFactAddedPayload](event.Payload)
+		layer := investigation.NormalizeFactLayer(payload.Fact.Layer)
+		if contextLayerRejected(p.ContextRejections, layer) {
+			return fmt.Errorf("cannot add a fact to rejected overlay %q", layer)
+		}
+		ref := ContextFactRef{Scope: *payload.Fact.Scope, ID: payload.Fact.ID, Layer: layer}
+		if contextFactIndex(p.CanonicalContext.Facts, ref) >= 0 {
+			return fmt.Errorf("context fact %q already exists in layer %q", payload.Fact.ID, layer)
+		}
+		p.CanonicalContext.Facts = append(p.CanonicalContext.Facts, cloneContextFact(payload.Fact))
+	case EventContextFactPromoted:
+		payload := validatedPayload[ContextFactPromotedPayload](event.Payload)
+		if contextLayerRejected(p.ContextRejections, payload.Fact.Layer) {
+			return fmt.Errorf("cannot promote from rejected overlay %q", payload.Fact.Layer)
+		}
+		index := contextFactIndex(p.CanonicalContext.Facts, payload.Fact)
+		if index < 0 {
+			return fmt.Errorf("overlay fact %q not found in layer %q", payload.Fact.ID, payload.Fact.Layer)
+		}
+		canonicalRef := payload.Fact
+		canonicalRef.Layer = investigation.FactLayerCanonical
+		if contextFactIndex(p.CanonicalContext.Facts, canonicalRef) >= 0 {
+			return fmt.Errorf("canonical fact %q already exists", payload.Fact.ID)
+		}
+		canonical := cloneContextFact(p.CanonicalContext.Facts[index])
+		canonical.Layer = investigation.FactLayerCanonical
+		canonical.Role = payload.Role
+		p.CanonicalContext.Facts = append(p.CanonicalContext.Facts, canonical)
+		p.ContextPromotions = append(p.ContextPromotions, ContextPromotion{EventID: event.ID, Fact: payload.Fact, Role: payload.Role})
+	case EventContextFactRejected:
+		payload := validatedPayload[ContextFactRejectedPayload](event.Payload)
+		if contextLayerRejected(p.ContextRejections, payload.Layer) {
+			return fmt.Errorf("overlay %q is already rejected", payload.Layer)
+		}
+		if !contextLayerHasFacts(p.CanonicalContext.Facts, payload.Layer) {
+			return fmt.Errorf("overlay %q has no facts", payload.Layer)
+		}
+		p.ContextRejections = append(p.ContextRejections, ContextRejection{EventID: event.ID, Layer: payload.Layer})
 	}
 	for _, ref := range event.Refs {
 		if ref.Kind == RefQuery || ref.Kind == RefCheck || ref.Kind == RefBoard {
@@ -402,6 +446,55 @@ func (e Event) validatePayload(view bool) error {
 		}
 		if strings.TrimSpace(payload.Body) == "" {
 			return fmt.Errorf("note body is required")
+		}
+	case EventContextFactAdded:
+		if view {
+			var payload ContextFactAddedViewPayload
+			if err := decodePayload(e.Payload, &payload); err != nil {
+				return err
+			}
+			if err := payload.Fact.Validate(); err != nil {
+				return fmt.Errorf("fact: %w", err)
+			}
+			if payload.Fact.Scope == nil {
+				return fmt.Errorf("fact scope with environment is required")
+			}
+			if err := payload.Fact.Scope.ValidateFactScope(); err != nil {
+				return fmt.Errorf("fact scope: %w", err)
+			}
+			return validateContextHypothesisRefs(e.Refs, payload.Fact.Layer)
+		}
+		var payload ContextFactAddedPayload
+		if err := decodePayload(e.Payload, &payload); err != nil {
+			return err
+		}
+		if err := (investigation.Context{Facts: []investigation.Fact{payload.Fact}}).ValidateScoped(); err != nil {
+			return fmt.Errorf("fact: %w", err)
+		}
+		if err := validateContextHypothesisRefs(e.Refs, payload.Fact.Layer); err != nil {
+			return err
+		}
+	case EventContextFactPromoted:
+		var payload ContextFactPromotedPayload
+		if err := decodePayload(e.Payload, &payload); err != nil {
+			return err
+		}
+		if err := payload.Validate(); err != nil {
+			return err
+		}
+		if err := validateContextHypothesisRefs(e.Refs, payload.Fact.Layer); err != nil {
+			return err
+		}
+	case EventContextFactRejected:
+		var payload ContextFactRejectedPayload
+		if err := decodePayload(e.Payload, &payload); err != nil {
+			return err
+		}
+		if err := payload.Validate(); err != nil {
+			return err
+		}
+		if err := validateContextHypothesisRefs(e.Refs, payload.Layer); err != nil {
+			return err
 		}
 	default:
 		return fmt.Errorf("unsupported event type %q", e.Type)
