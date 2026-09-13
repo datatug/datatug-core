@@ -20,6 +20,10 @@ on:
       - 'src/**'
       - '.github/workflows/*.yml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
 
   strongo_workflow:
