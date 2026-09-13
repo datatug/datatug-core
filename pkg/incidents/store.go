@@ -100,6 +100,49 @@ type Mutation struct {
 	Event       EventDraft  `json:"event"`
 }
 
+// CreateMutation is allocated atomically by a store. IncidentID is absent on
+// purpose: the implementation assigns the next store-scoped INC-n while it
+// holds the same exclusion boundary used to commit the first event.
+type CreateMutation struct {
+	MutationID       string           `json:"mutationId"`
+	StoreID          string           `json:"storeId"`
+	UID              string           `json:"uid"`
+	Title            string           `json:"title"`
+	Description      string           `json:"description,omitempty"`
+	At               time.Time        `json:"at"`
+	Reporter         Actor            `json:"reporter"`
+	PrimaryProject   ProjectRef       `json:"primaryProject"`
+	Projects         []ProjectRef     `json:"projects,omitempty"`
+	CanonicalContext CanonicalContext `json:"canonicalContext"`
+}
+
+func (m CreateMutation) Validate() error {
+	if err := ValidateMutationID(m.MutationID); err != nil {
+		return err
+	}
+	if !validSegment(m.StoreID) || strings.TrimSpace(m.UID) == "" || strings.TrimSpace(m.Title) == "" || m.At.IsZero() {
+		return fmt.Errorf("incidents: create requires storeId, uid, title, and at")
+	}
+	if err := m.Reporter.Validate(); err != nil {
+		return fmt.Errorf("incidents: reporter: %w", err)
+	}
+	for i, project := range m.Projects {
+		if err := project.Validate(); err != nil {
+			return fmt.Errorf("incidents: project %d: %w", i, err)
+		}
+	}
+	if err := m.CanonicalContext.ValidateAllowedScopes(m.PrimaryProject, m.Projects); err != nil {
+		return fmt.Errorf("incidents: canonical context: %w", err)
+	}
+	return nil
+}
+
+type CreateResult struct {
+	Event      Event    `json:"event"`
+	Projection Incident `json:"projection"`
+	Replayed   bool     `json:"replayed"`
+}
+
 func (m Mutation) Validate() error {
 	if err := ValidateMutationID(m.MutationID); err != nil {
 		return err
@@ -168,6 +211,16 @@ type Store interface {
 	Events(ctx context.Context, ref IncidentRef, afterSeq uint64) ([]Event, error)
 	Projection(ctx context.Context, ref IncidentRef, at *time.Time) (Incident, error)
 	Merge(ctx context.Context, mutation MergeMutation) (MergeResult, error)
+}
+
+// APIStore is the Task 3 server contract. Store remains source-compatible for
+// append/replay adapters while providers implement atomic creation, querying,
+// and a server-driven stream before exposing Incidentius endpoints.
+type APIStore interface {
+	Store
+	Create(ctx context.Context, mutation CreateMutation) (CreateResult, error)
+	List(ctx context.Context, query CandidateListQuery) ([]Incident, error)
+	Watch(ctx context.Context, query WatchQuery) (EventStream, error)
 }
 
 func validSegment(value string) bool {

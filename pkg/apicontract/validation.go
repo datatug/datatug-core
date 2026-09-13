@@ -3,6 +3,8 @@ package apicontract
 import (
 	"fmt"
 	"strings"
+
+	"github.com/datatug/datatug-core/pkg/investigation"
 )
 
 // requireNonEmpty returns a *ValidationError naming field when value is
@@ -25,15 +27,5 @@ func requireOneOf(field, value string, allowed ...string) error {
 	return &ValidationError{Field: field, Message: fmt.Sprintf("must be one of %v, got %q", allowed, value)}
 }
 
-// ValidationError reports a single appendix rule a value violated.
-type ValidationError struct {
-	Field   string
-	Message string
-}
-
-func (e *ValidationError) Error() string {
-	if e.Field == "" {
-		return e.Message
-	}
-	return fmt.Sprintf("%s: %s", e.Field, e.Message)
-}
+// ValidationError remains an apicontract alias for compatibility.
+type ValidationError = investigation.ValidationError

@@ -109,6 +109,16 @@ func validateEventStream(events []Event) error {
 }
 
 func (e Event) Validate() error {
+	return e.validate(false)
+}
+
+// ValidateView validates a detached, policy-filtered event. Unlike persisted
+// events, a view may contain explicit fact-value redaction markers.
+func (e Event) ValidateView() error {
+	return e.validate(true)
+}
+
+func (e Event) validate(view bool) error {
 	if strings.TrimSpace(e.ID) == "" || e.Seq == 0 {
 		return fmt.Errorf("id and positive seq are required")
 	}
@@ -126,14 +136,8 @@ func (e Event) Validate() error {
 			return err
 		}
 	}
-	if e.Actor.Kind != ActorHuman && e.Actor.Kind != ActorAgent && e.Actor.Kind != ActorSystem {
-		return fmt.Errorf("invalid actor kind %q", e.Actor.Kind)
-	}
-	if strings.TrimSpace(e.Actor.ID) == "" {
-		return fmt.Errorf("actor id is required")
-	}
-	if e.Actor.Via != "" && e.Actor.Via != ActorViaWeb && e.Actor.Via != ActorViaCLI && e.Actor.Via != ActorViaAPI && e.Actor.Via != ActorViaSlack {
-		return fmt.Errorf("invalid actor via %q", e.Actor.Via)
+	if err := e.Actor.Validate(); err != nil {
+		return err
 	}
 	if !validAssertionKind(e.Assertion.Kind) {
 		return fmt.Errorf("invalid assertion kind %q", e.Assertion.Kind)
@@ -155,7 +159,7 @@ func (e Event) Validate() error {
 	if len(e.Payload) == 0 {
 		return fmt.Errorf("payload is required")
 	}
-	return e.validatePayload()
+	return e.validatePayload(view)
 }
 
 func (r ArtifactRef) Validate() error {
@@ -255,6 +259,10 @@ func (p *Incident) apply(event Event) error {
 		}
 		payload := validatedPayload[CreatedPayload](event.Payload)
 		p.UID, p.Title, p.Description, p.Projects = payload.UID, payload.Title, payload.Description, payload.Projects
+		if payload.Reporter.ID != "" {
+			p.Participants = []Participant{{Actor: payload.Reporter, Role: ParticipantReporter}}
+		}
+		p.CanonicalContext = payload.CanonicalContext
 		p.Status = StatusOpen
 	case EventIncidentStatus:
 		payload := validatedPayload[StatusPayload](event.Payload)
@@ -281,7 +289,14 @@ func (p *Incident) apply(event Event) error {
 		p.Outcome = ""
 	case EventNoteAdded:
 		payload := validatedPayload[NoteAddedPayload](event.Payload)
+		p.NoteEntries = append(p.NoteEntries, Note{EventID: event.ID, Body: payload.Body})
 		p.Notes = append(p.Notes, payload.Body)
+	}
+	for _, ref := range event.Refs {
+		if ref.Kind == RefQuery || ref.Kind == RefCheck || ref.Kind == RefBoard {
+			p.AssetRefEntries = appendUniqueAssetRefEntry(p.AssetRefEntries, AssetRefEntry{EventID: event.ID, Ref: ref})
+			p.AssetRefs = appendUniqueArtifactRef(p.AssetRefs, ref)
+		}
 	}
 	return nil
 }
@@ -304,9 +319,32 @@ func decodePayload(data json.RawMessage, dst any) error {
 	return nil
 }
 
-func (e Event) validatePayload() error {
+func (e Event) validatePayload(view bool) error {
 	switch e.Type {
 	case EventIncidentCreated:
+		if view {
+			var payload CreatedViewPayload
+			if err := decodePayload(e.Payload, &payload); err != nil {
+				return err
+			}
+			if strings.TrimSpace(payload.UID) == "" || strings.TrimSpace(payload.Title) == "" {
+				return fmt.Errorf("created payload requires uid and title")
+			}
+			for i, project := range payload.Projects {
+				if err := project.Validate(); err != nil {
+					return fmt.Errorf("project %d: %w", i, err)
+				}
+			}
+			if payload.Reporter.ID != "" {
+				if err := payload.Reporter.Validate(); err != nil {
+					return fmt.Errorf("reporter: %w", err)
+				}
+			}
+			if err := payload.CanonicalContext.Validate(); err != nil {
+				return fmt.Errorf("canonicalContext: %w", err)
+			}
+			return nil
+		}
 		var payload CreatedPayload
 		if err := decodePayload(e.Payload, &payload); err != nil {
 			return err
@@ -318,6 +356,14 @@ func (e Event) validatePayload() error {
 			if err := project.Validate(); err != nil {
 				return fmt.Errorf("project %d: %w", i, err)
 			}
+		}
+		if payload.Reporter.ID != "" {
+			if err := payload.Reporter.Validate(); err != nil {
+				return fmt.Errorf("reporter: %w", err)
+			}
+		}
+		if err := payload.CanonicalContext.Validate(); err != nil {
+			return fmt.Errorf("canonicalContext: %w", err)
 		}
 	case EventIncidentStatus:
 		var payload StatusPayload
@@ -361,6 +407,31 @@ func (e Event) validatePayload() error {
 		return fmt.Errorf("unsupported event type %q", e.Type)
 	}
 	return nil
+}
+
+func appendUniqueArtifactRef(refs []ArtifactRef, candidate ArtifactRef) []ArtifactRef {
+	for _, ref := range refs {
+		if artifactRefsEqual(ref, candidate) {
+			return refs
+		}
+	}
+	return append(refs, cloneArtifactRef(candidate))
+}
+
+func appendUniqueAssetRefEntry(entries []AssetRefEntry, candidate AssetRefEntry) []AssetRefEntry {
+	for _, entry := range entries {
+		if entry.EventID == candidate.EventID && artifactRefsEqual(entry.Ref, candidate.Ref) {
+			return entries
+		}
+	}
+	candidate.Ref = cloneArtifactRef(candidate.Ref)
+	return append(entries, candidate)
+}
+
+func artifactRefsEqual(left, right ArtifactRef) bool {
+	a, _ := json.Marshal(left)
+	b, _ := json.Marshal(right)
+	return bytes.Equal(a, b)
 }
 
 func validAssertionKind(value AssertionKind) bool {

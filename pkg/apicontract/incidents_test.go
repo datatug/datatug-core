@@ -82,26 +82,26 @@ func TestIncidentMergeRequestValidate(t *testing.T) {
 }
 
 func TestIncidentResponseValidation(t *testing.T) {
-	projection := validIncidentProjection("INC-1")
+	projection := validIncidentView("INC-1")
 	require.NoError(t, (IncidentResponse{Incident: projection}).Validate())
-	require.NoError(t, (IncidentListResponse{Incidents: []incidents.Incident{projection}}).Validate())
+	require.NoError(t, (IncidentListResponse{Incidents: []incidents.IncidentView{projection}}).Validate())
 
-	for name, mutate := range map[string]func(*incidents.Incident){
-		"ref":        func(v *incidents.Incident) { v.Ref = incidents.IncidentRef{} },
-		"uid":        func(v *incidents.Incident) { v.UID = "" },
-		"title":      func(v *incidents.Incident) { v.Title = "" },
-		"lastSeq":    func(v *incidents.Incident) { v.LastSeq = 0 },
-		"status":     func(v *incidents.Incident) { v.Status = "paused" },
-		"outcome":    func(v *incidents.Incident) { v.Outcome = "duplicate" },
-		"mergedInto": func(v *incidents.Incident) { v.MergedInto = &incidents.IncidentRef{} },
-		"selfMerge":  func(v *incidents.Incident) { merged := v.Ref; v.MergedInto = &merged },
-		"project":    func(v *incidents.Incident) { v.Projects = []incidents.ProjectRef{{StoreID: "ops"}} },
+	for name, mutate := range map[string]func(*incidents.IncidentView){
+		"ref":        func(v *incidents.IncidentView) { v.Ref = incidents.IncidentRef{} },
+		"uid":        func(v *incidents.IncidentView) { v.UID = "" },
+		"title":      func(v *incidents.IncidentView) { v.Title = "" },
+		"lastSeq":    func(v *incidents.IncidentView) { v.LastSeq = 0 },
+		"status":     func(v *incidents.IncidentView) { v.Status = "paused" },
+		"outcome":    func(v *incidents.IncidentView) { v.Outcome = "duplicate" },
+		"mergedInto": func(v *incidents.IncidentView) { v.MergedInto = &incidents.IncidentRef{} },
+		"selfMerge":  func(v *incidents.IncidentView) { merged := v.Ref; v.MergedInto = &merged },
+		"project":    func(v *incidents.IncidentView) { v.Projects = []incidents.ProjectRef{{StoreID: "ops"}} },
 	} {
 		t.Run(name, func(t *testing.T) {
 			invalid := projection
 			mutate(&invalid)
 			require.Error(t, (IncidentResponse{Incident: invalid}).Validate())
-			require.Error(t, (IncidentListResponse{Incidents: []incidents.Incident{invalid}}).Validate())
+			require.Error(t, (IncidentListResponse{Incidents: []incidents.IncidentView{invalid}}).Validate())
 		})
 	}
 
@@ -124,7 +124,7 @@ func TestIncidentResponseValidation(t *testing.T) {
 }
 
 func TestIncidentAppendResponseValidation(t *testing.T) {
-	projection := validIncidentProjection("INC-1")
+	projection := validIncidentView("INC-1")
 	projection.LastSeq = 2
 	projection.Notes = []string{"checked retry queue"}
 	event := validNoteEvent(projection.Ref)
@@ -145,8 +145,8 @@ func TestIncidentAppendResponseValidation(t *testing.T) {
 }
 
 func TestIncidentMergeResponseValidation(t *testing.T) {
-	source := validIncidentProjection("INC-2")
-	into := validIncidentProjection("INC-1")
+	source := validIncidentView("INC-2")
+	into := validIncidentView("INC-1")
 	source.Status = incidents.StatusClosed
 	source.LastSeq = 3
 	source.MergedInto = &into.Ref
@@ -193,6 +193,10 @@ func validIncidentProjection(id string) incidents.Incident {
 		Description: "Billing queue is not draining", Status: incidents.StatusOpen, LastSeq: 1,
 		Projects: []incidents.ProjectRef{{StoreID: "ops", ProjectID: "billing"}},
 	}
+}
+
+func validIncidentView(id string) incidents.IncidentView {
+	return incidents.ApplyIncidentView(validIncidentProjection(id), incidents.ViewPolicy{})
 }
 
 func validNoteEvent(ref incidents.IncidentRef) incidents.Event {
