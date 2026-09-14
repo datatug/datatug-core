@@ -269,6 +269,7 @@ func (r CompareResult) Validate() error {
 		return &ValidationError{Field: "right", Message: err.Error()}
 	}
 	columnSet := map[string]bool{}
+	columnByName := map[string]Column{}
 	for i, c := range r.Columns {
 		if err := c.Validate(); err != nil {
 			return &ValidationError{Field: "columns", Message: fmt.Sprintf("index %d: %s", i, err)}
@@ -280,11 +281,14 @@ func (r CompareResult) Validate() error {
 			return &ValidationError{Field: "columns", Message: "must be in stable name order"}
 		}
 		columnSet[c.Name] = true
+		columnByName[c.Name] = c
 	}
 	if len(r.Key) == 0 {
 		return &ValidationError{Field: "key", Message: "is required"}
 	}
 	keySet := map[string]bool{}
+	keyColumns := make([]Column, 0, len(r.Key))
+	keyIndexes := make([]int, 0, len(r.Key))
 	for _, key := range r.Key {
 		if strings.TrimSpace(key) == "" || !columnSet[key] {
 			return &ValidationError{Field: "key", Message: fmt.Sprintf("column %q is not shared", key)}
@@ -293,11 +297,24 @@ func (r CompareResult) Validate() error {
 			return &ValidationError{Field: "key", Message: fmt.Sprintf("duplicate column %q", key)}
 		}
 		keySet[key] = true
+		keyColumns = append(keyColumns, columnByName[key])
+		for index, column := range r.Columns {
+			if column.Name == key {
+				keyIndexes = append(keyIndexes, index)
+				break
+			}
+		}
 	}
+	emitted := len(r.Added) + len(r.Removed) + len(r.Changed)
+	if emitted > CompareMaximumLimit {
+		return &ValidationError{Field: "added/removed/changed", Message: fmt.Sprintf("emitted rows exceed maximum %d", CompareMaximumLimit)}
+	}
+	seenKeys := map[string]string{}
 	for _, rows := range []struct {
 		name string
 		rows []CompareRow
 	}{{"added", r.Added}, {"removed", r.Removed}} {
+		var priorKey []TypedValue
 		for i, row := range rows.rows {
 			if err := validateCompareValues(rows.name, i, "key", row.Key, len(r.Key)); err != nil {
 				return err
@@ -305,8 +322,24 @@ func (r CompareResult) Validate() error {
 			if err := validateCompareValues(rows.name, i, "row", row.Row, len(r.Columns)); err != nil {
 				return err
 			}
+			if err := validateCompareColumnTypes(rows.name, i, "key", row.Key, keyColumns); err != nil {
+				return err
+			}
+			if err := validateCompareColumnTypes(rows.name, i, "row", row.Row, r.Columns); err != nil {
+				return err
+			}
+			for keyIndex, rowIndex := range keyIndexes {
+				if row.Key[keyIndex] != row.Row[rowIndex] {
+					return &ValidationError{Field: rows.name, Message: fmt.Sprintf("row %d key does not match row key-column cells", i)}
+				}
+			}
+			if err := validateCompareKey(rows.name, i, row.Key, priorKey, seenKeys); err != nil {
+				return err
+			}
+			priorKey = append([]TypedValue(nil), row.Key...)
 		}
 	}
+	var priorChangedKey []TypedValue
 	for i, row := range r.Changed {
 		if err := validateCompareValues("changed", i, "key", row.Key, len(r.Key)); err != nil {
 			return err
@@ -314,6 +347,13 @@ func (r CompareResult) Validate() error {
 		if len(row.Columns) == 0 {
 			return &ValidationError{Field: "changed", Message: fmt.Sprintf("row %d has no changed columns", i)}
 		}
+		if err := validateCompareColumnTypes("changed", i, "key", row.Key, keyColumns); err != nil {
+			return err
+		}
+		if err := validateCompareKey("changed", i, row.Key, priorChangedKey, seenKeys); err != nil {
+			return err
+		}
+		priorChangedKey = append([]TypedValue(nil), row.Key...)
 		seen := map[string]bool{}
 		for j, change := range row.Columns {
 			if !columnSet[change.Column] || keySet[change.Column] || seen[change.Column] {
@@ -328,6 +368,10 @@ func (r CompareResult) Validate() error {
 			if err := change.Right.Validate(); err != nil {
 				return &ValidationError{Field: "changed", Message: fmt.Sprintf("row %d right: %s", i, err)}
 			}
+			column := columnByName[change.Column]
+			if !typedValueMatchesColumn(change.Left, column) || !typedValueMatchesColumn(change.Right, column) {
+				return &ValidationError{Field: "changed", Message: fmt.Sprintf("row %d column %d does not match declared column type", i, j)}
+			}
 			if change.Left == change.Right {
 				return &ValidationError{Field: "changed", Message: fmt.Sprintf("row %d column %q is unchanged", i, change.Column)}
 			}
@@ -337,18 +381,23 @@ func (r CompareResult) Validate() error {
 	if r.Summary.Added < len(r.Added) || r.Summary.Removed < len(r.Removed) || r.Summary.Changed < len(r.Changed) || r.Summary.Unchanged < 0 {
 		return &ValidationError{Field: "summary", Message: "counts must be non-negative and cover emitted rows"}
 	}
-	if !r.Truncated && (r.Summary.Added != len(r.Added) || r.Summary.Removed != len(r.Removed) || r.Summary.Changed != len(r.Changed)) {
-		return &ValidationError{Field: "summary", Message: "counts must match rows when not truncated"}
+	totalDifferences := r.Summary.Added + r.Summary.Removed + r.Summary.Changed
+	if r.Truncated != (emitted < totalDifferences) {
+		return &ValidationError{Field: "truncated", Message: "must equal emitted rows less than summary differences"}
 	}
 	if r.Left.RowCount != r.Summary.Removed+r.Summary.Changed+r.Summary.Unchanged || r.Right.RowCount != r.Summary.Added+r.Summary.Changed+r.Summary.Unchanged {
 		return &ValidationError{Field: "summary", Message: "counts do not reconcile with side receipts"}
 	}
+	hiddenColumnSet := compareHiddenColumns(r.Left.Limitations, r.Right.Limitations)
 	for i, oneSided := range r.Summary.ColumnsOnlyOnOneSide {
 		if strings.TrimSpace(oneSided.Column) == "" || (oneSided.Side != CompareColumnLeft && oneSided.Side != CompareColumnRight) {
 			return &ValidationError{Field: "columnsOnlyOnOneSide", Message: fmt.Sprintf("index %d is invalid", i)}
 		}
 		if columnSet[oneSided.Column] {
 			return &ValidationError{Field: "columnsOnlyOnOneSide", Message: fmt.Sprintf("column %q is shared", oneSided.Column)}
+		}
+		if hiddenColumnSet[oneSided.Column] {
+			return &ValidationError{Field: "columnsOnlyOnOneSide", Message: fmt.Sprintf("index %d is hidden by policy", i)}
 		}
 		if i > 0 {
 			prior := r.Summary.ColumnsOnlyOnOneSide[i-1]
@@ -373,6 +422,9 @@ func (r CompareResult) Validate() error {
 			if err := value.Value.Validate(); err != nil {
 				return &ValidationError{Field: "distribution", Message: fmt.Sprintf("value %d: %s", i, err)}
 			}
+			if !typedValueMatchesColumn(value.Value, columnByName[r.Distribution.Column]) {
+				return &ValidationError{Field: "distribution", Message: fmt.Sprintf("value %d does not match declared column type", i)}
+			}
 			stableKey := compareTypedStableKey(value.Value)
 			if i > 0 && priorKey >= stableKey {
 				return &ValidationError{Field: "distribution", Message: "values must be stable and unique"}
@@ -396,6 +448,12 @@ func (r CompareResult) Validate() error {
 		if leftCount > r.Left.RowCount || rightCount > r.Right.RowCount || (!r.Distribution.Truncated && (leftCount != r.Left.RowCount || rightCount != r.Right.RowCount)) {
 			return &ValidationError{Field: "distribution", Message: "counts do not reconcile with side totals"}
 		}
+		if r.Distribution.Truncated && len(r.Distribution.Values) != CompareDistributionMaximumValues {
+			return &ValidationError{Field: "distribution", Message: fmt.Sprintf("truncated distribution must emit exactly %d values", CompareDistributionMaximumValues)}
+		}
+		if r.Distribution.Truncated && leftCount == r.Left.RowCount && rightCount == r.Right.RowCount {
+			return &ValidationError{Field: "distribution", Message: "truncated distribution must have at least one omitted side count"}
+		}
 	}
 	return nil
 }
@@ -412,6 +470,56 @@ func validateCompareValues(group string, row int, field string, values []TypedVa
 	return nil
 }
 
+func validateCompareColumnTypes(group string, row int, field string, values []TypedValue, columns []Column) error {
+	for index, value := range values {
+		if !typedValueMatchesColumn(value, columns[index]) {
+			return &ValidationError{Field: group, Message: fmt.Sprintf("row %d %s %d does not match declared column type", row, field, index)}
+		}
+	}
+	return nil
+}
+
+func typedValueMatchesColumn(value TypedValue, column Column) bool {
+	return value.Type == ValueTypeNull || string(value.Type) == column.Type
+}
+
+func validateCompareKey(group string, row int, key, prior []TypedValue, seen map[string]string) error {
+	for _, value := range key {
+		if value.Type == ValueTypeNull {
+			return &ValidationError{Field: group, Message: fmt.Sprintf("row %d has a null/missing key", row)}
+		}
+	}
+	identity := compareKeyIdentity(key)
+	if priorGroup, exists := seen[identity]; exists {
+		return &ValidationError{Field: group, Message: fmt.Sprintf("row %d has duplicate key already emitted in %s", row, priorGroup)}
+	}
+	if prior != nil && compareTypedTuples(prior, key) >= 0 {
+		return &ValidationError{Field: group, Message: fmt.Sprintf("row %d is not in stable key order", row)}
+	}
+	seen[identity] = group
+	return nil
+}
+
+func compareKeyIdentity(values []TypedValue) string {
+	normalized := append([]TypedValue(nil), values...)
+	for index := range normalized {
+		if normalized[index].Type == ValueTypeNumber && normalized[index].Num == 0 {
+			normalized[index].Num = 0
+		}
+	}
+	data, _ := json.Marshal(normalized)
+	return string(data)
+}
+
+func compareTypedTuples(left, right []TypedValue) int {
+	for index := range left {
+		if order := strings.Compare(compareTypedStableKey(left[index]), compareTypedStableKey(right[index])); order != 0 {
+			return order
+		}
+	}
+	return 0
+}
+
 func compareRowsFiltered(limitations []Limitation) bool {
 	for _, limitation := range limitations {
 		if limitation.RowsFiltered {
@@ -419,6 +527,18 @@ func compareRowsFiltered(limitations []Limitation) bool {
 		}
 	}
 	return false
+}
+
+func compareHiddenColumns(groups ...[]Limitation) map[string]bool {
+	hidden := map[string]bool{}
+	for _, limitations := range groups {
+		for _, limitation := range limitations {
+			for _, column := range limitation.HiddenColumns {
+				hidden[column] = true
+			}
+		}
+	}
+	return hidden
 }
 
 func comparePercentage(count, total int) float64 {

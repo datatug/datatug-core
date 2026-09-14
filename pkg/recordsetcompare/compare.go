@@ -42,6 +42,12 @@ func Compare(left, right apicontract.Recordset, leftReceipt, rightReceipt apicon
 	if err := right.Validate(); err != nil {
 		return apicontract.CompareResult{}, fmt.Errorf("right recordset: %w", err)
 	}
+	if err := validateRecordsetColumnTypes(left); err != nil {
+		return apicontract.CompareResult{}, fmt.Errorf("left recordset: %w", err)
+	}
+	if err := validateRecordsetColumnTypes(right); err != nil {
+		return apicontract.CompareResult{}, fmt.Errorf("right recordset: %w", err)
+	}
 	if leftReceipt.RowCount != len(left.Rows) || rightReceipt.RowCount != len(right.Rows) {
 		return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: receipt rowCount must match the supplied recordset")
 	}
@@ -129,7 +135,7 @@ func Compare(left, right apicontract.Recordset, leftReceipt, rightReceipt apicon
 	})
 
 	result := apicontract.CompareResult{
-		Left: sanitizedReceipt(leftReceipt), Right: sanitizedReceipt(rightReceipt), Columns: shared, Key: append([]string(nil), options.Key...),
+		Left: leftReceipt, Right: rightReceipt, Columns: shared, Key: append([]string(nil), options.Key...),
 		Added: []apicontract.CompareRow{}, Removed: []apicontract.CompareRow{}, Changed: []apicontract.CompareChangedRow{},
 		Summary:       apicontract.CompareSummary{ColumnsOnlyOnOneSide: oneSided},
 		PolicyLimited: rowsFiltered(leftReceipt.Limitations) || rowsFiltered(rightReceipt.Limitations),
@@ -193,6 +199,17 @@ func columnsByName(columns []apicontract.Column, hidden map[string]bool) (map[st
 		result[column.Name] = index
 	}
 	return result, nil
+}
+
+func validateRecordsetColumnTypes(recordset apicontract.Recordset) error {
+	for rowIndex, row := range recordset.Rows {
+		for columnIndex, value := range row {
+			if value.Type != apicontract.ValueTypeNull && string(value.Type) != recordset.Columns[columnIndex].Type {
+				return fmt.Errorf("row %d column %d does not match declared column type", rowIndex, columnIndex)
+			}
+		}
+	}
+	return nil
 }
 
 func intersectColumns(leftList, rightList []apicontract.Column, left, right map[string]int, hidden map[string]bool) ([]apicontract.Column, []apicontract.CompareOneSidedColumn, error) {
@@ -368,14 +385,6 @@ func hiddenColumns(groups ...[]apicontract.Limitation) map[string]bool {
 		}
 	}
 	return hidden
-}
-
-func sanitizedReceipt(receipt apicontract.CompareSideReceipt) apicontract.CompareSideReceipt {
-	receipt.Limitations = append([]apicontract.Limitation(nil), receipt.Limitations...)
-	for index := range receipt.Limitations {
-		receipt.Limitations[index].HiddenColumns = []string{}
-	}
-	return receipt
 }
 
 func cloneValues(values []apicontract.TypedValue) []apicontract.TypedValue {

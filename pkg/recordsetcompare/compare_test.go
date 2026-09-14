@@ -167,16 +167,35 @@ func TestCompareHiddenColumnAppearsNowhere(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, leftColumns, result.Columns)
 	require.Empty(t, result.Summary.ColumnsOnlyOnOneSide)
-	wire, err := json.Marshal(result)
+	require.Equal(t, []string{"email"}, result.Left.Limitations[0].HiddenColumns)
+	diffWire, err := json.Marshal(struct {
+		Columns      []apicontract.Column
+		Added        []apicontract.CompareRow
+		Removed      []apicontract.CompareRow
+		Changed      []apicontract.CompareChangedRow
+		Summary      apicontract.CompareSummary
+		Distribution *apicontract.CompareDistribution
+	}{result.Columns, result.Added, result.Removed, result.Changed, result.Summary, result.Distribution})
 	require.NoError(t, err)
-	require.NotContains(t, string(wire), "email")
-	require.NotContains(t, string(wire), "secret@example.com")
+	require.NotContains(t, string(diffWire), "email")
+	require.NotContains(t, string(diffWire), "secret@example.com")
 
 	for _, options := range []Options{{Key: []string{"email"}}, {Key: []string{"id"}, DistributionColumn: "email"}} {
 		_, err = Compare(left, right, leftReceipt, receipt("right", 1), options)
 		require.Error(t, err)
 		require.NotContains(t, err.Error(), "email")
 	}
+}
+
+func TestCompareRejectsCellsThatDoNotMatchDeclaredColumnType(t *testing.T) {
+	columns := []apicontract.Column{{Name: "id", Type: "integer"}, {Name: "name", Type: "string"}}
+	mistyped := recordset(columns, []apicontract.TypedValue{apicontract.NewStringValue("not-an-integer"), apicontract.NewStringValue("Alice")})
+	_, err := Compare(mistyped, mistyped, receipt("left", 1), receipt("right", 1), Options{Key: []string{"id"}})
+	require.ErrorContains(t, err, "declared column type")
+
+	withNull := recordset(columns, []apicontract.TypedValue{apicontract.NewIntegerValue("1"), apicontract.NewNullValue()})
+	_, err = Compare(withNull, withNull, receipt("left", 1), receipt("right", 1), Options{Key: []string{"id"}})
+	require.NoError(t, err)
 }
 
 func TestCompareOmittedLimitEmitsOnlyDefaultHundred(t *testing.T) {
