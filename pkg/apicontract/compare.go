@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"strconv"
 	"strings"
 
 	"github.com/datatug/datatug-core/pkg/incidents"
@@ -433,7 +432,10 @@ func (r CompareResult) Validate() error {
 			if !typedValueMatchesColumn(value.Value, columnByName[r.Distribution.Column]) {
 				return &ValidationError{Field: "distribution", Message: fmt.Sprintf("value %d does not match declared column type", i)}
 			}
-			stableKey := compareTypedStableKey(value.Value)
+			stableKey, err := TypedValueSortKey(value.Value)
+			if err != nil {
+				return &ValidationError{Field: "distribution", Message: fmt.Sprintf("value %d: %s", i, err)}
+			}
 			if i > 0 && priorKey >= stableKey {
 				return &ValidationError{Field: "distribution", Message: "values must be stable and unique"}
 			}
@@ -501,8 +503,14 @@ func validateCompareKey(group string, row int, key, prior []TypedValue, seen map
 	if priorGroup, exists := seen[identity]; exists {
 		return &ValidationError{Field: group, Message: fmt.Sprintf("row %d has duplicate key already emitted in %s", row, priorGroup)}
 	}
-	if prior != nil && compareTypedTuples(prior, key) >= 0 {
-		return &ValidationError{Field: group, Message: fmt.Sprintf("row %d is not in stable key order", row)}
+	if prior != nil {
+		order, err := CompareTypedKeys(prior, key)
+		if err != nil {
+			return &ValidationError{Field: group, Message: fmt.Sprintf("row %d key: %s", row, err)}
+		}
+		if order >= 0 {
+			return &ValidationError{Field: group, Message: fmt.Sprintf("row %d is not in stable key order", row)}
+		}
 	}
 	seen[identity] = group
 	return nil
@@ -517,15 +525,6 @@ func compareKeyIdentity(values []TypedValue) string {
 	}
 	data, _ := json.Marshal(normalized)
 	return string(data)
-}
-
-func compareTypedTuples(left, right []TypedValue) int {
-	for index := range left {
-		if order := strings.Compare(compareTypedStableKey(left[index]), compareTypedStableKey(right[index])); order != 0 {
-			return order
-		}
-	}
-	return 0
 }
 
 func compareRowsFiltered(limitations []Limitation) bool {
@@ -554,20 +553,6 @@ func comparePercentage(count, total int) float64 {
 		return 0
 	}
 	return float64(count) * 100 / float64(total)
-}
-
-func compareTypedStableKey(value TypedValue) string {
-	switch value.Type {
-	case ValueTypeNumber:
-		if value.Num == 0 {
-			return string(value.Type) + ":0"
-		}
-		return string(value.Type) + ":" + strconv.FormatFloat(value.Num, 'g', -1, 64)
-	case ValueTypeBoolean:
-		return string(value.Type) + ":" + strconv.FormatBool(value.Bool)
-	default:
-		return string(value.Type) + ":" + value.Str
-	}
 }
 
 // CompareErrorResponse preserves successfully persisted live-side receipts
