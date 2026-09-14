@@ -221,7 +221,11 @@ func TestCompareResultValidateBoundsAndTruncation(t *testing.T) {
 		completeCapped.Distribution.Values = append(completeCapped.Distribution.Values, CompareDistributionValue{Value: NewIntegerValue(strconv.Itoa(i)), Left: CompareDistributionSide{Count: 1, Pct: 2}, Right: CompareDistributionSide{Count: 1, Pct: 2}, Ratio: &one})
 	}
 	sort.Slice(completeCapped.Distribution.Values, func(i, j int) bool {
-		return compareTypedStableKey(completeCapped.Distribution.Values[i].Value) < compareTypedStableKey(completeCapped.Distribution.Values[j].Value)
+		left, leftErr := TypedValueSortKey(completeCapped.Distribution.Values[i].Value)
+		right, rightErr := TypedValueSortKey(completeCapped.Distribution.Values[j].Value)
+		require.NoError(t, leftErr)
+		require.NoError(t, rightErr)
+		return left < right
 	})
 	require.ErrorContains(t, completeCapped.Validate(), "omitted")
 }
