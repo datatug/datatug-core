@@ -1,6 +1,7 @@
 package recordsetcompare
 
 import (
+	"encoding/json"
 	"strconv"
 	"testing"
 
@@ -152,4 +153,42 @@ func TestComparePolicyLimitedOnlyWhenRowsFiltered(t *testing.T) {
 	result, err = Compare(set, set, left, receipt("right", 1), Options{Key: []string{"id"}})
 	require.NoError(t, err)
 	require.True(t, result.PolicyLimited)
+}
+
+func TestCompareHiddenColumnAppearsNowhere(t *testing.T) {
+	leftColumns := []apicontract.Column{{Name: "id", Type: "integer"}, {Name: "name", Type: "string"}}
+	rightColumns := append(append([]apicontract.Column{}, leftColumns...), apicontract.Column{Name: "email", Type: "string"})
+	left := recordset(leftColumns, []apicontract.TypedValue{apicontract.NewIntegerValue("1"), apicontract.NewStringValue("Alice")})
+	right := recordset(rightColumns, []apicontract.TypedValue{apicontract.NewIntegerValue("1"), apicontract.NewStringValue("Alice"), apicontract.NewStringValue("secret@example.com")})
+	leftReceipt := receipt("left", 1)
+	leftReceipt.Limitations = []apicontract.Limitation{{Policy: "masked-fields", HiddenColumns: []string{"email"}}}
+
+	result, err := Compare(left, right, leftReceipt, receipt("right", 1), Options{Key: []string{"id"}})
+	require.NoError(t, err)
+	require.Equal(t, leftColumns, result.Columns)
+	require.Empty(t, result.Summary.ColumnsOnlyOnOneSide)
+	wire, err := json.Marshal(result)
+	require.NoError(t, err)
+	require.NotContains(t, string(wire), "email")
+	require.NotContains(t, string(wire), "secret@example.com")
+
+	for _, options := range []Options{{Key: []string{"email"}}, {Key: []string{"id"}, DistributionColumn: "email"}} {
+		_, err = Compare(left, right, leftReceipt, receipt("right", 1), options)
+		require.Error(t, err)
+		require.NotContains(t, err.Error(), "email")
+	}
+}
+
+func TestCompareOmittedLimitEmitsOnlyDefaultHundred(t *testing.T) {
+	columns := []apicontract.Column{{Name: "id", Type: "integer"}}
+	rows := make([][]apicontract.TypedValue, 0, 101)
+	for i := 0; i < 101; i++ {
+		rows = append(rows, []apicontract.TypedValue{apicontract.NewIntegerValue(strconv.Itoa(i))})
+	}
+	result, err := Compare(recordset(columns), recordset(columns, rows...), receipt("left", 0), receipt("right", 101), Options{Key: []string{"id"}})
+	require.NoError(t, err)
+	require.Equal(t, 100, apicontract.CompareDefaultLimit)
+	require.Len(t, result.Added, 100)
+	require.Equal(t, 101, result.Summary.Added)
+	require.True(t, result.Truncated)
 }

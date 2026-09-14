@@ -25,7 +25,7 @@ const (
 	CompareColumnLeft  = "left"
 	CompareColumnRight = "right"
 
-	CompareDefaultLimit              = 500
+	CompareDefaultLimit              = 100
 	CompareMaximumLimit              = 500
 	CompareDistributionMaximumValues = 50
 )

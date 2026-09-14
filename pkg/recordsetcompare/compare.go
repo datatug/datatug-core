@@ -45,6 +45,7 @@ func Compare(left, right apicontract.Recordset, leftReceipt, rightReceipt apicon
 	if leftReceipt.RowCount != len(left.Rows) || rightReceipt.RowCount != len(right.Rows) {
 		return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: receipt rowCount must match the supplied recordset")
 	}
+	hidden := hiddenColumns(leftReceipt.Limitations, rightReceipt.Limitations)
 	if len(options.Key) == 0 {
 		return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: key is required")
 	}
@@ -56,15 +57,15 @@ func Compare(left, right apicontract.Recordset, leftReceipt, rightReceipt apicon
 		return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: limit must be between 1 and %d", apicontract.CompareMaximumLimit)
 	}
 
-	leftColumns, err := columnsByName(left.Columns)
+	leftColumns, err := columnsByName(left.Columns, hidden)
 	if err != nil {
 		return apicontract.CompareResult{}, fmt.Errorf("left recordset: %w", err)
 	}
-	rightColumns, err := columnsByName(right.Columns)
+	rightColumns, err := columnsByName(right.Columns, hidden)
 	if err != nil {
 		return apicontract.CompareResult{}, fmt.Errorf("right recordset: %w", err)
 	}
-	shared, oneSided, err := intersectColumns(left.Columns, right.Columns, leftColumns, rightColumns)
+	shared, oneSided, err := intersectColumns(left.Columns, right.Columns, leftColumns, rightColumns, hidden)
 	if err != nil {
 		return apicontract.CompareResult{}, err
 	}
@@ -78,6 +79,9 @@ func Compare(left, right apicontract.Recordset, leftReceipt, rightReceipt apicon
 	}
 	keySet := map[string]bool{}
 	for _, name := range options.Key {
+		if hidden[name] {
+			return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: requested key is hidden by policy")
+		}
 		if keySet[name] {
 			return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: duplicate key column %q", name)
 		}
@@ -86,8 +90,13 @@ func Compare(left, right apicontract.Recordset, leftReceipt, rightReceipt apicon
 		}
 		keySet[name] = true
 	}
-	if options.DistributionColumn != "" && !sharedSet[options.DistributionColumn] {
-		return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: distribution column %q is missing from the shared columns", options.DistributionColumn)
+	if options.DistributionColumn != "" {
+		if hidden[options.DistributionColumn] {
+			return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: requested distribution column is hidden by policy")
+		}
+		if !sharedSet[options.DistributionColumn] {
+			return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: distribution column %q is missing from the shared columns", options.DistributionColumn)
+		}
 	}
 
 	leftRows, err := indexRows(left, leftColumns, sharedNames, options.Key)
@@ -120,7 +129,7 @@ func Compare(left, right apicontract.Recordset, leftReceipt, rightReceipt apicon
 	})
 
 	result := apicontract.CompareResult{
-		Left: leftReceipt, Right: rightReceipt, Columns: shared, Key: append([]string(nil), options.Key...),
+		Left: sanitizedReceipt(leftReceipt), Right: sanitizedReceipt(rightReceipt), Columns: shared, Key: append([]string(nil), options.Key...),
 		Added: []apicontract.CompareRow{}, Removed: []apicontract.CompareRow{}, Changed: []apicontract.CompareChangedRow{},
 		Summary:       apicontract.CompareSummary{ColumnsOnlyOnOneSide: oneSided},
 		PolicyLimited: rowsFiltered(leftReceipt.Limitations) || rowsFiltered(rightReceipt.Limitations),
@@ -172,9 +181,12 @@ func Compare(left, right apicontract.Recordset, leftReceipt, rightReceipt apicon
 	return result, nil
 }
 
-func columnsByName(columns []apicontract.Column) (map[string]int, error) {
+func columnsByName(columns []apicontract.Column, hidden map[string]bool) (map[string]int, error) {
 	result := make(map[string]int, len(columns))
 	for index, column := range columns {
+		if hidden[column.Name] {
+			continue
+		}
 		if prior, ok := result[column.Name]; ok {
 			return nil, fmt.Errorf("duplicate column %q at indexes %d and %d", column.Name, prior, index)
 		}
@@ -183,10 +195,13 @@ func columnsByName(columns []apicontract.Column) (map[string]int, error) {
 	return result, nil
 }
 
-func intersectColumns(leftList, rightList []apicontract.Column, left, right map[string]int) ([]apicontract.Column, []apicontract.CompareOneSidedColumn, error) {
+func intersectColumns(leftList, rightList []apicontract.Column, left, right map[string]int, hidden map[string]bool) ([]apicontract.Column, []apicontract.CompareOneSidedColumn, error) {
 	sharedNames := make([]string, 0)
 	oneSided := make([]apicontract.CompareOneSidedColumn, 0)
 	for name := range left {
+		if hidden[name] {
+			continue
+		}
 		if _, ok := right[name]; ok {
 			sharedNames = append(sharedNames, name)
 		} else {
@@ -194,6 +209,9 @@ func intersectColumns(leftList, rightList []apicontract.Column, left, right map[
 		}
 	}
 	for name := range right {
+		if hidden[name] {
+			continue
+		}
 		if _, ok := left[name]; !ok {
 			oneSided = append(oneSided, apicontract.CompareOneSidedColumn{Column: name, Side: apicontract.CompareColumnRight})
 		}
@@ -339,6 +357,27 @@ func rowsFiltered(limitations []apicontract.Limitation) bool {
 	}
 	return false
 }
+
+func hiddenColumns(groups ...[]apicontract.Limitation) map[string]bool {
+	hidden := map[string]bool{}
+	for _, limitations := range groups {
+		for _, limitation := range limitations {
+			for _, column := range limitation.HiddenColumns {
+				hidden[column] = true
+			}
+		}
+	}
+	return hidden
+}
+
+func sanitizedReceipt(receipt apicontract.CompareSideReceipt) apicontract.CompareSideReceipt {
+	receipt.Limitations = append([]apicontract.Limitation(nil), receipt.Limitations...)
+	for index := range receipt.Limitations {
+		receipt.Limitations[index].HiddenColumns = []string{}
+	}
+	return receipt
+}
+
 func cloneValues(values []apicontract.TypedValue) []apicontract.TypedValue {
 	return append([]apicontract.TypedValue(nil), values...)
 }
