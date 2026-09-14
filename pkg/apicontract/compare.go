@@ -268,9 +268,13 @@ func (r CompareResult) Validate() error {
 	if err := r.Right.Validate(); err != nil {
 		return &ValidationError{Field: "right", Message: err.Error()}
 	}
+	hiddenColumnSet := compareHiddenColumns(r.Left.Limitations, r.Right.Limitations)
 	columnSet := map[string]bool{}
 	columnByName := map[string]Column{}
 	for i, c := range r.Columns {
+		if hiddenColumnSet[c.Name] {
+			return &ValidationError{Field: "columns", Message: fmt.Sprintf("shared column index %d is hidden by policy", i)}
+		}
 		if err := c.Validate(); err != nil {
 			return &ValidationError{Field: "columns", Message: fmt.Sprintf("index %d: %s", i, err)}
 		}
@@ -388,7 +392,7 @@ func (r CompareResult) Validate() error {
 	if r.Left.RowCount != r.Summary.Removed+r.Summary.Changed+r.Summary.Unchanged || r.Right.RowCount != r.Summary.Added+r.Summary.Changed+r.Summary.Unchanged {
 		return &ValidationError{Field: "summary", Message: "counts do not reconcile with side receipts"}
 	}
-	hiddenColumnSet := compareHiddenColumns(r.Left.Limitations, r.Right.Limitations)
+	oneSidedNames := map[string]bool{}
 	for i, oneSided := range r.Summary.ColumnsOnlyOnOneSide {
 		if strings.TrimSpace(oneSided.Column) == "" || (oneSided.Side != CompareColumnLeft && oneSided.Side != CompareColumnRight) {
 			return &ValidationError{Field: "columnsOnlyOnOneSide", Message: fmt.Sprintf("index %d is invalid", i)}
@@ -399,6 +403,10 @@ func (r CompareResult) Validate() error {
 		if hiddenColumnSet[oneSided.Column] {
 			return &ValidationError{Field: "columnsOnlyOnOneSide", Message: fmt.Sprintf("index %d is hidden by policy", i)}
 		}
+		if oneSidedNames[oneSided.Column] {
+			return &ValidationError{Field: "columnsOnlyOnOneSide", Message: fmt.Sprintf("duplicate column %q", oneSided.Column)}
+		}
+		oneSidedNames[oneSided.Column] = true
 		if i > 0 {
 			prior := r.Summary.ColumnsOnlyOnOneSide[i-1]
 			if prior.Column > oneSided.Column || (prior.Column == oneSided.Column && prior.Side >= oneSided.Side) {

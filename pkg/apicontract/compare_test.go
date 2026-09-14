@@ -225,3 +225,33 @@ func TestCompareResultValidateBoundsAndTruncation(t *testing.T) {
 	})
 	require.ErrorContains(t, completeCapped.Validate(), "omitted")
 }
+
+func TestCompareResultValidateRejectsHiddenSharedColumnEverywhere(t *testing.T) {
+	left := CompareSideReceipt{Execution: ExecutionRef{StoreID: "evidence", ProjectID: "orders", ExecutionID: "left"}, ExecutedAt: "2026-09-14T10:00:00Z", RowCount: 1, Limitations: []Limitation{}, Reproducible: true}
+	right := CompareSideReceipt{Execution: ExecutionRef{StoreID: "evidence", ProjectID: "orders", ExecutionID: "right"}, ExecutedAt: "2026-09-14T10:01:00Z", RowCount: 2, Limitations: []Limitation{}, Reproducible: true}
+	zero := float64(0)
+	result := CompareResult{
+		Left: left, Right: right,
+		Columns: []Column{{Name: "email", Type: "string"}, {Name: "id", Type: "integer"}}, Key: []string{"id"},
+		Added:   []CompareRow{{Key: []TypedValue{NewIntegerValue("2")}, Row: []TypedValue{NewStringValue("secret2@example.com"), NewIntegerValue("2")}}},
+		Removed: []CompareRow{},
+		Changed: []CompareChangedRow{{Key: []TypedValue{NewIntegerValue("1")}, Columns: []CompareColumnChange{{Column: "email", Left: NewStringValue("old@example.com"), Right: NewStringValue("new@example.com")}}}},
+		Summary: CompareSummary{Added: 1, Changed: 1, ColumnsOnlyOnOneSide: []CompareOneSidedColumn{}},
+		Distribution: &CompareDistribution{Column: "email", Values: []CompareDistributionValue{
+			{Value: NewStringValue("new@example.com"), Left: CompareDistributionSide{Count: 0, Pct: 0}, Right: CompareDistributionSide{Count: 1, Pct: 50}, Ratio: &zero},
+			{Value: NewStringValue("old@example.com"), Left: CompareDistributionSide{Count: 1, Pct: 100}, Right: CompareDistributionSide{Count: 0, Pct: 0}, Ratio: nil},
+			{Value: NewStringValue("secret2@example.com"), Left: CompareDistributionSide{Count: 0, Pct: 0}, Right: CompareDistributionSide{Count: 1, Pct: 50}, Ratio: &zero},
+		}},
+	}
+	require.NoError(t, result.Validate(), "control proves the shape is valid before policy hides email")
+	result.Left.Limitations = []Limitation{{Policy: "masked", HiddenColumns: []string{"email"}}}
+	err := result.Validate()
+	require.ErrorContains(t, err, "shared column index")
+	require.NotContains(t, err.Error(), "email")
+}
+
+func TestCompareResultValidateRejectsOneSidedColumnRepeatedAcrossSides(t *testing.T) {
+	result := validCompareResultForValidation()
+	result.Summary.ColumnsOnlyOnOneSide = []CompareOneSidedColumn{{Column: "extra", Side: CompareColumnLeft}, {Column: "extra", Side: CompareColumnRight}}
+	require.ErrorContains(t, result.Validate(), "duplicate column")
+}
