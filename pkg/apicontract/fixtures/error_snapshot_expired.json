@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "SNAPSHOT_EXPIRED",
+    "message": "the retained row snapshot is no longer available",
+    "requestId": "req-snapshot-expired"
+  }
+}

@@ -63,6 +63,7 @@ func TestErrorCode_HTTPStatus(t *testing.T) {
 		{ErrCodeStaleContext, 409},
 		{ErrCodeResponseTooLarge, 413},
 		{ErrCodeSourceUnavailable, 503},
+		{ErrCodeSnapshotExpired, 410},
 		{ErrCodeTimeout, 504},
 	}
 	for _, c := range cases {

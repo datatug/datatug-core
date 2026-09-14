@@ -146,6 +146,7 @@ const (
 	EventContextFactAdded    EventType = "context.fact.added"
 	EventContextFactPromoted EventType = "context.fact.promoted"
 	EventContextFactRejected EventType = "context.fact.rejected"
+	EventCompareRun          EventType = "compare.run"
 )
 
 type Event struct {
@@ -234,6 +235,12 @@ type MergedPayload struct {
 
 type NoteAddedPayload struct {
 	Body string `json:"body"`
+}
+
+// CompareRunPayload persists only the deterministic key contract. The row
+// diff remains an endpoint result and must never enter the incident event log.
+type CompareRunPayload struct {
+	Key []string `json:"key"`
 }
 
 // Note retains the stable source event identity required to re-check human

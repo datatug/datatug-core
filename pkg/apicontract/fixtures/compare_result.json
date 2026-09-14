@@ -1,0 +1,70 @@
+{
+  "left": {
+    "execution": {
+      "storeId": "evidence",
+      "projectId": "orders",
+      "executionId": "left-1"
+    },
+    "executedAt": "2026-09-14T10:00:00Z",
+    "rowCount": 1,
+    "limitations": [],
+    "reproducible": true
+  },
+  "right": {
+    "execution": {
+      "storeId": "evidence",
+      "projectId": "orders",
+      "executionId": "right-1"
+    },
+    "executedAt": "2026-09-14T10:01:00Z",
+    "rowCount": 1,
+    "limitations": [],
+    "reproducible": true
+  },
+  "columns": [
+    {
+      "name": "order_id",
+      "type": "integer"
+    },
+    {
+      "name": "state",
+      "type": "string"
+    }
+  ],
+  "key": [
+    "order_id"
+  ],
+  "added": [],
+  "removed": [],
+  "changed": [],
+  "summary": {
+    "added": 0,
+    "removed": 0,
+    "changed": 0,
+    "unchanged": 1,
+    "columnsOnlyOnOneSide": []
+  },
+  "distribution": {
+    "column": "state",
+    "values": [
+      {
+        "value": {
+          "type": "string",
+          "value": "open"
+        },
+        "left": {
+          "count": 1,
+          "pct": 100
+        },
+        "right": {
+          "count": 0,
+          "pct": 0
+        },
+        "ratio": null
+      }
+    ],
+    "truncated": false
+  },
+  "policyLimited": false,
+  "truncated": false
+}

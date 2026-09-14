@@ -19,7 +19,11 @@ const (
 	ErrCodeStaleContext                  ErrorCode = "STALE_CONTEXT"
 	ErrCodeResponseTooLarge              ErrorCode = "RESPONSE_TOO_LARGE"
 	ErrCodeSourceUnavailable             ErrorCode = "SOURCE_UNAVAILABLE"
-	ErrCodeTimeout                       ErrorCode = "TIMEOUT"
+	// ErrCodeSnapshotExpired reports that a required historical row snapshot
+	// is absent, unretained, expired, or deleted. It never degrades to an empty
+	// recordset or fingerprint-only comparison.
+	ErrCodeSnapshotExpired ErrorCode = "SNAPSHOT_EXPIRED"
+	ErrCodeTimeout         ErrorCode = "TIMEOUT"
 	// ErrCodeRevisionConflict (409) refuses a project write whose
 	// optimistic-concurrency condition failed: a create (ifNoneMatch) found
 	// something already stored at the location, or an update (ifMatch) named
@@ -51,6 +55,7 @@ var errorCodeHTTPStatus = map[ErrorCode]int{
 	ErrCodeRevisionConflict:              409,
 	ErrCodeResponseTooLarge:              413,
 	ErrCodeSourceUnavailable:             503,
+	ErrCodeSnapshotExpired:               410,
 	ErrCodeTimeout:                       504,
 }
 

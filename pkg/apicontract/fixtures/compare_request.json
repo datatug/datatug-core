@@ -1,0 +1,27 @@
+{
+  "securityContextId": "ctx-task8",
+  "queryId": "orders-by-state",
+  "left": {
+    "kind": "facts",
+    "storeId": "local",
+    "project": "orders",
+    "environment": "prod",
+    "cohortRole": "affected"
+  },
+  "right": {
+    "kind": "scope",
+    "storeId": "local",
+    "project": "orders",
+    "environment": "staging"
+  },
+  "incident": {
+    "storeId": "incidents",
+    "incidentId": "INC-8"
+  },
+  "key": [
+    "order_id"
+  ],
+  "distributionColumn": "state",
+  "limit": 100,
+  "mutationId": "mutation-task8"
+}

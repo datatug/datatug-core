@@ -111,6 +111,9 @@ func TestExecutionEvidenceFixturesDescribeOneCoherentRun(t *testing.T) {
 func TestFixtures_RoundTrip(t *testing.T) {
 	t.Run("scope.json", func(t *testing.T) { roundTrip[apicontract.Scope](t, "scope.json") })
 	t.Run("source_ref.json", func(t *testing.T) { roundTrip[apicontract.SourceRef](t, "source_ref.json") })
+	t.Run("compare_request.json", func(t *testing.T) { roundTrip[apicontract.CompareRequest](t, "compare_request.json") })
+	t.Run("compare_result.json", func(t *testing.T) { roundTrip[apicontract.CompareResult](t, "compare_result.json") })
+	t.Run("compare_error_incomplete.json", func(t *testing.T) { roundTrip[apicontract.CompareErrorResponse](t, "compare_error_incomplete.json") })
 
 	t.Run("typed_value_string.json", func(t *testing.T) { roundTrip[apicontract.TypedValue](t, "typed_value_string.json") })
 	t.Run("typed_value_number.json", func(t *testing.T) { roundTrip[apicontract.TypedValue](t, "typed_value_number.json") })
@@ -241,6 +244,7 @@ func TestFixtures_RoundTrip(t *testing.T) {
 		"error_stale_context.json",
 		"error_response_too_large.json",
 		"error_source_unavailable.json",
+		"error_snapshot_expired.json",
 		"error_timeout.json",
 	}
 	for _, name := range errorFixtures {
@@ -266,6 +270,7 @@ func TestFixtures_EveryErrorCodeHasAFixture(t *testing.T) {
 		apicontract.ErrCodeStaleContext,
 		apicontract.ErrCodeResponseTooLarge,
 		apicontract.ErrCodeSourceUnavailable,
+		apicontract.ErrCodeSnapshotExpired,
 		apicontract.ErrCodeTimeout,
 		apicontract.ErrCodeRevisionConflict,
 	}

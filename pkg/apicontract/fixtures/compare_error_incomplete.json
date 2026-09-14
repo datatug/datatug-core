@@ -1,0 +1,18 @@
+{
+  "error": {
+    "code": "SOURCE_UNAVAILABLE",
+    "message": "right side could not bind the bounded fact set natively",
+    "requestId": "req-task8"
+  },
+  "left": {
+    "execution": {
+      "storeId": "evidence",
+      "projectId": "orders",
+      "executionId": "left-1"
+    },
+    "executedAt": "2026-09-14T10:00:00Z",
+    "rowCount": 1,
+    "limitations": [],
+    "reproducible": true
+  }
+}

@@ -149,6 +149,14 @@ func (e Event) validate(view bool) error {
 	if e.Assertion.Confidence != "" && e.Assertion.Confidence != ConfidenceSpeculative && e.Assertion.Confidence != ConfidenceLikely && e.Assertion.Confidence != ConfidenceConfirmed {
 		return fmt.Errorf("invalid assertion confidence %q", e.Assertion.Confidence)
 	}
+	if e.Type == EventCompareRun {
+		if e.Assertion.Kind != AssertionDeterministicResult {
+			return fmt.Errorf("compare.run requires deterministic-result assertion")
+		}
+		if len(e.Refs) != 1 || e.Refs[0].Kind != RefCompare {
+			return fmt.Errorf("compare.run requires exactly one compare reference")
+		}
+	}
 	if e.Assertion.Kind == AssertionInference && !hasEventRef(e.Refs) {
 		return fmt.Errorf("inference requires at least one event reference")
 	}
@@ -340,9 +348,12 @@ func (p *Incident) apply(event Event) error {
 			return fmt.Errorf("overlay %q has no facts", payload.Layer)
 		}
 		p.ContextRejections = append(p.ContextRejections, ContextRejection{EventID: event.ID, Layer: payload.Layer})
+	case EventCompareRun:
+		// The qualified comparison reference is projected below. Diff rows are
+		// intentionally absent from the durable event payload.
 	}
 	for _, ref := range event.Refs {
-		if ref.Kind == RefQuery || ref.Kind == RefCheck || ref.Kind == RefBoard {
+		if ref.Kind == RefQuery || ref.Kind == RefCheck || ref.Kind == RefBoard || ref.Kind == RefCompare {
 			p.AssetRefEntries = appendUniqueAssetRefEntry(p.AssetRefEntries, AssetRefEntry{EventID: event.ID, Ref: ref})
 			p.AssetRefs = appendUniqueArtifactRef(p.AssetRefs, ref)
 		}
@@ -503,6 +514,30 @@ func (e Event) validatePayload(view bool) error {
 		}
 		if err := validateContextHypothesisRefs(e.Refs, payload.Layer); err != nil {
 			return err
+		}
+	case EventCompareRun:
+		if e.Assertion.Kind != AssertionDeterministicResult {
+			return fmt.Errorf("compare.run requires deterministic-result assertion")
+		}
+		if len(e.Refs) != 1 || e.Refs[0].Kind != RefCompare {
+			return fmt.Errorf("compare.run requires exactly one compare reference")
+		}
+		var payload CompareRunPayload
+		if err := decodePayload(e.Payload, &payload); err != nil {
+			return err
+		}
+		if len(payload.Key) == 0 {
+			return fmt.Errorf("compare.run key is required")
+		}
+		seen := map[string]bool{}
+		for _, column := range payload.Key {
+			if strings.TrimSpace(column) == "" {
+				return fmt.Errorf("compare.run key column is required")
+			}
+			if seen[column] {
+				return fmt.Errorf("compare.run key column %q is duplicated", column)
+			}
+			seen[column] = true
 		}
 	default:
 		return fmt.Errorf("unsupported event type %q", e.Type)
