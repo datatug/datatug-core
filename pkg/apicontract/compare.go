@@ -3,6 +3,8 @@ package apicontract
 import (
 	"encoding/json"
 	"fmt"
+	"math"
+	"strconv"
 	"strings"
 
 	"github.com/datatug/datatug-core/pkg/incidents"
@@ -362,16 +364,37 @@ func (r CompareResult) Validate() error {
 		if !columnSet[r.Distribution.Column] {
 			return &ValidationError{Field: "distribution", Message: "column must be shared"}
 		}
+		if len(r.Distribution.Values) > CompareDistributionMaximumValues {
+			return &ValidationError{Field: "distribution", Message: fmt.Sprintf("must contain at most %d values", CompareDistributionMaximumValues)}
+		}
+		leftCount, rightCount := 0, 0
+		priorKey := ""
 		for i, value := range r.Distribution.Values {
 			if err := value.Value.Validate(); err != nil {
 				return &ValidationError{Field: "distribution", Message: fmt.Sprintf("value %d: %s", i, err)}
 			}
+			stableKey := compareTypedStableKey(value.Value)
+			if i > 0 && priorKey >= stableKey {
+				return &ValidationError{Field: "distribution", Message: "values must be stable and unique"}
+			}
+			priorKey = stableKey
 			if value.Left.Count < 0 || value.Right.Count < 0 || value.Left.Pct < 0 || value.Left.Pct > 100 || value.Right.Pct < 0 || value.Right.Pct > 100 {
 				return &ValidationError{Field: "distribution", Message: fmt.Sprintf("value %d has invalid count or pct", i)}
+			}
+			leftCount += value.Left.Count
+			rightCount += value.Right.Count
+			if value.Left.Pct != comparePercentage(value.Left.Count, r.Left.RowCount) || value.Right.Pct != comparePercentage(value.Right.Count, r.Right.RowCount) {
+				return &ValidationError{Field: "distribution", Message: fmt.Sprintf("value %d pct does not match count and side total", i)}
 			}
 			if (value.Ratio == nil) != (value.Right.Pct == 0) {
 				return &ValidationError{Field: "distribution", Message: fmt.Sprintf("value %d ratio presence must follow right pct", i)}
 			}
+			if value.Ratio != nil && (math.IsNaN(*value.Ratio) || math.IsInf(*value.Ratio, 0) || *value.Ratio != value.Left.Pct/value.Right.Pct) {
+				return &ValidationError{Field: "distribution", Message: fmt.Sprintf("value %d ratio must equal left pct divided by right pct", i)}
+			}
+		}
+		if leftCount > r.Left.RowCount || rightCount > r.Right.RowCount || (!r.Distribution.Truncated && (leftCount != r.Left.RowCount || rightCount != r.Right.RowCount)) {
+			return &ValidationError{Field: "distribution", Message: "counts do not reconcile with side totals"}
 		}
 	}
 	return nil
@@ -396,6 +419,27 @@ func compareRowsFiltered(limitations []Limitation) bool {
 		}
 	}
 	return false
+}
+
+func comparePercentage(count, total int) float64 {
+	if total == 0 {
+		return 0
+	}
+	return float64(count) * 100 / float64(total)
+}
+
+func compareTypedStableKey(value TypedValue) string {
+	switch value.Type {
+	case ValueTypeNumber:
+		if value.Num == 0 {
+			return string(value.Type) + ":0"
+		}
+		return string(value.Type) + ":" + strconv.FormatFloat(value.Num, 'g', -1, 64)
+	case ValueTypeBoolean:
+		return string(value.Type) + ":" + strconv.FormatBool(value.Bool)
+	default:
+		return string(value.Type) + ":" + value.Str
+	}
 }
 
 // CompareErrorResponse preserves successfully persisted live-side receipts

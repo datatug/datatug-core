@@ -244,6 +244,9 @@ func typedEqual(left, right apicontract.TypedValue) bool { return left == right 
 func encodeTuple(values []apicontract.TypedValue) string {
 	var b strings.Builder
 	for _, value := range values {
+		if value.Type == apicontract.ValueTypeNumber && value.Num == 0 {
+			value.Num = 0
+		}
 		encoded, _ := json.Marshal(value)
 		b.WriteString(strconv.Itoa(len(encoded)))
 		b.WriteByte(':')
@@ -264,6 +267,9 @@ func compareTuple(left, right []apicontract.TypedValue) int {
 func typedSortKey(value apicontract.TypedValue) string {
 	switch value.Type {
 	case apicontract.ValueTypeNumber:
+		if value.Num == 0 {
+			return string(value.Type) + ":0"
+		}
 		return string(value.Type) + ":" + strconv.FormatFloat(value.Num, 'g', -1, 64)
 	case apicontract.ValueTypeBoolean:
 		return string(value.Type) + ":" + strconv.FormatBool(value.Bool)

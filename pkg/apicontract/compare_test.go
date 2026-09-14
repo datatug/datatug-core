@@ -115,3 +115,37 @@ func TestCompareResultValidateRejectsMalformedDiffs(t *testing.T) {
 		})
 	}
 }
+
+func validDistributionResult() CompareResult {
+	result := validCompareResultForValidation()
+	zero := float64(0)
+	result.Distribution = &CompareDistribution{Column: "name", Values: []CompareDistributionValue{
+		{Value: NewStringValue("new"), Left: CompareDistributionSide{Count: 0, Pct: 0}, Right: CompareDistributionSide{Count: 1, Pct: 100}, Ratio: &zero},
+		{Value: NewStringValue("old"), Left: CompareDistributionSide{Count: 1, Pct: 100}, Right: CompareDistributionSide{Count: 0, Pct: 0}, Ratio: nil},
+	}}
+	return result
+}
+
+func TestCompareResultValidateDistributionSemantics(t *testing.T) {
+	require.NoError(t, validDistributionResult().Validate())
+	tests := map[string]func(*CompareResult){
+		"unstable order": func(r *CompareResult) {
+			r.Distribution.Values[0], r.Distribution.Values[1] = r.Distribution.Values[1], r.Distribution.Values[0]
+		},
+		"duplicate value": func(r *CompareResult) { r.Distribution.Values[1].Value = r.Distribution.Values[0].Value },
+		"pct mismatch":    func(r *CompareResult) { r.Distribution.Values[0].Right.Pct = 99 },
+		"ratio mismatch":  func(r *CompareResult) { wrong := float64(2); r.Distribution.Values[0].Ratio = &wrong },
+		"count mismatch": func(r *CompareResult) {
+			r.Distribution.Values[0].Right.Count = 0
+			r.Distribution.Values[0].Right.Pct = 0
+			r.Distribution.Values[0].Ratio = nil
+		},
+	}
+	for name, mutate := range tests {
+		t.Run(name, func(t *testing.T) {
+			candidate := validDistributionResult()
+			mutate(&candidate)
+			require.Error(t, candidate.Validate())
+		})
+	}
+}

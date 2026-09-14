@@ -57,10 +57,10 @@
           "pct": 100
         },
         "right": {
-          "count": 0,
-          "pct": 0
+          "count": 1,
+          "pct": 100
         },
-        "ratio": null
+        "ratio": 1
       }
     ],
     "truncated": false
