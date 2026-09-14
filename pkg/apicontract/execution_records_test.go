@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -12,6 +13,8 @@ const testFingerprint = "aa02d5bbadc86d4f9ef4d3131f64fe120f0d2e9d7f04b5f75214d4e
 const testRecordsetFingerprint = "ea45c1edea9daf92a2341c73efe178589be648542483a5e9bd6d2fd621ee9f0d"
 
 func valuePointer(value TypedValue) *TypedValue { return &value }
+
+func boolPointer(value bool) *bool { return &value }
 
 func validExecutionRef(id string) ExecutionRef {
 	return ExecutionRef{StoreID: "evidence", ProjectID: "billing", ExecutionID: id}
@@ -46,6 +49,7 @@ func validExecutionRecord() ExecutionRecord {
 			Collection: "Invoice", Column: "InvoiceId", Entity: "Invoice", Field: "ID",
 		}},
 		RowCount:          1,
+		ResultComplete:    boolPointer(true),
 		ResultFingerprint: testRecordsetFingerprint,
 		SnapshotRef:       "snapshot-1",
 		Incident:          &incident,
@@ -93,7 +97,7 @@ func TestExecutionRecord_JSONRoundTripAndExactFields(t *testing.T) {
 	for _, key := range []string{
 		"ref", "scope", "queryId", "queryRevision", "parameters", "bindingsApplied", "principal",
 		"policyFingerprint", "executedAt", "durationMs", "limitations", "provenance", "authorizedFields",
-		"rowCount", "resultFingerprint", "snapshotRef", "incident", "grantUses", "measurements",
+		"rowCount", "resultComplete", "resultFingerprint", "snapshotRef", "incident", "grantUses", "measurements",
 	} {
 		if _, ok := generic[key]; !ok {
 			t.Errorf("missing key %q in %s", key, data)
@@ -107,6 +111,81 @@ func TestExecutionRecord_JSONRoundTripAndExactFields(t *testing.T) {
 	var strict ExecutionRecord
 	if err := DecodeStrict(append(data[:len(data)-1], []byte(`,"snapshotExpiredAt":"2026-10-01T00:00:00Z"}`)...), &strict); err == nil {
 		t.Fatal("strict decode must reject mutable snapshot expiry on an immutable record")
+	}
+}
+
+func TestExecutionRecord_ResultCompletenessTriState(t *testing.T) {
+	for name, complete := range map[string]*bool{
+		"complete":   boolPointer(true),
+		"incomplete": boolPointer(false),
+		"unknown":    nil,
+	} {
+		t.Run(name, func(t *testing.T) {
+			record := validExecutionRecord()
+			record.ResultComplete = complete
+			if err := record.Validate(); err != nil {
+				t.Fatalf("valid %s completeness rejected: %v", name, err)
+			}
+
+			data, err := json.Marshal(record)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var fields map[string]json.RawMessage
+			if err := json.Unmarshal(data, &fields); err != nil {
+				t.Fatal(err)
+			}
+			encoded, present := fields["resultComplete"]
+			if complete == nil {
+				if present {
+					t.Fatalf("legacy unknown completeness must be omitted, got %s", encoded)
+				}
+				return
+			}
+			if !present || string(encoded) != fmt.Sprint(*complete) {
+				t.Fatalf("resultComplete = %s, want %t", encoded, *complete)
+			}
+
+			var decoded ExecutionRecord
+			if err := json.Unmarshal(data, &decoded); err != nil {
+				t.Fatal(err)
+			}
+			if decoded.ResultComplete == nil || *decoded.ResultComplete != *complete {
+				t.Fatalf("round-tripped resultComplete = %v, want %t", decoded.ResultComplete, *complete)
+			}
+		})
+	}
+
+	var legacy ExecutionRecord
+	data, err := json.Marshal(validExecutionRecord())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		t.Fatal(err)
+	}
+	delete(fields, "resultComplete")
+	legacyData, err := json.Marshal(fields)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(legacyData, &legacy); err != nil {
+		t.Fatal(err)
+	}
+	if legacy.ResultComplete != nil {
+		t.Fatalf("legacy omitted completeness = %v, want nil", legacy.ResultComplete)
+	}
+	fields["resultComplete"] = json.RawMessage("null")
+	nullData, err := json.Marshal(fields)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(nullData, &legacy); err != nil {
+		t.Fatal(err)
+	}
+	if legacy.ResultComplete != nil {
+		t.Fatalf("legacy null completeness = %v, want nil", legacy.ResultComplete)
 	}
 }
 
@@ -189,6 +268,19 @@ func TestExecutionRecord_ValidatesEveryNestedReceiptSurface(t *testing.T) {
 		"measurement":               func(r *ExecutionRecord) { r.Measurements[0].Value = valuePointer(NewStringValue("bad")) },
 		"duplicate measurement":     func(r *ExecutionRecord) { r.Measurements = append(r.Measurements, r.Measurements[0]) },
 		"contradictory row count":   func(r *ExecutionRecord) { r.Measurements[0].Value = valuePointer(NewIntegerValue("2")) },
+		"incomplete aggregate": func(r *ExecutionRecord) {
+			r.ResultComplete = boolPointer(false)
+			r.Measurements[0] = ScalarMeasurement{
+				Projection:   MeasurementProjection{ID: "total", Column: "InvoiceId", Aggregate: MeasurementAggregateSum},
+				Completeness: MeasurementComplete, Value: valuePointer(NewIntegerValue("42")),
+			}
+		},
+		"complete result with truncated measurement": func(r *ExecutionRecord) {
+			r.Measurements[0] = ScalarMeasurement{
+				Projection:   MeasurementProjection{ID: "total", Column: "InvoiceId", Aggregate: MeasurementAggregateSum},
+				Completeness: MeasurementUnavailable, Reason: MeasurementReasonTruncated,
+			}
+		},
 		"policy-limited aggregate": func(r *ExecutionRecord) {
 			r.Limitations = []Limitation{{Policy: "restricted", HiddenColumns: []string{}}}
 			r.Measurements[0] = ScalarMeasurement{
@@ -213,6 +305,11 @@ func TestExecutionRecord_ValidatesEveryNestedReceiptSurface(t *testing.T) {
 	}
 	if err := rowCount.Validate(); err != nil {
 		t.Fatalf("policy-limited rowCount should remain complete: %v", err)
+	}
+	incompleteRowCount := validExecutionRecord()
+	incompleteRowCount.ResultComplete = boolPointer(false)
+	if err := incompleteRowCount.Validate(); err != nil {
+		t.Fatalf("incomplete result's returned rowCount should remain complete: %v", err)
 	}
 }
 

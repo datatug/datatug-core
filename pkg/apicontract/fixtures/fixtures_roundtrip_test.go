@@ -71,6 +71,9 @@ func TestExecutionEvidenceFixturesDescribeOneCoherentRun(t *testing.T) {
 	if len(result.Recordset.Rows) != record.RowCount {
 		t.Fatalf("result rows = %d, record rowCount = %d", len(result.Recordset.Rows), record.RowCount)
 	}
+	if record.ResultComplete == nil || *record.ResultComplete != !result.Truncated {
+		t.Fatalf("record resultComplete = %v, result truncated = %t", record.ResultComplete, result.Truncated)
+	}
 	if !reflect.DeepEqual(result.BindingsApplied, record.BindingsApplied) || !reflect.DeepEqual(result.Limitations, record.Limitations) || result.Provenance != record.Provenance {
 		t.Fatalf("result execution metadata does not match immutable record")
 	}

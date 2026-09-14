@@ -214,11 +214,15 @@ type ExecutionRecord struct {
 	Provenance        Provenance                 `json:"provenance"`
 	AuthorizedFields  []FieldAccessRef           `json:"authorizedFields"`
 	RowCount          int                        `json:"rowCount"`
-	ResultFingerprint string                     `json:"resultFingerprint"`
-	SnapshotRef       string                     `json:"snapshotRef,omitempty"`
-	Incident          *IncidentRef               `json:"incident,omitempty"`
-	GrantUses         []GrantRef                 `json:"grantUses,omitempty"`
-	Measurements      []ScalarMeasurement        `json:"measurements"`
+	// ResultComplete is true when execution produced a complete result, false
+	// when the result is known to be source-truncated or otherwise incomplete,
+	// and nil for legacy records whose completeness is unknown.
+	ResultComplete    *bool               `json:"resultComplete,omitempty"`
+	ResultFingerprint string              `json:"resultFingerprint"`
+	SnapshotRef       string              `json:"snapshotRef,omitempty"`
+	Incident          *IncidentRef        `json:"incident,omitempty"`
+	GrantUses         []GrantRef          `json:"grantUses,omitempty"`
+	Measurements      []ScalarMeasurement `json:"measurements"`
 }
 
 func (r ExecutionRecord) Validate() error {
@@ -323,6 +327,12 @@ func (r ExecutionRecord) Validate() error {
 		seenMeasurements[measurement.Projection.ID] = struct{}{}
 		if measurement.Completeness == MeasurementComplete && measurement.Projection.Aggregate == MeasurementAggregateRowCount && !numericTypedValueEqualsInt(*measurement.Value, r.RowCount) {
 			return &ValidationError{Field: "measurements", Message: fmt.Sprintf("index %d: complete rowCount must equal record rowCount", i)}
+		}
+		if r.ResultComplete != nil && !*r.ResultComplete && measurement.Completeness == MeasurementComplete && measurement.Projection.Aggregate != MeasurementAggregateRowCount {
+			return &ValidationError{Field: "measurements", Message: fmt.Sprintf("index %d: incomplete results may complete only rowCount", i)}
+		}
+		if r.ResultComplete != nil && *r.ResultComplete && measurement.Completeness == MeasurementUnavailable && measurement.Reason == MeasurementReasonTruncated {
+			return &ValidationError{Field: "measurements", Message: fmt.Sprintf("index %d: complete result cannot have a truncated measurement", i)}
 		}
 		if len(r.Limitations) > 0 && measurement.Completeness == MeasurementComplete && measurement.Projection.Aggregate != MeasurementAggregateRowCount {
 			return &ValidationError{Field: "measurements", Message: fmt.Sprintf("index %d: policy-limited results may complete only rowCount", i)}
