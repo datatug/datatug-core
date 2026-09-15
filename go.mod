@@ -5,7 +5,7 @@ go 1.26.0
 toolchain go1.27.1
 
 require (
-	github.com/dal-go/dalgo v0.80.0
+	github.com/dal-go/dalgo v0.80.4
 	github.com/dal-go/record v0.1.3
 	github.com/gofrs/flock v0.13.1
 	github.com/mitchellh/go-homedir v1.1.0
@@ -14,7 +14,7 @@ require (
 	github.com/strongo/slice v0.3.10
 	github.com/strongo/validation v0.0.13
 	go.uber.org/mock v0.6.0
-	golang.org/x/sys v0.47.0
+	golang.org/x/sys v0.48.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
