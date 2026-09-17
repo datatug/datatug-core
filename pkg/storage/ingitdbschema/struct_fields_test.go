@@ -2,7 +2,7 @@ package ingitdbschema
 
 import (
 	"encoding/json"
-	"strings"
+	"sort"
 	"testing"
 	"time"
 
@@ -12,13 +12,20 @@ import (
 	"github.com/ingitdb/ingitdb-go/ingitdb/validator"
 )
 
-// TestColumnsMatchStructFields marshals a representative, fully-populated
-// instance of each project-item type's real datatug-core Go struct (the
-// exact type the filestore package persists today — see the mapping table
-// and citations below) and validates the resulting record data against this
-// package's schema with ingitdb-go v0.6.1's datavalidator. It asserts no
-// "undeclared field" finding: every JSON key the struct actually produces
-// has a matching declared column.
+// TestColumnsMatchStructFields marshals a representative instance of each
+// project-item type's real datatug-core Go struct (the exact type the
+// filestore package persists today — see the mapping table and citations
+// below) with every field populated so nothing drops out through
+// `omitempty`, and validates the resulting record data against this
+// package's schema with ingitdb-go v0.6.1's datavalidator. It asserts:
+//
+//  1. zero validator errors of any kind (not only "undeclared field" — a
+//     representative instance is expected to satisfy every declared
+//     `required` column too); and
+//  2. every declared column actually appears in the marshalled JSON, which
+//     catches an invented column the struct does not really produce (the
+//     mirror image of an undeclared field: a schema field for which no data
+//     exists).
 //
 // Collection -> struct mapping (also documented at the top of each
 // definition.yaml):
@@ -76,15 +83,20 @@ func TestColumnsMatchStructFields(t *testing.T) {
 				t.Fatalf("collection %q not found in loaded definition", c.collection)
 			}
 			data := marshalToRecordData(t, c.value)
-			errs := datavalidator.ValidateRecordData(c.colDef, "rec1", data)
-			var undeclared []string
-			for _, e := range errs {
-				if strings.Contains(e.Message, "undeclared") || strings.Contains(e.Message, "no column") {
-					undeclared = append(undeclared, e.FieldName+": "+e.Message)
+
+			if errs := datavalidator.ValidateRecordData(c.colDef, "rec1", data); len(errs) != 0 {
+				t.Errorf("validator errors for %q: %v", c.collection, errs)
+			}
+
+			var missing []string
+			for colName := range c.colDef.Columns {
+				if _, ok := data[colName]; !ok {
+					missing = append(missing, colName)
 				}
 			}
-			if len(undeclared) > 0 {
-				t.Errorf("undeclared-field findings for %q: %v", c.collection, undeclared)
+			sort.Strings(missing)
+			if len(missing) != 0 {
+				t.Errorf("declared column(s) for %q not present in the marshalled representative instance (invented column, or the instance needs to populate it): %v", c.collection, missing)
 			}
 		})
 	}
@@ -127,13 +139,9 @@ func representativeProjectItem() datatug.ProjectItem {
 
 func representativeProjectFile() datatug.ProjectFile {
 	return datatug.ProjectFile{
-		Created: &datatug.ProjectCreated{At: time.Now()},
-		ProjectItem: datatug.ProjectItem{
-			ProjItemBrief: representativeProjItemBrief(),
-			UserIDs:       []string{"user1"},
-			Access:        "private",
-		},
-		Repository: &datatug.ProjectRepository{Type: "git", WebURL: "https://example.com/repo"},
+		Created:     &datatug.ProjectCreated{At: time.Now()},
+		ProjectItem: representativeProjectItem(),
+		Repository:  &datatug.ProjectRepository{Type: "git", WebURL: "https://example.com/repo"},
 	}
 }
 
@@ -142,22 +150,34 @@ func representativeQueryDef() datatug.QueryDef {
 		ProjectItem: representativeProjectItem(),
 		Type:        datatug.QueryTypeSQL,
 		Text:        "SELECT 1",
-		Draft:       false,
-		Parameters:  datatug.Parameters{{ID: "p1", Type: "string"}},
-		Targets:     []datatug.QueryDefTarget{{Driver: "sqlite3"}},
-		Recordsets:  []datatug.RecordsetDefinition{{Type: "recordset"}},
-		Purpose:     "answers a question",
-		Capture:     &datatug.QueryCapture{Environment: "local", Source: "src1"},
+		// Draft must be true: false is bool's zero value, and the json tag
+		// carries `omitempty`, so false would drop the key entirely.
+		Draft:      true,
+		Parameters: datatug.Parameters{{ID: "p1", Type: "string"}},
+		Targets:    []datatug.QueryDefTarget{{Driver: "sqlite3"}},
+		Recordsets: []datatug.RecordsetDefinition{{Type: "recordset"}},
+		Purpose:    "answers a question",
+		Capture:    &datatug.QueryCapture{Environment: "local", Source: "src1"},
 	}
 }
 
 func representativeEntity() datatug.Entity {
 	return datatug.Entity{
 		ProjectItem: representativeProjectItem(),
+		// Entity embeds both ProjectItem (whose ProjItemBrief itself embeds
+		// ListOfTags) and this second, directly-embedded ListOfTags. Go's
+		// JSON encoder resolves the tag collision on "tags" in favour of the
+		// shallower field — this direct ListOfTags, not the one nested three
+		// levels down inside ProjectItem — so it must be set explicitly or
+		// "tags" never appears in the marshalled JSON at all.
+		ListOfTags: datatug.ListOfTags{Tags: []string{"entity-tag"}},
 		Fields: datatug.EntityFields{
 			{ID: "f1", Type: "string"},
 		},
-		Tables: datatug.TableKeys{},
+		// A zero-length (but non-nil) slice is still "empty" to
+		// encoding/json's `omitempty`, so at least one element is required
+		// for "tables" to appear.
+		Tables: datatug.TableKeys{{}},
 	}
 }
 
@@ -172,7 +192,11 @@ func representativeEnvironment() datatug.Environment {
 
 func representativeEnvDbServer() datatug.EnvDbServer {
 	return datatug.EnvDbServer{
-		ServerRef: datatug.ServerRef{Driver: "sqlserver", Host: "localhost", Port: 1433},
+		// Host/Port and Path do not realistically coexist for one driver
+		// (Path is "for SQLite" per its own doc comment), but this test only
+		// checks the schema/JSON shape, not datatug.ServerRef.Validate(), so
+		// all three are populated here to exercise every declared column.
+		ServerRef: datatug.ServerRef{Driver: "sqlserver", Host: "localhost", Port: 1433, Path: "/var/data/app.db"},
 		Catalogs:  []string{"cat1"},
 	}
 }
@@ -181,7 +205,8 @@ func representativeDbCatalog() datatug.DbCatalog {
 	return datatug.DbCatalog{
 		DbCatalogBase: datatug.DbCatalogBase{
 			ProjectItem: representativeProjectItem(),
-			Driver:      "sqlserver",
+			Driver:      "sqlite3",
+			Path:        "/var/data/catalog.db",
 			DbModel:     "model1",
 		},
 		Schemas: datatug.DbSchemas{},
@@ -201,7 +226,10 @@ func representativeBoard() datatug.Board {
 		ProjectItem:    representativeProjectItem(),
 		Parameters:     datatug.Parameters{{ID: "p1", Type: "string"}},
 		RequiredParams: [][]string{{"p1"}},
-		Rows:           datatug.BoardRows{},
+		// A zero-length (but non-nil) slice is still "empty" to
+		// encoding/json's `omitempty`, so at least one row is required for
+		// "rows" to appear.
+		Rows: datatug.BoardRows{{MinHeight: "100px"}},
 	}
 }
 
@@ -209,18 +237,23 @@ func representativeRecordsetDefinition() datatug.RecordsetDefinition {
 	return datatug.RecordsetDefinition{
 		ProjectItem: representativeProjectItem(),
 		RecordsetBaseDef: datatug.RecordsetBaseDef{
-			PrimaryKey:    &datatug.UniqueKey{},
-			ForeignKeys:   datatug.ForeignKeys{},
-			AlternateKeys: []datatug.UniqueKey{},
+			PrimaryKey: &datatug.UniqueKey{},
+			// Zero-length (but non-nil) slices are still "empty" to
+			// encoding/json's `omitempty`; each needs at least one element.
+			ForeignKeys:   datatug.ForeignKeys{{}},
+			AlternateKeys: []datatug.UniqueKey{{}},
 			ActiveIssues:  &datatug.Issues{},
 		},
 		Columns: datatug.RecordsetColumnDefs{
 			{Name: "col1", Type: "string"},
 		},
-		Type:       "recordset",
-		JSONSchema: "",
+		Type: "json",
+		// Only required (by RecordsetDefinition.Validate) when Type=="json",
+		// but always a real field this schema declares; populate it so it
+		// appears in the marshalled JSON regardless of Type.
+		JSONSchema: `{"type":"object"}`,
 		Files:      []string{"f1.csv"},
-		Errors:     []string{},
+		Errors:     []string{"a previous run's error"},
 	}
 }
 

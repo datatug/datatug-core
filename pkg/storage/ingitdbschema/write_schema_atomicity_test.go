@@ -3,16 +3,18 @@ package ingitdbschema
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
 // TestWriteSchema_RetryAfterInterruptedWriteSucceeds simulates a process
-// killed between writing a temp file and linking it into place: an orphaned
-// temp file exists for a target that was never actually created. A retry
-// (a fresh WriteSchema call) must complete normally rather than mistaking the
-// orphan, or the target's absence, for a content conflict — and must clean
-// the orphan up rather than leaving it behind forever.
+// killed between writing a temp file and renaming it into place: an orphaned
+// temp file exists for a target that was never actually created. A retry (a
+// fresh WriteSchema call) must complete normally rather than mistaking the
+// orphan, or the target's absence, for a content conflict. WriteSchema no
+// longer cleans up other writers' temp files (see createFile's doc comment:
+// a cleanup pass cannot tell its own leftovers from another writer's
+// in-flight temp file), so the orphan is asserted to survive untouched, and
+// unrelated to the correctly written target.
 func TestWriteSchema_RetryAfterInterruptedWriteSucceeds(t *testing.T) {
 	dir := t.TempDir()
 
@@ -21,8 +23,12 @@ func TestWriteSchema_RetryAfterInterruptedWriteSucceeds(t *testing.T) {
 		t.Fatalf("mkdir: %v", err)
 	}
 	orphan := target + ".tmp-leftover-from-a-crash"
-	if err := os.WriteFile(orphan, []byte("partial garbage from an interrupted write"), 0o644); err != nil {
+	orphanContent := []byte("partial garbage from an interrupted write")
+	if err := os.WriteFile(orphan, orphanContent, 0o644); err != nil {
 		t.Fatalf("seed orphan temp file: %v", err)
+	}
+	if _, err := os.Stat(target); !os.IsNotExist(err) {
+		t.Fatalf("target must start absent, stat err = %v", err)
 	}
 
 	if err := WriteSchema(dir); err != nil {
@@ -32,90 +38,84 @@ func TestWriteSchema_RetryAfterInterruptedWriteSucceeds(t *testing.T) {
 	if _, err := os.Stat(target); err != nil {
 		t.Errorf("expected target to be written: %v", err)
 	}
-	if _, err := os.Stat(orphan); !os.IsNotExist(err) {
-		t.Errorf("expected orphaned temp file to be cleaned up, stat err = %v", err)
+	gotOrphan, err := os.ReadFile(orphan)
+	if err != nil {
+		t.Fatalf("expected the orphaned temp file to survive untouched: %v", err)
+	}
+	if string(gotOrphan) != string(orphanContent) {
+		t.Errorf("orphaned temp file content changed: got %q, want %q", gotOrphan, orphanContent)
 	}
 }
 
-// TestCreateFileAtomically_ConcurrentIdenticalContent covers the EEXIST
-// fallback in createFileAtomically for the case where another writer created
-// target (with matching content) between writeSchemaFile's not-exist check
-// and this call: the link fails with EEXIST, and re-reading target finds it
-// already matches, so the call must succeed rather than error.
-func TestCreateFileAtomically_ConcurrentIdenticalContent(t *testing.T) {
+// TestWriteSchema_WritesFilesWithMode0644 asserts createFile sets the mode
+// of a newly written file to 0644: os.CreateTemp defaults to 0600, and
+// WriteSchema's output is meant to be group/world-readable like any other
+// file in the store.
+func TestWriteSchema_WritesFilesWithMode0644(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("running as root; file mode bits are not enforced the same way")
+	}
 	dir := t.TempDir()
-	target := filepath.Join(dir, "root-collections.yaml")
-	content := []byte("ext: ext\n")
-	if err := os.WriteFile(target, content, 0o644); err != nil {
-		t.Fatalf("seed target: %v", err)
+	if err := WriteSchema(dir); err != nil {
+		t.Fatalf("WriteSchema(%s): %v", dir, err)
 	}
 
-	if err := createFileAtomically(target, content); err != nil {
-		t.Fatalf("createFileAtomically should be idempotent when target already matches, got: %v", err)
+	target := filepath.Join(dir, filepath.FromSlash(".ingitdb/root-collections.yaml"))
+	info, err := os.Stat(target)
+	if err != nil {
+		t.Fatalf("stat %s: %v", target, err)
+	}
+	if got, want := info.Mode().Perm(), os.FileMode(0o644); got != want {
+		t.Errorf("mode = %o, want %o", got, want)
 	}
 }
 
-// TestCreateFileAtomically_ConcurrentDifferingContent covers the EEXIST
-// fallback's conflicting branch: target exists (created concurrently, from
-// this function's point of view) with content that differs from what it was
-// asked to write.
-func TestCreateFileAtomically_ConcurrentDifferingContent(t *testing.T) {
+// TestWriteSchema_TreatsCRLFAsIdenticalToLF proves the identical-content
+// check is line-ending tolerant: a file already on disk with CRLF line
+// endings (as a Windows checkout with core.autocrlf would produce from the
+// LF-only embedded schema) must be treated as already installed, not as a
+// conflict.
+func TestWriteSchema_TreatsCRLFAsIdenticalToLF(t *testing.T) {
 	dir := t.TempDir()
-	target := filepath.Join(dir, "root-collections.yaml")
-	if err := os.WriteFile(target, []byte("ext: somewhere-else\n"), 0o644); err != nil {
-		t.Fatalf("seed target: %v", err)
+	target := filepath.Join(dir, filepath.FromSlash(".ingitdb/root-collections.yaml"))
+	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
 	}
 
-	err := createFileAtomically(target, []byte("ext: ext\n"))
-	if err == nil {
-		t.Fatal("createFileAtomically should fail when target concurrently gained differing content")
+	// Use the real embedded content, but with CRLF line endings, to
+	// simulate a Windows checkout of the same schema.
+	lfContent, readErr := schemaFS.ReadFile("files/.ingitdb/root-collections.yaml")
+	if readErr != nil {
+		t.Fatalf("read embedded root-collections.yaml: %v", readErr)
 	}
-	if !strings.Contains(err.Error(), target) {
-		t.Errorf("error should name %s, got: %v", target, err)
+	crlfContent := crlfify(lfContent)
+	if err := os.WriteFile(target, crlfContent, 0o644); err != nil {
+		t.Fatalf("seed CRLF file: %v", err)
+	}
+
+	if err := WriteSchema(dir); err != nil {
+		t.Fatalf("WriteSchema should treat a CRLF copy as identical, got: %v", err)
+	}
+
+	// It must not have been rewritten to LF: WriteSchema leaves a matching
+	// file untouched, whichever line ending it used.
+	got, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatalf("read back %s: %v", target, err)
+	}
+	if string(got) != string(crlfContent) {
+		t.Errorf("CRLF file was modified; got %q, want unchanged %q", got, crlfContent)
 	}
 }
 
-// TestCreateFileAtomically_ConcurrentTargetUnreadable covers the EEXIST
-// fallback's own read failure: target exists but cannot be read back (here,
-// because it is a directory), so createFileAtomically cannot even decide
-// whether it matches and must report a distinct error rather than silently
-// treating it as either outcome.
-func TestCreateFileAtomically_ConcurrentTargetUnreadable(t *testing.T) {
-	dir := t.TempDir()
-	target := filepath.Join(dir, "root-collections.yaml")
-	if err := os.Mkdir(target, 0o755); err != nil {
-		t.Fatalf("seed target directory: %v", err)
+func crlfify(b []byte) []byte {
+	out := make([]byte, 0, len(b)+16)
+	for _, c := range b {
+		if c == '\n' {
+			out = append(out, '\r', '\n')
+			continue
+		}
+		out = append(out, c)
 	}
-
-	err := createFileAtomically(target, []byte("ext: ext\n"))
-	if err == nil {
-		t.Fatal("createFileAtomically should fail when target exists but cannot be read")
-	}
-	if !strings.Contains(err.Error(), "appeared concurrently") {
-		t.Errorf("error should explain the concurrent-appearance case, got: %v", err)
-	}
-}
-
-// TestCleanupStaleTempFiles_RemovesOrphan is a focused unit test of the
-// cleanup helper itself: it must remove a temp file matching base's pattern
-// and leave unrelated files untouched.
-func TestCleanupStaleTempFiles_RemovesOrphan(t *testing.T) {
-	dir := t.TempDir()
-	orphan := filepath.Join(dir, "root-collections.yaml.tmp-abc123")
-	unrelated := filepath.Join(dir, "root-collections.yaml")
-	if err := os.WriteFile(orphan, []byte("stale"), 0o644); err != nil {
-		t.Fatalf("seed orphan: %v", err)
-	}
-	if err := os.WriteFile(unrelated, []byte("keep me"), 0o644); err != nil {
-		t.Fatalf("seed unrelated file: %v", err)
-	}
-
-	cleanupStaleTempFiles(dir, "root-collections.yaml")
-
-	if _, err := os.Stat(orphan); !os.IsNotExist(err) {
-		t.Errorf("expected orphan to be removed, stat err = %v", err)
-	}
-	if _, err := os.Stat(unrelated); err != nil {
-		t.Errorf("expected unrelated file to survive: %v", err)
-	}
+	return out
 }

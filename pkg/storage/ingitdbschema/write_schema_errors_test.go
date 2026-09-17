@@ -65,12 +65,12 @@ func TestWriteSchemaFile_StatErrorOtherThanNotExist(t *testing.T) {
 	defer func() { _ = os.Chmod(blockedParent, 0o755) }() // allow TempDir cleanup
 
 	if err = writeSchemaFile(sub, ".ingitdb/root-collections.yaml", target); err == nil {
-		t.Fatal("writeSchemaFile should surface a non-not-exist stat error")
+		t.Fatal("writeSchemaFile should surface a non-not-exist read error")
 	}
 }
 
 // TestWriteSchemaFile_CannotCreateTargetDirectory covers
-// createFileAtomically's os.MkdirAll(dir, ...) failure path: the target file
+// createFile's os.MkdirAll(dir, ...) failure path: the target file
 // does not exist (a genuine ErrNotExist), but its directory cannot be
 // created because the parent has no write permission.
 func TestWriteSchemaFile_CannotCreateTargetDirectory(t *testing.T) {
@@ -102,7 +102,7 @@ func TestWriteSchemaFile_CannotCreateTargetDirectory(t *testing.T) {
 	}
 }
 
-// TestWriteSchemaFile_CannotWriteTargetFile covers createFileAtomically's
+// TestWriteSchemaFile_CannotWriteTargetFile covers createFile's
 // os.CreateTemp failure path: the target's directory already exists, but has
 // no write permission, so even the temp file used for the atomic write
 // cannot be created there.

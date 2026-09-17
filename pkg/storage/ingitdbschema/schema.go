@@ -5,9 +5,10 @@
 // Founder decision, 2026-09-17: "DataTug project ingitdb schema should be
 // defined and copy-pasted. No need to create it dynamically." and "if we
 // need modify ingitdb schema it belong to ingitdb module, not dalgo." This
-// package therefore contains no dynamic schema construction and imports
-// neither a DALgo driver nor ingitdb-go itself: it only copies bytes it
-// never parses.
+// package therefore contains no dynamic schema construction and imports no
+// DALgo driver. It imports ingitdb-go/ingitdb as a test-only dependency (to
+// load and validate this package's own schema in tests); production code
+// (schema.go) only copies bytes it never parses.
 //
 // See spec/features/dalgo-project-store, REQ:canonical-project-layout and
 // REQ:extension-namespace, and the "No dynamic schema creation" bullet of
@@ -17,7 +18,6 @@ package ingitdbschema
 import (
 	"bytes"
 	"embed"
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -41,15 +41,21 @@ const schemaRoot = "files"
 // and dir/ext/.collection/... after this call.
 //
 // WriteSchema is safe to call against a store that already has some or all
-// of the schema on disk: a file whose existing content matches byte for byte
-// is left untouched (idempotent), a missing file is written, and a file that
-// exists with different content is left untouched and reported as an error
-// naming its path — WriteSchema never overwrites a difference silently. Each
-// missing file is created atomically (temp file, fsync, hard link into
-// place; see createFileAtomically), so a run interrupted partway through
-// never leaves a partially written file at a schema path: a retry always
-// sees that file as either genuinely absent (and completes it) or fully
-// written (and is idempotent), never as a false conflict.
+// of the schema on disk: a file whose existing content matches the embedded
+// schema (ignoring CRLF-vs-LF line-ending differences, so a Windows checkout
+// with autocrlf is not reported as a conflict) is left untouched (idempotent),
+// a missing file is written, and a file that exists with genuinely different
+// content is left untouched and reported as an error naming its path —
+// WriteSchema never overwrites a difference silently. Each missing file is
+// created via a temp file in its own directory, fsynced and renamed into
+// place (see createFile), so a run interrupted partway through never leaves
+// a partially written file at a schema path: a retry always sees that file
+// as either genuinely absent (and completes it) or fully written (and is
+// idempotent), never as a false conflict.
+//
+// WriteSchema assumes a single writer, matching dalgo2ingitdb's own contract
+// (its Database.NoConcurrency field doc): it does not detect or arbitrate a
+// concurrent WriteSchema call against the same directory.
 func WriteSchema(dir string) error {
 	sub, err := fs.Sub(schemaFS, schemaRoot)
 	if err != nil {
@@ -83,64 +89,73 @@ func writeSchemaFile(sub fs.FS, relPath, target string) error {
 	existing, err := os.ReadFile(target)
 	switch {
 	case err == nil:
-		if bytes.Equal(existing, content) {
+		if contentsEqualIgnoringLineEndings(existing, content) {
 			return nil // already installed; idempotent no-op
 		}
 		return conflictError(target)
 	case os.IsNotExist(err):
-		return createFileAtomically(target, content)
+		return createFile(target, content)
 	default:
-		return fmt.Errorf("ingitdbschema: stat %s: %w", target, err)
+		return fmt.Errorf("ingitdbschema: read %s: %w", target, err)
 	}
 }
 
-// tempFileGlobSuffix names the temp files createFileAtomically writes,
-// shared between os.CreateTemp's pattern and the glob cleanupStaleTempFiles
-// uses so the two agree on what counts as "one of ours".
-const tempFileGlobSuffix = ".tmp-*"
+// contentsEqualIgnoringLineEndings reports whether a and b are equal once
+// every CRLF pair in each is normalized to a bare LF. A checkout with
+// Windows-style line endings (e.g. Git's core.autocrlf) must not be reported
+// as a conflict against the embedded schema, which is authored with LF only.
+func contentsEqualIgnoringLineEndings(a, b []byte) bool {
+	return bytes.Equal(normalizeLineEndings(a), normalizeLineEndings(b))
+}
 
-// createFileAtomically creates target with content: it writes to a uniquely
-// named temporary file in target's own directory, fsyncs it, and then links
-// it into place. A hard link fails outright (EEXIST) if target already
-// exists instead of silently replacing it the way os.Rename would, which
-// closes the check-then-write race in writeSchemaFile — if some other writer
-// creates target between its not-exist check and this call, the link fails
-// and this function re-reads target to apply the same
-// idempotent-vs-conflicting rule, rather than clobbering whatever
-// concurrently landed there.
+func normalizeLineEndings(b []byte) []byte {
+	return bytes.ReplaceAll(b, []byte("\r\n"), []byte("\n"))
+}
+
+// createFile creates target with content: it writes to a uniquely named
+// temporary file in target's own directory, sets its mode to 0644 (a plain
+// os.CreateTemp file is 0600), fsyncs it, and renames it into place.
+// os.Rename is atomic on the file systems this driver targets, so a process
+// interrupted between writing the temp file and the rename leaves only an
+// orphaned temp file — target itself is either absent (as if nothing
+// happened) or fully written, never partial, so a retry never mistakes an
+// interrupted write for a genuine content conflict.
 //
-// A process interrupted between writing the temp file and linking it leaves
-// only an orphaned temp file, never a partial target: target is either
-// absent (as if nothing happened) or fully written, so a retry never mistakes
-// an interrupted write for a genuine content conflict — the on-disk state
-// this closes over is exactly why writeSchemaFile's differing-content error
-// is safe to treat as a real conflict rather than write-in-progress noise.
-// The orphan itself is inert (WriteSchema never lists a destination
-// directory to decide what to write) but is best-effort cleaned up by the
-// next writer that targets the same file.
+// This assumes a single writer (see WriteSchema's doc): os.Rename replaces
+// an existing target rather than failing, so a concurrent writer racing this
+// call could have its own write silently overwritten. That is an accepted
+// consequence of the single-writer contract, not a gap this function closes.
 //
-// Residual case: this makes creating one file atomic and race-free, but does
-// not make the whole multi-file WriteSchema call atomic, nor does it add
-// cross-file locking — dalgo2ingitdb's own contract is single-writer (see its
-// Database.NoConcurrency field doc), and this package inherits that
-// assumption rather than layering a second locking scheme on top of it.
-func createFileAtomically(target string, content []byte) error {
+// An orphaned temp file from an earlier interrupted run is left in place:
+// createFile does not scan target's directory for other temp files to clean
+// up, because doing so cannot distinguish its own leftovers from another
+// concurrent writer's in-progress temp file (removing someone else's
+// in-flight temp file is worse than leaving an inert one behind).
+func createFile(target string, content []byte) error {
 	dir := filepath.Dir(target)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("ingitdbschema: create directory for %s: %w", target, err)
 	}
-	cleanupStaleTempFiles(dir, filepath.Base(target))
 
-	tmp, err := os.CreateTemp(dir, filepath.Base(target)+tempFileGlobSuffix)
+	tmp, err := os.CreateTemp(dir, filepath.Base(target)+".tmp-*")
 	if err != nil {
 		return fmt.Errorf("ingitdbschema: create temp file for %s: %w", target, err)
 	}
 	tmpPath := tmp.Name()
-	defer func() { _ = os.Remove(tmpPath) }() // no-op once linked; cleans up on any earlier-returned error
+	renamed := false
+	defer func() {
+		if !renamed {
+			_ = os.Remove(tmpPath)
+		}
+	}()
 
 	if _, err = tmp.Write(content); err != nil {
 		_ = tmp.Close()
 		return fmt.Errorf("ingitdbschema: write temp file for %s: %w", target, err)
+	}
+	if err = tmp.Chmod(0o644); err != nil {
+		_ = tmp.Close()
+		return fmt.Errorf("ingitdbschema: chmod temp file for %s: %w", target, err)
 	}
 	if err = tmp.Sync(); err != nil {
 		_ = tmp.Close()
@@ -149,39 +164,11 @@ func createFileAtomically(target string, content []byte) error {
 	if err = tmp.Close(); err != nil {
 		return fmt.Errorf("ingitdbschema: close temp file for %s: %w", target, err)
 	}
-
-	if err = os.Link(tmpPath, target); err != nil {
-		if !errors.Is(err, fs.ErrExist) {
-			return fmt.Errorf("ingitdbschema: create %s: %w", target, err)
-		}
-		// target appeared between writeSchemaFile's not-exist check and this
-		// call. Re-read it and apply the same idempotent-vs-conflicting rule
-		// rather than assuming either outcome.
-		existing, readErr := os.ReadFile(target)
-		if readErr != nil {
-			return fmt.Errorf("ingitdbschema: %s appeared concurrently but could not be read: %w", target, readErr)
-		}
-		if bytes.Equal(existing, content) {
-			return nil
-		}
-		return conflictError(target)
+	if err = os.Rename(tmpPath, target); err != nil {
+		return fmt.Errorf("ingitdbschema: create %s: %w", target, err)
 	}
+	renamed = true
 	return nil
-}
-
-// cleanupStaleTempFiles best-effort removes any temp file createFileAtomically
-// previously left behind for base (e.g. from a process interrupted before it
-// could link its temp file into place). It never fails WriteSchema: a glob or
-// remove error here is silently ignored, since an orphan left in place is
-// merely inert clutter, not a correctness problem.
-func cleanupStaleTempFiles(dir, base string) {
-	matches, err := filepath.Glob(filepath.Join(dir, base+tempFileGlobSuffix))
-	if err != nil {
-		return
-	}
-	for _, m := range matches {
-		_ = os.Remove(m)
-	}
 }
 
 // conflictError reports that target already holds content different from
