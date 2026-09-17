@@ -41,7 +41,12 @@ func TestWriteSchema_IdempotentWhenIdentical(t *testing.T) {
 	}
 }
 
-func TestWriteSchema_RefusesToOverwriteDifferingFile(t *testing.T) {
+// TestWriteSchema_RefusesToOverwriteDifferingSharedFile covers
+// .ingitdb/root-collections.yaml specifically: it is NOT DataTug-owned (it
+// may carry other extensions' own root-collection entries), so a differing
+// copy is left untouched and reported as a conflict — unlike a file under
+// ext/, which WriteSchema upgrades in place (see the next test).
+func TestWriteSchema_RefusesToOverwriteDifferingSharedFile(t *testing.T) {
 	dir := t.TempDir()
 
 	target := filepath.Join(dir, filepath.FromSlash(".ingitdb/root-collections.yaml"))
@@ -54,7 +59,7 @@ func TestWriteSchema_RefusesToOverwriteDifferingFile(t *testing.T) {
 
 	err := WriteSchema(dir)
 	if err == nil {
-		t.Fatal("WriteSchema should fail when an existing file differs from the embedded schema")
+		t.Fatal("WriteSchema should fail when the shared root-collections.yaml differs from the embedded schema")
 	}
 	if !strings.Contains(err.Error(), target) {
 		t.Errorf("error should name the conflicting path %s, got: %v", target, err)
@@ -66,7 +71,40 @@ func TestWriteSchema_RefusesToOverwriteDifferingFile(t *testing.T) {
 		t.Fatalf("read back %s: %v", target, readErr)
 	}
 	if string(got) != "ext: somewhere-else\n" {
-		t.Errorf("differing file was modified; got %q", string(got))
+		t.Errorf("differing shared file was modified; got %q", string(got))
+	}
+}
+
+// TestWriteSchema_UpgradesADifferingDataTugOwnedFile covers the opposite
+// rule for ext/: it is exclusively DataTug-owned, so an older copy left over
+// from a previous version of this package is replaced with the embedded
+// (current) content rather than reported as a conflict.
+func TestWriteSchema_UpgradesADifferingDataTugOwnedFile(t *testing.T) {
+	dir := t.TempDir()
+
+	target := filepath.Join(dir, filepath.FromSlash("ext/.collection/definition.yaml"))
+	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	oldContent := []byte("# an older version of this file\nrecord_file:\n    name: 'old'\n")
+	if err := os.WriteFile(target, oldContent, 0o644); err != nil {
+		t.Fatalf("seed older file: %v", err)
+	}
+
+	if err := WriteSchema(dir); err != nil {
+		t.Fatalf("WriteSchema should upgrade an older DataTug-owned file, got: %v", err)
+	}
+
+	want, err := schemaFS.ReadFile("files/ext/.collection/definition.yaml")
+	if err != nil {
+		t.Fatalf("read embedded ext/.collection/definition.yaml: %v", err)
+	}
+	got, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatalf("read back %s: %v", target, err)
+	}
+	if string(got) != string(want) {
+		t.Errorf("older ext/ file was not upgraded; got %q, want %q", got, want)
 	}
 }
 

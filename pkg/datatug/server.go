@@ -139,8 +139,14 @@ type ProjDbDriver struct {
 	Servers ProjDbServers `json:"servers"`
 }
 
+// Validate returns error if not valid. It calls ValidateWithOptions
+// directly rather than v.ProjItemBrief.Validate() — ProjItemBrief declares
+// no Validate() of its own, so that call resolved to the promoted
+// ListOfTags.Validate() (ProjItemBrief embeds ListOfTags), which checks only
+// tags and silently skipped the id/title checks every other project-item
+// type enforces. Both id and title are required (true) here.
 func (v ProjDbDriver) Validate() error {
-	if err := v.ProjItemBrief.Validate(); err != nil {
+	if err := v.ValidateWithOptions(true); err != nil {
 		return err
 	}
 	return v.Servers.Validate()

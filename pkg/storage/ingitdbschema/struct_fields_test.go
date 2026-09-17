@@ -43,10 +43,11 @@ import (
 //	dbdrivers                     datatug.ProjDbDriver      (server.go)       — pkg/storage/filestore/proj_dbdrivers_store.go
 //	dbdrivers/dbservers           datatug.ProjDbServer      (server.go)       — pkg/storage/filestore/proj_dbservers_store.go
 //
-// ext and credentials are deliberately excluded: neither has a clear
-// backing Go struct (ext is a scoping parent with no record of its own;
-// credentials' shape and storage are owned by secrets-vault), so their
-// definitions keep the placeholder `id` column and are not asserted here.
+// ext is deliberately excluded: it has no clear backing Go struct (it is a
+// scoping parent with no record of its own), so its definition keeps the
+// placeholder `id` column and is not asserted here. credentials is not
+// declared at all yet (founder decision, 2026-09-17: secrets-vault will add
+// it later with real fields).
 func TestColumnsMatchStructFields(t *testing.T) {
 	dir := t.TempDir()
 	if err := WriteSchema(dir); err != nil {

@@ -104,6 +104,39 @@ func TestProjDbServer_Validate(t *testing.T) {
 	})
 }
 
+func TestProjDbDriver_Validate(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		v := ProjDbDriver{
+			ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "d1", Title: "Driver 1"}},
+		}
+		assert.NoError(t, v.Validate())
+	})
+	// Regression test: ProjDbDriver.Validate() used to call
+	// v.ProjItemBrief.Validate(), which ProjItemBrief does not define itself
+	// — Go resolved it to the promoted ListOfTags.Validate() (ProjItemBrief
+	// embeds ListOfTags), silently skipping the id/title checks every other
+	// project-item type enforces via ValidateWithOptions.
+	t.Run("missing_id", func(t *testing.T) {
+		v := ProjDbDriver{
+			ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{Title: "Driver 1"}},
+		}
+		assert.Error(t, v.Validate())
+	})
+	t.Run("missing_title", func(t *testing.T) {
+		v := ProjDbDriver{
+			ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "d1"}},
+		}
+		assert.Error(t, v.Validate())
+	})
+	t.Run("invalid_servers", func(t *testing.T) {
+		v := ProjDbDriver{
+			ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "d1", Title: "Driver 1"}},
+			Servers:     ProjDbServers{nil},
+		}
+		assert.Error(t, v.Validate())
+	})
+}
+
 func TestProjDbServers_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
 		v := ProjDbServers{{

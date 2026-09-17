@@ -22,6 +22,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // schemaFS embeds every file under files/, including the dotted directories
@@ -41,17 +42,28 @@ const schemaRoot = "files"
 // and dir/ext/.collection/... after this call.
 //
 // WriteSchema is safe to call against a store that already has some or all
-// of the schema on disk: a file whose existing content matches the embedded
+// of the schema on disk. A file whose existing content matches the embedded
 // schema (ignoring CRLF-vs-LF line-ending differences, so a Windows checkout
-// with autocrlf is not reported as a conflict) is left untouched (idempotent),
-// a missing file is written, and a file that exists with genuinely different
-// content is left untouched and reported as an error naming its path —
-// WriteSchema never overwrites a difference silently. Each missing file is
-// created via a temp file in its own directory, fsynced and renamed into
-// place (see createFile), so a run interrupted partway through never leaves
-// a partially written file at a schema path: a retry always sees that file
-// as either genuinely absent (and completes it) or fully written (and is
-// idempotent), never as a false conflict.
+// with autocrlf is not reported as a conflict) is left untouched (idempotent).
+// Beyond that, the two files this package ships are treated differently
+// (founder decision, 2026-09-17):
+//
+//   - Every file under ext/ is DataTug-owned: WriteSchema writes it whether
+//     it was previously absent or held different (older) content, upgrading
+//     it in place. This is the "overwrite our own files" rule — ext/ holds
+//     nothing this package did not itself put there.
+//   - .ingitdb/root-collections.yaml is NOT DataTug-owned: it may be shared
+//     with other extensions' own root-collection entries, so a differing
+//     copy is left untouched and reported as a conflict error naming its
+//     path, exactly as before this decision. WriteSchema does not attempt to
+//     merge or selectively update entries in it.
+//
+// Every file WriteSchema does write (whether previously absent or being
+// upgraded) is created via a temp file in its own directory, fsynced and
+// renamed into place (see createFile), so a run interrupted partway through
+// never leaves a partially written file at a schema path: a retry always
+// sees that file as either its old content (untouched) or the new content
+// (fully written), never partial.
 //
 // WriteSchema assumes a single writer, matching dalgo2ingitdb's own contract
 // (its Database.NoConcurrency field doc): it does not detect or arbitrate a
@@ -79,8 +91,22 @@ func WriteSchema(dir string) error {
 	})
 }
 
+// dataTugOwnedPathPrefix is the subtree WriteSchema always writes,
+// upgrading a differing existing file rather than refusing it. relPath
+// values come from fs.WalkDir over the embedded schemaFS, which — like
+// every io/fs path — always uses "/" regardless of host OS.
+const dataTugOwnedPathPrefix = "ext/"
+
+// isDataTugOwnedPath reports whether relPath (embedded-schema-relative,
+// slash-separated) is a file this package exclusively owns, as opposed to
+// .ingitdb/root-collections.yaml, which may be shared with other
+// extensions' own entries.
+func isDataTugOwnedPath(relPath string) bool {
+	return relPath == "ext" || strings.HasPrefix(relPath, dataTugOwnedPathPrefix)
+}
+
 // writeSchemaFile writes one embedded schema file to target, applying the
-// no-silent-overwrite and idempotency rules documented on WriteSchema.
+// idempotency and ownership rules documented on WriteSchema.
 func writeSchemaFile(sub fs.FS, relPath, target string) error {
 	content, err := fs.ReadFile(sub, relPath)
 	if err != nil {
@@ -92,7 +118,10 @@ func writeSchemaFile(sub fs.FS, relPath, target string) error {
 		if contentsEqualIgnoringLineEndings(existing, content) {
 			return nil // already installed; idempotent no-op
 		}
-		return conflictError(target)
+		if isDataTugOwnedPath(relPath) {
+			return createFile(target, content) // DataTug-owned: upgrade in place
+		}
+		return conflictError(target) // shared file: never overwritten silently
 	case os.IsNotExist(err):
 		return createFile(target, content)
 	default:

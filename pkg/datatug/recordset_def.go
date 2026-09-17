@@ -13,7 +13,7 @@ import (
 type RecordsetBaseDef struct {
 	PrimaryKey    *UniqueKey  `json:"primaryKey,omitempty"`
 	ForeignKeys   ForeignKeys `json:"foreignKeys,omitempty"`
-	AlternateKeys []UniqueKey `json:"alternateKey,omitempty"`
+	AlternateKeys []UniqueKey `json:"alternateKeys,omitempty"`
 	ActiveIssues  *Issues     `json:"issues,omitempty"`
 }
 

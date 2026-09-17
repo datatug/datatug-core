@@ -174,8 +174,8 @@ const storedQueryHint = "a query is stored in git-tracked project files"
 //	recordsets[].foreignKeys[].matchOption        identifier
 //	recordsets[].foreignKeys[].updateRule         identifier
 //	recordsets[].foreignKeys[].deleteRule         identifier
-//	recordsets[].alternateKey[].name              metadata identifier
-//	recordsets[].alternateKey[].columns[]         metadata identifier
+//	recordsets[].alternateKeys[].name              metadata identifier
+//	recordsets[].alternateKeys[].columns[]         metadata identifier
 //	recordsets[].issues.schema[]                  credential - free prose diagnostics
 //	recordsets[].columns[].name                   metadata identifier
 //	recordsets[].columns[].type                   identifier
@@ -401,7 +401,7 @@ func (s *queryStorageScreen) recordsets(recordsets []RecordsetDefinition) {
 			s.identifier(fkAt+"deleteRule", fk.DeleteRule)
 		}
 		for k := range r.AlternateKeys {
-			s.uniqueKey(fmt.Sprintf("%salternateKey[%d]", at, k), &r.AlternateKeys[k])
+			s.uniqueKey(fmt.Sprintf("%salternateKeys[%d]", at, k), &r.AlternateKeys[k])
 		}
 		if r.ActiveIssues != nil {
 			s.proseList(at+"issues.schema", r.ActiveIssues.Schema)

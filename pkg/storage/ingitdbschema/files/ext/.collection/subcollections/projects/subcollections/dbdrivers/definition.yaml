@@ -1,18 +1,13 @@
 # Struct: datatug.ProjDbDriver (pkg/datatug/server.go), the type filestore's
 # db drivers store (pkg/storage/filestore/proj_dbdrivers_store.go)
-# persists. id/title/folder/tags/userIds/access are all present in the JSON
-# (inherited from the embedded ProjectItem) but none is required:
-# ProjDbDriver.Validate() calls `v.ProjItemBrief.Validate()`, and
-# ProjItemBrief declares no Validate() of its own — Go promotes
-# ListOfTags.Validate() instead (ProjItemBrief embeds ListOfTags), which
-# checks only tags, not id or title. This is a gap in today's validation,
-# reproduced faithfully rather than papered over: this schema does not
-# require what the code does not actually require.
+# persists. id and title are required: ProjDbDriver.Validate() calls
+# ValidateWithOptions(true). This used to be a gap (the promoted
+# ListOfTags.Validate() ran instead and checked only tags) but
+# ProjDbDriver.Validate() was fixed to call ValidateWithOptions directly.
 # servers is a slice of nested ProjDbServer structs; `any` is the closest
 # supported inGitDB type. It duplicates the dbservers subcollection this
-# Feature also declares — resolving that duplication (whether a saved
-# driver file should carry an embedded servers array at all) is left to a
-# later task, not decided here.
+# Feature also declares (founder decision, 2026-09-17: keep both as the
+# schema has them today; resolving the duplication is a later question).
 record_file:
     name: '{key}/{key}.dbdriver.json'
     format: json
@@ -21,8 +16,10 @@ record_file:
 columns:
     id:
         type: string
+        required: true
     title:
         type: string
+        required: true
     folder:
         type: string
     tags:

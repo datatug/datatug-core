@@ -92,11 +92,16 @@ func TestSchemaLoadsThroughStrictReader(t *testing.T) {
 	}
 	for _, leaf := range []string{
 		"queries", "entities", "environments", "dbmodels", "boards",
-		"recordsets", "folders", "dbdrivers", "credentials",
+		"recordsets", "folders", "dbdrivers",
 	} {
 		if _, ok = projects.SubCollections[leaf]; !ok {
 			t.Errorf("subcollection %q not found under %q", leaf, "projects")
 		}
+	}
+	// credentials is deliberately not declared: secrets-vault will add it
+	// later with real fields (founder decision, 2026-09-17).
+	if _, ok = projects.SubCollections["credentials"]; ok {
+		t.Errorf("subcollection %q should not be declared yet", "credentials")
 	}
 	environments := projects.SubCollections["environments"]
 	if environments != nil {

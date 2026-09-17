@@ -8,10 +8,11 @@
 # required (DbCatalogBase.Validate() errors on ""); path is required only
 # when driver == "sqlite3" (conditional, left optional here); dbModel is
 # never validated as required despite lacking `omitempty` on its tag.
-# Schemas has NO json tag at all, so encoding/json uses the literal Go
-# field name "Schemas" (capitalized) as the JSON key — an existing
-# filestore quirk, reproduced here rather than corrected, since this
-# collection declares today's actual on-disk shape.
+# Schemas previously had no json tag at all (the literal Go field name
+# "Schemas" was the on-disk key); founder decision, 2026-09-17: fix the tag
+# to `json:"schemas"` rather than reproduce the quirk. This is a hard
+# cut-over — other DataTug repos that read the old capitalized key must be
+# updated in the same wave (tracked outside this schema package).
 record_file:
     name: '{key}/{key}.db.json'
     format: json
@@ -38,5 +39,5 @@ columns:
         type: string
     dbModel:
         type: string
-    Schemas:
+    schemas:
         type: any
