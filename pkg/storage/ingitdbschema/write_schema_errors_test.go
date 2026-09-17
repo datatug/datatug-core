@@ -69,10 +69,10 @@ func TestWriteSchemaFile_StatErrorOtherThanNotExist(t *testing.T) {
 	}
 }
 
-// TestWriteSchemaFile_CannotCreateTargetDirectory covers writeSchemaFile's
-// os.MkdirAll(filepath.Dir(target), ...) failure path: the target file does
-// not exist (a genuine ErrNotExist), but its directory cannot be created
-// because the parent has no write permission.
+// TestWriteSchemaFile_CannotCreateTargetDirectory covers
+// createFileAtomically's os.MkdirAll(dir, ...) failure path: the target file
+// does not exist (a genuine ErrNotExist), but its directory cannot be
+// created because the parent has no write permission.
 func TestWriteSchemaFile_CannotCreateTargetDirectory(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("running as root; permission checks are bypassed")
@@ -102,9 +102,10 @@ func TestWriteSchemaFile_CannotCreateTargetDirectory(t *testing.T) {
 	}
 }
 
-// TestWriteSchemaFile_CannotWriteTargetFile covers writeSchemaFile's
-// os.WriteFile failure path: the target's directory already exists, but has
-// no write permission, so creating the new file itself fails.
+// TestWriteSchemaFile_CannotWriteTargetFile covers createFileAtomically's
+// os.CreateTemp failure path: the target's directory already exists, but has
+// no write permission, so even the temp file used for the atomic write
+// cannot be created there.
 func TestWriteSchemaFile_CannotWriteTargetFile(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("running as root; permission checks are bypassed")

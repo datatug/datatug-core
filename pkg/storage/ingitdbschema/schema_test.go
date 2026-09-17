@@ -3,6 +3,7 @@ package ingitdbschema
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ingitdb/ingitdb-go/ingitdb"
@@ -150,5 +151,13 @@ columns:
 	_, err := validator.ReadDefinition(dir, ingitdb.Validate())
 	if err == nil {
 		t.Fatal("ReadDefinition succeeded over a definition with a sibling records_dir; want an unknown-field error")
+	}
+	// Pin down the actual mechanism, not merely that some error occurred: the
+	// strict KnownFields(true) yaml decoder must reject records_dir as a field
+	// unknown to ingitdb.CollectionDef (it only exists nested inside
+	// record_file), not fail for an unrelated reason such as a missing file.
+	const wantSubstring = "field records_dir not found in type ingitdb.CollectionDef"
+	if !strings.Contains(err.Error(), wantSubstring) {
+		t.Fatalf("error = %q, want it to contain %q", err.Error(), wantSubstring)
 	}
 }
