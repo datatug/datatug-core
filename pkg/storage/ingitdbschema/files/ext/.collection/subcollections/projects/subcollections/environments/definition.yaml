@@ -1,0 +1,9 @@
+record_file:
+    name: '{key}/{key}.env.json'
+    format: json
+    type: map[string]any
+    records_dir: '.'
+columns:
+    id:
+        type: string
+        required: true
