@@ -6,12 +6,11 @@ import (
 	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
-// This file holds every datatug.ProjectStore member Task 5 of the
-// dalgo-project-store plan does not implement. Each stub returns
-// ErrNotImplemented (see notImplemented in project_store.go) so callers get a
-// typed, self-explanatory error rather than a silent no-op or a panic. Later
-// tasks in the plan replace these one collection at a time (Task 10 ports
-// the remaining item types; Task 12 the credential address).
+// This file holds every datatug.ProjectStore member this package does not
+// implement yet. Each stub returns ErrNotImplemented (see notImplemented in
+// project_store.go) so callers get a typed, self-explanatory error rather
+// than a silent no-op or a panic. Later tasks of the dalgo-project-store
+// plan replace these one collection at a time.
 
 // LoadQueries is not implemented; see the package doc comment.
 func (s *ProjectStore) LoadQueries(context.Context, string, ...datatug.StoreOption) (*datatug.QueriesFolder, error) {
