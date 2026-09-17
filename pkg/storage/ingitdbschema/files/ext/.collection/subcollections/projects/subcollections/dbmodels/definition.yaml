@@ -1,3 +1,8 @@
+# Struct: datatug.DbModel (pkg/datatug/db_model.go), the type filestore's
+# db models store (pkg/storage/filestore/db_models_store.go) persists. id
+# required, title optional: DbModel.Validate() calls
+# ValidateWithOptions(false). schemas/environments are slices of nested
+# structs; `any` is the closest supported inGitDB type for each.
 record_file:
     name: '{key}/{key}.dbmodel.json'
     format: json
@@ -7,3 +12,17 @@ columns:
     id:
         type: string
         required: true
+    title:
+        type: string
+    folder:
+        type: string
+    tags:
+        type: '[]string'
+    userIds:
+        type: '[]string'
+    access:
+        type: string
+    schemas:
+        type: any
+    environments:
+        type: any

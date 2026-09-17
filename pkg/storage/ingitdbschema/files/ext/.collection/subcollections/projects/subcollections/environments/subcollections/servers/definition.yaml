@@ -1,9 +1,27 @@
+# Struct: datatug.EnvDbServer (pkg/datatug/env_db_server.go), the type
+# filestore's env db servers store
+# (pkg/storage/filestore/env_db_servers_store.go) persists. EnvDbServer
+# embeds ServerRef (pkg/datatug/server.go) and adds Catalogs; it does NOT
+# embed ProjectItem, so it has no "id"/"title" JSON field at all — its
+# identity (GetID/SetID) is derived from host:port, never serialized.
+# driver is required: ServerRef.Validate()'s switch errors on "". host is
+# required only when driver != "sqlite3" (conditional on another field's
+# value, so it is left optional here rather than overclaimed). path and
+# port are never validated as required.
 record_file:
     name: '{key}/{key}.server.json'
     format: json
     type: map[string]any
     records_dir: '.'
 columns:
-    id:
+    driver:
         type: string
         required: true
+    host:
+        type: string
+    path:
+        type: string
+    port:
+        type: int
+    catalogs:
+        type: '[]string'
