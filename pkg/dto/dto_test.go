@@ -90,6 +90,7 @@ func TestValidateProjectID(t *testing.T) {
 	})
 	t.Run("invalid", func(t *testing.T) {
 		for _, id := range []string{
+			"",         // empty
 			"P",        // upper case
 			"p roject", // space
 			"a/b",      // path separator

@@ -218,5 +218,6 @@ func TestSaveProject_PersistsTitle(t *testing.T) {
 	require.Len(t, projects, 1)
 	assert.Equal(t, projectID, projects[0].ID)
 	assert.Equal(t, "Round Trip", projects[0].Title, "an unmodified save must not wipe the title")
+	assert.Equal(t, "private", projects[0].Access, "a listed project carries its access level")
 	assert.NoError(t, projects[0].Validate())
 }

@@ -3,6 +3,7 @@ package dto
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/strongo/validation"
@@ -86,9 +87,15 @@ const maxProjectIDLength = 64
 // The charset rules out every path separator, "." and "..", whitespace and
 // control characters, so no id can escape or rename its own directory.
 func validateProjectID(id string) error {
-	if len(id) > maxProjectIDLength {
+	if id == "" {
+		return validation.NewErrRequestIsMissingRequiredField("id")
+	}
+	// Counted in characters, not bytes, so the message matches what a caller
+	// typed. A multi-byte character is refused by the charset loop below in
+	// any case, but not with a byte count it never asked about.
+	if count := utf8.RuneCountInString(id); count > maxProjectIDLength {
 		return validation.NewErrBadRequestFieldValue("id",
-			fmt.Sprintf("must be at most %d characters, got %d", maxProjectIDLength, len(id)))
+			fmt.Sprintf("must be at most %d characters, got %d", maxProjectIDLength, count))
 	}
 	for i, r := range id {
 		isLetterOrDigit := (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9')
