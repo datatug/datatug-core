@@ -10,6 +10,7 @@ import (
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSaveProject(t *testing.T) {
@@ -181,4 +182,42 @@ func TestSaveProject_PersistsQueries(t *testing.T) {
 			assert.Equal(t, "SELECT 1", customers.Items[0].Text)
 		}
 	}
+}
+
+// TestSaveProject_PersistsTitle mirrors dalgostore's own round-trip test:
+// saveProjectFile used to drop project.Title although FsStore.GetProjects
+// reads a project's title back out of the very file it writes
+// (store.go:49), so an unmodified save wiped the title and produced a
+// brief that fails its own datatug.ProjectBrief.Validate().
+func TestSaveProject_PersistsTitle(t *testing.T) {
+	const projectID = "test_save_project_title"
+	projectPath := path.Join(t.TempDir(), projectID)
+	store := newFsProjectStore(projectID, projectPath)
+
+	project := &datatug.Project{
+		ProjectItem: datatug.ProjectItem{
+			Access: "private",
+			ProjItemBrief: datatug.ProjItemBrief{
+				ID:    projectID,
+				Title: "Round Trip",
+			},
+		},
+		Created: &datatug.ProjectCreated{At: time.Now()},
+	}
+	require.NoError(t, store.SaveProject(context.Background(), project))
+
+	projFile, err := LoadProjectFile(projectPath)
+	require.NoError(t, err)
+	assert.Equal(t, "Round Trip", projFile.Title, "the title must survive a save round-trip")
+	assert.Equal(t, "private", projFile.Access)
+
+	// ...and the brief the project lists under is valid on its own terms.
+	fsStore := newStore("s1", map[string]string{projectID: projectPath})
+	projects, err := fsStore.GetProjects(context.Background())
+	require.NoError(t, err)
+	require.Len(t, projects, 1)
+	assert.Equal(t, projectID, projects[0].ID)
+	assert.Equal(t, "Round Trip", projects[0].Title, "an unmodified save must not wipe the title")
+	assert.Equal(t, "private", projects[0].Access, "a listed project carries its access level")
+	assert.NoError(t, projects[0].Validate())
 }

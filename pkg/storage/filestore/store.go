@@ -49,6 +49,9 @@ func (store FsStore) GetProjects(context.Context) (projectBriefs []datatug.Proje
 			return projectBriefs, fmt.Errorf("failed to load project file: %w", err)
 		}
 		projectBriefs[i].Title = projFile.Title
+		// Access is part of the brief and datatug.ProjectBrief.Validate()
+		// requires it, so it is carried from the project file like the rest.
+		projectBriefs[i].Access = projFile.Access
 		projectBriefs[i].Repository = projFile.Repository
 		i++
 	}

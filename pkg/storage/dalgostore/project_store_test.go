@@ -32,10 +32,9 @@ func TestProjectStore_SaveAndLoadProjectFile_RoundTrip(t *testing.T) {
 
 	created := &datatug.ProjectCreated{At: time.Date(2026, 9, 17, 0, 0, 0, 0, time.UTC)}
 	project := datatug.NewProjectWithStore("p1", store)
-	// Title is intentionally set but must NOT round-trip: SaveProject
-	// persists exactly the fields filestore's saveProjectFile does (ID,
-	// Access, Repository, Created; pkg/storage/filestore/store_project_saver.go:133-143),
-	// and Title is not one of them there either.
+	// The title MUST round-trip: GetProjects reads a project's title back
+	// out of the project record, so a save that dropped it would wipe the
+	// title on every save, including one that changed nothing else.
 	project.Title = "Project One"
 	project.Access = "private"
 	project.Created = created
@@ -46,7 +45,7 @@ func TestProjectStore_SaveAndLoadProjectFile_RoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "p1", got.ID)
-	assert.Empty(t, got.Title, "Title is not one of filestore's persisted project-file fields")
+	assert.Equal(t, "Project One", got.Title, "the title must survive a save round-trip")
 	assert.Equal(t, "private", got.Access)
 	require.NotNil(t, got.Created)
 	assert.True(t, created.At.Equal(got.Created.At))

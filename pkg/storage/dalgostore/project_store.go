@@ -1,5 +1,7 @@
-// Package dalgostore implements datatug.ProjectStore over a caller-supplied
-// dal.DB (dalgo-project-store plan). It depends on the github.com/dal-go/dalgo
+// Package dalgostore implements storage.Store and datatug.ProjectStore over
+// a caller-supplied dal.DB (dalgo-project-store plan): Store (store.go)
+// creates, lists, opens and deletes projects in one store, and ProjectStore
+// (this file) addresses one project in it. It depends on the github.com/dal-go/dalgo
 // and github.com/dal-go/record interfaces only: no DALgo driver
 // (dalgo2ingitdb, dalgo2ingitdb4github, dalgo2openvaultdb) is imported here,
 // and no code in this package branches on which concrete driver backs db
@@ -12,8 +14,9 @@
 // ext/datatug/projects/<project-id>, and every project item nests below it
 // (REQ:hierarchy-is-a-key-path).
 //
-// Only the project record itself is implemented so far: LoadProjectFile,
-// LoadProject and SaveProject read and write the record at that key path.
+// Only the project record itself is implemented so far: Store's four
+// members and ProjectStore's LoadProjectFile, LoadProject and SaveProject
+// create, list, delete, read and write the record at that key path.
 // Every other project-item collection (queries, boards, folders, entities,
 // environments, env db servers/catalogs, project db drivers/servers,
 // recordset definitions) is a stub that returns ErrNotImplemented; later
@@ -137,10 +140,10 @@ func (s *ProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOption
 //   - the whole project is validated first, exactly as filestore does
 //     (pkg/storage/filestore/store_project_saver.go:23, project.Validate());
 //   - the fields persisted are exactly the ones filestore's saveProjectFile
-//     builds — ID, Access, Repository and Created, no more
-//     (pkg/storage/filestore/store_project_saver.go:133-143); Title, Folder,
-//     tags and UserIDs are not carried into the project record there
-//     either, so this store does not carry them either;
+//     builds — ID, Title, Access, Repository and Created
+//     (pkg/storage/filestore/store_project_saver.go:133-149). Folder, tags
+//     and UserIDs are not part of the project record there, and are not
+//     carried here either;
 //   - the assembled ProjectFile is validated again before being written,
 //     exactly as filestore's putProjectFile does
 //     (pkg/storage/filestore/store_project_saver.go:113-115).
@@ -165,7 +168,7 @@ func (s *ProjectStore) SaveProject(ctx context.Context, p *datatug.Project) erro
 	}
 	file := datatug.ProjectFile{
 		ProjectItem: datatug.ProjectItem{
-			ProjItemBrief: datatug.ProjItemBrief{ID: p.ID},
+			ProjItemBrief: datatug.ProjItemBrief{ID: p.ID, Title: p.Title},
 			Access:        p.Access,
 		},
 		Repository: p.Repository,
