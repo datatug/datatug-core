@@ -41,7 +41,7 @@ type CreateProjectRequest struct {
 	// never derived from the title: it addresses the project for the rest of
 	// its life — a key segment, and a directory name under a file-backed
 	// store — so the caller, not the storage, owns it. See
-	// validateProjectID for the rules it must satisfy.
+	// ValidateProjectID for the rules it must satisfy.
 	ID string `json:"id"`
 
 	Title string `json:"title"`
@@ -58,7 +58,7 @@ func (v CreateProjectRequest) Validate() error {
 	if strings.TrimSpace(v.ID) == "" {
 		return validation.NewErrRequestIsMissingRequiredField("id")
 	}
-	if err := validateProjectID(v.ID); err != nil {
+	if err := ValidateProjectID(v.ID); err != nil {
 		return err
 	}
 	if strings.TrimSpace(v.Title) == "" {
@@ -72,9 +72,12 @@ func (v CreateProjectRequest) Validate() error {
 // leaving room for the suffixes a project's own files add to it.
 const maxProjectIDLength = 64
 
-// validateProjectID applies DataTug's project-id rules. A project id is
-// both a DALgo key segment and, under a file-backed store, a directory
-// name, so it is restricted to what is unambiguous in both:
+// ValidateProjectID applies DataTug's project-id rules. It is exported so a
+// caller that has to choose an id — a CLI's new-project form, say — can check
+// one without building a whole CreateProjectRequest around it.
+//
+// A project id is both a DALgo key segment and, under a file-backed store, a
+// directory name, so it is restricted to what is unambiguous in both:
 //
 //   - 1 to maxProjectIDLength characters;
 //   - lower-case ASCII letters, digits, "-" and "_" only. Upper case is
@@ -86,7 +89,7 @@ const maxProjectIDLength = 64
 //
 // The charset rules out every path separator, "." and "..", whitespace and
 // control characters, so no id can escape or rename its own directory.
-func validateProjectID(id string) error {
+func ValidateProjectID(id string) error {
 	if id == "" {
 		return validation.NewErrRequestIsMissingRequiredField("id")
 	}
