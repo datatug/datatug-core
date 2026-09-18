@@ -79,10 +79,10 @@ func (s *Store) GetProjectStore(projectID string) datatug.ProjectStore {
 // record.ErrRecordExists — naming the id — instead of overwriting the
 // project that holds it.
 //
-// Unlike filestore's saveProjectFile, CreateProject persists the title:
-// filestore's own GetProjects reads a project's title back out of the
-// project file (pkg/storage/filestore/store.go:49), so a created project
-// that did not carry its title would list with no title at all.
+// The title is persisted with the record: GetProjects — here and in
+// filestore alike — reads a project's title back out of the project record,
+// so a created project that did not carry its title would list with no
+// title at all.
 //
 // Failure states. CreateProject is a single record insert in one
 // transaction, and it rolls nothing back:
@@ -154,9 +154,8 @@ func (s *Store) DeleteProject(ctx context.Context, id string) error {
 
 // GetProjects lists the ext/datatug/projects collection and returns a brief
 // per project record. Each brief carries what filestore's own GetProjects
-// carries (id, title, repository; pkg/storage/filestore/store.go:40-55)
-// plus the access level, which the project record holds and
-// datatug.ProjectBrief.Validate() requires. The id comes from the record's
+// carries — id, title, access and repository
+// (pkg/storage/filestore/store.go:40-59). The id comes from the record's
 // key, the authority for it, exactly as LoadProjectFile takes it from the
 // key rather than from the stored data: a record whose stored id disagrees
 // with its key lists under the key's id.

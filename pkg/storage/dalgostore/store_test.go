@@ -258,7 +258,8 @@ func TestStore_GetProjects(t *testing.T) {
 }
 
 // TestStore_TitleSurvivesAnUnmodifiedSaveRoundTrip is the regression test
-// for the defect filestore still has: create -> LoadProject -> SaveProject
+// for a defect both stores had (filestore's is fixed in the same PR, see
+// TestSaveProject_PersistsTitle): create -> LoadProject -> SaveProject
 // with nothing changed must leave the title in place, and the brief the
 // project then lists under must still pass its own validation. A
 // SaveProject that dropped the title would wipe it on any no-op save and

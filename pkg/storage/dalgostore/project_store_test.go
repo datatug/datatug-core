@@ -32,9 +32,9 @@ func TestProjectStore_SaveAndLoadProjectFile_RoundTrip(t *testing.T) {
 
 	created := &datatug.ProjectCreated{At: time.Date(2026, 9, 17, 0, 0, 0, 0, time.UTC)}
 	project := datatug.NewProjectWithStore("p1", store)
-	// The title MUST round-trip: filestore's saveProjectFile drops it
-	// although its own GetProjects reads it back out of the project file,
-	// so a save round-trip there wipes the title. This store carries it.
+	// The title MUST round-trip: GetProjects reads a project's title back
+	// out of the project record, so a save that dropped it would wipe the
+	// title on every save, including one that changed nothing else.
 	project.Title = "Project One"
 	project.Access = "private"
 	project.Created = created

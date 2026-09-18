@@ -139,17 +139,11 @@ func (s *ProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOption
 // implements:
 //   - the whole project is validated first, exactly as filestore does
 //     (pkg/storage/filestore/store_project_saver.go:23, project.Validate());
-//   - the fields persisted are the ones filestore's saveProjectFile builds —
-//     ID, Access, Repository and Created
-//     (pkg/storage/filestore/store_project_saver.go:133-143) — plus the
-//     Title. filestore drops the title there although its own GetProjects
-//     reads it back out of the project file
-//     (pkg/storage/filestore/store.go:49), so a save round-trip silently
-//     wipes a project's title and leaves a record its own
-//     datatug.ProjectBrief.Validate() rejects. That is a filestore defect,
-//     not behaviour to mirror: this store carries the Title. Folder, tags
-//     and UserIDs are not part of the project record in filestore, and are
-//     not carried here either;
+//   - the fields persisted are exactly the ones filestore's saveProjectFile
+//     builds — ID, Title, Access, Repository and Created
+//     (pkg/storage/filestore/store_project_saver.go:133-149). Folder, tags
+//     and UserIDs are not part of the project record there, and are not
+//     carried here either;
 //   - the assembled ProjectFile is validated again before being written,
 //     exactly as filestore's putProjectFile does
 //     (pkg/storage/filestore/store_project_saver.go:113-115).
