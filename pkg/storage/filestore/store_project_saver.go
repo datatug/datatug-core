@@ -130,10 +130,16 @@ func (s fsProjectStore) saveProjectFile(project *datatug.Project) error {
 	//if err := readJSONFile(projDirPath.Join(s.projectPath, DatatugFolder, ProjectSummaryFileName), false, &existingProject); err != nil {
 	//	return err
 	//}
+	// The Title is persisted with the record: FsStore.GetProjects reads a
+	// project's title back out of this very file (store.go:49), so dropping
+	// it here wiped the title on every save - including a save that changed
+	// nothing else - and left a brief that fails its own
+	// datatug.ProjectBrief.Validate().
 	projFile := datatug.ProjectFile{
 		ProjectItem: datatug.ProjectItem{
 			ProjItemBrief: datatug.ProjItemBrief{
-				ID: project.ID,
+				ID:    project.ID,
+				Title: project.Title,
 			},
 			Access: project.Access,
 		},
