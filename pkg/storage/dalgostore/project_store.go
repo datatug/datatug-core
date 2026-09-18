@@ -1,5 +1,7 @@
-// Package dalgostore implements datatug.ProjectStore over a caller-supplied
-// dal.DB (dalgo-project-store plan). It depends on the github.com/dal-go/dalgo
+// Package dalgostore implements storage.Store and datatug.ProjectStore over
+// a caller-supplied dal.DB (dalgo-project-store plan): Store (store.go)
+// creates, lists, opens and deletes projects in one store, and ProjectStore
+// (this file) addresses one project in it. It depends on the github.com/dal-go/dalgo
 // and github.com/dal-go/record interfaces only: no DALgo driver
 // (dalgo2ingitdb, dalgo2ingitdb4github, dalgo2openvaultdb) is imported here,
 // and no code in this package branches on which concrete driver backs db
@@ -12,8 +14,9 @@
 // ext/datatug/projects/<project-id>, and every project item nests below it
 // (REQ:hierarchy-is-a-key-path).
 //
-// Only the project record itself is implemented so far: LoadProjectFile,
-// LoadProject and SaveProject read and write the record at that key path.
+// Only the project record itself is implemented so far: Store's four
+// members and ProjectStore's LoadProjectFile, LoadProject and SaveProject
+// create, list, delete, read and write the record at that key path.
 // Every other project-item collection (queries, boards, folders, entities,
 // environments, env db servers/catalogs, project db drivers/servers,
 // recordset definitions) is a stub that returns ErrNotImplemented; later
