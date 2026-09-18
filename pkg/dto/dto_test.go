@@ -85,7 +85,7 @@ func TestCreateProjectRequest_Validate(t *testing.T) {
 func TestValidateProjectID(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
 		for _, id := range []string{"p", "1", "p1", "demo-project-1", "a_b", "a-b_c9", strings.Repeat("a", maxProjectIDLength)} {
-			assert.NoError(t, validateProjectID(id), "id %q must be valid", id)
+			assert.NoError(t, ValidateProjectID(id), "id %q must be valid", id)
 		}
 	})
 	t.Run("invalid", func(t *testing.T) {
@@ -107,7 +107,7 @@ func TestValidateProjectID(t *testing.T) {
 			"a\tb",     // control character
 			strings.Repeat("a", maxProjectIDLength+1), // too long
 		} {
-			assert.Error(t, validateProjectID(id), "id %q must be rejected", id)
+			assert.Error(t, ValidateProjectID(id), "id %q must be rejected", id)
 		}
 	})
 }
