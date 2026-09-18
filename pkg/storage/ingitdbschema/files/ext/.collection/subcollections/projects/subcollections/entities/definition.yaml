@@ -1,0 +1,28 @@
+# Struct: datatug.Entity (pkg/datatug/entities.go), the type filestore's
+# entities store (pkg/storage/filestore/store_entities.go) persists.
+# id required, title optional: Entity.Validate() calls
+# ValidateWithOptions(false). fields/tables are slices of nested structs;
+# `any` is the closest supported inGitDB type for each.
+record_file:
+    name: '{key}/{key}.entity.json'
+    format: json
+    type: map[string]any
+    records_dir: '.'
+columns:
+    id:
+        type: string
+        required: true
+    title:
+        type: string
+    folder:
+        type: string
+    tags:
+        type: '[]string'
+    userIds:
+        type: '[]string'
+    access:
+        type: string
+    fields:
+        type: any
+    tables:
+        type: any

@@ -75,7 +75,7 @@ func (v DbCatalogs) GetTable(catalog, schema, name string) *CollectionInfo {
 // DbCatalog hold info about DB database
 type DbCatalog struct {
 	DbCatalogBase
-	Schemas DbSchemas
+	Schemas DbSchemas `json:"schemas"`
 }
 
 // ProjDbServerSummary holds summary info about DB server

@@ -1,0 +1,28 @@
+# Struct: datatug.Environment (pkg/datatug/environment.go), the type
+# filestore's environments store
+# (pkg/storage/filestore/environments_store.go) persists. id required,
+# title optional: Environment.Validate() calls ValidateWithOptions(false).
+# dbServers is a slice of nested EnvDbServer structs; `any` is the closest
+# supported inGitDB type. dbServers has no `omitempty` on its json tag, but
+# is not required by Validate() (only validates elements when present).
+record_file:
+    name: '{key}/{key}.env.json'
+    format: json
+    type: map[string]any
+    records_dir: '.'
+columns:
+    id:
+        type: string
+        required: true
+    title:
+        type: string
+    folder:
+        type: string
+    tags:
+        type: '[]string'
+    userIds:
+        type: '[]string'
+    access:
+        type: string
+    dbServers:
+        type: any

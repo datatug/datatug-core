@@ -1,0 +1,52 @@
+# Struct: datatug.RecordsetDefinition (pkg/datatug/recordset_def.go), the
+# type filestore's recordset definitions store
+# (pkg/storage/filestore/recordset_definitions_store.go) persists. id/title
+# are required: Validate() calls ValidateWithOptions(true). type is
+# required: Validate()'s switch errors on "". jsonSchema is required only
+# when type == "json" (conditional, left optional here).
+# primaryKey/foreignKeys/alternateKeys/issues/columns are pointers/slices of
+# nested structs; `any` is the closest supported inGitDB type for each.
+# alternateKeys was previously tagged singular (`alternateKey`); founder
+# decision, 2026-09-17: fix the tag to `json:"alternateKeys"` rather than
+# reproduce the quirk. This is a hard cut-over — other DataTug repos that
+# read the old singular key must be updated in the same wave (tracked
+# outside this schema package).
+record_file:
+    name: '{key}/{key}.recordset.json'
+    format: json
+    type: map[string]any
+    records_dir: '.'
+columns:
+    id:
+        type: string
+        required: true
+    title:
+        type: string
+        required: true
+    folder:
+        type: string
+    tags:
+        type: '[]string'
+    userIds:
+        type: '[]string'
+    access:
+        type: string
+    primaryKey:
+        type: any
+    foreignKeys:
+        type: any
+    alternateKeys:
+        type: any
+    issues:
+        type: any
+    columns:
+        type: any
+    type:
+        type: string
+        required: true
+    jsonSchema:
+        type: string
+    files:
+        type: '[]string'
+    errors:
+        type: '[]string'

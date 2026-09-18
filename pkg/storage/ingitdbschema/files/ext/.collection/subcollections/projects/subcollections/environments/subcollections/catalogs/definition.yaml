@@ -1,0 +1,43 @@
+# Struct: datatug.DbCatalog (pkg/datatug/dbcatalog.go), the type
+# filestore's environment DB catalogs store
+# (pkg/storage/filestore/env_db_catalogs_store.go) persists — NOT
+# datatug.EnvDb, which this package's DbCatalogsStore does not use. DbCatalog
+# embeds DbCatalogBase (id/title/... via ProjectItem, plus driver/path/
+# dbModel) and adds Schemas. id required, title optional:
+# DbCatalogBase.Validate() calls ValidateWithOptions(false). driver is
+# required (DbCatalogBase.Validate() errors on ""); path is required only
+# when driver == "sqlite3" (conditional, left optional here); dbModel is
+# never validated as required despite lacking `omitempty` on its tag.
+# Schemas previously had no json tag at all (the literal Go field name
+# "Schemas" was the on-disk key); founder decision, 2026-09-17: fix the tag
+# to `json:"schemas"` rather than reproduce the quirk. This is a hard
+# cut-over — other DataTug repos that read the old capitalized key must be
+# updated in the same wave (tracked outside this schema package).
+record_file:
+    name: '{key}/{key}.db.json'
+    format: json
+    type: map[string]any
+    records_dir: '.'
+columns:
+    id:
+        type: string
+        required: true
+    title:
+        type: string
+    folder:
+        type: string
+    tags:
+        type: '[]string'
+    userIds:
+        type: '[]string'
+    access:
+        type: string
+    driver:
+        type: string
+        required: true
+    path:
+        type: string
+    dbModel:
+        type: string
+    schemas:
+        type: any

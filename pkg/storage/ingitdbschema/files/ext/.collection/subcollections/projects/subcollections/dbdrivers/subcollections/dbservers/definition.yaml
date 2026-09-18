@@ -1,0 +1,30 @@
+# Struct: datatug.ProjDbServer (pkg/datatug/server.go), the type
+# filestore's db servers store
+# (pkg/storage/filestore/proj_dbservers_store.go) persists. id is required:
+# ProjDbServer.Validate() calls ValidateWithOptions(false), which always
+# checks id regardless of the title argument. title is optional (the
+# `false`). server/catalogs are nested structs/slices of structs; `any` is
+# the closest supported inGitDB type for each.
+record_file:
+    name: '{key}/{key}.dbserver.json'
+    format: json
+    type: map[string]any
+    records_dir: '.'
+columns:
+    id:
+        type: string
+        required: true
+    title:
+        type: string
+    folder:
+        type: string
+    tags:
+        type: '[]string'
+    userIds:
+        type: '[]string'
+    access:
+        type: string
+    server:
+        type: any
+    catalogs:
+        type: any

@@ -1,0 +1,38 @@
+# Struct: datatug.ProjectFile (pkg/datatug/project.go) — the type
+# filestore's saveProjectFile (pkg/storage/filestore/store_project_saver.go)
+# actually writes for a project's own file, not the richer datatug.Project.
+# id/title/folder/tags/userIds are not required: ProjectFile.Validate()
+# comments "Do not check GetID or title as they can be nil for project" and
+# never calls ProjItemBrief.ValidateWithOptions at all.
+# access IS required here (unlike every other item type): the Validate()
+# switch on Access has no `case ""`, so an empty value falls to `default`
+# and errors — only "private", "protected" or "public" pass.
+# created IS required: Validate() returns a missing-required-field error
+# when it is nil. Its own nested fields (e.g. created.at) are not modelled;
+# `any` is the closest supported type for a nested struct.
+# repository is optional (*ProjectRepository; ProjectRepository.Validate()
+# returns nil when the pointer itself is nil).
+record_file:
+    name: '{key}/{key}.datatug-project.json'
+    format: json
+    type: map[string]any
+    records_dir: '.'
+columns:
+    id:
+        type: string
+    title:
+        type: string
+    folder:
+        type: string
+    tags:
+        type: '[]string'
+    userIds:
+        type: '[]string'
+    access:
+        type: string
+        required: true
+    created:
+        type: any
+        required: true
+    repository:
+        type: any

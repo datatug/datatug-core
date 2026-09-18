@@ -1,0 +1,44 @@
+# Struct: datatug.QueryDef (pkg/datatug/query.go), the type
+# filestore's queries store (pkg/storage/filestore/store_queries.go)
+# persists. id/title are required: QueryDef.Validate() calls
+# ValidateWithOptions(true) (id always required, title required because of
+# the `true`). type is required: Validate()'s switch errors on "".
+# parameters/targets/recordsets/capture are slices/pointers of nested
+# structs; `any` is the closest supported inGitDB type for each.
+record_file:
+    name: '{key}/{key}.query.json'
+    format: json
+    type: map[string]any
+    records_dir: '.'
+columns:
+    id:
+        type: string
+        required: true
+    title:
+        type: string
+        required: true
+    folder:
+        type: string
+    tags:
+        type: '[]string'
+    userIds:
+        type: '[]string'
+    access:
+        type: string
+    type:
+        type: string
+        required: true
+    text:
+        type: string
+    draft:
+        type: bool
+    parameters:
+        type: any
+    targets:
+        type: any
+    recordsets:
+        type: any
+    purpose:
+        type: string
+    capture:
+        type: any

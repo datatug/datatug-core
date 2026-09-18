@@ -1,0 +1,27 @@
+# Struct: datatug.Folder (pkg/datatug/folder.go), the type filestore's
+# folders store (pkg/storage/filestore/store_folders.go) persists. Folder
+# does NOT embed ProjectItem/ProjItemBrief: it has no "id" JSON field at
+# all — GetID()/SetID() read/write Name directly, and Name is the on-disk
+# key. name is required: Folder.Validate() errors when it is empty (after
+# TrimSpace). note and numberOf are never required.
+#
+# Note: today's filestore folders are addressed by a caller-supplied nested
+# path (FoldersStore.SaveFolder(ctx, folderPath, folder)), so a real folder
+# tree can nest folders inside folders. This collection only declares one
+# flat level under a project, matching the canonical layout's
+# folders/<folder-id>/<folder-id>.folder.json; reconciling nested folder
+# paths with the canonical per-record-directory shape is left to a later
+# task, not decided here.
+record_file:
+    name: '{key}/{key}.folder.json'
+    format: json
+    type: map[string]any
+    records_dir: '.'
+columns:
+    name:
+        type: string
+        required: true
+    note:
+        type: string
+    numberOf:
+        type: map[string]int

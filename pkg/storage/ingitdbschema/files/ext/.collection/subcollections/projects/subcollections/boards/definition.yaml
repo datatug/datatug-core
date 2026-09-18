@@ -1,0 +1,33 @@
+# Struct: datatug.Board (pkg/datatug/boards.go), the type filestore's
+# boards store (pkg/storage/filestore/boards_store.go) persists. id/title
+# are required: Board.Validate() calls ValidateWithOptions(true).
+# parameters/rows are slices of nested structs; `any` is the closest
+# supported inGitDB type. requiredParams is [][]string (a list of lists),
+# which inGitDB's `[]T` grammar cannot express (T must be scalar), so it is
+# also declared `any`.
+record_file:
+    name: '{key}/{key}.board.json'
+    format: json
+    type: map[string]any
+    records_dir: '.'
+columns:
+    id:
+        type: string
+        required: true
+    title:
+        type: string
+        required: true
+    folder:
+        type: string
+    tags:
+        type: '[]string'
+    userIds:
+        type: '[]string'
+    access:
+        type: string
+    parameters:
+        type: any
+    requiredParams:
+        type: any
+    rows:
+        type: any
