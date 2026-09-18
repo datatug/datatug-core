@@ -22,9 +22,9 @@ func TestCreateProject_RefusesAnInvalidProjectRecord(t *testing.T) {
 	defer func() { timeNow = restore }()
 
 	db := dalgo2memory.New(dalgo2memory.FirestoreProfile())
-	store := NewStore(db, "s1", t.TempDir())
+	store := NewStore(db, "s1")
 
-	summary, err := store.CreateProject(context.Background(), dto.CreateProjectRequest{StoreID: "s1", Title: "T"})
+	summary, err := store.CreateProject(context.Background(), dto.CreateProjectRequest{StoreID: "s1", ID: "t", Title: "T"})
 	require.Error(t, err)
 	assert.Nil(t, summary)
 	assert.Contains(t, err.Error(), "invalid project record")

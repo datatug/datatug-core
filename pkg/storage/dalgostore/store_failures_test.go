@@ -43,7 +43,7 @@ func (db failingDB) ExecuteQueryToRecordsReader(ctx context.Context, query dal.Q
 }
 
 func TestStore_DeleteProject_ReportsABackendFailure(t *testing.T) {
-	store := dalgostore.NewStore(failingDB{DB: newTestDB(), failWrite: true}, testStoreID, t.TempDir())
+	store := dalgostore.NewStore(failingDB{DB: newTestDB(), failWrite: true}, testStoreID)
 	err := store.DeleteProject(context.Background(), "p1")
 	require.Error(t, err)
 	assert.ErrorIs(t, err, errBackend)
@@ -51,7 +51,7 @@ func TestStore_DeleteProject_ReportsABackendFailure(t *testing.T) {
 }
 
 func TestStore_GetProjects_ReportsABackendFailure(t *testing.T) {
-	store := dalgostore.NewStore(failingDB{DB: newTestDB(), failQuery: true}, testStoreID, t.TempDir())
+	store := dalgostore.NewStore(failingDB{DB: newTestDB(), failQuery: true}, testStoreID)
 	projects, err := store.GetProjects(context.Background())
 	require.Error(t, err)
 	assert.Nil(t, projects)
@@ -95,7 +95,7 @@ func TestStore_GetProjects_RefusesARecordOfTheWrongType(t *testing.T) {
 	type notAProjectFile struct{}
 	store := dalgostore.NewStore(
 		readerDB{DB: newTestDB(), records: []record.Record{record.NewRecordWithData(key, &notAProjectFile{})}},
-		testStoreID, t.TempDir())
+		testStoreID)
 
 	projects, err := store.GetProjects(context.Background())
 	require.Error(t, err)
@@ -107,10 +107,20 @@ func TestStore_GetProjects_RefusesANonStringProjectID(t *testing.T) {
 	key := record.NewKeyWithParentAndID(record.NewKeyWithID("ext", "datatug"), "projects", 42)
 	store := dalgostore.NewStore(
 		readerDB{DB: newTestDB(), records: []record.Record{record.NewRecordWithData(key, &datatug.ProjectFile{})}},
-		testStoreID, t.TempDir())
+		testStoreID)
 
 	projects, err := store.GetProjects(context.Background())
 	require.Error(t, err)
 	assert.Nil(t, projects)
 	assert.Contains(t, err.Error(), "non-string ID")
+}
+
+func TestStore_CreateProject_ReportsABackendFailure(t *testing.T) {
+	store := dalgostore.NewStore(failingDB{DB: newTestDB(), failWrite: true}, testStoreID)
+	summary, err := store.CreateProject(context.Background(), createRequest("p1", "P1"))
+	require.Error(t, err)
+	assert.Nil(t, summary)
+	assert.ErrorIs(t, err, errBackend)
+	assert.False(t, record.IsAlreadyExists(err), "a backend failure is not a duplicate id")
+	assert.Contains(t, err.Error(), "failed to create project")
 }

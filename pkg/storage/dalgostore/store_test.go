@@ -3,8 +3,6 @@ package dalgostore_test
 import (
 	"context"
 	"errors"
-	"os"
-	"path/filepath"
 	"sort"
 	"testing"
 	"time"
@@ -23,24 +21,27 @@ import (
 
 const testStoreID = "s1"
 
-// newTestStore returns a Store over an in-memory dal.DB whose store root is
-// a fresh temp directory, so the schema install CreateProject performs is
-// exercised against a real filesystem without touching the repository.
-func newTestStore(t *testing.T) (*dalgostore.Store, dal.DB, string) {
+// newTestStore returns a Store over an in-memory dal.DB. The store touches
+// no file system, so nothing else is needed to exercise it.
+func newTestStore(t *testing.T) (*dalgostore.Store, dal.DB) {
 	t.Helper()
 	db := newTestDB()
-	dir := t.TempDir()
-	return dalgostore.NewStore(db, testStoreID, dir), db, dir
+	return dalgostore.NewStore(db, testStoreID), db
+}
+
+// createRequest builds a valid create-project request for this store.
+func createRequest(id, title string) dto.CreateProjectRequest {
+	return dto.CreateProjectRequest{StoreID: testStoreID, ID: id, Title: title}
 }
 
 func TestNewStore_ImplementsStorageStore(t *testing.T) {
-	var s storage.Store = dalgostore.NewStore(newTestDB(), testStoreID, t.TempDir())
+	var s storage.Store = dalgostore.NewStore(newTestDB(), testStoreID)
 	require.NotNil(t, s)
 	assert.Equal(t, testStoreID, s.(*dalgostore.Store).ID())
 }
 
 func TestStore_GetProjectStore(t *testing.T) {
-	store, _, _ := newTestStore(t)
+	store, _ := newTestStore(t)
 	projectStore := store.GetProjectStore("p1")
 	require.NotNil(t, projectStore)
 	assert.Equal(t, "p1", projectStore.ProjectID())
@@ -53,10 +54,10 @@ func TestStore_GetProjectStore(t *testing.T) {
 func TestStore_CreateProject(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("creates the project record, the schema and the summary", func(t *testing.T) {
-		store, db, dir := newTestStore(t)
+	t.Run("creates the project record under the caller's id", func(t *testing.T) {
+		store, db := newTestStore(t)
 
-		summary, err := store.CreateProject(ctx, dto.CreateProjectRequest{StoreID: testStoreID, Title: "My First Project"})
+		summary, err := store.CreateProject(ctx, createRequest("my-first-project", "My First Project"))
 		require.NoError(t, err)
 		require.NotNil(t, summary)
 		assert.Equal(t, "my-first-project", summary.ID)
@@ -64,9 +65,6 @@ func TestStore_CreateProject(t *testing.T) {
 		assert.Equal(t, "private", summary.Access)
 		require.NotNil(t, summary.Created)
 		assert.False(t, summary.Created.At.IsZero())
-
-		// The static inGitDB schema is installed into the store root.
-		assert.FileExists(t, filepath.Join(dir, ".ingitdb", "root-collections.yaml"))
 
 		// The record lands at the canonical key path, built here from the
 		// same dal-go/record primitives, independently of the package.
@@ -84,70 +82,66 @@ func TestStore_CreateProject(t *testing.T) {
 		assert.Equal(t, "My First Project", loaded.Title)
 	})
 
-	t.Run("is repeatable against a store whose schema is already installed", func(t *testing.T) {
-		store, _, _ := newTestStore(t)
-		_, err := store.CreateProject(ctx, dto.CreateProjectRequest{StoreID: testStoreID, Title: "One"})
+	t.Run("creates several projects in one store", func(t *testing.T) {
+		store, _ := newTestStore(t)
+		_, err := store.CreateProject(ctx, createRequest("one", "One"))
 		require.NoError(t, err)
-		_, err = store.CreateProject(ctx, dto.CreateProjectRequest{StoreID: testStoreID, Title: "Two"})
+		_, err = store.CreateProject(ctx, createRequest("two", "Two"))
 		require.NoError(t, err)
 	})
 
-	t.Run("refuses a project whose id is already taken", func(t *testing.T) {
-		store, _, _ := newTestStore(t)
-		_, err := store.CreateProject(ctx, dto.CreateProjectRequest{StoreID: testStoreID, Title: "Same Title"})
+	t.Run("refuses a project whose id is already taken, naming the id", func(t *testing.T) {
+		store, _ := newTestStore(t)
+		_, err := store.CreateProject(ctx, createRequest("taken", "First"))
 		require.NoError(t, err)
 
-		summary, err := store.CreateProject(ctx, dto.CreateProjectRequest{StoreID: testStoreID, Title: "same title"})
+		summary, err := store.CreateProject(ctx, createRequest("taken", "Second"))
 		require.Error(t, err)
 		assert.Nil(t, summary)
 		assert.True(t, record.IsAlreadyExists(err), "expected a record-exists error, got: %v", err)
+		assert.Contains(t, err.Error(), `project "taken" already exists`)
+
+		// The project that holds the id is untouched by the refusal.
+		loaded, err := store.GetProjectStore("taken").LoadProjectFile(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, "First", loaded.Title)
 	})
 
 	t.Run("refuses an invalid request", func(t *testing.T) {
-		store, _, _ := newTestStore(t)
-		_, err := store.CreateProject(ctx, dto.CreateProjectRequest{StoreID: testStoreID})
-		require.Error(t, err)
-		assert.True(t, validation.IsBadRequestError(err), "unexpected error: %v", err)
+		store, _ := newTestStore(t)
+		for name, request := range map[string]dto.CreateProjectRequest{
+			"no title": {StoreID: testStoreID, ID: "p1"},
+			"no store": {ID: "p1", Title: "T"},
+			"no id":    {StoreID: testStoreID, Title: "T"},
+		} {
+			t.Run(name, func(t *testing.T) {
+				_, err := store.CreateProject(ctx, request)
+				require.Error(t, err)
+				assert.True(t, validation.IsBadRequestError(err), "unexpected error: %v", err)
+			})
+		}
+	})
 
-		_, err = store.CreateProject(ctx, dto.CreateProjectRequest{Title: "No Store"})
-		require.Error(t, err)
-		assert.True(t, validation.IsBadRequestError(err), "unexpected error: %v", err)
+	t.Run("refuses an id that breaks the project-id rules", func(t *testing.T) {
+		store, _ := newTestStore(t)
+		for _, id := range []string{"Upper", "with space", "a/b", "../escape", "-lead", "trail-", "_lead", "tail_", "dot.ted", "тест"} {
+			t.Run(id, func(t *testing.T) {
+				_, err := store.CreateProject(ctx, createRequest(id, "T"))
+				require.Error(t, err)
+				var badField validation.ErrBadFieldValue
+				require.True(t, errors.As(err, &badField), "unexpected error: %v", err)
+				assert.Equal(t, "id", badField.Field)
+			})
+		}
 	})
 
 	t.Run("refuses a request addressed to another store", func(t *testing.T) {
-		store, _, _ := newTestStore(t)
-		_, err := store.CreateProject(ctx, dto.CreateProjectRequest{StoreID: "other", Title: "T"})
+		store, _ := newTestStore(t)
+		_, err := store.CreateProject(ctx, dto.CreateProjectRequest{StoreID: "other", ID: "p1", Title: "T"})
 		require.Error(t, err)
 		var badField validation.ErrBadFieldValue
 		require.True(t, errors.As(err, &badField), "unexpected error: %v", err)
 		assert.Equal(t, "store", badField.Field)
-	})
-
-	t.Run("refuses a title no id can be derived from", func(t *testing.T) {
-		store, _, _ := newTestStore(t)
-		_, err := store.CreateProject(ctx, dto.CreateProjectRequest{StoreID: testStoreID, Title: "-/-"})
-		require.Error(t, err)
-		var badField validation.ErrBadFieldValue
-		require.True(t, errors.As(err, &badField), "unexpected error: %v", err)
-		assert.Equal(t, "title", badField.Field)
-	})
-
-	t.Run("refuses a store with no store root directory", func(t *testing.T) {
-		store := dalgostore.NewStore(newTestDB(), testStoreID, "")
-		_, err := store.CreateProject(ctx, dto.CreateProjectRequest{StoreID: testStoreID, Title: "T"})
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "no store root directory")
-	})
-
-	t.Run("reports a failed schema install", func(t *testing.T) {
-		dir := filepath.Join(t.TempDir(), "root")
-		// A regular file where the store root must be a directory makes
-		// WriteSchema fail, and CreateProject must surface that.
-		require.NoError(t, os.WriteFile(dir, []byte("not a directory"), 0o600))
-		store := dalgostore.NewStore(newTestDB(), testStoreID, dir)
-		_, err := store.CreateProject(ctx, dto.CreateProjectRequest{StoreID: testStoreID, Title: "T"})
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to install inGitDB schema")
 	})
 }
 
@@ -155,8 +149,8 @@ func TestStore_DeleteProject(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("deletes the project record", func(t *testing.T) {
-		store, _, _ := newTestStore(t)
-		_, err := store.CreateProject(ctx, dto.CreateProjectRequest{StoreID: testStoreID, Title: "Doomed"})
+		store, _ := newTestStore(t)
+		_, err := store.CreateProject(ctx, createRequest("doomed", "Doomed"))
 		require.NoError(t, err)
 
 		require.NoError(t, store.DeleteProject(ctx, "doomed"))
@@ -170,12 +164,12 @@ func TestStore_DeleteProject(t *testing.T) {
 	})
 
 	t.Run("deleting a project that does not exist is not an error", func(t *testing.T) {
-		store, _, _ := newTestStore(t)
+		store, _ := newTestStore(t)
 		assert.NoError(t, store.DeleteProject(ctx, "never-existed"))
 	})
 
 	t.Run("refuses an empty project id", func(t *testing.T) {
-		store, _, _ := newTestStore(t)
+		store, _ := newTestStore(t)
 		err := store.DeleteProject(ctx, "  ")
 		require.Error(t, err)
 		assert.True(t, validation.IsBadRequestError(err), "unexpected error: %v", err)
@@ -186,9 +180,9 @@ func TestStore_GetProjects(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("returns a brief per project", func(t *testing.T) {
-		store, _, _ := newTestStore(t)
-		for _, title := range []string{"Alpha Project", "Beta Project"} {
-			_, err := store.CreateProject(ctx, dto.CreateProjectRequest{StoreID: testStoreID, Title: title})
+		store, _ := newTestStore(t)
+		for id, title := range map[string]string{"alpha": "Alpha Project", "beta": "Beta Project"} {
+			_, err := store.CreateProject(ctx, createRequest(id, title))
 			require.NoError(t, err)
 		}
 
@@ -197,10 +191,10 @@ func TestStore_GetProjects(t *testing.T) {
 		require.Len(t, projects, 2)
 		sort.Slice(projects, func(i, j int) bool { return projects[i].ID < projects[j].ID })
 
-		assert.Equal(t, "alpha-project", projects[0].ID)
+		assert.Equal(t, "alpha", projects[0].ID)
 		assert.Equal(t, "Alpha Project", projects[0].Title)
 		assert.Equal(t, "private", projects[0].Access)
-		assert.Equal(t, "beta-project", projects[1].ID)
+		assert.Equal(t, "beta", projects[1].ID)
 		assert.Equal(t, "Beta Project", projects[1].Title)
 
 		// Every brief is valid on its own terms.
@@ -209,15 +203,42 @@ func TestStore_GetProjects(t *testing.T) {
 		}
 	})
 
+	t.Run("the key is the authority for the id, not the stored payload", func(t *testing.T) {
+		store, db := newTestStore(t)
+		// A record whose stored id disagrees with the key it lives under —
+		// what a hand-edited file or an older writer can leave behind. The
+		// key wins, in GetProjects and in LoadProjectFile alike.
+		key := record.NewKeyWithParentAndID(record.NewKeyWithID("ext", "datatug"), "projects", "key-id")
+		file := datatug.ProjectFile{
+			ProjectItem: datatug.ProjectItem{
+				ProjItemBrief: datatug.ProjItemBrief{ID: "payload-id", Title: "Mismatched"},
+				Access:        "private",
+			},
+			Created: &datatug.ProjectCreated{At: time.Now().UTC()},
+		}
+		require.NoError(t, db.RunReadwriteTransaction(ctx, func(ctx context.Context, tx dal.ReadwriteTransaction) error {
+			return tx.Set(ctx, record.NewRecordWithData(key, &file))
+		}))
+
+		projects, err := store.GetProjects(ctx)
+		require.NoError(t, err)
+		require.Len(t, projects, 1)
+		assert.Equal(t, "key-id", projects[0].ID, "the key's id must win over the stored one")
+		assert.Equal(t, "Mismatched", projects[0].Title)
+
+		loaded, err := store.GetProjectStore("key-id").LoadProjectFile(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, "key-id", loaded.ID, "the key's id must win over the stored one")
+	})
+
 	t.Run("returns the repository of a project that has one", func(t *testing.T) {
-		store, db, _ := newTestStore(t)
+		store, _ := newTestStore(t)
 		projectStore := store.GetProjectStore("p1")
 		project := datatug.NewProjectWithStore("p1", projectStore)
 		project.Access = "public"
 		project.Created = &datatug.ProjectCreated{At: time.Now()}
 		project.Repository = &datatug.ProjectRepository{Type: "git", WebURL: "https://example.com/p1"}
 		require.NoError(t, projectStore.SaveProject(ctx, project))
-		require.NotNil(t, db)
 
 		projects, err := store.GetProjects(ctx)
 		require.NoError(t, err)
@@ -229,31 +250,38 @@ func TestStore_GetProjects(t *testing.T) {
 	})
 
 	t.Run("returns nothing for an empty store", func(t *testing.T) {
-		store, _, _ := newTestStore(t)
+		store, _ := newTestStore(t)
 		projects, err := store.GetProjects(ctx)
 		require.NoError(t, err)
 		assert.Empty(t, projects)
 	})
 }
 
-func TestProjectIDFromTitle(t *testing.T) {
+// TestStore_TitleSurvivesAnUnmodifiedSaveRoundTrip is the regression test
+// for the defect filestore still has: create -> LoadProject -> SaveProject
+// with nothing changed must leave the title in place, and the brief the
+// project then lists under must still pass its own validation. A
+// SaveProject that dropped the title would wipe it on any no-op save and
+// produce briefs that fail ProjectBrief.Validate().
+func TestStore_TitleSurvivesAnUnmodifiedSaveRoundTrip(t *testing.T) {
 	ctx := context.Background()
-	for _, tt := range []struct {
-		title string
-		want  string
-	}{
-		{"Simple", "simple"},
-		{"My First Project", "my-first-project"},
-		{"  padded  ", "padded"},
-		{"Mixed 123 CASE", "mixed-123-case"},
-		{"a---b", "a-b"},
-		{"тест project", "project"},
-	} {
-		t.Run(tt.title, func(t *testing.T) {
-			store, _, _ := newTestStore(t)
-			summary, err := store.CreateProject(ctx, dto.CreateProjectRequest{StoreID: testStoreID, Title: tt.title})
-			require.NoError(t, err)
-			assert.Equal(t, tt.want, summary.ID)
-		})
-	}
+	store, _ := newTestStore(t)
+
+	_, err := store.CreateProject(ctx, createRequest("round-trip", "Round Trip"))
+	require.NoError(t, err)
+
+	projectStore := store.GetProjectStore("round-trip")
+	project, err := projectStore.LoadProject(ctx, datatug.Depth(1))
+	require.NoError(t, err)
+	require.Equal(t, "Round Trip", project.Title, "the loaded project must carry its title")
+
+	// Saved back unmodified.
+	require.NoError(t, projectStore.SaveProject(ctx, project))
+
+	projects, err := store.GetProjects(ctx)
+	require.NoError(t, err)
+	require.Len(t, projects, 1)
+	assert.Equal(t, "round-trip", projects[0].ID)
+	assert.Equal(t, "Round Trip", projects[0].Title, "an unmodified save must not wipe the title")
+	assert.NoError(t, projects[0].Validate())
 }

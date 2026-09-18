@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
@@ -60,15 +61,52 @@ func TestGetServerDatabasesRequest_Validate(t *testing.T) {
 
 func TestCreateProjectRequest_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
-		v := CreateProjectRequest{StoreID: "s1", Title: "t1"}
+		v := CreateProjectRequest{StoreID: "s1", ID: "p1", Title: "t1"}
 		assert.Nil(t, v.Validate())
 	})
 	t.Run("missing_store", func(t *testing.T) {
-		v := CreateProjectRequest{Title: "t1"}
+		v := CreateProjectRequest{ID: "p1", Title: "t1"}
+		assert.NotNil(t, v.Validate())
+	})
+	t.Run("missing_id", func(t *testing.T) {
+		v := CreateProjectRequest{StoreID: "s1", Title: "t1"}
 		assert.NotNil(t, v.Validate())
 	})
 	t.Run("missing_title", func(t *testing.T) {
-		v := CreateProjectRequest{StoreID: "s1"}
+		v := CreateProjectRequest{StoreID: "s1", ID: "p1"}
 		assert.NotNil(t, v.Validate())
+	})
+	t.Run("invalid_id", func(t *testing.T) {
+		v := CreateProjectRequest{StoreID: "s1", ID: "Not Valid", Title: "t1"}
+		assert.NotNil(t, v.Validate())
+	})
+}
+
+func TestValidateProjectID(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		for _, id := range []string{"p", "1", "p1", "demo-project-1", "a_b", "a-b_c9", strings.Repeat("a", maxProjectIDLength)} {
+			assert.NoError(t, validateProjectID(id), "id %q must be valid", id)
+		}
+	})
+	t.Run("invalid", func(t *testing.T) {
+		for _, id := range []string{
+			"P",        // upper case
+			"p roject", // space
+			"a/b",      // path separator
+			`a\b`,      // windows path separator
+			"..",       // parent directory
+			".",        // current directory
+			"a.b",      // dot
+			"-p",       // leading dash
+			"p-",       // trailing dash
+			"_p",       // leading underscore
+			"p_",       // trailing underscore
+			"-",        // a dash on its own
+			"тест",     // non-ASCII
+			"a\tb",     // control character
+			strings.Repeat("a", maxProjectIDLength+1), // too long
+		} {
+			assert.Error(t, validateProjectID(id), "id %q must be rejected", id)
+		}
 	})
 }
