@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -106,6 +107,79 @@ func TestGetSettings(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestAIProfilesYAMLRoundTrip(t *testing.T) {
+	const config = `ai:
+  profiles:
+    deepseek:
+      model: deepseek-flash
+      baseUrl: https://api.deepseek.com
+      apiKeyEnv: DEEPSEEK_API_KEY
+      thinking: low
+`
+
+	defer func() { osOpen = standardOsOpen }()
+	osOpen = func(name string) (io.ReadCloser, error) {
+		return io.NopCloser(strings.NewReader(config)), nil
+	}
+
+	got, err := GetSettings()
+	if err != nil {
+		t.Fatalf("GetSettings() error = %v", err)
+	}
+	want := Settings{AI: &AIConfig{Profiles: map[string]AIProfile{
+		"deepseek": {
+			Model:     "deepseek-flash",
+			BaseURL:   "https://api.deepseek.com",
+			APIKeyEnv: "DEEPSEEK_API_KEY",
+			Thinking:  "low",
+		},
+	}}}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("GetSettings() = %#v, want %#v", got, want)
+	}
+
+	encoded, err := yaml.Marshal(got)
+	if err != nil {
+		t.Fatalf("yaml.Marshal() error = %v", err)
+	}
+	var roundTripped Settings
+	if err := yaml.Unmarshal(encoded, &roundTripped); err != nil {
+		t.Fatalf("yaml.Unmarshal() error = %v", err)
+	}
+	if !reflect.DeepEqual(roundTripped, want) {
+		t.Fatalf("YAML round trip = %#v, want %#v", roundTripped, want)
+	}
+}
+
+func TestSaveSettingsPreservesAIProfiles(t *testing.T) {
+	defer func() { homedirDir = homedir.Dir }()
+	configDir := t.TempDir()
+	homedirDir = func() (string, error) { return configDir, nil }
+
+	want := Settings{AI: &AIConfig{Profiles: map[string]AIProfile{
+		"deepseek": {
+			Model:     "deepseek-flash",
+			BaseURL:   "https://api.deepseek.com",
+			APIKeyEnv: "DEEPSEEK_API_KEY",
+		},
+	}}}
+	if err := SaveSettings(want); err != nil {
+		t.Fatalf("SaveSettings() error = %v", err)
+	}
+
+	data, err := os.ReadFile(GetConfigFilePath())
+	if err != nil {
+		t.Fatalf("os.ReadFile() error = %v", err)
+	}
+	var got Settings
+	if err := yaml.Unmarshal(data, &got); err != nil {
+		t.Fatalf("yaml.Unmarshal() error = %v", err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("saved settings = %#v, want %#v", got, want)
 	}
 }
 

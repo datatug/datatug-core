@@ -17,8 +17,24 @@ type Settings struct {
 
 	Client *ClientConfig `yaml:"client,omitempty" json:"client,omitempty"`
 	Server *ServerConfig `yaml:"server,omitempty" json:"server,omitempty"`
+	AI     *AIConfig     `yaml:"ai,omitempty" json:"ai,omitempty"`
 
 	Credentials map[string][]AuthCredential `yaml:"credentials,omitempty" json:"credentials,omitempty"`
+}
+
+// AIConfig defines the named AI provider profiles available to DataTug
+// commands. Credentials are referenced by environment variable name rather
+// than stored in the DataTug configuration file.
+type AIConfig struct {
+	Profiles map[string]AIProfile `yaml:"profiles,omitempty" json:"profiles,omitempty"`
+}
+
+// AIProfile contains the defaults used when a named AI profile is selected.
+type AIProfile struct {
+	Model     string `yaml:"model,omitempty" json:"model,omitempty"`
+	BaseURL   string `yaml:"baseUrl,omitempty" json:"baseUrl,omitempty"`
+	APIKeyEnv string `yaml:"apiKeyEnv,omitempty" json:"apiKeyEnv,omitempty"`
+	Thinking  string `yaml:"thinking,omitempty" json:"thinking,omitempty"`
 }
 
 func (v Settings) GetProjectConfig(projectID string) *ProjectRef {
