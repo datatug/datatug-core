@@ -94,7 +94,7 @@ func queryDefWithEveryPersistedField() QueryDef {
 			Errors:     []string{"column Total is missing a not-null constraint"},
 		}},
 		Capture:    validQueryCapture(),
-		Federation: &QueryFederation{OVDBBaseURL: "http://127.0.0.1:50501", Tables: []QueryFederationTable{{Name: "Invoice", Schema: "main", Fields: []string{"country_id"}}}, Lookups: []QueryHTTPLookup{{Database: "countries", Collection: "Country", FromColumn: "countryId", Fields: []QueryLookupField{{Source: "population", Target: "populationFromHttp"}}}}},
+		Federation: &QueryFederation{OVDBBaseURL: "http://127.0.0.1:50501", Tables: []QueryFederationTable{{Name: "Invoice", Database: "orders", Schema: "main", Fields: []string{"country_id"}}}, Lookups: []QueryHTTPLookup{{Database: "countries", Collection: "Country", FromColumn: "countryId", Fields: []QueryLookupField{{Source: "population", Target: "populationFromHttp"}}}}},
 	}
 }
 
@@ -125,6 +125,7 @@ func storageScreenCases() []storageScreenCase {
 		set("id", func(q *QueryDef) { q.ID = storageCredentialValue }),
 		set("federation.ovdbBaseUrl", func(q *QueryDef) { q.Federation.OVDBBaseURL = storageCredentialValue }),
 		set("federation.tables[0].name", func(q *QueryDef) { q.Federation.Tables[0].Name = storageCredentialValue }),
+		set("federation.tables[0].database", func(q *QueryDef) { q.Federation.Tables[0].Database = storageCredentialValue }),
 		set("federation.tables[0].schema", func(q *QueryDef) { q.Federation.Tables[0].Schema = storageCredentialValue }),
 		set("federation.tables[0].fields[0]", func(q *QueryDef) { q.Federation.Tables[0].Fields[0] = storageCredentialValue }),
 		set("federation.lookups[0].database", func(q *QueryDef) { q.Federation.Lookups[0].Database = storageCredentialValue }),
@@ -328,6 +329,7 @@ var queryStorageFieldDecisions = map[string]string{
 	"purpose":                              "credential (QueryDef.Validate)",
 	"federation.ovdbBaseUrl":               "credential",
 	"federation.tables[].name":             "identifier",
+	"federation.tables[].database":         "identifier",
 	"federation.tables[].schema":           "identifier",
 	"federation.tables[].fields[]":         "metadata identifier",
 	"federation.lookups[].database":        "identifier",

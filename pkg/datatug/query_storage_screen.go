@@ -190,6 +190,7 @@ const storedQueryHint = "a query is stored in git-tracked project files"
 //	capture.bindings[].origin                     closed set (QueryCapture.Validate)
 //	federation.ovdbBaseUrl                       credential
 //	federation.tables[].name                     identifier
+//	federation.tables[].database                 identifier
 //	federation.tables[].schema                   identifier
 //	federation.tables[].fields[]                 metadata identifier
 //	federation.lookups[].database                identifier
@@ -225,6 +226,7 @@ func (s *queryStorageScreen) federation(f *QueryFederation) {
 	for i, table := range f.Tables {
 		at := fmt.Sprintf("federation.tables[%d]", i)
 		s.identifier(at+".name", table.Name)
+		s.identifier(at+".database", table.Database)
 		s.identifier(at+".schema", table.Schema)
 		for j, field := range table.Fields {
 			s.metadataIdentifier(fmt.Sprintf("%s.fields[%d]", at, j), field)

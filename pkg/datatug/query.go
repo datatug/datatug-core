@@ -167,9 +167,10 @@ type QueryFederation struct {
 }
 
 type QueryFederationTable struct {
-	Name   string   `json:"name" yaml:"name"`
-	Schema string   `json:"schema,omitempty" yaml:"schema,omitempty"`
-	Fields []string `json:"fields" yaml:"fields"`
+	Name     string   `json:"name" yaml:"name"`
+	Database string   `json:"database,omitempty" yaml:"database,omitempty"`
+	Schema   string   `json:"schema,omitempty" yaml:"schema,omitempty"`
+	Fields   []string `json:"fields" yaml:"fields"`
 }
 
 // QueryHTTPLookup reads one OVDB record per result row. Source maps a field
