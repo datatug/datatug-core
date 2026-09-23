@@ -5,7 +5,7 @@ go 1.26.0
 toolchain go1.27.1
 
 require (
-	github.com/dal-go/dalgo v0.80.11
+	github.com/dal-go/dalgo v0.86.1
 	github.com/dal-go/record v0.1.3
 	github.com/gofrs/flock v0.13.1
 	github.com/ingitdb/ingitdb-go/ingitdb v0.7.3
@@ -20,7 +20,7 @@ require (
 )
 
 require (
-	github.com/RoaringBitmap/roaring/v2 v2.28.0 // indirect
+	github.com/RoaringBitmap/roaring/v2 v2.29.0 // indirect
 	github.com/bits-and-blooms/bitset v1.24.6 // indirect
 	github.com/ingr-io/ingr-go v0.0.2 // indirect
 	github.com/kr/text v0.2.0 // indirect
