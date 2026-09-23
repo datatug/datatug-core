@@ -155,6 +155,37 @@ type QueryDef struct {
 	// Capture is the provenance of a query captured from exploration; nil
 	// for a query authored any other way. See QueryCapture.
 	Capture *QueryCapture `json:"capture,omitempty" yaml:"capture,omitempty"`
+	// Federation contains client-side source routing and optional per-row HTTP
+	// lookups. It is project metadata, never a place for credentials.
+	Federation *QueryFederation `json:"federation,omitempty" yaml:"federation,omitempty"`
+}
+
+type QueryFederation struct {
+	OVDBBaseURL string                 `json:"ovdbBaseUrl,omitempty" yaml:"ovdbBaseUrl,omitempty"`
+	Tables      []QueryFederationTable `json:"tables,omitempty" yaml:"tables,omitempty"`
+	Lookups     []QueryHTTPLookup      `json:"lookups,omitempty" yaml:"lookups,omitempty"`
+}
+
+type QueryFederationTable struct {
+	Name     string   `json:"name" yaml:"name"`
+	Database string   `json:"database,omitempty" yaml:"database,omitempty"`
+	Schema   string   `json:"schema,omitempty" yaml:"schema,omitempty"`
+	Fields   []string `json:"fields" yaml:"fields"`
+}
+
+// QueryHTTPLookup reads one OVDB record per result row. Source maps a field
+// in the returned JSON object to Target in the output recordset.
+type QueryHTTPLookup struct {
+	Database    string             `json:"database" yaml:"database"`
+	Collection  string             `json:"collection" yaml:"collection"`
+	FromColumn  string             `json:"fromColumn" yaml:"fromColumn"`
+	Fields      []QueryLookupField `json:"fields" yaml:"fields"`
+	Concurrency int                `json:"concurrency,omitempty" yaml:"concurrency,omitempty"`
+}
+
+type QueryLookupField struct {
+	Source string `json:"source" yaml:"source"`
+	Target string `json:"target" yaml:"target"`
 }
 
 // QueryDefTarget defines target of query
@@ -253,6 +284,21 @@ func (v QueryDef) Validate() error {
 	}
 	if err := v.Parameters.Validate(); err != nil {
 		return err
+	}
+	if v.Federation != nil {
+		for i, lookup := range v.Federation.Lookups {
+			if lookup.Database == "" || lookup.Collection == "" || lookup.FromColumn == "" || len(lookup.Fields) == 0 {
+				return validation.NewErrBadRecordFieldValue(fmt.Sprintf("federation.lookups[%d]", i), "database, collection, fromColumn and fields are required")
+			}
+			if lookup.Concurrency < 0 || lookup.Concurrency > 64 {
+				return validation.NewErrBadRecordFieldValue(fmt.Sprintf("federation.lookups[%d].concurrency", i), "must be 1..64 or omitted")
+			}
+			for j, field := range lookup.Fields {
+				if field.Source == "" || field.Target == "" {
+					return validation.NewErrBadRecordFieldValue(fmt.Sprintf("federation.lookups[%d].fields[%d]", i, j), "source and target are required")
+				}
+			}
+		}
 	}
 	for i, p := range v.Parameters {
 		if reason, found := defaultValueCredentialReason(p.DefaultValue); found {
