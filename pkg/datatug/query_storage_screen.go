@@ -188,6 +188,15 @@ const storedQueryHint = "a query is stored in git-tracked project files"
 //	capture.collection                            identifier (QueryCapture.Validate)
 //	capture.bindings[].parameterId                identifier (QueryCapture.Validate)
 //	capture.bindings[].origin                     closed set (QueryCapture.Validate)
+//	federation.ovdbBaseUrl                       credential
+//	federation.tables[].name                     identifier
+//	federation.tables[].schema                   identifier
+//	federation.tables[].fields[]                 metadata identifier
+//	federation.lookups[].database                identifier
+//	federation.lookups[].collection              identifier
+//	federation.lookups[].fromColumn              metadata identifier
+//	federation.lookups[].fields[].source         metadata identifier
+//	federation.lookups[].fields[].target         metadata identifier
 //
 // recordsets[].foreignKeys[].refTable persists no string of its own:
 // DBCollectionKey keeps its schema, catalog and type unexported and its
@@ -204,7 +213,33 @@ func screenQueryDefForStorage(v QueryDef) error {
 	s.projectItem("", v.ProjectItem)
 	s.parameters(v.Parameters)
 	s.recordsets(v.Recordsets)
+	s.federation(v.Federation)
 	return s.err
+}
+
+func (s *queryStorageScreen) federation(f *QueryFederation) {
+	if f == nil {
+		return
+	}
+	s.prose("federation.ovdbBaseUrl", f.OVDBBaseURL)
+	for i, table := range f.Tables {
+		at := fmt.Sprintf("federation.tables[%d]", i)
+		s.identifier(at+".name", table.Name)
+		s.identifier(at+".schema", table.Schema)
+		for j, field := range table.Fields {
+			s.metadataIdentifier(fmt.Sprintf("%s.fields[%d]", at, j), field)
+		}
+	}
+	for i, lookup := range f.Lookups {
+		at := fmt.Sprintf("federation.lookups[%d]", i)
+		s.identifier(at+".database", lookup.Database)
+		s.identifier(at+".collection", lookup.Collection)
+		s.metadataIdentifier(at+".fromColumn", lookup.FromColumn)
+		for j, field := range lookup.Fields {
+			s.metadataIdentifier(fmt.Sprintf("%s.fields[%d].source", at, j), field.Source)
+			s.metadataIdentifier(fmt.Sprintf("%s.fields[%d].target", at, j), field.Target)
+		}
+	}
 }
 
 // queryStorageScreen collects the first refusal so a walk of every field

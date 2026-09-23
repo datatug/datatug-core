@@ -93,7 +93,8 @@ func queryDefWithEveryPersistedField() QueryDef {
 			Files:      []string{"recordsets/invoices.json"},
 			Errors:     []string{"column Total is missing a not-null constraint"},
 		}},
-		Capture: validQueryCapture(),
+		Capture:    validQueryCapture(),
+		Federation: &QueryFederation{OVDBBaseURL: "http://127.0.0.1:50501", Tables: []QueryFederationTable{{Name: "Invoice", Schema: "main", Fields: []string{"country_id"}}}, Lookups: []QueryHTTPLookup{{Database: "countries", Collection: "Country", FromColumn: "countryId", Fields: []QueryLookupField{{Source: "population", Target: "populationFromHttp"}}}}},
 	}
 }
 
@@ -122,6 +123,15 @@ func storageScreenCases() []storageScreenCase {
 	rs := func(q *QueryDef) *RecordsetDefinition { return &q.Recordsets[0] }
 	return []storageScreenCase{
 		set("id", func(q *QueryDef) { q.ID = storageCredentialValue }),
+		set("federation.ovdbBaseUrl", func(q *QueryDef) { q.Federation.OVDBBaseURL = storageCredentialValue }),
+		set("federation.tables[0].name", func(q *QueryDef) { q.Federation.Tables[0].Name = storageCredentialValue }),
+		set("federation.tables[0].schema", func(q *QueryDef) { q.Federation.Tables[0].Schema = storageCredentialValue }),
+		set("federation.tables[0].fields[0]", func(q *QueryDef) { q.Federation.Tables[0].Fields[0] = storageCredentialValue }),
+		set("federation.lookups[0].database", func(q *QueryDef) { q.Federation.Lookups[0].Database = storageCredentialValue }),
+		set("federation.lookups[0].collection", func(q *QueryDef) { q.Federation.Lookups[0].Collection = storageCredentialValue }),
+		set("federation.lookups[0].fromColumn", func(q *QueryDef) { q.Federation.Lookups[0].FromColumn = storageCredentialValue }),
+		set("federation.lookups[0].fields[0].source", func(q *QueryDef) { q.Federation.Lookups[0].Fields[0].Source = storageCredentialValue }),
+		set("federation.lookups[0].fields[0].target", func(q *QueryDef) { q.Federation.Lookups[0].Fields[0].Target = storageCredentialValue }),
 		// A folder must still parse as a folder path, or ValidateFolderPath
 		// refuses it first and this would prove nothing about screening.
 		set("folder", func(q *QueryDef) { q.Folder = "user:alex/Password=" + storageProbe }),
@@ -307,15 +317,24 @@ func TestQueryDefStorageScreen_RefusesMalformedJSONSchema(t *testing.T) {
 // means screenQueryDefForStorage screens it itself; any other value names
 // the check that already owned the field.
 var queryStorageFieldDecisions = map[string]string{
-	"id":        "identifier",
-	"title":     "credential (QueryDef.Validate)",
-	"folder":    "identifier",
-	"tags[]":    "credential",
-	"userIds[]": "credential",
-	"access":    "closed set (ProjectItem.ValidateWithOptions)",
-	"type":      "closed set (QueryDef.Validate)",
-	"text":      "credential (QueryDef.Validate)",
-	"purpose":   "credential (QueryDef.Validate)",
+	"id":                                   "identifier",
+	"title":                                "credential (QueryDef.Validate)",
+	"folder":                               "identifier",
+	"tags[]":                               "credential",
+	"userIds[]":                            "credential",
+	"access":                               "closed set (ProjectItem.ValidateWithOptions)",
+	"type":                                 "closed set (QueryDef.Validate)",
+	"text":                                 "credential (QueryDef.Validate)",
+	"purpose":                              "credential (QueryDef.Validate)",
+	"federation.ovdbBaseUrl":               "credential",
+	"federation.tables[].name":             "identifier",
+	"federation.tables[].schema":           "identifier",
+	"federation.tables[].fields[]":         "metadata identifier",
+	"federation.lookups[].database":        "identifier",
+	"federation.lookups[].collection":      "identifier",
+	"federation.lookups[].fromColumn":      "metadata identifier",
+	"federation.lookups[].fields[].source": "metadata identifier",
+	"federation.lookups[].fields[].target": "metadata identifier",
 
 	"parameters[].id":                 "identifier",
 	"parameters[].type":               "identifier",
