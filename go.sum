@@ -11,6 +11,8 @@ github.com/dal-go/dalgo v0.80.11 h1:jvbqrsnzOcYAdmgIW/bSogTg4/ERtQTk6eFiotPg1+w=
 github.com/dal-go/dalgo v0.80.11/go.mod h1:+6651I975Yh2hoh+eyiqrI19VHC2lWFQNhN0iQmjZQ0=
 github.com/dal-go/dalgo v0.86.1 h1:Lope33/BkG7EDYoWRkKKjWo+4x/+oMA7tax1H78W2hM=
 github.com/dal-go/dalgo v0.86.1/go.mod h1:ZSv34tSXz5w9BdjQFZi3UCxOnN9EPuW7gTp5lrI95+I=
+github.com/dal-go/dalgo v0.88.0 h1:4kfKCeqdkzg8UTBBZk3prk77dnjWWlSOLhQB7GyATME=
+github.com/dal-go/dalgo v0.88.0/go.mod h1:ZSv34tSXz5w9BdjQFZi3UCxOnN9EPuW7gTp5lrI95+I=
 github.com/dal-go/record v0.1.3 h1:K85k/kSX08lTefMiMmPpC12nmCY2TVJk7+ZyC5PD9XU=
 github.com/dal-go/record v0.1.3/go.mod h1:quwsVJTT0f6y3Mhx+yHpTobY7luX1M6kyO6fdJ/AFYE=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -23,6 +25,8 @@ github.com/ingitdb/ingitdb-go/ingitdb v0.6.1 h1:+ZGYGGS0iRl2vPP3ysSTv96eVNjyIPQV
 github.com/ingitdb/ingitdb-go/ingitdb v0.6.1/go.mod h1:p0dD9yIhTKG86CedtvJCoasv4Nf4AKei9KQUy45agdI=
 github.com/ingitdb/ingitdb-go/ingitdb v0.7.3 h1:vzJ38BSaJU7yp6g0XbeZS4NMmJH5YLhJUYrTfzxs/ms=
 github.com/ingitdb/ingitdb-go/ingitdb v0.7.3/go.mod h1:p0dD9yIhTKG86CedtvJCoasv4Nf4AKei9KQUy45agdI=
+github.com/ingitdb/ingitdb-go/ingitdb v0.7.5 h1:KAnZgRhNYcZ2PWZc0+ousl1h1WQGsO0WO9R/sDiL0yI=
+github.com/ingitdb/ingitdb-go/ingitdb v0.7.5/go.mod h1:p0dD9yIhTKG86CedtvJCoasv4Nf4AKei9KQUy45agdI=
 github.com/ingr-io/ingr-go v0.0.2 h1:2AfFllqzCe2dCNtxIUo306oYzaZr//YzrVOHd0C73nI=
 github.com/ingr-io/ingr-go v0.0.2/go.mod h1:gb/dGW0qXziCq9iAIgk0yITyWY013w2bhdYiXO0RLuY=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
