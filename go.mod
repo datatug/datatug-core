@@ -5,10 +5,10 @@ go 1.26.0
 toolchain go1.27.1
 
 require (
-	github.com/dal-go/dalgo v0.86.1
+	github.com/dal-go/dalgo v0.88.0
 	github.com/dal-go/record v0.1.3
 	github.com/gofrs/flock v0.13.1
-	github.com/ingitdb/ingitdb-go/ingitdb v0.7.3
+	github.com/ingitdb/ingitdb-go/ingitdb v0.7.5
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/stretchr/testify v1.12.1
