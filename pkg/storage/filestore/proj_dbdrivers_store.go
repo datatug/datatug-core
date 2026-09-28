@@ -14,7 +14,7 @@ var _ datatug.ProjDbDriversStore = (*fsProjDbDriversStore)(nil)
 func newFsProjDbDriversStore(projectPath string) fsProjDbDriversStore {
 	return fsProjDbDriversStore{
 		fsProjectItemsStore: newDirProjectItemsStore[datatug.ProjDbDrivers, *datatug.ProjDbDriver, datatug.ProjDbDriver](
-			path.Join(projectPath, storage.DbsFolder), "",
+			path.Join(projectPath, storage.DbsFolder), "driver.json",
 		),
 	}
 }

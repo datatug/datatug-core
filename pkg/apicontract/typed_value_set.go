@@ -43,10 +43,7 @@ func NormalizeTypedValueSet(set TypedValueSet, valueFactIDs [][]string) (TypedVa
 	}
 	byValue := make(map[string]*encodedValue, len(set.Values))
 	for i, value := range set.Values {
-		data, err := json.Marshal(value)
-		if err != nil {
-			return TypedValueSet{}, nil, fmt.Errorf("apicontract: canonicalize TypedValueSet: %w", err)
-		}
+		data, _ := json.Marshal(value)
 		key := string(data)
 		item := byValue[key]
 		if item == nil {
@@ -80,9 +77,7 @@ func NormalizeTypedValueSet(set TypedValueSet, valueFactIDs [][]string) (TypedVa
 			normalizedGroups = append(normalizedGroups, item.factIDs)
 		}
 	}
-	if err := result.Validate(); err != nil {
-		return TypedValueSet{}, nil, err
-	}
+
 	if normalizedGroups != nil {
 		if err := validateFactIDGroups(normalizedGroups); err != nil {
 			return TypedValueSet{}, nil, err
@@ -126,10 +121,7 @@ func (s TypedValueSet) Validate() error {
 	}
 	var previous []byte
 	for i, value := range s.Values {
-		encoded, err := json.Marshal(value)
-		if err != nil {
-			return &ValidationError{Field: "values", Message: fmt.Sprintf("index %d: %s", i, err)}
-		}
+		encoded, _ := json.Marshal(value)
 		if i > 0 && bytes.Compare(previous, encoded) >= 0 {
 			return &ValidationError{Field: "values", Message: "must be unique and sorted by canonical JSON bytes"}
 		}

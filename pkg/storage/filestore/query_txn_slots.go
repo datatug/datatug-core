@@ -119,10 +119,12 @@ func vetQueryTxnSlotDir(slot string) (exists bool, err error) {
 	return true, nil
 }
 
+var mkdirSlotDir = os.Mkdir
+
 // ensureQueryTxnSlotDir creates extra slot slot at 0700 unless it exists,
 // then vets it.
 func ensureQueryTxnSlotDir(slot string) error {
-	if err := os.Mkdir(slot, 0o700); err != nil && !os.IsExist(err) {
+	if err := mkdirSlotDir(slot, 0o700); err != nil && !os.IsExist(err) {
 		return fmt.Errorf("failed to create query transaction slot %s: %w", slot, err)
 	}
 	_, err := vetQueryTxnSlotDir(slot)

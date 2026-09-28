@@ -4,11 +4,14 @@ import (
 	"embed"
 	"fmt"
 	"io"
+	"io/fs"
 	"text/template" // TODO: use "html/template"
 )
 
 //go:embed templates/*.md
-var templatesFS embed.FS
+var embeddedTemplatesFS embed.FS
+
+var templatesFS fs.FS = embeddedTemplatesFS
 
 func writeReadme(w io.Writer, name string, data map[string]interface{}) error {
 	t, err := template.New(name).ParseFS(templatesFS, "templates/*.md")

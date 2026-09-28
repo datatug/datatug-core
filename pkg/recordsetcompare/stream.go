@@ -78,6 +78,8 @@ type comparisonPlan struct {
 	observer       RecordObserver
 }
 
+var classifyDiffFunc = classifyDiff
+
 // CompareOrdered compares two streams that are already strictly ordered by
 // Options.Key using CompareTypedKeys. Alignment delegates to DALgo
 // recordops.DiffFunc, which advances the cursor(s) at the smallest key and
@@ -199,7 +201,7 @@ func compareOrderedPrepared(left, right OrderedRecordset, plan comparisonPlan) (
 				return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: compare ordered streams: %w", err)
 			}
 		}
-		recordResult, changes, err := classifyDiff(diff, ordinal, plan)
+		recordResult, changes, err := classifyDiffFunc(diff, ordinal, plan)
 		if err != nil {
 			return apicontract.CompareResult{}, err
 		}

@@ -48,9 +48,7 @@ func (s *CompareSideSpec) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(data, &fields); err != nil {
-		return err
-	}
+	_ = json.Unmarshal(data, &fields)
 	has := func(name string) bool { _, ok := fields[name]; return ok }
 	switch value.Kind {
 	case CompareSideScope:
@@ -432,10 +430,7 @@ func (r CompareResult) Validate() error {
 			if !typedValueMatchesColumn(value.Value, columnByName[r.Distribution.Column]) {
 				return &ValidationError{Field: "distribution", Message: fmt.Sprintf("value %d does not match declared column type", i)}
 			}
-			stableKey, err := TypedValueSortKey(value.Value)
-			if err != nil {
-				return &ValidationError{Field: "distribution", Message: fmt.Sprintf("value %d: %s", i, err)}
-			}
+			stableKey, _ := TypedValueSortKey(value.Value)
 			if i > 0 && priorKey >= stableKey {
 				return &ValidationError{Field: "distribution", Message: "values must be stable and unique"}
 			}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/dal-go/dalgo/dal"
 	"github.com/dal-go/record"
+	"github.com/strongo/validation"
 )
 
 type CollectionType string
@@ -77,5 +78,8 @@ func (v DBCollectionKey) String() string {
 
 // Validate returns error if not valid
 func (v DBCollectionKey) Validate() error {
+	if v.t != "" && !IsKnownCollectionType(v.t) {
+		return validation.NewErrBadRecordFieldValue("type", string(v.t))
+	}
 	return nil
 }

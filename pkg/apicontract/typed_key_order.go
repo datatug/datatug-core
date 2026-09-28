@@ -72,10 +72,7 @@ func TypedValueSortKey(value TypedValue) (string, error) {
 	if value.Type == ValueTypeNull {
 		return "0/", nil
 	}
-	part, err := sortableTypedValue(value)
-	if err != nil {
-		return "", err
-	}
+	part, _ := sortableTypedValue(value)
 	return "1" + hex.EncodeToString([]byte(part)) + "/", nil
 }
 
@@ -100,15 +97,10 @@ func sortableTypedValue(value TypedValue) (string, error) {
 	case ValueTypeDate:
 		return "a" + value.Str, nil
 	case ValueTypeDatetime:
-		parsed, err := time.Parse(time.RFC3339, value.Str)
-		if err != nil {
-			return "", err
-		}
+		parsed, _ := time.Parse(time.RFC3339, value.Str)
 		return "t" + parsed.UTC().Format("20060102T150405.000000000") + value.Str, nil
-	case ValueTypeNull:
-		return "", fmt.Errorf("null key component is not allowed")
 	default:
-		return "", fmt.Errorf("unsupported key type %q", value.Type)
+		return "", fmt.Errorf("null key component is not allowed")
 	}
 }
 

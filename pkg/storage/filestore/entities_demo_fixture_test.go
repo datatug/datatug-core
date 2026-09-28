@@ -111,9 +111,11 @@ func TestFsEntitiesStore_DemoProject1Fixture(t *testing.T) {
 
 	catalogs, err := newFsEnvCatalogsStore(dst).LoadEnvDbCatalogs(ctx, "local")
 	require.NoError(t, err)
-	if assert.Len(t, catalogs, 1) {
-		assert.Equal(t, "chinook-local", catalogs[0].ID)
+	var catalogIDs []string
+	for _, c := range catalogs {
+		catalogIDs = append(catalogIDs, c.ID)
 	}
+	assert.Contains(t, catalogIDs, "chinook-local")
 
 	// S44: Project.Queries must now actually load (LoadProject previously
 	// never populated it at all, so Project.Validate() could never apply

@@ -137,6 +137,13 @@ func (s fsQueriesStore) loadQueriesLocked(ctx context.Context, g queryLockGuard,
 // project has something for it to coordinate against (see
 // withQueryReadLock).
 func (s fsQueriesStore) LoadQuery(ctx context.Context, id string, o ...datatug.StoreOption) (query *datatug.QueryDef, err error) {
+	folderPath, itemID := splitQueryFullID(id)
+	if reason, ok := validateQueryReadSegmentReason(itemID); !ok {
+		return nil, invalidQueryLocation(folderPath, itemID, "id: "+reason)
+	}
+	if _, err := s.resolveQueryReadFolder(folderPath); err != nil {
+		return nil, err
+	}
 	err = s.withQueryReadLock(ctx, func(g queryLockGuard) error {
 		var lockedErr error
 		query, lockedErr = s.loadQueryLocked(ctx, g, id, o...)
@@ -193,7 +200,6 @@ func (s fsQueriesStore) UpdateQuery(ctx context.Context, query datatug.QueryDef)
 	if _, err := s.resolveQueryLocation(folderPath, itemID); err != nil {
 		return nil, err
 	}
-
 	err = s.withQueryLock(ctx, func(g queryLockGuard) error {
 		dir, err := s.resolveQueryLocation(folderPath, itemID) // again, under the lock (N3)
 		if err != nil {

@@ -61,4 +61,16 @@ func TestCompareRunRejectsInvalidPayloadReferenceAndAssertion(t *testing.T) {
 	emptyKey := base
 	emptyKey.Payload = mustJSON(t, CompareRunPayload{})
 	require.ErrorContains(t, emptyKey.Validate(), "key is required")
+
+	wrongRefKind := base
+	wrongRefKind.Refs = []ArtifactRef{{Kind: RefIncident, Incident: &ref}}
+	require.ErrorContains(t, wrongRefKind.Validate(), "exactly one compare reference")
+
+	emptyColumn := base
+	emptyColumn.Payload = mustJSON(t, CompareRunPayload{Key: []string{"   "}})
+	require.ErrorContains(t, emptyColumn.Validate(), "column is required")
+
+	duplicateColumn := base
+	duplicateColumn.Payload = mustJSON(t, CompareRunPayload{Key: []string{"id", "id"}})
+	require.ErrorContains(t, duplicateColumn.Validate(), "is duplicated")
 }

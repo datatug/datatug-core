@@ -3,12 +3,17 @@ package filestore
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"strconv"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 )
+
+var openReadmeFile = func(filePath string) (io.WriteCloser, error) {
+	return os.OpenFile(filePath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+}
 
 // CreateQueryFolder creates folder name under parentPath, plus a README.md
 // naming it unless one is already there. parentPath and name are validated
@@ -33,7 +38,7 @@ func (s fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, name st
 	if err != nil {
 		return fmt.Errorf("failed to create folder: %w", err)
 	}
-	f, err := os.OpenFile(path.Join(dir, "README.md"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+	f, err := openReadmeFile(path.Join(dir, "README.md"))
 	if err != nil {
 		if os.IsExist(err) {
 			return nil

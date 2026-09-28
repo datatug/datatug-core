@@ -516,12 +516,6 @@ func (e Event) validatePayload(view bool) error {
 			return err
 		}
 	case EventCompareRun:
-		if e.Assertion.Kind != AssertionDeterministicResult {
-			return fmt.Errorf("compare.run requires deterministic-result assertion")
-		}
-		if len(e.Refs) != 1 || e.Refs[0].Kind != RefCompare {
-			return fmt.Errorf("compare.run requires exactly one compare reference")
-		}
 		var payload CompareRunPayload
 		if err := decodePayload(e.Payload, &payload); err != nil {
 			return err

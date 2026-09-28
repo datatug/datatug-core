@@ -116,9 +116,6 @@ func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) loadProjectItems(
 		}
 		fsObjectType = processFiles
 		loader = func(f os.FileInfo, i int, mutex *sync.Mutex) error {
-			if f.IsDir() {
-				return nil
-			}
 			id, suffix := storage.GetProjItemIDFromFileName(f.Name())
 			if suffix != s.itemFileSuffix {
 				return nil
@@ -135,9 +132,6 @@ func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) loadProjectItems(
 	case ProjItemStoredAsDir:
 		fsObjectType = processDirs
 		loader = func(f os.FileInfo, i int, mutex *sync.Mutex) error {
-			if !f.IsDir() {
-				return nil
-			}
 			id := f.Name()
 			itemDir := path.Join(dirPath, id)
 			var item TItemPtr

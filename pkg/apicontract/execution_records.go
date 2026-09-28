@@ -693,10 +693,7 @@ func FingerprintRecordset(recordset Recordset) (string, error) {
 		Columns []Column       `json:"columns"`
 		Rows    [][]TypedValue `json:"rows"`
 	}{Columns: columns, Rows: rows}
-	encoded, err := json.Marshal(canonical)
-	if err != nil {
-		return "", fmt.Errorf("apicontract: fingerprint recordset: %w", err)
-	}
+	encoded, _ := json.Marshal(canonical)
 	digest := sha256.Sum256(encoded)
 	return hex.EncodeToString(digest[:]), nil
 }

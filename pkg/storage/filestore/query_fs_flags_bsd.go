@@ -21,16 +21,18 @@ const (
 	bsdSystemNoUnlink  = 0x00100000 // SF_NOUNLINK (macOS, FreeBSD, DragonFly)
 )
 
-var bsdNoReplaceFlags = func() uint32 {
+func computeBSDNoReplaceFlags(goos string) uint32 {
 	flags := uint32(bsdUserImmutable | bsdUserAppend | bsdSystemImmutable | bsdSystemAppend)
-	switch runtime.GOOS {
+	switch goos {
 	case "darwin":
 		flags |= bsdSystemNoUnlink
 	case "freebsd", "dragonfly":
 		flags |= bsdUserNoUnlink | bsdSystemNoUnlink
 	}
 	return flags
-}()
+}
+
+var bsdNoReplaceFlags = computeBSDNoReplaceFlags(runtime.GOOS)
 
 // fileFlagsIssue reports why the entry info (from Lstat) describes cannot
 // be renamed over or removed because of its file flags - immutable,

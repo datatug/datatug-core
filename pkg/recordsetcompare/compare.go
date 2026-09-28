@@ -108,9 +108,6 @@ func intersectColumns(leftList, rightList []apicontract.Column, left, right map[
 	}
 	sort.Strings(sharedNames)
 	sort.Slice(oneSided, func(i, j int) bool {
-		if oneSided[i].Column == oneSided[j].Column {
-			return oneSided[i].Side < oneSided[j].Side
-		}
 		return oneSided[i].Column < oneSided[j].Column
 	})
 	shared := make([]apicontract.Column, 0, len(sharedNames))

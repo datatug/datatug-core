@@ -62,6 +62,27 @@ const (
 // owned by another user, which an unprivileged test cannot create.
 var fileOwnedByCurrentUser = ownedByCurrentUser
 
+type safeReadFile interface {
+	io.ReadCloser
+	Stat() (os.FileInfo, error)
+}
+
+var openRegularFileForRead = func(filePath string) (safeReadFile, error) {
+	return os.OpenFile(filePath, os.O_RDONLY|openNoFollowFlags, 0)
+}
+
+var dirLstat = os.Lstat
+
+type chmodDirFile interface {
+	io.Closer
+	Stat() (os.FileInfo, error)
+	Chmod(perm os.FileMode) error
+}
+
+var openDirForChmod = func(dir string) (chmodDirFile, error) {
+	return os.OpenFile(dir, os.O_RDONLY|openNoFollowFlags, 0)
+}
+
 // nonRegularEntryError refuses an entry that is not a regular file where
 // the query store needs one - a symlink, directory, FIFO, device or socket -
 // or a directory where a query file is to be removed. At one of a query's
@@ -184,7 +205,7 @@ func readRegularFileBudgeted(filePath string, maxSize int64, budget *queryReadBu
 			}
 		}
 	}()
-	f, err := os.OpenFile(filePath, os.O_RDONLY|openNoFollowFlags, 0)
+	f, err := openRegularFileForRead(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, false, nil
@@ -295,7 +316,7 @@ func checkQueryDirAcceptsChanges(dir string) error {
 	if err := checkQueryDirWritable(dir); err != nil {
 		return err
 	}
-	info, err := os.Lstat(dir)
+	info, err := dirLstat(dir)
 	if err != nil {
 		return err
 	}
@@ -333,7 +354,7 @@ func checkTxnArtifact(filePath string, maxPerm os.FileMode) (exists bool, err er
 // os.Chmod would follow a symlink swapped in after the Lstat and change its
 // target instead.
 func chmodDirNoFollow(dir string, info os.FileInfo, perm os.FileMode) error {
-	f, err := os.OpenFile(dir, os.O_RDONLY|openNoFollowFlags, 0)
+	f, err := openDirForChmod(dir)
 	if err != nil {
 		return err
 	}

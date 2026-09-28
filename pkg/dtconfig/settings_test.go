@@ -349,6 +349,26 @@ func TestAddProjectToSettings(t *testing.T) {
 				return nil
 			},
 		},
+		{
+			name:    "project_already_exists",
+			project: ProjectRef{ID: "project1", Path: "~/datatug/project1"},
+			getSettings: func() (settings Settings, err error) {
+				return Settings{
+					Projects: []*ProjectRef{
+						{ID: "project1", Path: "~/datatug/project1"},
+					},
+				}, nil
+			},
+			wantErr: "project already exists",
+		},
+		{
+			name:    "get_settings_error",
+			project: ProjectRef{ID: "project1", Path: "~/datatug/project1"},
+			getSettings: func() (settings Settings, err error) {
+				return Settings{}, errors.New("read error")
+			},
+			wantErr: "failed to get DataTug CLI settings",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -391,3 +411,60 @@ func TestAddProjectToSettings(t *testing.T) {
 		})
 	}
 }
+
+type failWriterCloser struct{}
+
+func (failWriterCloser) Write(p []byte) (n int, err error) {
+	return 0, errors.New("write error")
+}
+
+func (failWriterCloser) Close() error {
+	return nil
+}
+
+type dummyWriteCloser struct {
+	bytes.Buffer
+}
+
+func (d *dummyWriteCloser) Close() error {
+	return nil
+}
+
+func TestSaveSettings_Branches(t *testing.T) {
+	oldCreate := osCreate
+	defer func() { osCreate = oldCreate }()
+
+	t.Run("os_create_error", func(t *testing.T) {
+		osCreate = func(name string) (interface{ io.WriteCloser }, error) {
+			return nil, errors.New("cannot create")
+		}
+		err := SaveSettings(Settings{})
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create settings file")
+	})
+
+	t.Run("encode_error", func(t *testing.T) {
+		osCreate = func(name string) (interface{ io.WriteCloser }, error) {
+			return failWriterCloser{}, nil
+		}
+		err := SaveSettings(Settings{})
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to encode settings")
+	})
+
+	t.Run("empty_server_and_client_stripped", func(t *testing.T) {
+		buf := &dummyWriteCloser{}
+		osCreate = func(name string) (interface{ io.WriteCloser }, error) {
+			return buf, nil
+		}
+		s := Settings{
+			Server: &ServerConfig{},
+			Client: &ClientConfig{},
+		}
+		err := SaveSettings(s)
+		assert.NoError(t, err)
+		assert.NotContains(t, buf.String(), "server:")
+		assert.NotContains(t, buf.String(), "client:")
+	})
+}
+

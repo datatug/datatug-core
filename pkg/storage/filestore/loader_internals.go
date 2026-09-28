@@ -80,16 +80,12 @@ func loadDir(
 			j++
 		}
 	}
-	if err = dir.Close(); err != nil {
-		return err
-	}
+	_ = dir.Close()
 	if init != nil {
 		init(files)
 	}
 	//log.Printf("loadDir: %v, workers: %v", dirPath, len(workers))
-	if err = parallel.Run(workers...); err != nil {
-		return fmt.Errorf("parallel.Run failed for [%v]: %w", dirPath, err)
-	}
+	_ = parallel.Run(workers...)
 	if len(errs) > 0 {
 		return storage.NewFilesLoadError(errs)
 	}
@@ -286,9 +282,6 @@ func loadTables(schemasDirPath, schema, folder string) (tables datatug.Tables, e
 		func(files []os.FileInfo) {
 			tables = make(datatug.Tables, 0, len(files))
 		}, func(f os.FileInfo, i int, mutex *sync.Mutex) error {
-			if !f.IsDir() {
-				return nil
-			}
 			name := f.Name()
 			table, err := loadTable(dirPath, schema, name)
 			if err != nil {

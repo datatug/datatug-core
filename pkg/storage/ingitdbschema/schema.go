@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -31,7 +32,14 @@ import (
 // without it those directories would be silently dropped.
 //
 //go:embed all:files
-var schemaFS embed.FS
+var embeddedSchemaFS embed.FS
+
+type schemaFilesystem interface {
+	fs.FS
+	ReadFile(name string) ([]byte, error)
+}
+
+var schemaFS schemaFilesystem = embeddedSchemaFS
 
 // schemaRoot is the name of the embedded directory that mirrors a store
 // root: schemaFS's paths are all rooted at "files/...".
@@ -160,13 +168,24 @@ func normalizeLineEndings(b []byte) []byte {
 // up, because doing so cannot distinguish its own leftovers from another
 // concurrent writer's in-progress temp file (removing someone else's
 // in-flight temp file is worse than leaving an inert one behind).
+type tempFile interface {
+	io.WriteCloser
+	Chmod(mode os.FileMode) error
+	Sync() error
+	Name() string
+}
+
+var osCreateTemp = func(dir, pattern string) (tempFile, error) {
+	return os.CreateTemp(dir, pattern)
+}
+
 func createFile(target string, content []byte) error {
 	dir := filepath.Dir(target)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("ingitdbschema: create directory for %s: %w", target, err)
 	}
 
-	tmp, err := os.CreateTemp(dir, filepath.Base(target)+".tmp-*")
+	tmp, err := osCreateTemp(dir, filepath.Base(target)+".tmp-*")
 	if err != nil {
 		return fmt.Errorf("ingitdbschema: create temp file for %s: %w", target, err)
 	}

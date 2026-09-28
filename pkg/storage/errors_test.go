@@ -28,6 +28,10 @@ func TestFilesLoadError(t *testing.T) {
 
 	assert.Equal(t, errs, err.Errors())
 	assert.Equal(t, "2 files failed to load:\n\tfile1: err1\n\tfile2: err2", err.Error())
+	assert.Equal(t, err.Error(), err.String())
+
+	singleErr := NewFilesLoadError([]FileLoadError{err1})
+	assert.Equal(t, "1 file failed to load: file1: err1", singleErr.Error())
 }
 
 func TestFilesLoadError_Unwrap(t *testing.T) {

@@ -45,14 +45,26 @@ func checkQueryLockFile(lockPath string) error {
 // own defaults (create; read-only, or read-write on the platforms that can
 // only take an exclusive lock on a writable descriptor) plus
 // openNoFollowFlags.
-func queryLockOpenFlags() int {
+func queryLockOpenFlagsForOS(goos string) int {
 	flags := os.O_CREATE | os.O_RDONLY
-	switch runtime.GOOS {
+	switch goos {
 	case "aix", "solaris", "illumos":
 		flags = os.O_CREATE | os.O_RDWR
 	}
 	return flags | openNoFollowFlags
 }
+
+func queryLockOpenFlags() int {
+	return queryLockOpenFlagsForOS(runtime.GOOS)
+}
+
+var (
+	mkdirTxnDir = os.Mkdir
+	txnDirLstat = os.Lstat
+	tryLockContext = func(fl *flock.Flock, ctx context.Context, retryDelay time.Duration) (bool, error) {
+		return fl.TryLockContext(ctx, retryDelay)
+	}
+)
 
 // queryLockGuard is proof the caller already holds the query store's
 // single advisory lock, and that any earlier interrupted transaction has
@@ -104,7 +116,7 @@ func (s fsQueriesStore) withQueryLock(ctx context.Context, fn func(g queryLockGu
 		return err
 	}
 	fl := flock.New(lockPath, flock.SetFlag(queryLockOpenFlags()), flock.SetPermissions(0o600))
-	ok, err := fl.TryLockContext(ctx, queryLockRetryDelay)
+	ok, err := tryLockContext(fl, ctx, queryLockRetryDelay)
 	if err != nil {
 		return fmt.Errorf("failed to acquire the query store lock: %w", err)
 	}
@@ -210,7 +222,7 @@ func ensureQueryTxnDir(queriesRoot string) (string, error) {
 	if _, err := walkQueryDir(queriesRoot, "", "", false); err != nil {
 		return "", err
 	}
-	info, err := os.Lstat(txnDir)
+	info, err := txnDirLstat(txnDir)
 	switch {
 	case err == nil:
 		if err := vetExistingQueryTxnDir(txnDir, info); err != nil {
@@ -221,11 +233,11 @@ func ensureQueryTxnDir(queriesRoot string) (string, error) {
 		if _, err := walkQueryDir(queriesRoot, "", "", true); err != nil {
 			return "", err
 		}
-		if err := os.Mkdir(txnDir, 0o700); err != nil {
+		if err := mkdirTxnDir(txnDir, 0o700); err != nil {
 			if os.IsExist(err) {
 				// Another process created it between our Lstat and Mkdir.
 				// Vet it exactly like any directory found already there.
-				info, err := os.Lstat(txnDir)
+				info, err := txnDirLstat(txnDir)
 				if err != nil {
 					return "", err
 				}
@@ -286,7 +298,7 @@ func vetExistingQueryTxnDir(txnDir string, info os.FileInfo) error {
 	if err := chmodDirNoFollow(txnDir, info, 0o700); err != nil {
 		return fmt.Errorf("failed to repair query transaction directory permissions: %w", err)
 	}
-	tightened, err := os.Lstat(txnDir)
+	tightened, err := txnDirLstat(txnDir)
 	if err != nil {
 		return fmt.Errorf("failed to re-inspect query transaction directory %s after repairing its permissions: %w", txnDir, err)
 	}
@@ -320,7 +332,7 @@ func vetExistingQueryTxnDir(txnDir string, info os.FileInfo) error {
 // lock's type and owner separately, with checkQueryLockFile.)
 func queryTxnDirHasRecoveryContent(txnDir string) (bool, error) {
 	for _, name := range []string{queryTxnJournalFile, queryTxnJournalTmpFile, queryTxnStagedJSON, queryTxnStagedBody} {
-		if _, err := os.Lstat(path.Join(txnDir, name)); err == nil {
+		if _, err := txnDirLstat(path.Join(txnDir, name)); err == nil {
 			return true, nil
 		} else if !os.IsNotExist(err) {
 			return false, err
@@ -328,7 +340,7 @@ func queryTxnDirHasRecoveryContent(txnDir string) (bool, error) {
 	}
 	// An extra transaction slot exists only while a transaction uses it.
 	for n := 1; n < queryTxnSlotCount; n++ {
-		if _, err := os.Lstat(queryTxnSlotDir(txnDir, n)); err == nil {
+		if _, err := txnDirLstat(queryTxnSlotDir(txnDir, n)); err == nil {
 			return true, nil
 		} else if !os.IsNotExist(err) {
 			return false, err

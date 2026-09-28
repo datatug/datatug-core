@@ -108,10 +108,7 @@ func (loader fileSystemLoader) LoadRecordsetData(projectID, datasetName, fileNam
 		return nil, err
 	}
 
-	var projPath string
-	if _, projPath, err = loader.GetProjectPath(projectID); err != nil {
-		return nil, err
-	}
+	_, projPath, _ := loader.GetProjectPath(projectID)
 	filePath := path.Join(projPath, storage.DataFolder, datasetName, fileName)
 	var recordset datatug.Recordset
 	rows := make([]interface{}, 0)

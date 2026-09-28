@@ -155,6 +155,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path"
@@ -311,7 +312,7 @@ func writeStagedFile(txnDir, name string, data []byte) error {
 // the error; it never removes a file it did not create.
 func writeTxnFileExclusive(txnDir, name string, data []byte) (err error) {
 	filePath := path.Join(txnDir, name)
-	f, err := os.OpenFile(filePath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, queryTxnFilePermMode)
+	f, err := openExclusiveTxnFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to create %s: %w", name, err)
 	}
@@ -350,7 +351,7 @@ func writeJournal(txnDir string, j queryTxnJournal) error {
 	if err := j.validate(); err != nil {
 		return fmt.Errorf("refusing to commit an invalid query transaction journal: %w", err)
 	}
-	b, err := json.Marshal(j)
+	b, err := marshalJournal(j)
 	if err != nil {
 		return fmt.Errorf("failed to encode query transaction journal: %w", err)
 	}
@@ -358,7 +359,7 @@ func writeJournal(txnDir string, j queryTxnJournal) error {
 		return fmt.Errorf("query transaction journal would be %d bytes, over the %d-byte limit", len(b), maxQueryTxnJournalSize)
 	}
 	journalPath := path.Join(txnDir, queryTxnJournalFile)
-	if _, err := os.Lstat(journalPath); err == nil {
+	if _, err := journalLstat(journalPath); err == nil {
 		return fmt.Errorf("a committed query transaction journal already exists at %s; refusing to replace it", journalPath)
 	} else if !os.IsNotExist(err) {
 		return fmt.Errorf("failed to check for an existing query transaction journal: %w", err)
@@ -367,7 +368,7 @@ func writeJournal(txnDir string, j queryTxnJournal) error {
 		return fmt.Errorf("failed to write query transaction journal: %w", err)
 	}
 	tmpPath := path.Join(txnDir, queryTxnJournalTmpFile)
-	if err := os.Rename(tmpPath, journalPath); err != nil {
+	if err := journalRename(tmpPath, journalPath); err != nil {
 		_ = os.Remove(tmpPath)
 		return fmt.Errorf("failed to commit query transaction journal: %w", err)
 	}
@@ -385,7 +386,7 @@ func writeJournal(txnDir string, j queryTxnJournal) error {
 // package's existing convention - see utils.go), never fatal and never
 // returned to the caller.
 func fsyncDirBestEffort(dir string) {
-	d, err := os.Open(dir)
+	d, err := openDirForSync(dir)
 	if err != nil {
 		log.Printf("failed to open directory %s to flush it (best-effort, non-fatal): %v", dir, err)
 		return
@@ -460,7 +461,33 @@ func sweepUncommittedTxnArtifacts(txnDir string) error {
 var (
 	queryTargetRename = os.Rename
 	queryTargetRemove = os.Remove
+
+	openExclusiveTxnFile = func(filePath string) (exclusiveFile, error) {
+		return os.OpenFile(filePath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, queryTxnFilePermMode)
+	}
+
+	marshalJournal = json.Marshal
+
+	openDirForSync = func(dir string) (syncableDir, error) {
+		return os.Open(dir)
+	}
+
+	readJournalFile = readRegularFileCapped
+
+	journalLstat  = os.Lstat
+	journalRename = os.Rename
+	journalRemove = os.Remove
 )
+
+type exclusiveFile interface {
+	io.WriteCloser
+	Sync() error
+}
+
+type syncableDir interface {
+	io.Closer
+	Sync() error
+}
 
 // removeQueryTargetIfExists is removeIfExists for a file at a query's
 // location (queryTargetRemove).
@@ -539,7 +566,7 @@ func readJournal(txnDir string) (j queryTxnJournal, present bool, err error) {
 	if !exists {
 		return queryTxnJournal{}, false, nil
 	}
-	b, exists, err := readRegularFileCapped(journalPath, maxQueryTxnJournalSize)
+	b, exists, err := readJournalFile(journalPath, maxQueryTxnJournalSize)
 	if err != nil {
 		return queryTxnJournal{}, false, fmt.Errorf("failed to read query transaction journal: %w", err)
 	}
@@ -649,7 +676,7 @@ func finishQueryTransaction(queriesRoot, txnDir string, j queryTxnJournal) error
 	if err == nil || !errors.As(err, &incomplete) || !queryTxnUntouched(queriesRoot, txnDir, j) {
 		return err
 	}
-	if rmErr := os.Remove(path.Join(txnDir, queryTxnJournalFile)); rmErr != nil {
+	if rmErr := journalRemove(path.Join(txnDir, queryTxnJournalFile)); rmErr != nil {
 		return err
 	}
 	fsyncDirBestEffort(txnDir)

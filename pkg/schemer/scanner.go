@@ -212,14 +212,8 @@ func (s scanner) scanIndexColumnsInBulk(c context.Context, catalog string, index
 			for k, index := range indexFinder.indexes {
 				indexNames[k] = index.Name
 			}
-			indexName := ""
-			if index != nil && index.Index != nil {
-				indexName = index.Name
-			} else {
-				indexName = indexColumn.IndexName
-			}
 			return fmt.Errorf("unknown index referenced by column [%v.%v.%v.%v] at iteration #%v: %v\nKnown indexes: %v",
-				catalog, indexColumn.SchemaName, indexColumn.TableName, indexColumn.Name, i, indexName, strings.Join(indexNames, ", "))
+				catalog, indexColumn.SchemaName, indexColumn.TableName, indexColumn.Name, i, indexColumn.IndexName, strings.Join(indexNames, ", "))
 		}
 		index.Columns = append(index.Columns, indexColumn.IndexColumn)
 	}
