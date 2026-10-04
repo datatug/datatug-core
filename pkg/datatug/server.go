@@ -103,7 +103,11 @@ func (v ServerRef) Validate() error {
 	switch {
 	case isDriverIn(v.Driver, hostlessDrivers):
 		if v.Host != "" {
-			return validation.NewErrBadRecordFieldValue("host", "cannot be used with "+v.Driver+", got: "+v.Host)
+			msg := "cannot be used with " + v.Driver
+			if v.Driver == "sqlite3" { // the other hostless drivers' host may be a URL with a token
+				msg += ", got: " + v.Host
+			}
+			return validation.NewErrBadRecordFieldValue("host", msg)
 		}
 		if v.Port != 0 {
 			return validation.NewErrBadRecordFieldValue("port", "cannot be used with "+v.Driver+", got: "+strconv.Itoa(v.Port))
