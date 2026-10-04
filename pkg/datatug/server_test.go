@@ -220,6 +220,7 @@ func TestServerRef_Validate_Drivers(t *testing.T) {
 				"EnvDbServer":      (&EnvDbServer{ServerRef: tc.ref}).Validate,
 				"EnvDbServers":     EnvDbServers{{ServerRef: tc.ref}}.Validate,
 				"ProjDbServerFile": ProjDbServerFile{ServerRef: tc.ref}.Validate,
+				"ProjDbServer":     ProjDbServer{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: tc.ref.GetID()}}, Server: tc.ref}.Validate,
 			}
 			for name, validate := range validators {
 				err := validate()
@@ -242,8 +243,19 @@ func TestServerRef_Validate_UnknownDriverNamesAcceptedDrivers(t *testing.T) {
 	}
 }
 
-func TestProjDbServer_Validate_Postgres(t *testing.T) {
-	ref := ServerRef{Driver: "postgres"}
-	v := ProjDbServer{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: ref.GetID()}}, Server: ref}
-	assert.NoError(t, v.Validate())
+// A refusal must not echo a host that may be a pasted URL carrying a token;
+// sqlite3 keeps its original text, which names the offending host.
+func TestServerRef_Validate_HostlessRefusalDoesNotEchoTheHost(t *testing.T) {
+	const pasted = "https://user:secret-token@example.com/db"
+	for _, driver := range []string{"ingitdb", "openvaultdb", "https-json"} {
+		err := ServerRef{Driver: driver, Host: pasted}.Validate()
+		if assert.Error(t, err, driver) {
+			assert.Contains(t, err.Error(), "cannot be used with "+driver, driver)
+			assert.NotContains(t, err.Error(), "secret-token", driver)
+		}
+	}
+	err := ServerRef{Driver: "sqlite3", Host: "h"}.Validate()
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "cannot be used with sqlite3, got: h")
+	}
 }
