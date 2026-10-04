@@ -67,26 +67,56 @@ func (v ServerRef) GetID() string {
 	return fmt.Sprintf("%v:%v:%v", v.Driver, v.Host, v.Port)
 }
 
+// Drivers whose servers are not addressed by host and port: file-based or
+// URL-based sources that take a path (or nothing) instead.
+var hostlessDrivers = []string{"sqlite3", "ingitdb", "openvaultdb", "https-json"}
+
+// Drivers that require a host.
+var hostRequiredDrivers = []string{"sqlserver", "mysql", "oracle"}
+
+// Drivers for which host and port are both optional.
+var hostOptionalDrivers = []string{"postgres"}
+
+// acceptedDrivers lists every driver ServerRef.Validate accepts.
+func acceptedDrivers() string {
+	var all []string
+	all = append(all, hostlessDrivers...)
+	all = append(all, hostRequiredDrivers...)
+	all = append(all, hostOptionalDrivers...)
+	return strings.Join(all, ", ")
+}
+
+func isDriverIn(driver string, drivers []string) bool {
+	for _, d := range drivers {
+		if d == driver {
+			return true
+		}
+	}
+	return false
+}
+
 // Validate returns error if not valid
 func (v ServerRef) Validate() error {
-	switch v.Driver {
-	case "":
+	if v.Driver == "" {
 		return validation.NewErrRecordIsMissingRequiredField("driver")
-	case "sqlite3":
+	}
+	switch {
+	case isDriverIn(v.Driver, hostlessDrivers):
 		if v.Host != "" {
-			return validation.NewErrBadRecordFieldValue("host", "cannot be used with sqlite3, got: "+v.Host)
+			return validation.NewErrBadRecordFieldValue("host", "cannot be used with "+v.Driver+", got: "+v.Host)
 		}
 		if v.Port != 0 {
-			return validation.NewErrBadRecordFieldValue("port", "cannot be used with sqlite3, got: "+strconv.Itoa(v.Port))
+			return validation.NewErrBadRecordFieldValue("port", "cannot be used with "+v.Driver+", got: "+strconv.Itoa(v.Port))
 		}
-		return nil // sqlite3 is file-based: no host/port required or allowed (fixes #307)
-	case "sqlserver", "mysql", "oracle":
-		//
+		return nil // no host/port required or allowed (sqlite3: fixes #307)
+	case isDriverIn(v.Driver, hostRequiredDrivers):
+		if v.Host == "" {
+			return validation.NewErrRecordIsMissingRequiredField("host")
+		}
+	case isDriverIn(v.Driver, hostOptionalDrivers):
+		// host and port are optional: the client library supplies defaults
 	default:
-		return validation.NewErrBadRecordFieldValue("driver", fmt.Sprintf("unexpected value: %v", v.Driver))
-	}
-	if v.Host == "" {
-		return validation.NewErrRecordIsMissingRequiredField("host")
+		return validation.NewErrBadRecordFieldValue("driver", fmt.Sprintf("unexpected value: %v, accepted drivers: %s", v.Driver, acceptedDrivers()))
 	}
 	if v.Port < 0 {
 		return validation.NewErrBadRecordFieldValue("port", "should be positive")
