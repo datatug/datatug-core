@@ -182,3 +182,68 @@ func TestProjDbServerFile_Validate(t *testing.T) {
 		assert.Error(t, v.Validate())
 	})
 }
+
+func TestServerRef_Validate_Drivers(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		ref     ServerRef
+		wantErr string // empty means valid
+	}{
+		{"postgres without host", ServerRef{Driver: "postgres"}, ""},
+		{"postgres with host", ServerRef{Driver: "postgres", Host: "db.local"}, ""},
+		{"postgres with host and port", ServerRef{Driver: "postgres", Host: "db.local", Port: 5432}, ""},
+		{"postgres with port only", ServerRef{Driver: "postgres", Port: 5432}, ""},
+		{"postgres negative port", ServerRef{Driver: "postgres", Port: -1}, "port"},
+		{"ingitdb bare", ServerRef{Driver: "ingitdb"}, ""},
+		{"ingitdb with path", ServerRef{Driver: "ingitdb", Path: "/x"}, ""},
+		{"ingitdb with host", ServerRef{Driver: "ingitdb", Host: "h"}, "cannot be used with ingitdb"},
+		{"ingitdb with port", ServerRef{Driver: "ingitdb", Port: 1}, "cannot be used with ingitdb"},
+		{"openvaultdb bare", ServerRef{Driver: "openvaultdb"}, ""},
+		{"openvaultdb with host", ServerRef{Driver: "openvaultdb", Host: "h"}, "cannot be used with openvaultdb"},
+		{"openvaultdb with port", ServerRef{Driver: "openvaultdb", Port: 1}, "cannot be used with openvaultdb"},
+		{"https-json bare", ServerRef{Driver: "https-json"}, ""},
+		{"https-json with host", ServerRef{Driver: "https-json", Host: "h"}, "cannot be used with https-json"},
+		{"https-json with port", ServerRef{Driver: "https-json", Port: 1}, "cannot be used with https-json"},
+		{"sqlite3 with host", ServerRef{Driver: "sqlite3", Host: "h"}, "cannot be used with sqlite3"},
+		{"sqlserver without host", ServerRef{Driver: "sqlserver"}, "host"},
+		{"sqlserver with host", ServerRef{Driver: "sqlserver", Host: "h"}, ""},
+		{"mysql without host", ServerRef{Driver: "mysql"}, "host"},
+		{"oracle without host", ServerRef{Driver: "oracle"}, "host"},
+		{"oracle with host", ServerRef{Driver: "oracle", Host: "h", Port: 1521}, ""},
+		{"unknown", ServerRef{Driver: "mongo", Host: "h"}, "unexpected value: mongo"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// every validator that embeds or wraps a ServerRef must agree
+			validators := map[string]func() error{
+				"ServerRef":        tc.ref.Validate,
+				"ServerReferences": ServerReferences{tc.ref}.Validate,
+				"EnvDbServer":      (&EnvDbServer{ServerRef: tc.ref}).Validate,
+				"EnvDbServers":     EnvDbServers{{ServerRef: tc.ref}}.Validate,
+				"ProjDbServerFile": ProjDbServerFile{ServerRef: tc.ref}.Validate,
+			}
+			for name, validate := range validators {
+				err := validate()
+				if tc.wantErr == "" {
+					assert.NoError(t, err, name)
+				} else if assert.Error(t, err, name) {
+					assert.Contains(t, err.Error(), tc.wantErr, name)
+				}
+			}
+		})
+	}
+}
+
+func TestServerRef_Validate_UnknownDriverNamesAcceptedDrivers(t *testing.T) {
+	err := ServerRef{Driver: "mongo", Host: "h"}.Validate()
+	if assert.Error(t, err) {
+		for _, d := range []string{"sqlite3", "sqlserver", "mysql", "oracle", "postgres", "ingitdb", "openvaultdb", "https-json"} {
+			assert.Contains(t, err.Error(), d)
+		}
+	}
+}
+
+func TestProjDbServer_Validate_Postgres(t *testing.T) {
+	ref := ServerRef{Driver: "postgres"}
+	v := ProjDbServer{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: ref.GetID()}}, Server: ref}
+	assert.NoError(t, v.Validate())
+}
