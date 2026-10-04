@@ -34,10 +34,10 @@ func computeBSDNoReplaceFlags(goos string) uint32 {
 
 var bsdNoReplaceFlags = computeBSDNoReplaceFlags(runtime.GOOS)
 
-// fileFlagsIssue reports why the entry info (from Lstat) describes cannot
+// platformFileFlagsIssue reports why the entry info (from Lstat) describes cannot
 // be renamed over or removed because of its file flags - immutable,
 // append-only or no-unlink - or ("", false) when no such flag is set.
-func fileFlagsIssue(_ string, info os.FileInfo) (reason string, bad bool) {
+func platformFileFlagsIssue(_ string, info os.FileInfo) (reason string, bad bool) {
 	st, ok := info.Sys().(*syscall.Stat_t)
 	if !ok {
 		return "", false

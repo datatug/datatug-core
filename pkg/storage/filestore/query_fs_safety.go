@@ -73,6 +73,11 @@ var openRegularFileForRead = func(filePath string) (safeReadFile, error) {
 
 var dirLstat = os.Lstat
 
+// fileFlagsIssue is the per-platform platformFileFlagsIssue (query_fs_flags_*.go).
+// It is a variable only so tests can simulate a locked entry on any
+// platform, where an unprivileged test cannot set chattr or chflags flags.
+var fileFlagsIssue = platformFileFlagsIssue
+
 type chmodDirFile interface {
 	io.Closer
 	Stat() (os.FileInfo, error)
