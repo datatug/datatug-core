@@ -1420,10 +1420,6 @@ func TestCoverage_Cat3_QueryContent(t *testing.T) {
 }
 
 func TestCoverage_Cat3_QueryFsFlagsBSD(t *testing.T) {
-	_ = computeBSDNoReplaceFlags("freebsd")
-	_ = computeBSDNoReplaceFlags("dragonfly")
-	_ = computeBSDNoReplaceFlags("linux")
-
 	m := mockFileInfo{name: "f"}
 	if reason, bad := fileFlagsIssue("", m); bad || reason != "" {
 		t.Fatalf("expected false, got %v, %v", bad, reason)

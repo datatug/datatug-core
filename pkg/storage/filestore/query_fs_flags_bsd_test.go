@@ -134,3 +134,17 @@ func TestTargetLockedAfterTheCommit_BlocksOnlyItsQuery(t *testing.T) {
 	}
 	requireQ(t, fresh, "t1", "T1", datatug.QueryTypeDTQL)
 }
+
+func TestComputeBSDNoReplaceFlags(t *testing.T) {
+	base := uint32(bsdUserImmutable | bsdUserAppend | bsdSystemImmutable | bsdSystemAppend)
+	for goos, want := range map[string]uint32{
+		"darwin":    base | bsdSystemNoUnlink,
+		"freebsd":   base | bsdUserNoUnlink | bsdSystemNoUnlink,
+		"dragonfly": base | bsdUserNoUnlink | bsdSystemNoUnlink,
+		"linux":     base,
+	} {
+		if got := computeBSDNoReplaceFlags(goos); got != want {
+			t.Errorf("%s: expected %#x, got %#x", goos, want, got)
+		}
+	}
+}
