@@ -1587,7 +1587,7 @@ func TestCoverage_Cat3_QueryLocation(t *testing.T) {
 	// 290 - walkQueryDir create=true where parent is read-only
 	p := t.TempDir()
 	_ = os.Chmod(p, 0500)
-	defer os.Chmod(p, 0700)
+	t.Cleanup(func() { _ = os.Chmod(p, 0700) })
 	if _, err := walkQueryDir(p, "sub", "q1", true); err == nil {
 		t.Fatal("expected error from walkQueryDir create=true in read-only parent")
 	}
@@ -1759,7 +1759,7 @@ func TestCoverage_Cat3_QueryLock(t *testing.T) {
 	// 231 - ensureQueryTxnDir walkQueryDir error (root cannot be created)
 	roParent := t.TempDir()
 	_ = os.Chmod(roParent, 0500)
-	defer os.Chmod(roParent, 0700)
+	t.Cleanup(func() { _ = os.Chmod(roParent, 0700) })
 	if _, err := ensureQueryTxnDir(filepath.Join(roParent, "missing_root")); err == nil {
 		t.Fatal("expected error from ensureQueryTxnDir when root cannot be created")
 	}
