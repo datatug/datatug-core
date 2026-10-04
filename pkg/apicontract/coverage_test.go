@@ -22,8 +22,6 @@ func TestCoverage_TypedKeyOrder(t *testing.T) {
 	assert.Error(t, err)
 
 	// right invalid
-	_, err = CompareTypedKeys([]TypedValue{{Type: ValueTypeString, Str: "a"}}, []TypedValue{{Type: ValueTypeString, Str: ""}})
-	// Wait, empty string is valid for ValueTypeString, but let's make invalid datetime
 	_, err = CompareTypedKeys(
 		[]TypedValue{{Type: ValueTypeDatetime, Str: "2020-01-01T00:00:00Z"}},
 		[]TypedValue{{Type: ValueTypeDatetime, Str: "invalid-time"}},

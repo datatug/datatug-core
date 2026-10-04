@@ -163,7 +163,7 @@ func TestCoverage_DatatugTypes(t *testing.T) {
 	}
 	assert.Error(t, pds.Validate()) // ValidateWithOptions fails
 
-	pds.ProjectItem.Access = ""
+	pds.Access = ""
 	pds.Server.Port = -1
 	pds.ID = "sqlserver:localhost:-1"
 	assert.Error(t, pds.Validate()) // Server.Validate fails
