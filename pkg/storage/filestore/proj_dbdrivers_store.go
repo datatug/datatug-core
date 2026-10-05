@@ -14,7 +14,7 @@ var _ datatug.ProjDbDriversStore = (*fsProjDbDriversStore)(nil)
 func newFsProjDbDriversStore(projectPath string) fsProjDbDriversStore {
 	return fsProjDbDriversStore{
 		fsProjectItemsStore: newDirProjectItemsStore[datatug.ProjDbDrivers, *datatug.ProjDbDriver, datatug.ProjDbDriver](
-			path.Join(projectPath, storage.DbsFolder), "driver.json",
+			projectPath, path.Join(projectPath, storage.DbsFolder), "driver.json",
 		),
 	}
 }
@@ -24,7 +24,7 @@ type fsProjDbDriversStore struct {
 }
 
 func (s fsProjDbDriversStore) DbServersStore(driverID string) datatug.ProjDbServersStore {
-	return newFsProjDbServersStore(s.dirPath, driverID)
+	return newFsProjDbServersStore(s.projectDir, s.dirPath, driverID)
 }
 
 func (s fsProjDbDriversStore) LoadProjDbDrivers(ctx context.Context, o ...datatug.StoreOption) (dbs datatug.ProjDbDrivers, err error) {

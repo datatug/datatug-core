@@ -87,25 +87,19 @@ func TestFsStorage(t *testing.T) {
 	})
 
 	t.Run("WriteFile_MkdirError", func(t *testing.T) {
-		oldOsMkdirAll := osMkdirAll
-		defer func() { osMkdirAll = oldOsMkdirAll }()
-		osMkdirAll = func(path string, perm os.FileMode) error {
-			return os.ErrPermission
-		}
-		err := storage.WriteFile(ctx, "subdir/test.txt", strings.NewReader("content"))
+		// A file where the folder should be.
+		assert.NoError(t, os.WriteFile(filepath.Join(tempDir, "plainfile"), []byte("x"), 0o644))
+		err := storage.WriteFile(ctx, "plainfile/test.txt", strings.NewReader("content"))
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create directory")
+		assert.Contains(t, err.Error(), "failed to write file")
 	})
 
 	t.Run("WriteFile_CreateError", func(t *testing.T) {
-		oldOsCreate := osCreate
-		defer func() { osCreate = oldOsCreate }()
-		osCreate = func(name string) (io.WriteCloser, error) {
-			return nil, os.ErrPermission
-		}
-		err := storage.WriteFile(ctx, "test.txt", strings.NewReader("content"))
+		// A folder where the file should be.
+		assert.NoError(t, os.Mkdir(filepath.Join(tempDir, "afolder"), 0o755))
+		err := storage.WriteFile(ctx, "afolder", strings.NewReader("content"))
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create file")
+		assert.Contains(t, err.Error(), "failed to write file")
 	})
 
 	t.Run("WriteFile_CopyError", func(t *testing.T) {

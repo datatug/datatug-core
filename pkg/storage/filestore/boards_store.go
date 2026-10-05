@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/datatug/datatug-core/internal/plainfs"
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
 )
@@ -18,7 +19,7 @@ var _ datatug.BoardsStore = (*fsBoardsStore)(nil)
 func newFsBoardsStore(projectPath string) fsBoardsStore {
 	return fsBoardsStore{
 		fsProjectItemsStore: newFileProjectItemsStore[datatug.Boards, *datatug.Board, datatug.Board](
-			path.Join(projectPath, storage.BoardsFolder), storage.BoardFileSuffix,
+			projectPath, path.Join(projectPath, storage.BoardsFolder), storage.BoardFileSuffix,
 		),
 	}
 }
@@ -179,7 +180,7 @@ func (s fsBoardsStore) saveTarget(id string) (dirPath, fileName string) {
 
 func (s fsBoardsStore) SaveBoard(_ context.Context, board *datatug.Board) error {
 	dirPath, fileName := s.saveTarget(board.ID)
-	if err := saveJSONFile(dirPath, fileName, board); err != nil {
+	if err := saveJSONFile(s.projectDir, dirPath, fileName, board); err != nil {
 		return fmt.Errorf("failed to save board file: %w", err)
 	}
 	return nil
@@ -195,13 +196,7 @@ func (s fsBoardsStore) saveBoards(ctx context.Context, boards datatug.Boards) er
 
 func (s fsBoardsStore) DeleteBoard(_ context.Context, id string) error {
 	for _, filePath := range []string{s.nestedBoardFilePath(id), s.flatBoardFilePath(id)} {
-		if _, err := os.Stat(filePath); err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-			return err
-		}
-		if err := os.Remove(filePath); err != nil {
+		if err := plainfs.Remove(s.projectDir, filePath); err != nil {
 			return err
 		}
 	}

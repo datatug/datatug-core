@@ -63,7 +63,7 @@ func TestCoverage_Utils(t *testing.T) {
 func TestCoverage_SaverFilesystem(t *testing.T) {
 	dir := t.TempDir()
 	// saveJSONFile with unmarshalable object
-	err := saveJSONFile(dir, "bad.json", badValidate{})
+	err := saveJSONFile(dir, dir, "bad.json", badValidate{})
 	if err == nil {
 		t.Fatal("expected error encoding badValidate")
 	}
@@ -88,7 +88,7 @@ func TestCoverage_FsStore_GetProjects(t *testing.T) {
 func TestCoverage_DbCatalogsStore(t *testing.T) {
 	dir := t.TempDir()
 	serverRef := datatug.ServerRef{Host: "localhost", Driver: "sqlite3"}
-	cs := newFsDbCatalogsStore(dir, serverRef)
+	cs := newFsDbCatalogsStore(dir, dir, serverRef)
 	if cs.Server().Host != "localhost" {
 		t.Fatalf("expected host localhost, got %s", cs.Server().Host)
 	}
@@ -194,7 +194,7 @@ func TestCoverage_ProjectItemsStore(t *testing.T) {
 	ctx := context.Background()
 
 	// ProjItemStoredAsFile with empty suffix
-	store := newFileProjectItemsStore[datatug.DbCatalogs, *datatug.DbCatalog, datatug.DbCatalog](dir, "")
+	store := newFileProjectItemsStore[datatug.DbCatalogs, *datatug.DbCatalog, datatug.DbCatalog](dir, dir, "")
 	if err := store.saveProjectItem(ctx, dir, nil); err == nil {
 		t.Fatal("expected error saving nil item")
 	}
@@ -237,7 +237,7 @@ func TestCoverage_ProjectItemsStore(t *testing.T) {
 	}
 
 	// ProjItemStoredAsDir: test !f.IsDir() and corrupt datatug json
-	dirStore := newDirProjectItemsStore[datatug.ProjDbDrivers, *datatug.ProjDbDriver, datatug.ProjDbDriver](dir, "driver")
+	dirStore := newDirProjectItemsStore[datatug.ProjDbDrivers, *datatug.ProjDbDriver, datatug.ProjDbDriver](dir, dir, "driver")
 	dirStore.itemFileSuffix = "driver"
 	// write a file directly in dir so f.IsDir() is false
 	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("x"), 0644); err != nil {
@@ -786,7 +786,7 @@ func TestCoverage_Cat1_Remaining(t *testing.T) {
 
 	// ProjectItemsStore: suffix mismatch in loadProjectItems and saveProjectItem error
 	pitemsDir := t.TempDir()
-	piStore := newFileProjectItemsStore[datatug.DbCatalogs, *datatug.DbCatalog, datatug.DbCatalog](pitemsDir, "")
+	piStore := newFileProjectItemsStore[datatug.DbCatalogs, *datatug.DbCatalog, datatug.DbCatalog](pitemsDir, pitemsDir, "")
 	// foo.other.json has suffix "other" != ""
 	if err := os.WriteFile(filepath.Join(pitemsDir, "foo.other.json"), []byte("{}"), 0644); err != nil {
 		t.Fatal(err)

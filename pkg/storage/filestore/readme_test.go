@@ -19,7 +19,7 @@ func TestReadme(t *testing.T) {
 	}()
 
 	t.Run("saveReadme_Success", func(t *testing.T) {
-		err := saveReadme(tmpDir, func(w io.Writer) error {
+		err := saveReadme(tmpDir, tmpDir, func(w io.Writer) error {
 			_, err := w.Write([]byte("test readme"))
 			return err
 		})
@@ -28,7 +28,10 @@ func TestReadme(t *testing.T) {
 	})
 
 	t.Run("saveReadme_Error", func(t *testing.T) {
-		err := saveReadme("/non-existent-path", func(w io.Writer) error {
+		// A file where the folder should be: the README cannot be created.
+		notAFolder := path.Join(tmpDir, "not-a-folder")
+		assert.NoError(t, os.WriteFile(notAFolder, []byte("x"), 0o644))
+		err := saveReadme(notAFolder, notAFolder, func(w io.Writer) error {
 			return nil
 		})
 		assert.Error(t, err)
@@ -59,7 +62,7 @@ func TestSaveReadme_SaverError(t *testing.T) {
 		_ = os.RemoveAll(tmpDir)
 	}()
 
-	err := saveReadme(tmpDir, func(w io.Writer) error {
+	err := saveReadme(tmpDir, tmpDir, func(w io.Writer) error {
 		return errors.New("saver error")
 	})
 	assert.Error(t, err)

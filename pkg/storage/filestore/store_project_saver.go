@@ -114,7 +114,7 @@ func (s fsProjectStore) putProjectFile(projFile datatug.ProjectFile) error {
 	if err := projFile.Validate(); err != nil {
 		return fmt.Errorf("invalid project file: %w", err)
 	}
-	return saveJSONFile(s.projectPath, storage.ProjectSummaryFileName, projFile)
+	return saveJSONFile(s.projectPath, s.projectPath, storage.ProjectSummaryFileName, projFile)
 }
 
 //func projItemFileName(id, prefix string) string {

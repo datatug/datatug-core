@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/datatug/datatug-core/internal/plainfs"
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
 )
@@ -18,7 +19,7 @@ var _ datatug.DbModelsStore = (*fsDbModelsStore)(nil)
 func newFsDbModelsStore(projectPath string) fsDbModelsStore {
 	return fsDbModelsStore{
 		fsProjectItemsStore: newFileProjectItemsStore[datatug.DbModels, *datatug.DbModel, datatug.DbModel](
-			path.Join(projectPath, storage.DbModelsFolder), storage.DbModelFileSuffix,
+			projectPath, path.Join(projectPath, storage.DbModelsFolder), storage.DbModelFileSuffix,
 		),
 	}
 }
@@ -174,7 +175,7 @@ func (s fsDbModelsStore) saveTarget(id string) (dirPath, fileName string) {
 
 func (s fsDbModelsStore) SaveDbModel(_ context.Context, dbModel *datatug.DbModel) error {
 	dirPath, fileName := s.saveTarget(dbModel.ID)
-	if err := saveJSONFile(dirPath, fileName, dbModel); err != nil {
+	if err := saveJSONFile(s.projectDir, dirPath, fileName, dbModel); err != nil {
 		return fmt.Errorf("failed to save db model file: %w", err)
 	}
 	return nil
@@ -190,13 +191,7 @@ func (s fsDbModelsStore) SaveDbModels(ctx context.Context, dbModels datatug.DbMo
 
 func (s fsDbModelsStore) DeleteDbModel(_ context.Context, id string) error {
 	for _, filePath := range []string{s.nestedDbModelFilePath(id), s.flatDbModelFilePath(id)} {
-		if _, err := os.Stat(filePath); err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-			return err
-		}
-		if err := os.Remove(filePath); err != nil {
+		if err := plainfs.Remove(s.projectDir, filePath); err != nil {
 			return err
 		}
 	}

@@ -6,8 +6,8 @@ import (
 	"io"
 	"os"
 	"path"
-	"path/filepath"
 
+	"github.com/datatug/datatug-core/internal/plainfs"
 	"github.com/datatug/datatug-core/pkg/storage/dtprojcreator"
 )
 
@@ -43,21 +43,16 @@ func (f fsStorage) OpenFile(_ context.Context, filePath string) (io.ReadCloser, 
 }
 
 func (f fsStorage) WriteFile(_ context.Context, filePath string, reader io.Reader) error {
-	filePath = path.Join(f.projPath, filePath)
-	dir := filepath.Dir(filePath)
-	if err := osMkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("failed to create directory: %w", err)
-	}
-	file, err := osCreate(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to create file: %w", err)
-	}
-	defer func() {
-		_ = file.Close()
-	}()
-	_, err = io.Copy(file, reader)
-	if err != nil {
-		return fmt.Errorf("failed to write to file: %w", err)
+	// The folders and the file are made only through plain files and plain
+	// folders of the project: a link, or a path that leaves the project, is
+	// refused (see internal/plainfs).
+	if err := plainfs.WriteFile(f.projPath, path.Join(f.projPath, filePath), func(w io.Writer) error {
+		if _, err := io.Copy(w, reader); err != nil {
+			return fmt.Errorf("failed to write to file: %w", err)
+		}
+		return nil
+	}); err != nil {
+		return fmt.Errorf("failed to write file: %w", err)
 	}
 	return nil
 }

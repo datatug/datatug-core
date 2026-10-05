@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"sort"
 
+	"github.com/datatug/datatug-core/internal/plainfs"
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
 )
@@ -17,7 +18,7 @@ var _ datatug.EnvironmentsStore = (*fsEnvironmentsStore)(nil)
 func newFsEnvironmentsStore(projectPath string) fsEnvironmentsStore {
 	return fsEnvironmentsStore{
 		fsProjectItemsStore: newDirProjectItemsStore[datatug.Environments, *datatug.Environment, datatug.Environment](
-			path.Join(projectPath, storage.EnvironmentsFolder), storage.EnvironmentSummaryFileName,
+			projectPath, path.Join(projectPath, storage.EnvironmentsFolder), storage.EnvironmentSummaryFileName,
 		),
 	}
 }
@@ -156,7 +157,7 @@ func (s fsEnvironmentsStore) saveTarget(id string) (dirPath, fileName string) {
 
 func (s fsEnvironmentsStore) SaveEnvironment(_ context.Context, env *datatug.Environment) error {
 	dirPath, fileName := s.saveTarget(env.ID)
-	if err := saveJSONFile(dirPath, fileName, env); err != nil {
+	if err := saveJSONFile(s.projectDir, dirPath, fileName, env); err != nil {
 		return fmt.Errorf("failed to save environment file: %w", err)
 	}
 	return nil
@@ -175,12 +176,5 @@ func (s fsEnvironmentsStore) SaveEnvironments(ctx context.Context, envs datatug.
 // environments/<id>/), so deleting one means removing that directory,
 // whichever filename(s) it holds.
 func (s fsEnvironmentsStore) DeleteEnvironment(_ context.Context, id string) error {
-	dirPath := path.Join(s.dirPath, id)
-	if _, err := os.Stat(dirPath); err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
-	return os.RemoveAll(dirPath)
+	return plainfs.RemoveAll(s.projectDir, path.Join(s.dirPath, id))
 }

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/datatug/datatug-core/internal/plainfs"
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
 )
@@ -32,7 +33,11 @@ const (
 )
 
 type fsProjectItemsStore[TSlice ~[]TItemPtr, TItemPtr IItemPtr[TItem], TItem IItem] struct {
-	storedAs        ProjItemStoredAs
+	storedAs ProjItemStoredAs
+	// projectDir is the project folder every write of this store stays
+	// inside: a write walks from it down to the file and refuses a link or
+	// any entry that is not a plain file or folder (see internal/plainfs).
+	projectDir      string
 	dirPath         string
 	itemFileSuffix  string
 	summaryFileName string
@@ -44,20 +49,22 @@ type fsProjectItemsStore[TSlice ~[]TItemPtr, TItemPtr IItemPtr[TItem], TItem IIt
 }
 
 func newFileProjectItemsStore[TSlice ~[]TItemPtr, TItemPtr IItemPtr[TItem], TItem IItem](
-	dirPath, itemFileSuffix string,
+	projectDir, dirPath, itemFileSuffix string,
 ) fsProjectItemsStore[TSlice, TItemPtr, TItem] {
 	return fsProjectItemsStore[TSlice, TItemPtr, TItem]{
 		storedAs:       ProjItemStoredAsFile,
+		projectDir:     projectDir,
 		dirPath:        dirPath,
 		itemFileSuffix: itemFileSuffix,
 	}
 }
 
 func newDirProjectItemsStore[TSlice ~[]TItemPtr, TItemPtr IItemPtr[TItem], TItem IItem](
-	dirPath, summaryFileName string,
+	projectDir, dirPath, summaryFileName string,
 ) fsProjectItemsStore[TSlice, TItemPtr, TItem] {
 	return fsProjectItemsStore[TSlice, TItemPtr, TItem]{
 		storedAs:        ProjItemStoredAsDir,
+		projectDir:      projectDir,
 		dirPath:         dirPath,
 		summaryFileName: summaryFileName,
 	}
@@ -178,7 +185,7 @@ func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) saveProjectItem(_ context.
 		fileName = s.summaryFileName
 	}
 
-	if err := saveJSONFile(dirPath, fileName, item); err != nil {
+	if err := saveJSONFile(s.projectDir, dirPath, fileName, item); err != nil {
 		return fmt.Errorf("failed to save %T file: %w", item, err)
 	}
 	return nil
@@ -202,12 +209,5 @@ func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) itemFilePath(dirPath, id s
 }
 
 func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) deleteProjectItem(_ context.Context, dirPath, id string) error {
-	filePath := s.itemFilePath(dirPath, id)
-	if _, err := os.Stat(filePath); err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
-	return os.Remove(filePath)
+	return plainfs.Remove(s.projectDir, s.itemFilePath(dirPath, id))
 }

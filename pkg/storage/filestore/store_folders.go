@@ -14,7 +14,7 @@ const FoldersDir = "folders"
 func newFsFoldersStore(projectPath string) fsFoldersStore {
 	return fsFoldersStore{
 		fsProjectItemsStore: newDirProjectItemsStore[datatug.Folders, *datatug.Folder, datatug.Folder](
-			path.Join(projectPath, FoldersDir), ".datatug-folder.json",
+			projectPath, path.Join(projectPath, FoldersDir), ".datatug-folder.json",
 		),
 	}
 }

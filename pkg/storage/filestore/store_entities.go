@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/datatug/datatug-core/internal/plainfs"
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
 	"github.com/strongo/validation"
@@ -19,7 +20,7 @@ var _ datatug.EntitiesStore = (*fsEntitiesStore)(nil)
 func newFsEntitiesStore(projectPath string) fsEntitiesStore {
 	return fsEntitiesStore{
 		fsProjectItemsStore: newFileProjectItemsStore[datatug.Entities, *datatug.Entity, datatug.Entity](
-			path.Join(projectPath, storage.EntitiesFolder), storage.EntityFileSuffix,
+			projectPath, path.Join(projectPath, storage.EntitiesFolder), storage.EntityFileSuffix,
 		),
 	}
 }
@@ -167,20 +168,12 @@ func (s fsEntitiesStore) LoadEntities(_ context.Context, o ...datatug.StoreOptio
 }
 
 func (s fsEntitiesStore) DeleteEntity(_ context.Context, id string) error {
-	var removedAny bool
+	// Deleting an absent entity is a no-op, matching prior behavior.
 	for _, filePath := range []string{s.nestedEntityFilePath(id), s.flatEntityFilePath(id)} {
-		if _, err := os.Stat(filePath); err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
+		if err := plainfs.Remove(s.projectDir, filePath); err != nil {
 			return err
 		}
-		if err := os.Remove(filePath); err != nil {
-			return err
-		}
-		removedAny = true
 	}
-	_ = removedAny // no error either way: deleting an absent entity is a no-op, matching prior behavior
 	return nil
 }
 
@@ -220,7 +213,7 @@ func (s fsEntitiesStore) SaveEntity(_ context.Context, entity *datatug.Entity) (
 		entity.Fields = nil
 	}
 	dirPath, fileName := s.saveTarget(entity.ID)
-	if err = saveJSONFile(dirPath, fileName, entity); err != nil {
+	if err = saveJSONFile(s.projectDir, dirPath, fileName, entity); err != nil {
 		return fmt.Errorf("failed to save entity file: %w", err)
 	}
 	return nil

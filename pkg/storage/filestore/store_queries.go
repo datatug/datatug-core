@@ -41,7 +41,7 @@ func readQueryTextSidecar(dirPath string, query *datatug.QueryDef, budget *query
 
 func newFsQueriesStore(projectPath string) fsQueriesStore {
 	items := newFileProjectItemsStore[datatug.QueryDefs, *datatug.QueryDef, datatug.QueryDef](
-		path.Join(projectPath, storage.QueriesFolder), storage.QueryFileSuffix,
+		projectPath, path.Join(projectPath, storage.QueriesFolder), storage.QueryFileSuffix,
 	)
 	// Legacy query loads read metadata only from regular files within the
 	// read cap (readQueryItemJSON), like every other query-store read.

@@ -29,7 +29,7 @@ func TestSaveJSONFile(t *testing.T) {
 
 	t.Run("valid", func(t *testing.T) {
 		v := mockValidatable{ID: "test-id"}
-		err := saveJSONFile(tmpDir, "test.json", v)
+		err := saveJSONFile(tmpDir, tmpDir, "test.json", v)
 		assert.NoError(t, err)
 
 		filePath := filepath.Join(tmpDir, "test.json")
@@ -44,7 +44,7 @@ func TestSaveJSONFile(t *testing.T) {
 
 	t.Run("invalid", func(t *testing.T) {
 		v := mockValidatable{Error: assert.AnError}
-		err := saveJSONFile(tmpDir, "invalid.json", v)
+		err := saveJSONFile(tmpDir, tmpDir, "invalid.json", v)
 		assert.Error(t, err)
 	})
 
@@ -54,7 +54,7 @@ func TestSaveJSONFile(t *testing.T) {
 		_ = os.WriteFile(filePath, []byte("test"), 0644)
 
 		v := mockValidatable{ID: "test"}
-		err := saveJSONFile(filepath.Join(filePath, "subdir"), "test.json", v)
+		err := saveJSONFile(tmpDir, filepath.Join(filePath, "subdir"), "test.json", v)
 		assert.Error(t, err)
 	})
 }
