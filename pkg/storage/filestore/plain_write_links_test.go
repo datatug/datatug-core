@@ -10,7 +10,7 @@ import (
 )
 
 // The file store writes only plain files in plain folders of the project: it
-// does not write through a link. For each kind of file it writes (writeKinds),
+// does not write through a link. For each kind of file it writes (linkSweepKinds),
 // these tests put a link that leads out of the project in the file's place and
 // in each folder above it, and require the write to be refused, the outside
 // files byte-identical and nothing new outside. Where a platform cannot make a
@@ -85,7 +85,7 @@ func (f linkFixture) requireRefusedAndOutsideIntact(t *testing.T, err error, bef
 }
 
 func TestWritesRefuseALinkInTheFilesPlace(t *testing.T) {
-	for _, k := range writeKinds() {
+	for _, k := range linkSweepKinds() {
 		for _, dangling := range []bool{false, true} {
 			name := k.name + " live link"
 			if dangling {
@@ -111,7 +111,7 @@ func TestWritesRefuseALinkInTheFilesPlace(t *testing.T) {
 }
 
 func TestWritesRefuseALinkInAFolderAboveTheFile(t *testing.T) {
-	for _, k := range writeKinds() {
+	for _, k := range linkSweepKinds() {
 		folders := append([]string{}, k.extraFolders...)
 		for dir := path.Dir(k.file); dir != "."; dir = path.Dir(dir) {
 			folders = append(folders, dir)
@@ -136,7 +136,7 @@ func TestWritesRefuseALinkInAFolderAboveTheFile(t *testing.T) {
 }
 
 func TestDeletesRefuseALinkInAFolderAboveTheFile(t *testing.T) {
-	for _, k := range writeKinds() {
+	for _, k := range linkSweepKinds() {
 		if k.remove == nil {
 			continue
 		}
@@ -160,7 +160,7 @@ func TestDeletesRefuseALinkInAFolderAboveTheFile(t *testing.T) {
 }
 
 func TestDeletesRefuseALinkInTheFilesPlace(t *testing.T) {
-	for _, k := range writeKinds() {
+	for _, k := range linkSweepKinds() {
 		if k.remove == nil {
 			continue
 		}

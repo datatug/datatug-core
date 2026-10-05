@@ -9,6 +9,7 @@ import (
 	"path"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/datatug/datatug-core/internal/plainfs"
 	"github.com/datatug/datatug-core/pkg/datatug"
@@ -34,6 +35,13 @@ type foreignKeysFile struct {
 	ForeignKeys []foreignKeysFileItem `json:"foreignKeys"`
 }
 
+// foreignKeysFileRead is what a reader decodes the file into. The list is a
+// pointer so that an absent "foreignKeys" and a null one can be told from an
+// empty list, which is the only way the format says "no keys".
+type foreignKeysFileRead struct {
+	ForeignKeys *[]foreignKeysFileItem `json:"foreignKeys"`
+}
+
 // foreignKeysFileItem is one foreign key and the table that holds it.
 type foreignKeysFileItem struct {
 	Name       string               `json:"name"`
@@ -50,11 +58,14 @@ type foreignKeysFileTable struct {
 	Name   string `json:"name"`
 }
 
+// String names the table for an error text. The parts are quoted so that a
+// name with a dot, a newline or a terminal escape (names come from a project
+// that may have been cloned from someone else) cannot be taken for another.
 func (t foreignKeysFileTable) String() string {
 	if t.Schema == "" {
-		return t.Name
+		return fmt.Sprintf("%q", t.Name)
 	}
-	return t.Schema + "." + t.Name
+	return fmt.Sprintf("%q.%q", t.Schema, t.Name)
 }
 
 // foreignKeysFileError is a refusal of the file. Its text names the file
@@ -203,11 +214,15 @@ func decodeForeignKeysFile(rel string, data []byte) ([]foreignKeysFileItem, erro
 			"%s is version %d, which this release does not know (it reads version %d); update DataTug to read it",
 			rel, *head.Version, foreignKeysFileVersion)}
 	}
-	var file foreignKeysFile
+	var file foreignKeysFileRead
 	if err := json.Unmarshal(data, &file); err != nil {
 		return nil, notExpectedForm(rel, err)
 	}
-	items, err := checkAndSortForeignKeys(file.ForeignKeys)
+	if file.ForeignKeys == nil {
+		return nil, &foreignKeysFileError{msg: fmt.Sprintf(
+			"%s has no \"foreignKeys\" list (an empty list is \"foreignKeys\": [])", rel)}
+	}
+	items, err := checkAndSortForeignKeys(*file.ForeignKeys)
 	if err != nil {
 		return nil, &foreignKeysFileError{msg: fmt.Sprintf("%s: %v", rel, err), cause: err}
 	}
@@ -248,11 +263,14 @@ func checkAndSortForeignKeys(items []foreignKeysFileItem) ([]foreignKeysFileItem
 
 // check refuses an entry that the format does not allow; i is its position.
 func (item foreignKeysFileItem) check(i int) error {
-	who := fmt.Sprintf("foreign key at index %d", i)
+	// Two tables can hold a key of one name, so the table is named too.
+	who := fmt.Sprintf("foreign key at index %d of table %s", i, item.Table)
 	if item.Name != "" {
-		who = fmt.Sprintf("foreign key %q at index %d", item.Name, i)
+		who = fmt.Sprintf("foreign key %q of table %s at index %d", item.Name, item.Table, i)
 	}
 	switch {
+	case !item.validText():
+		return fmt.Errorf("%s has a name that is not valid UTF-8 text", who)
 	case item.Name == "":
 		return fmt.Errorf("%s has no name", who)
 	case item.Table.Name == "":
@@ -271,6 +289,20 @@ func (item foreignKeysFileItem) check(i int) error {
 		return fmt.Errorf("%s has an empty referenced column name", who)
 	}
 	return nil
+}
+
+// validText is false for an entry that has a name which is not valid UTF-8: a
+// JSON encoder would silently write it as U+FFFD, which is another name.
+func (item foreignKeysFileItem) validText() bool {
+	for _, names := range [][]string{
+		{item.Name, item.Table.Schema, item.Table.Name, item.RefTable.Schema, item.RefTable.Name},
+		item.Columns, item.RefColumns,
+	} {
+		if slices.ContainsFunc(names, func(name string) bool { return !utf8.ValidString(name) }) {
+			return false
+		}
+	}
+	return true
 }
 
 // foreignKeysFromItems groups the entries (sorted) by the table that holds

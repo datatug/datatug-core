@@ -16,3 +16,4 @@ The format is specified in
 [spec/features/model-foreign-keys-file](../../../spec/features/model-foreign-keys-file/README.md).
 A project without the file has no stored foreign keys; no other file of the
 project is read or changed by it.
+Deleting a model (`DeleteDbModel`) removes the file of its foreign keys with its own file.

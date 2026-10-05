@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"context"
 	"errors"
 	"io/fs"
 	"os"
@@ -29,8 +30,11 @@ func refsKey(name string, columns []string, refTable datatug.DBCollectionKey, re
 // holds them: a single-column key, a composite key whose columns are not in
 // the order of the referenced table's own, a key to a table of another
 // schema, a key from a table to itself, two keys between the same two tables,
-// and a table of a schema that sorts first. Names keep the spelling the database gives them, including case,
-// a space and a character that a JSON encoder escapes by default.
+// a table of a schema that sorts first, a table "a.b" of schema "s" beside a
+// table "b" of schema "s.a" (a dot is a character of a name), and names with a
+// double quote and a backslash. Names keep the spelling the database gives
+// them, including case, a space and a character that a JSON encoder escapes by
+// default.
 func refsFixture() []datatug.TableForeignKeys {
 	return []datatug.TableForeignKeys{
 		{Table: refsTable("accounting", "ledger"), ForeignKeys: datatug.ForeignKeys{
@@ -53,6 +57,12 @@ func refsFixture() []datatug.TableForeignKeys {
 			refsKey("fk_orders_billing", []string{"billing_address_id"}, refsTable("public", "address"), "id"),
 			refsKey("fk_orders_shipping", []string{"shipping_address_id"}, refsTable("public", "address"), "id"),
 		}},
+		{Table: refsTable("s", "a.b"), ForeignKeys: datatug.ForeignKeys{
+			refsKey(`fk "quoted" \ back`, []string{`c"1`, `c\2`}, refsTable("s.a", "b"), "id", `x\y"z`),
+		}},
+		{Table: refsTable("s.a", "b"), ForeignKeys: datatug.ForeignKeys{
+			refsKey("fk_dot", []string{"a.b"}, refsTable("s", "a.b"), "id"),
+		}},
 	}
 }
 
@@ -61,6 +71,8 @@ func refsFixture() []datatug.TableForeignKeys {
 func refsFixtureShuffled() []datatug.TableForeignKeys {
 	f := refsFixture()
 	return []datatug.TableForeignKeys{
+		f[7],
+		f[6],
 		f[2],
 		{Table: f[5].Table, ForeignKeys: datatug.ForeignKeys{f[5].ForeignKeys[1]}},
 		f[3],
@@ -333,12 +345,14 @@ func TestModelForeignKeys_LoadRefusals(t *testing.T) {
 		"json_array":               {"[1]", "is not a JSON object of the expected form"},
 		"trailing_data":            {`{"version":1,"foreignKeys":[]} {}`, "is not a JSON object of the expected form"},
 		"keys_not_a_list":          {`{"version":1,"foreignKeys":{}}`, "is not a JSON object of the expected form"},
+		"no_keys_member":           {`{"version":1}`, `has no "foreignKeys" list`},
+		"keys_null":                {`{"version":1,"foreignKeys":null}`, `has no "foreignKeys" list`},
 		"version_not_a_number":     {`{"version":"1","foreignKeys":[]}`, "is not a JSON object of the expected form"},
 		"no_version":               {`{"foreignKeys":[]}`, `has no "version"`},
 		"unknown_version":          {`{"version":2,"foreignKeys":[]}`, "is version 2, which this release does not know (it reads version 1)"},
 		"version_zero":             {`{"version":0,"foreignKeys":[]}`, "is version 0, which this release does not know"},
 		"unknown_version_new_body": {`{"version":2,"foreignKeys":"in another shape"}`, "is version 2, which this release does not know"},
-		"no_name":                  {strings.Replace(entry(), `"name":"fk",`, "", 1), "foreign key at index 0 has no name"},
+		"no_name":                  {strings.Replace(entry(), `"name":"fk",`, "", 1), `foreign key at index 0 of table "a" has no name`},
 		"no_table_name":            {strings.Replace(entry(), `"table":{"name":"a"}`, `"table":{}`, 1), "has no table name"},
 		"no_columns":               {strings.Replace(entry(), `"columns":["x","y"]`, `"columns":[]`, 1), "has no columns"},
 		"empty_column_name":        {strings.Replace(entry(), `"x","y"`, `"x",""`, 1), "has an empty column name"},
@@ -346,7 +360,7 @@ func TestModelForeignKeys_LoadRefusals(t *testing.T) {
 		"no_ref_columns":           {strings.Replace(entry(), `,"refColumns":["i","j"]`, "", 1), "has no referenced columns"},
 		"ref_column_count_differs": {strings.Replace(entry(), `"i","j"`, `"i"`, 1), "2 columns but 1 referenced columns"},
 		"empty_ref_column_name":    {strings.Replace(entry(), `"i","j"`, `"i",""`, 1), "has an empty referenced column name"},
-		"duplicate":                {`{"version":1,"foreignKeys":[` + one + `,` + one + `]}`, "twice"},
+		"duplicate":                {`{"version":1,"foreignKeys":[` + one + `,` + one + `]}`, `foreign key "fk" of table "a" is there twice`},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -546,4 +560,195 @@ func TestModelForeignKeys_SaveRefusesALinkAndAFolderInTheFilesPlace(t *testing.T
 		require.ErrorIs(t, err, plainfs.ErrNotPlain)
 		assert.Contains(t, err.Error(), file)
 	})
+}
+
+// A key with no name does not give the table, and two tables can hold a key of
+// one name: the refusal says which table it is.
+func TestModelForeignKeys_RefusalsNameTheTableQuoted(t *testing.T) {
+	root := t.TempDir()
+	tricky := "evil\n\x1b[31mtable"
+	keys := []datatug.TableForeignKeys{{Table: refsTable("s.a", tricky), ForeignKeys: datatug.ForeignKeys{
+		refsKey("fk", []string{"x"}, refsTable("s", "b"), "id"), refsKey("fk", []string{"y"}, refsTable("s", "b"), "id"),
+	}}}
+	err := SaveModelForeignKeys(root, "m", keys)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `foreign key "fk" of table "s.a"."evil\n\x1b[31mtable" is there twice`)
+	assert.NotContains(t, err.Error(), tricky, "a name reaches the text escaped")
+
+	// Two tables with a key of one name are told apart in the other refusals.
+	keys = []datatug.TableForeignKeys{
+		{Table: refsTable("s", "a"), ForeignKeys: datatug.ForeignKeys{refsKey("fk", []string{"x"}, refsTable("s", "b"), "id")}},
+		{Table: refsTable("s", "c"), ForeignKeys: datatug.ForeignKeys{refsKey("fk", []string{""}, refsTable("s", "b"), "id")}},
+	}
+	err = SaveModelForeignKeys(root, "m", keys)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `foreign key "fk" of table "s"."c" at index 1 has an empty column name`)
+	keys[1].ForeignKeys[0].Name = ""
+	err = SaveModelForeignKeys(root, "m", keys)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `foreign key at index 1 of table "s"."c" has no name`)
+}
+
+// The page says how a string is written, so that a writer other than this one
+// can write the same bytes. The expected text is spelled out here from the
+// page, not taken from the encoder.
+func TestModelForeignKeys_StringsAreWrittenAsThePageSays(t *testing.T) {
+	name := "q\" b\\ lf\n cr\r tab\t bs\b ff\f nul\x00 us\x1f del\x7f ls\u2028 ps\u2029 <>& é 😀"
+	root := t.TempDir()
+	keys := []datatug.TableForeignKeys{{Table: refsTable("", name), ForeignKeys: datatug.ForeignKeys{
+		refsKey("fk", []string{"x"}, refsTable("", "b"), "id"),
+	}}}
+	require.NoError(t, SaveModelForeignKeys(root, "m", keys))
+	want := `{
+	"version": 1,
+	"foreignKeys": [
+		{
+			"name": "fk",
+			"table": {
+				"name": "q\" b\\ lf\n cr\r tab\t bs\b ff\f nul\u0000 us\u001f del` + "\x7f" + ` ls\u2028 ps\u2029 <>& é 😀"
+			},
+			"columns": [
+				"x"
+			],
+			"refTable": {
+				"name": "b"
+			},
+			"refColumns": [
+				"id"
+			]
+		}
+	]
+}
+`
+	assert.Equal(t, want, string(readBytes(t, nestedRefsPath(root, "m"))))
+	got, err := LoadModelForeignKeys(root, "m")
+	require.NoError(t, err)
+	assert.Equal(t, keys, got)
+}
+
+// Entries are compared by the bytes of their UTF-8 form, and an absent schema
+// sorts before every other.
+func TestModelForeignKeys_SortIsByBytesAndAnAbsentSchemaIsFirst(t *testing.T) {
+	root := t.TempDir()
+	other := refsTable("s", "z")
+	keys := []datatug.TableForeignKeys{
+		{Table: refsTable("é", "t"), ForeignKeys: datatug.ForeignKeys{refsKey("fk", []string{"x"}, other, "id")}},
+		{Table: refsTable("z", "t"), ForeignKeys: datatug.ForeignKeys{refsKey("fk", []string{"x"}, other, "id")}},
+		{Table: refsTable("Z", "t"), ForeignKeys: datatug.ForeignKeys{refsKey("fk", []string{"x"}, other, "id")}},
+		{Table: refsTable("", "t"), ForeignKeys: datatug.ForeignKeys{refsKey("fk", []string{"x"}, other, "id")}},
+	}
+	require.NoError(t, SaveModelForeignKeys(root, "m", keys))
+	got, err := LoadModelForeignKeys(root, "m")
+	require.NoError(t, err)
+	var schemas []string
+	for _, table := range got {
+		schemas = append(schemas, table.Table.Schema())
+	}
+	assert.Equal(t, []string{"", "Z", "z", "é"}, schemas)
+}
+
+// "schema" as an empty string or null is no schema, as the page says.
+func TestModelForeignKeys_AnEmptyOrNullSchemaIsNoSchema(t *testing.T) {
+	root := t.TempDir()
+	writeRaw(t, nestedRefsPath(root, "m"), `{"version":1,"foreignKeys":[
+		{"name":"fk1","table":{"schema":"","name":"a"},"columns":["x"],"refTable":{"schema":null,"name":"b"},"refColumns":["id"]}
+	]}`)
+	got, err := LoadModelForeignKeys(root, "m")
+	require.NoError(t, err)
+	assert.Equal(t, []datatug.TableForeignKeys{{Table: refsTable("", "a"), ForeignKeys: datatug.ForeignKeys{
+		refsKey("fk1", []string{"x"}, refsTable("", "b"), "id"),
+	}}}, got)
+}
+
+// A model of two environments: the file holds the keys of the last write, and
+// every key of it is a key of the model.
+func TestModelForeignKeys_TheLastWriteOfAnEnvironmentHoldsTheModelsKeys(t *testing.T) {
+	root := t.TempDir()
+	dev := refsFixture()[:3]
+	prod := refsFixture()[:1]
+	require.NoError(t, SaveModelForeignKeys(root, "m", dev))
+	require.NoError(t, SaveModelForeignKeys(root, "m", prod))
+	got, err := LoadModelForeignKeys(root, "m")
+	require.NoError(t, err)
+	assert.Equal(t, prod, got)
+}
+
+// A name that is not valid UTF-8 would be written as U+FFFD, another name.
+func TestModelForeignKeys_SaveRefusesANameThatIsNotUTF8(t *testing.T) {
+	bad := "a\xffb"
+	cases := map[string]datatug.TableForeignKeys{
+		"key_name": {Table: refsTable("s", "a"), ForeignKeys: datatug.ForeignKeys{
+			refsKey(bad, []string{"x"}, refsTable("s", "b"), "id")}},
+		"table_name": {Table: refsTable("s", bad), ForeignKeys: datatug.ForeignKeys{
+			refsKey("fk", []string{"x"}, refsTable("s", "b"), "id")}},
+		"schema": {Table: refsTable(bad, "a"), ForeignKeys: datatug.ForeignKeys{
+			refsKey("fk", []string{"x"}, refsTable("s", "b"), "id")}},
+		"ref_table_name": {Table: refsTable("s", "a"), ForeignKeys: datatug.ForeignKeys{
+			refsKey("fk", []string{"x"}, refsTable("s", bad), "id")}},
+		"ref_schema": {Table: refsTable("s", "a"), ForeignKeys: datatug.ForeignKeys{
+			refsKey("fk", []string{"x"}, refsTable(bad, "b"), "id")}},
+		"column": {Table: refsTable("s", "a"), ForeignKeys: datatug.ForeignKeys{
+			refsKey("fk", []string{bad}, refsTable("s", "b"), "id")}},
+		"ref_column": {Table: refsTable("s", "a"), ForeignKeys: datatug.ForeignKeys{
+			refsKey("fk", []string{"x"}, refsTable("s", "b"), bad)}},
+	}
+	for name, table := range cases {
+		t.Run(name, func(t *testing.T) {
+			root := t.TempDir()
+			err := SaveModelForeignKeys(root, "m", []datatug.TableForeignKeys{table})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "not valid UTF-8 text")
+			assert.Equal(t, 0, len(mustReadDir(t, root)), "nothing was written")
+		})
+	}
+}
+
+// Deleting a model removes the file of its foreign keys with its own file, in
+// each layout, so a model made later under the id does not read them.
+func TestModelForeignKeys_DeletingTheModelRemovesTheFile(t *testing.T) {
+	ctx := context.Background()
+	for _, layout := range []string{"nested", "flat", "no_model_file"} {
+		t.Run(layout, func(t *testing.T) {
+			root := t.TempDir()
+			switch layout {
+			case "nested":
+				writeRaw(t, filepath.Join(root, "dbmodels", "m", "m.dbmodel.json"), `{"id":"m"}`)
+			case "flat":
+				writeRaw(t, filepath.Join(root, "dbmodels", "m.dbmodel.json"), `{"id":"m"}`)
+			}
+			require.NoError(t, SaveModelForeignKeys(root, "m", refsFixture()))
+			other := filepath.Join(root, "dbmodels", "other", "other.refs.json")
+			require.NoError(t, SaveModelForeignKeys(root, "other", refsFixture()))
+
+			require.NoError(t, newFsDbModelsStore(root).DeleteDbModel(ctx, "m"))
+
+			got, err := LoadModelForeignKeys(root, "m")
+			require.NoError(t, err)
+			assert.Empty(t, got)
+			assert.NoFileExists(t, filepath.Join(root, "dbmodels", "m.refs.json"))
+			assert.NoFileExists(t, nestedRefsPath(root, "m"))
+			assert.FileExists(t, other, "another model's file stays")
+		})
+	}
+
+	t.Run("a_file_in_the_other_folder_goes_too", func(t *testing.T) {
+		root := t.TempDir()
+		writeRaw(t, filepath.Join(root, "dbmodels", "m", "m.dbmodel.json"), `{"id":"m"}`)
+		writeRaw(t, filepath.Join(root, "dbmodels", "m.refs.json"), "left by hand")
+		require.NoError(t, newFsDbModelsStore(root).DeleteDbModel(ctx, "m"))
+		assert.NoFileExists(t, filepath.Join(root, "dbmodels", "m.refs.json"))
+	})
+}
+
+// The flat location is the one the link sweeps leave out (the model is a new
+// one there): a link in the file's place is refused there too.
+func TestModelForeignKeys_SaveRefusesALinkInTheFlatFilesPlace(t *testing.T) {
+	f := newLinkFixture(t)
+	writeRaw(t, filepath.Join(f.root, "dbmodels", "m.dbmodel.json"), `{"id":"m"}`)
+	f.link(t, filepath.Join(f.outside, "keep.txt"), "dbmodels/m.refs.json")
+	before := treeHash(t, f.outside)
+	err := SaveModelForeignKeys(f.root, "m", refsFixture())
+	require.ErrorIs(t, err, plainfs.ErrNotPlain)
+	f.requireRefusedAndOutsideIntact(t, err, before, false)
+	assert.Contains(t, err.Error(), "dbmodels/m.refs.json")
 }

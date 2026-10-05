@@ -138,6 +138,42 @@
 			"refColumns": [
 				"id"
 			]
+		},
+		{
+			"name": "fk \"quoted\" \\ back",
+			"table": {
+				"schema": "s",
+				"name": "a.b"
+			},
+			"columns": [
+				"c\"1",
+				"c\\2"
+			],
+			"refTable": {
+				"schema": "s.a",
+				"name": "b"
+			},
+			"refColumns": [
+				"id",
+				"x\\y\"z"
+			]
+		},
+		{
+			"name": "fk_dot",
+			"table": {
+				"schema": "s.a",
+				"name": "b"
+			},
+			"columns": [
+				"a.b"
+			],
+			"refTable": {
+				"schema": "s",
+				"name": "a.b"
+			},
+			"refColumns": [
+				"id"
+			]
 		}
 	]
 }
