@@ -67,6 +67,10 @@ const (
 	DbCatalogObjectFileSuffix = "objects"
 	DbCatalogRefsFileSuffix   = "refs"
 	DbModelFileSuffix         = "dbmodel"
+	// DbModelRefsFileSuffix is the suffix of the file that holds the foreign
+	// keys of a DB model, "<id>.refs.json" (spec/features/model-foreign-keys-file).
+	// It is the suffix JsonFileName already accepts for refs files.
+	DbModelRefsFileSuffix = DbCatalogRefsFileSuffix
 	//DbSchemaFileSuffix        = "schema"
 	DbServerFileSuffix  = "dbserver"
 	RecordsetFileSuffix = "recordset"

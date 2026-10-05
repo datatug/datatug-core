@@ -171,6 +171,7 @@ const storedQueryHint = "a query is stored in git-tracked project files"
 //	recordsets[].primaryKey.columns[]             metadata identifier
 //	recordsets[].foreignKeys[].name               metadata identifier
 //	recordsets[].foreignKeys[].columns[]          metadata identifier
+//	recordsets[].foreignKeys[].refColumns[]       metadata identifier
 //	recordsets[].foreignKeys[].matchOption        identifier
 //	recordsets[].foreignKeys[].updateRule         identifier
 //	recordsets[].foreignKeys[].deleteRule         identifier
@@ -432,6 +433,9 @@ func (s *queryStorageScreen) recordsets(recordsets []RecordsetDefinition) {
 			s.metadataIdentifier(fkAt+"name", fk.Name)
 			for columnIndex, column := range fk.Columns {
 				s.metadataIdentifier(fmt.Sprintf("%scolumns[%d]", fkAt, columnIndex), column)
+			}
+			for columnIndex, column := range fk.RefColumns {
+				s.metadataIdentifier(fmt.Sprintf("%srefColumns[%d]", fkAt, columnIndex), column)
 			}
 			s.identifier(fkAt+"matchOption", fk.MatchOption)
 			s.identifier(fkAt+"updateRule", fk.UpdateRule)

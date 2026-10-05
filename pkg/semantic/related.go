@@ -76,12 +76,14 @@ type Lookup struct {
 // collections. A column that is neither part of a foreign-key relationship
 // nor mapped anywhere else yields nothing.
 //
-// The scanned-schema model does not record which column of a referenced
-// table an outgoing foreign key targets, only the referencing table's own
-// columns (datatug.ForeignKey has no "referenced column" field). Two
-// heuristics fill that gap, both using the referenced table's primary key as
-// the assumed join target - the common case, and the only information this
-// model actually carries:
+// A datatug.ForeignKey names the columns of the referenced table it points to
+// (RefColumns, in the order of its own Columns) when its source reported
+// them, and RelatedLookups uses them: for LookupForeignKey the join column is
+// the referenced column that pairs with selected.Column, for a single-column
+// and a composite key alike. A key without them (read from a source that does
+// not report the referenced column, or stored before projects kept them) does
+// not say which column it targets, so two heuristics fill that gap, both using
+// the referenced table's primary key as the assumed join target:
 //   - LookupForeignKey: selected.Column matches one of the current table's own
 //     ForeignKey.Columns: this reports RefTable's primary key (its first
 //     column, when the schema for RefTable is known and single-column-keyed;
@@ -121,12 +123,19 @@ func RelatedLookups(entities []*datatug.Entity, schemaByCollection map[SchemaKey
 func foreignKeyLookups(schema TableSchema, schemaByCollection map[SchemaKey]TableSchema, selected SemanticValue) []Lookup {
 	var lookups []Lookup
 	for _, fk := range schema.ForeignKeys {
-		if fk == nil || !containsString(fk.Columns, selected.Column) {
+		if fk == nil {
+			continue
+		}
+		position := indexOfString(fk.Columns, selected.Column)
+		if position < 0 {
 			continue
 		}
 		refCollection := fk.RefTable.Name()
 		refColumn := selected.Column
-		if refSchema, ok := schemaByCollection[SchemaKey{Source: selected.Source, Collection: refCollection}]; ok &&
+		if len(fk.RefColumns) == len(fk.Columns) {
+			// The key says which column it points to: no guess.
+			refColumn = fk.RefColumns[position]
+		} else if refSchema, ok := schemaByCollection[SchemaKey{Source: selected.Source, Collection: refCollection}]; ok &&
 			refSchema.PrimaryKey != nil && len(refSchema.PrimaryKey.Columns) == 1 {
 			refColumn = refSchema.PrimaryKey.Columns[0]
 		}
@@ -185,10 +194,15 @@ func sameFieldLookups(entities []*datatug.Entity, selected SemanticValue) []Look
 }
 
 func containsString(list []string, s string) bool {
-	for _, v := range list {
+	return indexOfString(list, s) >= 0
+}
+
+// indexOfString returns the position of the first s in list, or -1.
+func indexOfString(list []string, s string) int {
+	for i, v := range list {
 		if v == s {
-			return true
+			return i
 		}
 	}
-	return false
+	return -1
 }

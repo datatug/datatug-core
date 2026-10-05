@@ -78,6 +78,7 @@ func queryDefWithEveryPersistedField() QueryDef {
 				PrimaryKey: &UniqueKey{Name: "PK_Invoice", Columns: []string{"InvoiceId"}},
 				ForeignKeys: ForeignKeys{{
 					Name: "FK_Invoice_Customer", Columns: []string{"CustomerId"},
+					RefColumns:  []string{"CustomerId"},
 					MatchOption: "SIMPLE", UpdateRule: "NO_ACTION", DeleteRule: "CASCADE",
 				}},
 				AlternateKeys: []UniqueKey{{Name: "AK_Invoice_Number", Columns: []string{"Number"}}},
@@ -160,6 +161,7 @@ func storageScreenCases() []storageScreenCase {
 		set("recordsets[0].primaryKey.columns[0]", func(q *QueryDef) { rs(q).PrimaryKey.Columns[0] = storageCredentialValue }),
 		set("recordsets[0].foreignKeys[0].name", func(q *QueryDef) { rs(q).ForeignKeys[0].Name = storageCredentialValue }),
 		set("recordsets[0].foreignKeys[0].columns[0]", func(q *QueryDef) { rs(q).ForeignKeys[0].Columns[0] = storageCredentialValue }),
+		set("recordsets[0].foreignKeys[0].refColumns[0]", func(q *QueryDef) { rs(q).ForeignKeys[0].RefColumns[0] = storageCredentialValue }),
 		set("recordsets[0].foreignKeys[0].matchOption", func(q *QueryDef) { rs(q).ForeignKeys[0].MatchOption = storageCredentialValue }),
 		set("recordsets[0].foreignKeys[0].updateRule", func(q *QueryDef) { rs(q).ForeignKeys[0].UpdateRule = storageCredentialValue }),
 		set("recordsets[0].foreignKeys[0].deleteRule", func(q *QueryDef) { rs(q).ForeignKeys[0].DeleteRule = storageCredentialValue }),
@@ -369,6 +371,7 @@ var queryStorageFieldDecisions = map[string]string{
 	"recordsets[].primaryKey.columns[]":          "metadata identifier",
 	"recordsets[].foreignKeys[].name":            "metadata identifier",
 	"recordsets[].foreignKeys[].columns[]":       "metadata identifier",
+	"recordsets[].foreignKeys[].refColumns[]":    "metadata identifier",
 	"recordsets[].foreignKeys[].matchOption":     "identifier",
 	"recordsets[].foreignKeys[].updateRule":      "identifier",
 	"recordsets[].foreignKeys[].deleteRule":      "identifier",

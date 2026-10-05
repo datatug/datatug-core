@@ -1,0 +1,143 @@
+{
+	"version": 1,
+	"foreignKeys": [
+		{
+			"name": "fk_ledger_currency",
+			"table": {
+				"schema": "accounting",
+				"name": "ledger"
+			},
+			"columns": [
+				"currency_code"
+			],
+			"refTable": {
+				"schema": "reference",
+				"name": "currency"
+			},
+			"refColumns": [
+				"code"
+			]
+		},
+		{
+			"name": "fk_employee_manager",
+			"table": {
+				"schema": "public",
+				"name": "Employee"
+			},
+			"columns": [
+				"manager_id"
+			],
+			"refTable": {
+				"schema": "public",
+				"name": "Employee"
+			},
+			"refColumns": [
+				"id"
+			]
+		},
+		{
+			"name": "fk notes",
+			"table": {
+				"schema": "public",
+				"name": "R&D <notes>"
+			},
+			"columns": [
+				"Ünïcode col"
+			],
+			"refTable": {
+				"schema": "public",
+				"name": "orders"
+			},
+			"refColumns": [
+				"id"
+			]
+		},
+		{
+			"name": "fk_invoice_ledger",
+			"table": {
+				"schema": "public",
+				"name": "invoice"
+			},
+			"columns": [
+				"ledger_id"
+			],
+			"refTable": {
+				"schema": "accounting",
+				"name": "ledger"
+			},
+			"refColumns": [
+				"id"
+			]
+		},
+		{
+			"name": "fk_line_order",
+			"table": {
+				"schema": "public",
+				"name": "line"
+			},
+			"columns": [
+				"order_id"
+			],
+			"refTable": {
+				"schema": "public",
+				"name": "orders"
+			},
+			"refColumns": [
+				"id"
+			]
+		},
+		{
+			"name": "fk_line_product",
+			"table": {
+				"schema": "public",
+				"name": "line"
+			},
+			"columns": [
+				"product_vendor",
+				"product_sku"
+			],
+			"refTable": {
+				"schema": "public",
+				"name": "product"
+			},
+			"refColumns": [
+				"vendor",
+				"sku"
+			]
+		},
+		{
+			"name": "fk_orders_billing",
+			"table": {
+				"schema": "public",
+				"name": "orders"
+			},
+			"columns": [
+				"billing_address_id"
+			],
+			"refTable": {
+				"schema": "public",
+				"name": "address"
+			},
+			"refColumns": [
+				"id"
+			]
+		},
+		{
+			"name": "fk_orders_shipping",
+			"table": {
+				"schema": "public",
+				"name": "orders"
+			},
+			"columns": [
+				"shipping_address_id"
+			],
+			"refTable": {
+				"schema": "public",
+				"name": "address"
+			},
+			"refColumns": [
+				"id"
+			]
+		}
+	]
+}

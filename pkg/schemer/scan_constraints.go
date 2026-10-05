@@ -56,13 +56,16 @@ func processConstraint(catalog string, table *datatug.CollectionInfo, constraint
 	case "FOREIGN KEY":
 		if len(table.ForeignKeys) > 0 && table.ForeignKeys[len(table.ForeignKeys)-1].Name == constraint.Name {
 			i := len(table.ForeignKeys) - 1
-			table.ForeignKeys[i].Columns = append(table.ForeignKeys[i].Columns, constraint.ColumnName)
+			appendForeignKeyColumn(table.ForeignKeys[i], constraint.ColumnName, constraint.RefColName)
 		} else {
 			//refTable := refTableFinder.FindTable(refTableCatalog, refTableSchema, refTableName)
 			fk := datatug.ForeignKey{
 				Name:     constraint.Name,
 				Columns:  []string{constraint.ColumnName},
 				RefTable: datatug.NewCollectionKey(datatug.CollectionTypeTable, constraint.RefTableName, constraint.RefTableSchema, constraint.RefTableCatalog, nil),
+			}
+			if constraint.RefColName != "" {
+				fk.RefColumns = []string{constraint.RefColName}
 			}
 			fk.MatchOption = constraint.MatchOption
 			fk.UpdateRule = constraint.UpdateRule
@@ -104,4 +107,20 @@ func processConstraint(catalog string, table *datatug.CollectionInfo, constraint
 		}
 	}
 	return nil
+}
+
+// appendForeignKeyColumn adds the next column of a foreign key, and the
+// column it points to, in the order the source reports them. RefColumns is
+// kept only while it is in step with Columns, that is while every row of the
+// key so far has named its referenced column: a source that names it for some
+// rows only gives no trustworthy list, and the key keeps none, as a key from a
+// source that names none.
+func appendForeignKeyColumn(fk *datatug.ForeignKey, column, refColumn string) {
+	inStep := len(fk.RefColumns) == len(fk.Columns)
+	fk.Columns = append(fk.Columns, column)
+	if inStep && refColumn != "" {
+		fk.RefColumns = append(fk.RefColumns, refColumn)
+		return
+	}
+	fk.RefColumns = nil
 }

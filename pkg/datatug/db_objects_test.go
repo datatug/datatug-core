@@ -1,6 +1,7 @@
 package datatug
 
 import (
+	"encoding/json"
 	"sort"
 	"testing"
 
@@ -246,6 +247,33 @@ func TestForeignKeys_Validate(t *testing.T) {
 	t.Run("invalid_with_name", func(t *testing.T) {
 		v := ForeignKeys{{Name: "fk1", Columns: nil}}
 		assert.Error(t, v.Validate())
+	})
+	t.Run("ref_columns_same_count", func(t *testing.T) {
+		v := ForeignKeys{{Name: "fk1", Columns: []string{"a", "b"}, RefColumns: []string{"x", "y"}}}
+		assert.NoError(t, v.Validate())
+	})
+	t.Run("ref_columns_absent_stays_valid", func(t *testing.T) {
+		v := ForeignKeys{{Name: "fk1", Columns: []string{"a", "b"}}}
+		assert.NoError(t, v.Validate())
+	})
+	t.Run("ref_columns_count_differs", func(t *testing.T) {
+		v := ForeignKeys{{Name: "fk1", Columns: []string{"a", "b"}, RefColumns: []string{"x"}}}
+		err := v.Validate()
+		assert.ErrorContains(t, err, "refColumns")
+		assert.ErrorContains(t, err, "fk1")
+	})
+}
+
+func TestForeignKey_RefColumns_JSON(t *testing.T) {
+	t.Run("absent_is_not_written", func(t *testing.T) {
+		b, err := json.Marshal(ForeignKey{Name: "fk1", Columns: []string{"a"}})
+		assert.NoError(t, err)
+		assert.NotContains(t, string(b), "refColumns")
+	})
+	t.Run("present_is_written", func(t *testing.T) {
+		b, err := json.Marshal(ForeignKey{Name: "fk1", Columns: []string{"a"}, RefColumns: []string{"x"}})
+		assert.NoError(t, err)
+		assert.Contains(t, string(b), `"refColumns":["x"]`)
 	})
 }
 
