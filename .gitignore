@@ -24,3 +24,6 @@ example/test
 datatug.yaml
 ./datatug
 **/*.sqlite
+specscore.local.yaml
+**/.*.lifecycle-transaction.lock
+.specscore-lifecycle.lock

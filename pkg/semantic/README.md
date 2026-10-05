@@ -60,6 +60,12 @@ sources/collections, per `REQ:related-lookup-model`. It only says *where* to
 look — the caller (`datatug-cli`, per `REQ:related-lookup-execution`) builds
 and runs the actual filtered query through the access-policy path.
 
+For an outgoing foreign key, the join column is the referenced column the
+key names (`datatug.ForeignKey.RefColumns`, paired by position with the
+selected column), for a single-column and a composite key alike. Only a key
+without referenced columns (read from a source that does not report them)
+keeps the older guess: the referenced table's single-column primary key.
+
 ```go
 schema := map[semantic.SchemaKey]semantic.TableSchema{
 	{Source: "chinook", Collection: "Customer"}: {

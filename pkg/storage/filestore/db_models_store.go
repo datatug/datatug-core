@@ -189,8 +189,15 @@ func (s fsDbModelsStore) SaveDbModels(ctx context.Context, dbModels datatug.DbMo
 	})
 }
 
+// DeleteDbModel removes the model's own file in each layout and, with it, the
+// file of its foreign keys in each layout (model-foreign-keys-file), so that a
+// model made later under the same id does not read the keys of this one.
 func (s fsDbModelsStore) DeleteDbModel(_ context.Context, id string) error {
-	for _, filePath := range []string{s.nestedDbModelFilePath(id), s.flatDbModelFilePath(id)} {
+	refs := storage.JsonFileName(id, storage.DbModelRefsFileSuffix)
+	for _, filePath := range []string{
+		s.nestedDbModelFilePath(id), s.flatDbModelFilePath(id),
+		path.Join(s.dirPath, id, refs), path.Join(s.dirPath, refs),
+	} {
 		if err := plainfs.Remove(s.projectDir, filePath); err != nil {
 			return err
 		}

@@ -109,8 +109,11 @@ func plainWriteRecordset() *datatug.RecordsetDefinition {
 	return r
 }
 
-// writeKinds lists every kind of file the file store writes into a project
-// folder: the project file and its README, an environment, an environment's
+// writeKinds lists the kinds of file the file store writes into a project
+// folder, except the foreign keys file of a model, which is in linkSweepKinds
+// and not here: a save of the small project would then write it too, and the
+// tree hash that TestSaveOfASmallProjectWritesTheSameTreeAsBefore pins is the
+// tree of a project without it. The kinds are: the project file and its README, an environment, an environment's
 // DB catalog and DB server, a DB model, a board, an entity, a folder, a
 // recordset definition, a query (with its body), a DB driver, a DB server of
 // a driver and a DB catalog of a server, a README of a DB server, and a file
@@ -253,4 +256,16 @@ func treeHash(t *testing.T, dir string) string {
 	sort.Strings(entries)
 	sum := sha256.Sum256([]byte(strings.Join(entries, "\n")))
 	return hex.EncodeToString(sum[:])
+}
+
+// linkSweepKinds is writeKinds and the write of the foreign keys file of a
+// model (model-foreign-keys-file), for the sweeps that put a link where a
+// write or a delete would go. The model is a new one, so its file is the
+// nested one; the flat one is pinned by its own test.
+func linkSweepKinds() []writeKind {
+	return append(writeKinds(), writeKind{
+		name: "model foreign keys", file: "dbmodels/m/m.refs.json",
+		write:  func(root string) error { return SaveModelForeignKeys(root, "m", refsFixture()) },
+		remove: func(root string) error { return newFsDbModelsStore(root).DeleteDbModel(context.Background(), "m") },
+	})
 }

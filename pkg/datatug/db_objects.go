@@ -266,12 +266,16 @@ func (v ForeignKeys) Validate() error {
 
 // ForeignKey holds metadata about foreign key
 type ForeignKey struct {
-	Name        string          `json:"name"`
-	Columns     []string        `json:"columns"`
-	RefTable    DBCollectionKey `json:"refTable"`
-	MatchOption string          `json:"matchOption,omitempty"` // Document what this?
-	UpdateRule  string          `json:"updateRule,omitempty"`  // Document what this?
-	DeleteRule  string          `json:"deleteRule,omitempty"`  // Document what this?
+	Name     string          `json:"name"`
+	Columns  []string        `json:"columns"`
+	RefTable DBCollectionKey `json:"refTable"`
+	// RefColumns are the columns of RefTable the key points to, in the order
+	// of Columns and of the same count. A key read from a source that does
+	// not report them has none.
+	RefColumns  []string `json:"refColumns,omitempty"`
+	MatchOption string   `json:"matchOption,omitempty"` // Document what this?
+	UpdateRule  string   `json:"updateRule,omitempty"`  // Document what this?
+	DeleteRule  string   `json:"deleteRule,omitempty"`  // Document what this?
 }
 
 // Validate returns error if not valid
@@ -282,7 +286,18 @@ func (v ForeignKey) Validate() error {
 	if len(v.Columns) == 0 {
 		return validation.NewErrRecordIsMissingRequiredField("columns")
 	}
+	if len(v.RefColumns) > 0 && len(v.RefColumns) != len(v.Columns) {
+		return validation.NewErrBadRecordFieldValue("refColumns",
+			fmt.Sprintf("has %d columns, but the key has %d", len(v.RefColumns), len(v.Columns)))
+	}
 	return nil
+}
+
+// TableForeignKeys are the foreign keys held by one table.
+type TableForeignKeys struct {
+	// Table is the table that holds the keys.
+	Table       DBCollectionKey
+	ForeignKeys ForeignKeys
 }
 
 // RefByForeignKey holds metadata about reference by FK

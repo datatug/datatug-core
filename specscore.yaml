@@ -1,0 +1,10 @@
+# SpecScore Repo Config Schema: https://specscore.md/repo-config
+
+project:
+    title: DataTug Core
+    host: github.com
+    org: datatug
+    repo: datatug-core
+
+# Required before using Plan commands; may point to this repository.
+# plans_repo: owner/repository
