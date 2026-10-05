@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/datatug/datatug-core/internal/plainfs"
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
 )
@@ -19,7 +20,7 @@ var _ datatug.EnvDbCatalogStore = (*fsEnvDbCatalogStore)(nil)
 func newFsEnvCatalogsStore(environmentsDirPath string) fsEnvDbCatalogStore {
 	s := fsEnvDbCatalogStore{
 		fsProjectItemsStore: newFileProjectItemsStore[datatug.DbCatalogs, *datatug.DbCatalog, datatug.DbCatalog](
-			environmentsDirPath, storage.DbCatalogFileSuffix),
+			environmentsDirPath, environmentsDirPath, storage.DbCatalogFileSuffix),
 	}
 	s.dirPath = environmentsDirPath
 	return s
@@ -187,7 +188,7 @@ func (s fsEnvDbCatalogStore) saveTarget(envID, catalogID string) (dirPath, fileN
 
 func (s fsEnvDbCatalogStore) saveOneEnvDbCatalog(envID string, catalog *datatug.DbCatalog) error {
 	dirPath, fileName := s.saveTarget(envID, catalog.ID)
-	if err := saveJSONFile(dirPath, fileName, catalog); err != nil {
+	if err := saveJSONFile(s.projectDir, dirPath, fileName, catalog); err != nil {
 		return fmt.Errorf("failed to save env db catalog file: %w", err)
 	}
 	return nil
@@ -207,13 +208,7 @@ func (s fsEnvDbCatalogStore) SaveEnvDbCatalogs(_ context.Context, envID, _, _ st
 
 func (s fsEnvDbCatalogStore) DeleteEnvDbCatalog(_ context.Context, envID, _, catalogID string) error {
 	for _, filePath := range []string{s.nestedCatalogFilePath(envID, catalogID), s.flatCatalogFilePath(envID, catalogID)} {
-		if _, err := os.Stat(filePath); err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-			return err
-		}
-		if err := os.Remove(filePath); err != nil {
+		if err := plainfs.Remove(s.projectDir, filePath); err != nil {
 			return err
 		}
 	}

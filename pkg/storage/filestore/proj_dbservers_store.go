@@ -8,11 +8,11 @@ import (
 	"github.com/datatug/datatug-core/pkg/storage"
 )
 
-func newFsProjDbServersStore(dbsPath, dbDriver string) fsProjDbServersStore {
+func newFsProjDbServersStore(projectDir, dbsPath, dbDriver string) fsProjDbServersStore {
 	return fsProjDbServersStore{
 		driverID: dbDriver,
 		fsProjectItemsStore: newFileProjectItemsStore[datatug.ProjDbServers, *datatug.ProjDbServer, datatug.ProjDbServer](
-			path.Join(dbsPath, dbDriver), storage.DbServerFileSuffix,
+			projectDir, path.Join(dbsPath, dbDriver), storage.DbServerFileSuffix,
 		),
 	}
 }
@@ -29,7 +29,7 @@ func (s fsProjDbServersStore) DriverID() string {
 }
 
 func (s fsProjDbServersStore) CatalogsStore(serverRef datatug.ServerRef) datatug.DbCatalogsStore {
-	return newFsDbCatalogsStore(s.dirPath, serverRef)
+	return newFsDbCatalogsStore(s.projectDir, s.dirPath, serverRef)
 }
 
 func (s fsProjDbServersStore) LoadProjDbServers(ctx context.Context, o ...datatug.StoreOption) (datatug.ProjDbServers, error) {

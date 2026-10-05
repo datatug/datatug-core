@@ -24,6 +24,7 @@ func TestFsEntitiesStore(t *testing.T) {
 
 	store := fsEntitiesStore{
 		fsProjectItemsStore: fsProjectItemsStore[datatug.Entities, *datatug.Entity, datatug.Entity]{
+			projectDir:     tmpDir,
 			dirPath:        entitiesDir,
 			itemFileSuffix: storage.EntityFileSuffix,
 		},

@@ -3,18 +3,22 @@ package filestore
 import (
 	"fmt"
 	"io"
-	"os"
 	"path"
+
+	"github.com/datatug/datatug-core/internal/plainfs"
 )
 
-func saveReadme(dirPath string, saver func(w io.Writer) error) error {
-	filePath := path.Join(dirPath, "README.md")
-	f, err := os.Create(filePath)
+// saveReadme writes dirPath/README.md inside projectDir through plain files
+// and plain folders only (see internal/plainfs).
+func saveReadme(projectDir, dirPath string, saver func(w io.Writer) error) (err error) {
+	f, err := plainfs.CreateFile(projectDir, path.Join(dirPath, "README.md"))
 	if err != nil {
-		return fmt.Errorf("failed to created README.md for DB server: %v", err)
+		return fmt.Errorf("failed to created README.md for DB server: %w", err)
 	}
 	defer func() {
-		_ = f.Close()
+		if closeErr := f.Close(); err == nil {
+			err = closeErr
+		}
 	}()
 	return saver(f)
 }

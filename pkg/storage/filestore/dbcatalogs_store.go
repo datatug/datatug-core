@@ -31,10 +31,10 @@ func (f fsDbCatalogsStore) DeleteDbCatalog(ctx context.Context, id string) error
 	return f.deleteProjectItem(ctx, f.dirPath, id)
 }
 
-func newFsDbCatalogsStore(dbServersPath string, serverRef datatug.ServerRef) fsDbCatalogsStore {
+func newFsDbCatalogsStore(projectDir, dbServersPath string, serverRef datatug.ServerRef) fsDbCatalogsStore {
 	return fsDbCatalogsStore{
 		serverRef: serverRef,
 		fsProjectItemsStore: newFileProjectItemsStore[datatug.DbCatalogs, *datatug.DbCatalog, datatug.DbCatalog](
-			path.Join(dbServersPath, storage.ServersFolder, storage.DbsFolder), ""),
+			projectDir, path.Join(dbServersPath, storage.ServersFolder, storage.DbsFolder), ""),
 	}
 }

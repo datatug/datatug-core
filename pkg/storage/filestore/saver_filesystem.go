@@ -3,10 +3,11 @@ package filestore
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
-	"os"
 	"path"
 
+	"github.com/datatug/datatug-core/internal/plainfs"
 	"github.com/datatug/datatug-core/pkg/parallel"
 )
 
@@ -27,27 +28,20 @@ import (
 //	}
 //}
 
-func saveJSONFile(dirPath, fileName string, v interface{ Validate() error }) (err error) {
-	if err = v.Validate(); err != nil {
+// saveJSONFile writes v as indented JSON to dirPath/fileName, making the
+// folders above it. Both must be inside projectDir, and the write goes only
+// through plain files and plain folders: a link, in the file's place or in a
+// folder above it, is refused (see internal/plainfs). It returns the error of
+// the create, of the encode and of the close.
+func saveJSONFile(projectDir, dirPath, fileName string, v interface{ Validate() error }) error {
+	if err := v.Validate(); err != nil {
 		return fmt.Errorf("an attempt to save invalid data %T: %w", v, err)
 	}
-	if err = os.MkdirAll(dirPath, 0777); err != nil {
-		return fmt.Errorf("failed to create boards folder: %w", err)
-	}
-
-	fullFileName := path.Join(dirPath, fileName)
-	//log.Printf("Saving file: %v\n%+v", fullFileName, v)
-	file, _ := os.Create(fullFileName)
-	defer func() {
-		_ = file.Close()
-	}()
-
-	encoder := json.NewEncoder(file)
-	encoder.SetIndent("", "\t")
-	if err = encoder.Encode(v); err != nil {
-		return err
-	}
-	return err
+	return plainfs.WriteFile(projectDir, path.Join(dirPath, fileName), func(w io.Writer) error {
+		encoder := json.NewEncoder(w)
+		encoder.SetIndent("", "\t")
+		return encoder.Encode(v)
+	})
 }
 
 // Saves each item in a parallel

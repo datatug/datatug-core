@@ -13,7 +13,7 @@ var _ datatug.RecordsetDefinitionsStore = (*fsRecordsetDefinitionsStore)(nil)
 func newFsRecordsetDefinitionsStore(projectPath string) fsRecordsetDefinitionsStore {
 	return fsRecordsetDefinitionsStore{
 		fsProjectItemsStore: newFileProjectItemsStore[datatug.RecordsetDefinitions, *datatug.RecordsetDefinition, datatug.RecordsetDefinition](
-			path.Join(projectPath, storage.RecordsetsFolder), storage.RecordsetFileSuffix,
+			projectPath, path.Join(projectPath, storage.RecordsetsFolder), storage.RecordsetFileSuffix,
 		),
 	}
 }

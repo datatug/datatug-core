@@ -1,17 +1,15 @@
 package filestore
 
 import (
-	"os"
+	"io"
 	"path"
 
+	"github.com/datatug/datatug-core/internal/plainfs"
 	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
 func (s fsProjectStore) writeProjectReadme(project datatug.Project) error {
-	filePath := path.Join(s.projectPath, "README.md")
-	file, _ := os.Create(filePath)
-	defer func() {
-		_ = file.Close()
-	}()
-	return s.readmeEncoder.ProjectSummaryToReadme(file, project)
+	return plainfs.WriteFile(s.projectPath, path.Join(s.projectPath, "README.md"), func(w io.Writer) error {
+		return s.readmeEncoder.ProjectSummaryToReadme(w, project)
+	})
 }
