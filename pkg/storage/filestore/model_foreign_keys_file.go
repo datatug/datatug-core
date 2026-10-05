@@ -51,8 +51,9 @@ type foreignKeysFileItem struct {
 	RefColumns []string             `json:"refColumns"`
 }
 
-// foreignKeysFileTable names a table. A table without a schema (SQLite) has
-// no schema member.
+// foreignKeysFileTable names a table. Schema is the name of the table's schema
+// folder (main for a scanned SQLite file); it is left out only for a source
+// that reports no schema at all.
 type foreignKeysFileTable struct {
 	Schema string `json:"schema,omitempty"`
 	Name   string `json:"name"`
@@ -197,6 +198,11 @@ func encodeForeignKeysFile(w io.Writer, items []foreignKeysFileItem) error {
 // decodeForeignKeysFile parses the file, whose path inside the project is
 // rel, and returns its entries checked and sorted.
 func decodeForeignKeysFile(rel string, data []byte) ([]foreignKeysFileItem, error) {
+	// encoding/json replaces invalid UTF-8 with U+FFFD and reports nothing, so
+	// the file would load with other names.
+	if !utf8.Valid(data) {
+		return nil, &foreignKeysFileError{msg: fmt.Sprintf("%s is not valid UTF-8 text", rel)}
+	}
 	// The version is read alone first, so that a file of a later version, which
 	// may have another shape, is refused for its version.
 	var head struct {

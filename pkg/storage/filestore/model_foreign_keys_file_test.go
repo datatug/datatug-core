@@ -344,6 +344,7 @@ func TestModelForeignKeys_LoadRefusals(t *testing.T) {
 		"empty_file":               {"", "is not a JSON object of the expected form"},
 		"json_array":               {"[1]", "is not a JSON object of the expected form"},
 		"trailing_data":            {`{"version":1,"foreignKeys":[]} {}`, "is not a JSON object of the expected form"},
+		"not_utf8":                 {"{\"version\":1,\"foreignKeys\":[{\"name\":\"f\xff\"}]}", "is not valid UTF-8 text"},
 		"keys_not_a_list":          {`{"version":1,"foreignKeys":{}}`, "is not a JSON object of the expected form"},
 		"no_keys_member":           {`{"version":1}`, `has no "foreignKeys" list`},
 		"keys_null":                {`{"version":1,"foreignKeys":null}`, `has no "foreignKeys" list`},
@@ -730,6 +731,29 @@ func TestModelForeignKeys_DeletingTheModelRemovesTheFile(t *testing.T) {
 			assert.FileExists(t, other, "another model's file stays")
 		})
 	}
+
+	// The foreign keys files go first: a refusal on one leaves the model whole,
+	// so the delete can be repeated.
+	t.Run("a_refusal_on_the_keys_file_leaves_the_model_in_place", func(t *testing.T) {
+		skipSymlinksOnWindows(t)
+		root := t.TempDir()
+		model := filepath.Join(root, "dbmodels", "m", "m.dbmodel.json")
+		writeRaw(t, model, `{"id":"m"}`)
+		require.NoError(t, os.Symlink(t.TempDir(), nestedRefsPath(root, "m")))
+		require.Error(t, newFsDbModelsStore(root).DeleteDbModel(ctx, "m"))
+		assert.FileExists(t, model)
+	})
+
+	// An id that names no foreign keys file does not reach the file of another
+	// model: "x/x" would otherwise be taken for model x.
+	t.Run("an_id_that_names_no_file_removes_no_keys_file", func(t *testing.T) {
+		root := t.TempDir()
+		require.NoError(t, SaveModelForeignKeys(root, "x", refsFixture()))
+		for _, id := range []string{"x/x", "", ".", ".."} {
+			require.NoError(t, newFsDbModelsStore(root).DeleteDbModel(ctx, id))
+		}
+		assert.FileExists(t, nestedRefsPath(root, "x"))
+	})
 
 	t.Run("a_file_in_the_other_folder_goes_too", func(t *testing.T) {
 		root := t.TempDir()

@@ -189,15 +189,20 @@ func (s fsDbModelsStore) SaveDbModels(ctx context.Context, dbModels datatug.DbMo
 	})
 }
 
-// DeleteDbModel removes the model's own file in each layout and, with it, the
-// file of its foreign keys in each layout (model-foreign-keys-file), so that a
-// model made later under the same id does not read the keys of this one.
+// DeleteDbModel removes the file of the model's foreign keys in each layout
+// (model-foreign-keys-file) and then the model's own file in each layout, so
+// that a model made later under the same id does not read the keys of this
+// one. The foreign keys files go first: a refusal on one leaves the model in
+// place and the call can be repeated. An id that names no foreign keys file
+// (see validateForeignKeysModelID) removes none.
 func (s fsDbModelsStore) DeleteDbModel(_ context.Context, id string) error {
-	refs := storage.JsonFileName(id, storage.DbModelRefsFileSuffix)
-	for _, filePath := range []string{
-		s.nestedDbModelFilePath(id), s.flatDbModelFilePath(id),
-		path.Join(s.dirPath, id, refs), path.Join(s.dirPath, refs),
-	} {
+	var filePaths []string
+	if validateForeignKeysModelID(id) == nil {
+		refs := storage.JsonFileName(id, storage.DbModelRefsFileSuffix)
+		filePaths = append(filePaths, path.Join(s.dirPath, id, refs), path.Join(s.dirPath, refs))
+	}
+	filePaths = append(filePaths, s.nestedDbModelFilePath(id), s.flatDbModelFilePath(id))
+	for _, filePath := range filePaths {
 		if err := plainfs.Remove(s.projectDir, filePath); err != nil {
 			return err
 		}

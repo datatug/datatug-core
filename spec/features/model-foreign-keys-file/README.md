@@ -50,7 +50,7 @@ Each foreign key is an object with these members, in this order:
 
 | Member | Type | Meaning |
 |---|---|---|
-| `name` | string, not empty | the name of the foreign key, as the database spells it; for an engine that does not name a foreign key, see below |
+| `name` | string, not empty | the name of the foreign key, as its own definition spells it; for an engine that does not name a foreign key, see below |
 | `table` | object | the table that holds the foreign key |
 | `columns` | array of strings, not empty | the columns of `table` that make the key, in the order of the key |
 | `refTable` | object | the table the key points to |
@@ -58,9 +58,9 @@ Each foreign key is an object with these members, in this order:
 
 For an engine that does not name a foreign key (SQLite does not), the writer gives it a name that is unique in its table and the same on every scan of an unchanged table; the name has no other meaning to a reader.
 
-A table object has `schema` (a string, left out when the table has no schema, as in SQLite; a reader reads an empty string or `null` as no schema, and a writer writes neither) and `name` (a string, not empty). Member names are written exactly as shown, in this case; a reader need not accept another case. All names are spelled as the database spells them: no case folding, no quoting, no trimming. A foreign key from a table to itself, to a table of another schema, and two foreign keys between the same two tables are each an ordinary entry. A composite key is one entry whose `columns` and `refColumns` have the same length at every position.
+A table object has `schema` (a string: the name of the table's schema folder `dbmodels/<model>/<schema>/`, which is `main` for a table of a scanned SQLite file; it is left out only for a source that reports no schema at all, and a reader reads an empty string or `null` as no schema, and a writer writes neither) and `name` (a string, not empty). Member names are written exactly as shown, in this case; a reader need not accept another case, and a file that holds a member twice, or in two cases, is not a file of this format: a writer never writes one, and what a reader makes of it is not defined. All names are spelled as the object's own definition spells them (the table as it was created, a column as it was declared), never as another text that refers to it, such as the text of a key that names its columns in another case: no case folding, no quoting, no trimming. A writer whose source gives a column in another case than its declaration resolves it to the declared spelling before it writes; the file does not record the engine, so a reader can match names only byte for byte. A foreign key from a table to itself, to a table of another schema, and two foreign keys between the same two tables are each an ordinary entry. A composite key is one entry whose `columns` and `refColumns` have the same count, the column at each position of one pointing to the column at the same position of the other.
 
-A foreign key cannot point to another database, and a table of a model is identified by its schema and its name, as its folder `dbmodels/<model>/<schema>/` is, whichever environment or catalog of the model has it. So the file does not store a catalog name. See [REQ:environments](#req-environments) for a model that more than one environment or catalog feeds.
+A key points to a table of the same model, and a table of a model is identified by its schema and its name, as its folder `dbmodels/<model>/<schema>/` is, whichever environment or catalog of the model has it. So the file does not store a catalog name. See [REQ:environments](#req-environments) for a model that more than one environment or catalog feeds.
 
 #### REQ: version-marker
 
@@ -120,9 +120,9 @@ A model with a composite key and a key to a table of another schema. The file `p
 
 A writer produces exactly one byte sequence for one set of foreign keys:
 
-- the entries are sorted by `table.schema`, then `table.name`, then `name`, each compared as a plain string of bytes; the order of the input does not matter;
+- the entries are sorted by `table.schema`, then `table.name`, then `name`, each compared as a plain string of the bytes of its UTF-8 form; the order of the input does not matter;
 - the order inside `columns` and `refColumns` is kept as given, never sorted;
-- the entries are compared by the bytes of their UTF-8 form, and an absent `schema` sorts as the empty string, so before every other;
+- an absent `schema` sorts as the empty string, so before every other;
 - the layout is, byte for byte: UTF-8 without a byte order mark; lines end in LF (U+000A); one tab for one level of indent; one member or element per line; a member written as `"name": value` (a colon and one space); an empty array written `[]`; the members in the order of [REQ:file-content](#req-file-content); and one trailing newline after the closing brace;
 - in a string, `"` is written `\"` and `\` is written `\\`; U+0008, U+000C, U+000A, U+000D and U+0009 are written `\b`, `\f`, `\n`, `\r` and `\t`; every other character below U+0020, and U+2028 and U+2029, are written as `\u` and four lower-case hexadecimal digits; every other character, `<`, `>`, `&` and U+007F among them, is written as its UTF-8 bytes;
 - two entries with the same `table.schema`, `table.name` and `name` are an error, not two entries.
@@ -137,7 +137,7 @@ A later release may add an optional `byEnv` member to a key, as a column has, wi
 
 #### REQ: writer-checks
 
-A writer refuses, before it touches the file, a foreign key that has no name, a table without a name, no columns, an empty column name, referenced columns that differ in count from the columns, no referenced columns, or a referenced table without a name, and a name that is not valid UTF-8 text. A foreign key whose table and referenced table are both in a catalog, and the two catalogs differ, is refused: the file cannot say it. A foreign key read from a source that does not report the referenced columns cannot be stored, and the refusal names it.
+A writer refuses, before it touches the file, a foreign key that has no name, a table without a name, no columns, an empty column name, referenced columns that differ in count from the columns, no referenced columns, an empty referenced column name, or a referenced table without a name, and a name that is not valid UTF-8 text. A foreign key whose table and referenced table are both in a catalog, and the two catalogs differ, is refused: the file cannot say it. A foreign key read from a source that does not report the referenced columns cannot be stored, and the refusal names it.
 
 ### Reading
 
@@ -147,6 +147,7 @@ A reader treats a missing file as a model with no stored foreign keys, and no er
 
 - the file is a folder, a link or any other entry that is not a plain file (a link is refused and never followed), or is over 64 MiB;
 - the content is not JSON, or not a JSON object of the shape above, or has no `foreignKeys` or has it as `null`;
+- the file is not valid UTF-8 text, since a decoder would read it as other names;
 - the version is unknown or absent ([REQ:version-marker](#req-version-marker));
 - an entry breaks the checks of [REQ:writer-checks](#req-writer-checks), or two entries have the same table and name.
 
