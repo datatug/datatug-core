@@ -63,12 +63,14 @@ func TestSaveQueryContractRoundTripAndRetryBinding(t *testing.T) {
 func TestSaveQueryContractPreconditions(t *testing.T) {
 	request := demoSaveQuery()
 	cases := map[string]func(*SaveQueryRequest){
+		"missing project":    func(r *SaveQueryRequest) { r.ProjectID = "" },
 		"missing operation":  func(r *SaveQueryRequest) { r.OperationID = "" },
 		"unsafe operation":   func(r *SaveQueryRequest) { r.OperationID = "../escape" },
 		"missing condition":  func(r *SaveQueryRequest) { r.IfNoneMatch = false },
 		"both conditions":    func(r *SaveQueryRequest) { r.IfMatch = "rev1" },
 		"missing head":       func(r *SaveQueryRequest) { r.ExpectedBranchHead = "" },
 		"missing branch":     func(r *SaveQueryRequest) { r.Branch = "" },
+		"branch whitespace":  func(r *SaveQueryRequest) { r.Branch = " investigate " },
 		"credential in body": func(r *SaveQueryRequest) { r.Query.Text = "SELECT 'password=secret'" },
 	}
 	for name, change := range cases {
@@ -81,4 +83,13 @@ func TestSaveQueryContractPreconditions(t *testing.T) {
 	request.IfNoneMatch = false
 	request.IfMatch = "rev1"
 	require.NoError(t, request.Validate())
+}
+
+func TestSaveQueryDigestRejectsUnencodablePayload(t *testing.T) {
+	request := demoSaveQuery()
+	request.Query.Parameters = datatug.Parameters{{DefaultValue: func() {}}}
+	_, err := request.PayloadDigest()
+	require.ErrorContains(t, err, "encode save query payload")
+	receipt := OperationReceipt{}
+	require.ErrorContains(t, receipt.MatchSaveRetry(OperationScope{}, request), "encode save query payload")
 }

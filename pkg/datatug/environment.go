@@ -30,7 +30,8 @@ func (v Environments) IDs() []string {
 // Environment holds information about environment
 type Environment struct {
 	ProjectItem
-	DbServers EnvDbServers `json:"dbServers"`
+	DbServers          EnvDbServers `json:"dbServers"`
+	EditionConnections []string     `json:"editionConnections,omitempty"`
 }
 
 // Validate returns error if failed
@@ -39,6 +40,9 @@ func (v Environment) Validate() error {
 		return err
 	}
 	if err := v.DbServers.Validate(); err != nil {
+		return err
+	}
+	if err := uniqueConnectionIDs(v.EditionConnections); err != nil {
 		return err
 	}
 	return nil
