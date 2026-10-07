@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -251,4 +252,173 @@ func TestPublishedDemoConnectionManifestCompatibility(t *testing.T) {
 	if _, err := resolver.ResolveEnvironmentConnection(context.Background(), "QA", "chinook-bigquery"); !errors.Is(err, datatug.ErrConnectionNotInEnvironment) {
 		t.Fatalf("BigQuery edition with no environment membership resolved: %v", err)
 	}
+}
+
+func TestProjectConnectionReaderRefusesFilesystemAndCatalogRaces(t *testing.T) {
+	ctx := context.Background()
+	t.Run("cancel before read", func(t *testing.T) {
+		_, reader, resolver := testConnectionProject(t)
+		canceled, cancel := context.WithCancel(ctx)
+		cancel()
+		if _, err := reader.LoadProjectConnections(canceled); !errors.Is(err, context.Canceled) {
+			t.Fatal(err)
+		}
+		if _, err := resolver.ResolveEnvironmentConnection(canceled, "dev", "chinook-sqlite"); !errors.Is(err, context.Canceled) {
+			t.Fatal(err)
+		}
+	})
+	t.Run("catalog path is file", func(t *testing.T) {
+		root, reader, _ := testConnectionProject(t)
+		if err := os.RemoveAll(filepath.Join(root, "connections")); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(root, "connections"), []byte("x"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := reader.LoadProjectConnections(ctx); err == nil {
+			t.Fatal("non-directory catalog accepted")
+		}
+	})
+	t.Run("directory read error", func(t *testing.T) {
+		_, reader, _ := testConnectionProject(t)
+		original := readConnectionCatalogDir
+		readConnectionCatalogDir = func(string) ([]os.DirEntry, error) { return nil, errors.New("simulated directory refusal") }
+		defer func() { readConnectionCatalogDir = original }()
+		if _, err := reader.LoadProjectConnections(ctx); err == nil || !strings.Contains(err.Error(), "simulated directory refusal") {
+			t.Fatal(err)
+		}
+	})
+	t.Run("catalog disappears after enumeration", func(t *testing.T) {
+		_, reader, _ := testConnectionProject(t)
+		original := readConnectionCatalogFile
+		readConnectionCatalogFile = func(string, int64) ([]byte, bool, error) { return nil, false, nil }
+		defer func() { readConnectionCatalogFile = original }()
+		if _, err := reader.LoadProjectConnections(ctx); err == nil || !strings.Contains(err.Error(), "disappeared") {
+			t.Fatal(err)
+		}
+	})
+	t.Run("cancel between files", func(t *testing.T) {
+		root, reader, _ := testConnectionProject(t)
+		if err := os.WriteFile(filepath.Join(root, "connections", "other.txt"), []byte("ignored"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		c, cancel := context.WithCancel(ctx)
+		defer cancel()
+		original := readConnectionCatalogFile
+		readConnectionCatalogFile = func(path string, max int64) ([]byte, bool, error) {
+			data, exists, err := original(path, max)
+			cancel()
+			return data, exists, err
+		}
+		defer func() { readConnectionCatalogFile = original }()
+		if _, err := reader.LoadProjectConnections(c); !errors.Is(err, context.Canceled) {
+			t.Fatal(err)
+		}
+	})
+	t.Run("too many catalogs", func(t *testing.T) {
+		root, reader, _ := testConnectionProject(t)
+		for i := 0; i < maxConnectionCatalogs; i++ {
+			name := fmt.Sprintf("additional-%02d.json", i)
+			if err := os.WriteFile(filepath.Join(root, "connections", name), []byte(`{"format":"datatug-demo-connections/v1"}`), 0600); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if _, err := reader.LoadProjectConnections(ctx); err == nil || !strings.Contains(err.Error(), "too many") {
+			t.Fatal(err)
+		}
+	})
+	t.Run("non-json files do not make a catalog", func(t *testing.T) {
+		root, reader, _ := testConnectionProject(t)
+		if err := os.Remove(filepath.Join(root, "connections", "demo-db.json")); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(root, "connections", "README.md"), []byte("notes"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := reader.LoadProjectConnections(ctx); !errors.Is(err, os.ErrNotExist) {
+			t.Fatal(err)
+		}
+	})
+}
+
+func TestProjectConnectionReaderRejectsCrossCatalogAmbiguity(t *testing.T) {
+	for _, tc := range []struct{ name, extra string }{
+		{"BigQuery edition", `{"format":"datatug-demo-connections/v1","bigQueryEditions":[{"id":"chinook-bigquery","dataset":"chinook","storage":"bigquery","readiness":"public-read-user-project-required","sourceProjectId":"demodb-dev","datasetId":"chinook","location":"US"}]}`},
+		{"plan", `{"format":"datatug-demo-connections/v1","bigQueryPlans":[{"id":"chinook-pending-bigquery","readiness":"setup-required"}]}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root, reader, _ := testConnectionProject(t)
+			if err := os.WriteFile(filepath.Join(root, "connections", "second.json"), []byte(tc.extra), 0600); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := reader.LoadProjectConnections(context.Background()); !errors.Is(err, datatug.ErrAmbiguousConnection) {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestEnvironmentConnectionResolverRefusesBadProjectState(t *testing.T) {
+	ctx := context.Background()
+	t.Run("invalid catalog", func(t *testing.T) {
+		root, _, resolver := testConnectionProject(t)
+		if err := os.WriteFile(filepath.Join(root, "connections", "demo-db.json"), []byte(`{bad`), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := resolver.ResolveEnvironmentConnection(ctx, "dev", "chinook-sqlite"); err == nil {
+			t.Fatal("invalid catalog accepted")
+		}
+	})
+	t.Run("missing environment", func(t *testing.T) {
+		_, _, resolver := testConnectionProject(t)
+		if _, err := resolver.ResolveEnvironmentConnection(ctx, "missing", "chinook-sqlite"); !errors.Is(err, os.ErrNotExist) {
+			t.Fatal(err)
+		}
+	})
+	t.Run("environment path is file", func(t *testing.T) {
+		root, _, resolver := testConnectionProject(t)
+		if err := os.RemoveAll(filepath.Join(root, "environments", "dev")); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(root, "environments", "dev"), []byte("x"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := resolver.ResolveEnvironmentConnection(ctx, "dev", "chinook-sqlite"); err == nil {
+			t.Fatal("file as environment accepted")
+		}
+	})
+	t.Run("environment file is symlink", func(t *testing.T) {
+		root, _, resolver := testConnectionProject(t)
+		path := filepath.Join(root, "environments", "dev", "dev.env.json")
+		if err := os.Remove(path); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink(filepath.Join(root, "environments", "QA", "QA.env.json"), path); err != nil {
+			t.Skipf("symlink unavailable: %v", err)
+		}
+		if _, err := resolver.ResolveEnvironmentConnection(ctx, "dev", "chinook-sqlite"); err == nil {
+			t.Fatal("symlink environment accepted")
+		}
+	})
+	t.Run("conflicting environment files", func(t *testing.T) {
+		root, _, resolver := testConnectionProject(t)
+		path := filepath.Join(root, "environments", "dev", "environment-summary.json")
+		if err := os.WriteFile(path, []byte(`{"id":"dev","dbServers":[],"editionConnections":["chinook-postgresql"]}`), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := resolver.ResolveEnvironmentConnection(ctx, "dev", "chinook-sqlite"); err == nil {
+			t.Fatal("conflicting environment files accepted")
+		}
+	})
+	t.Run("ordinary declaration has no environments", func(t *testing.T) {
+		root, _, resolver := testConnectionProject(t)
+		path := filepath.Join(root, "connections", "demo-db.json")
+		data := strings.Replace(fixtureConnections, `"environments":["dev"],`, "", 1)
+		if err := os.WriteFile(path, []byte(data), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := resolver.ResolveEnvironmentConnection(ctx, "dev", "chinook-sqlite"); !errors.Is(err, datatug.ErrConnectionNotInEnvironment) {
+			t.Fatal(err)
+		}
+	})
 }

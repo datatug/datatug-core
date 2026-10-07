@@ -19,6 +19,13 @@ const (
 	maxConnectionCatalogSize = 1 << 20
 )
 
+// Kept replaceable for deterministic tests of directory failure and a catalog
+// disappearing between directory enumeration and its guarded file open.
+var (
+	readConnectionCatalogDir  = os.ReadDir
+	readConnectionCatalogFile = readRegularFileCapped
+)
+
 var (
 	_ datatug.ProjectConnectionsReader      = (*fsProjectStore)(nil)
 	_ datatug.EnvironmentConnectionResolver = (*fsProjectStore)(nil)
@@ -39,7 +46,7 @@ func (s fsProjectStore) LoadProjectConnections(ctx context.Context) (datatug.Pro
 	if !info.IsDir() {
 		return all, errors.New("connection catalog path is not a directory")
 	}
-	entries, err := os.ReadDir(dir)
+	entries, err := readConnectionCatalogDir(dir)
 	if err != nil {
 		return all, err
 	}
@@ -57,7 +64,7 @@ func (s fsProjectStore) LoadProjectConnections(ctx context.Context) (datatug.Pro
 		if files > maxConnectionCatalogs {
 			return datatug.ProjectConnections{}, errors.New("too many connection catalogs")
 		}
-		data, exists, err := readRegularFileCapped(filepath.Join(dir, name), maxConnectionCatalogSize)
+		data, exists, err := readConnectionCatalogFile(filepath.Join(dir, name), maxConnectionCatalogSize)
 		if err != nil {
 			return datatug.ProjectConnections{}, fmt.Errorf("read connection catalog %q: %w", name, err)
 		}
@@ -190,10 +197,7 @@ func (s fsProjectStore) ResolveEnvironmentConnection(ctx context.Context, enviro
 		}
 		return connection, nil
 	}
-	if plan != nil {
-		return zero, &datatug.ConnectionResolutionError{Kind: datatug.ErrConnectionNotReady, EnvironmentID: environmentID, ConnectionID: connectionID, Readiness: plan.Readiness}
-	}
-	return zero, errors.New("connection resolver state is inconsistent")
+	return zero, &datatug.ConnectionResolutionError{Kind: datatug.ErrConnectionNotReady, EnvironmentID: environmentID, ConnectionID: connectionID, Readiness: plan.Readiness}
 }
 
 // The older environment loader accepts conventional JSON, including duplicate
