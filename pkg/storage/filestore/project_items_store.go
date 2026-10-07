@@ -141,10 +141,9 @@ func (s fsProjectItemsStore[TSlice, TItemPtr, TItem]) loadProjectItems(
 		loader = func(f os.FileInfo, i int, mutex *sync.Mutex) error {
 			id := f.Name()
 			itemDir := path.Join(dirPath, id)
-			var item TItemPtr
-			item, err = s.loadProjectItem(ctx, itemDir, id, fmt.Sprintf(".datatug-%s.json", s.itemFileSuffix))
-			if err != nil && !errors.Is(err, fs.ErrNotExist) {
-				return err
+			item, loadErr := s.loadProjectItem(ctx, itemDir, id, fmt.Sprintf(".datatug-%s.json", s.itemFileSuffix))
+			if loadErr != nil && !errors.Is(loadErr, fs.ErrNotExist) {
+				return loadErr
 			}
 			item.SetID(id)
 			mutex.Lock()
