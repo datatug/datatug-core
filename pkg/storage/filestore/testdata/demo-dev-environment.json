@@ -1,0 +1,25 @@
+{
+  "id": "dev",
+  "dbServers": [
+    {
+      "driver": "sqlite3",
+      "catalogs": [
+        "chinook-local"
+      ]
+    }
+  ],
+  "editionConnections": [
+    "chinook-sqlite",
+    "chinook-ingitdb",
+    "northwind-sqlite",
+    "northwind-ingitdb",
+    "pubs-sqlite",
+    "pubs-ingitdb",
+    "sakila-sqlite",
+    "sakila-ingitdb",
+    "adventureworks-sqlite",
+    "adventureworks-ingitdb",
+    "employees-sqlite",
+    "employees-ingitdb"
+  ]
+}

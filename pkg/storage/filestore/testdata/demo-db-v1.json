@@ -1,0 +1,556 @@
+{
+  "format": "datatug-demo-connections/v1",
+  "source": {
+    "registry": "https://github.com/demo-db/websites/blob/8db734caddc1ead40c1237a9d124b74bf0228efb/config/databases.json",
+    "registrySha256": "0f28643212a7b9b7d3187ebf9a6148d893e0b45390f3504399b1ac1f512bf65c",
+    "discovery": "https://demodb.dev/.well-known/openvaultdb",
+    "directory": "https://github.com/openvaultdb/directory/blob/253e419214da22a1bcc2b5e78577bb2d46323074/index.json",
+    "directorySha256": "0f677a6bdec44c3974e3d3142fecbbcda21acd21c34c44dae9a9794f29e896e2",
+    "bigQueryHosting": "https://github.com/demo-db/websites/blob/main/config/bigquery-hosting.json",
+    "bigQueryHostingSha256": "61306dacac6fdc0ae079fc68632a980c70c6a0793f0602d428b3d89f6303c4fa",
+    "bigQueryImportTool": {
+      "name": "DataTug CLI",
+      "version": "v0.62.0",
+      "sourceRepository": "https://github.com/datatug/datatug-cli",
+      "sourceCommit": "c6b98734cb4ac33892453b6112c5d8c004e84426"
+    }
+  },
+  "connections": [
+    {
+      "id": "chinook-sqlite",
+      "dataset": "chinook",
+      "storage": "sqlite",
+      "tags": [
+        "chinook",
+        "sqlite"
+      ],
+      "environments": [
+        "dev"
+      ],
+      "readiness": "public-api",
+      "source": "https://demodb.dev/ovdb/v1/databases/chinook",
+      "descriptor": "https://demodb.dev/ovdb/db/chinook/ovdb-database.json",
+      "fixtureSha256": "7651ba378ac2fcd0dfc3c66fb101f7a7eed3ba39a612ec642b96e20702061f15",
+      "query": "ovdb-read",
+      "copy": "explicit-browser-import"
+    },
+    {
+      "id": "chinook-postgresql",
+      "dataset": "chinook",
+      "storage": "postgresql",
+      "tags": [
+        "chinook",
+        "postgresql"
+      ],
+      "environments": [
+        "QA",
+        "UAT"
+      ],
+      "readiness": "hosted-api-pending",
+      "source": "https://demodb.dev/chinook/",
+      "query": "setup-required",
+      "copy": "unavailable"
+    },
+    {
+      "id": "chinook-ingitdb",
+      "dataset": "chinook",
+      "storage": "ingitdb",
+      "tags": [
+        "chinook",
+        "ingitdb"
+      ],
+      "environments": [
+        "dev"
+      ],
+      "readiness": "hosted-repository",
+      "source": "https://github.com/demo-db/chinook/tree/411cb7aead96a0b4314f3068c0a0455f869dfdee/ingitdb",
+      "manifest": "https://github.com/demo-db/chinook/blob/411cb7aead96a0b4314f3068c0a0455f869dfdee/ingitdb/export-manifest.json",
+      "query": "local-checkout-required",
+      "copy": "unavailable"
+    },
+    {
+      "id": "northwind-sqlite",
+      "dataset": "northwind",
+      "storage": "sqlite",
+      "tags": [
+        "northwind",
+        "sqlite"
+      ],
+      "environments": [
+        "dev"
+      ],
+      "readiness": "public-api",
+      "source": "https://demodb.dev/ovdb/v1/databases/northwind",
+      "descriptor": "https://demodb.dev/ovdb/db/northwind/ovdb-database.json",
+      "fixtureSha256": "279b34136771aee75d802094b3329515a2b01da65d2a20a4a9e3b58c29b4fd20",
+      "query": "ovdb-read",
+      "copy": "explicit-browser-import"
+    },
+    {
+      "id": "northwind-postgresql",
+      "dataset": "northwind",
+      "storage": "postgresql",
+      "tags": [
+        "northwind",
+        "postgresql"
+      ],
+      "environments": [
+        "QA",
+        "UAT"
+      ],
+      "readiness": "hosted-api-pending",
+      "source": "https://demodb.dev/northwind/",
+      "query": "setup-required",
+      "copy": "unavailable"
+    },
+    {
+      "id": "northwind-ingitdb",
+      "dataset": "northwind",
+      "storage": "ingitdb",
+      "tags": [
+        "northwind",
+        "ingitdb"
+      ],
+      "environments": [
+        "dev"
+      ],
+      "readiness": "hosted-repository",
+      "source": "https://github.com/demo-db/northwind/tree/adb71d17af9aa457d19326d0d275f7b924267659/ingitdb",
+      "manifest": "https://github.com/demo-db/northwind/blob/adb71d17af9aa457d19326d0d275f7b924267659/ingitdb/export-manifest.json",
+      "query": "local-checkout-required",
+      "copy": "unavailable"
+    },
+    {
+      "id": "pubs-sqlite",
+      "dataset": "pubs",
+      "storage": "sqlite",
+      "tags": [
+        "pubs",
+        "sqlite"
+      ],
+      "environments": [
+        "dev"
+      ],
+      "readiness": "public-api",
+      "source": "https://demodb.dev/ovdb/v1/databases/pubs",
+      "descriptor": "https://demodb.dev/ovdb/db/pubs/ovdb-database.json",
+      "fixtureSha256": "b45b08b7c06441cc0b138b031ea5bd32bd5866aebf874c89d2ebf7fc6abb3691",
+      "query": "ovdb-read",
+      "copy": "explicit-browser-import"
+    },
+    {
+      "id": "pubs-postgresql",
+      "dataset": "pubs",
+      "storage": "postgresql",
+      "tags": [
+        "pubs",
+        "postgresql"
+      ],
+      "environments": [
+        "QA",
+        "UAT"
+      ],
+      "readiness": "hosted-api-pending",
+      "source": "https://demodb.dev/pubs/",
+      "query": "setup-required",
+      "copy": "unavailable"
+    },
+    {
+      "id": "pubs-ingitdb",
+      "dataset": "pubs",
+      "storage": "ingitdb",
+      "tags": [
+        "pubs",
+        "ingitdb"
+      ],
+      "environments": [
+        "dev"
+      ],
+      "readiness": "hosted-repository",
+      "source": "https://github.com/demo-db/pubs/tree/3e37e01e28f610f1d65c9e809a79ab6522928ad2/ingitdb",
+      "manifest": "https://github.com/demo-db/pubs/blob/3e37e01e28f610f1d65c9e809a79ab6522928ad2/ingitdb/export-manifest.json",
+      "query": "local-checkout-required",
+      "copy": "unavailable"
+    },
+    {
+      "id": "sakila-sqlite",
+      "dataset": "sakila",
+      "storage": "sqlite",
+      "tags": [
+        "sakila",
+        "sqlite"
+      ],
+      "environments": [
+        "dev"
+      ],
+      "readiness": "public-api",
+      "source": "https://demodb.dev/ovdb/v1/databases/sakila",
+      "descriptor": "https://demodb.dev/ovdb/db/sakila/ovdb-database.json",
+      "fixtureSha256": "9bebeee50fecb1fee115c206a4f380f2f6d1f009e7796b18b8a8cfba7c810454",
+      "query": "ovdb-read",
+      "copy": "explicit-browser-import"
+    },
+    {
+      "id": "sakila-postgresql",
+      "dataset": "sakila",
+      "storage": "postgresql",
+      "tags": [
+        "sakila",
+        "postgresql"
+      ],
+      "environments": [
+        "QA",
+        "UAT"
+      ],
+      "readiness": "hosted-api-pending",
+      "source": "https://demodb.dev/sakila/",
+      "query": "setup-required",
+      "copy": "unavailable"
+    },
+    {
+      "id": "sakila-ingitdb",
+      "dataset": "sakila",
+      "storage": "ingitdb",
+      "tags": [
+        "sakila",
+        "ingitdb"
+      ],
+      "environments": [
+        "dev"
+      ],
+      "readiness": "hosted-repository",
+      "source": "https://github.com/demo-db/sakila/tree/7e7de96d904dedc130165691e59a8268ce5fb6d2/ingitdb",
+      "manifest": "https://github.com/demo-db/sakila/blob/7e7de96d904dedc130165691e59a8268ce5fb6d2/ingitdb/export-manifest.json",
+      "query": "local-checkout-required",
+      "copy": "unavailable"
+    },
+    {
+      "id": "adventureworks-sqlite",
+      "dataset": "adventureworks",
+      "storage": "sqlite",
+      "tags": [
+        "adventureworks",
+        "sqlite"
+      ],
+      "environments": [
+        "dev"
+      ],
+      "readiness": "public-api",
+      "source": "https://demodb.dev/ovdb/v1/databases/adventureworks",
+      "descriptor": "https://demodb.dev/ovdb/db/adventureworks/ovdb-database.json",
+      "fixtureSha256": "6a105e1982becfe003fc7a307d7cad9d738390cedd79d166c2167fd817168109",
+      "query": "ovdb-read",
+      "copy": "explicit-browser-import"
+    },
+    {
+      "id": "adventureworks-postgresql",
+      "dataset": "adventureworks",
+      "storage": "postgresql",
+      "tags": [
+        "adventureworks",
+        "postgresql"
+      ],
+      "environments": [
+        "QA",
+        "UAT"
+      ],
+      "readiness": "hosted-api-pending",
+      "source": "https://demodb.dev/adventureworks/",
+      "query": "setup-required",
+      "copy": "unavailable"
+    },
+    {
+      "id": "adventureworks-ingitdb",
+      "dataset": "adventureworks",
+      "storage": "ingitdb",
+      "tags": [
+        "adventureworks",
+        "ingitdb"
+      ],
+      "environments": [
+        "dev"
+      ],
+      "readiness": "hosted-repository",
+      "source": "https://github.com/demo-db/adventureworks/tree/b4f6a9909c0de58767663dce9006c7ac522ce6a7/ingitdb",
+      "manifest": "https://github.com/demo-db/adventureworks/blob/b4f6a9909c0de58767663dce9006c7ac522ce6a7/ingitdb/export-manifest.json",
+      "query": "local-checkout-required",
+      "copy": "unavailable"
+    },
+    {
+      "id": "employees-sqlite",
+      "dataset": "employees",
+      "storage": "sqlite",
+      "tags": [
+        "employees",
+        "sqlite"
+      ],
+      "environments": [
+        "dev"
+      ],
+      "readiness": "public-api",
+      "source": "https://demodb.dev/ovdb/v1/databases/employees",
+      "descriptor": "https://demodb.dev/ovdb/db/employees/ovdb-database.json",
+      "fixtureSha256": "46b49dd0e141cd8db66d57680a10febfccc15e6f54dc7b8f3c2316b55e11c5f0",
+      "query": "ovdb-read",
+      "copy": "explicit-browser-import"
+    },
+    {
+      "id": "employees-postgresql",
+      "dataset": "employees",
+      "storage": "postgresql",
+      "tags": [
+        "employees",
+        "postgresql"
+      ],
+      "environments": [
+        "QA",
+        "UAT"
+      ],
+      "readiness": "hosted-api-pending",
+      "source": "https://demodb.dev/employees/",
+      "query": "setup-required",
+      "copy": "unavailable"
+    },
+    {
+      "id": "employees-ingitdb",
+      "dataset": "employees",
+      "storage": "ingitdb",
+      "tags": [
+        "employees",
+        "ingitdb"
+      ],
+      "environments": [
+        "dev"
+      ],
+      "readiness": "hosted-repository",
+      "source": "https://github.com/demo-db/employees/tree/397f3e32cb970e55bc4a528bb255c41272f6103f/ingitdb",
+      "manifest": "https://github.com/demo-db/employees/blob/397f3e32cb970e55bc4a528bb255c41272f6103f/ingitdb/export-manifest.json",
+      "query": "local-checkout-required",
+      "copy": "unavailable"
+    }
+  ],
+  "bigQueryEditions": [
+    {
+      "id": "chinook-bigquery",
+      "dataset": "chinook",
+      "storage": "bigquery",
+      "tags": [
+        "chinook",
+        "bigquery"
+      ],
+      "sourceProjectId": "demodb-dev",
+      "datasetId": "chinook",
+      "location": "US",
+      "authentication": "google-account-required",
+      "executionProjectId": "user-selected",
+      "publicReadRole": "READER",
+      "publicReadPrincipal": "allAuthenticatedUsers",
+      "readiness": "public-read-user-project-required",
+      "query": "not-enabled-in-browser",
+      "copy": "not-enabled",
+      "tableCount": 11,
+      "rowCount": 15607,
+      "sourceRepository": "https://github.com/demo-db/chinook",
+      "sourceRevision": "26e852cca00101f53a84ef8ee1f1ae389067f5cf",
+      "sourceSqliteSha256": "7651ba378ac2fcd0dfc3c66fb101f7a7eed3ba39a612ec642b96e20702061f15",
+      "importToolVersion": "v0.62.0",
+      "importToolCommit": "c6b98734cb4ac33892453b6112c5d8c004e84426",
+      "schemaNotes": {
+        "primaryKeys": "Unverified primary-key metadata was omitted from BigQuery declarations; BigQuery does not enforce declared keys.",
+        "foreignKeys": "Unverified foreign-key metadata was omitted from BigQuery declarations; BigQuery does not enforce declared keys.",
+        "secondaryIndexes": "Source relational indexes were not migrated; no BigQuery search or vector indexes were created."
+      },
+      "verification": "https://github.com/demo-db/websites/blob/main/config/bigquery-hosting.json"
+    },
+    {
+      "id": "northwind-bigquery",
+      "dataset": "northwind",
+      "storage": "bigquery",
+      "tags": [
+        "northwind",
+        "bigquery"
+      ],
+      "sourceProjectId": "demodb-dev",
+      "datasetId": "northwind",
+      "location": "US",
+      "authentication": "google-account-required",
+      "executionProjectId": "user-selected",
+      "publicReadRole": "READER",
+      "publicReadPrincipal": "allAuthenticatedUsers",
+      "readiness": "public-read-user-project-required",
+      "query": "not-enabled-in-browser",
+      "copy": "not-enabled",
+      "tableCount": 13,
+      "rowCount": 3310,
+      "sourceRepository": "https://github.com/demo-db/northwind",
+      "sourceRevision": "e74726515c3833620b54b7a50d1d273276dd23c1",
+      "sourceSqliteSha256": "279b34136771aee75d802094b3329515a2b01da65d2a20a4a9e3b58c29b4fd20",
+      "importToolVersion": "v0.62.0",
+      "importToolCommit": "c6b98734cb4ac33892453b6112c5d8c004e84426",
+      "schemaNotes": {
+        "primaryKeys": "Unverified primary-key metadata was omitted from BigQuery declarations; BigQuery does not enforce declared keys.",
+        "foreignKeys": "Unverified foreign-key metadata was omitted from BigQuery declarations; BigQuery does not enforce declared keys.",
+        "secondaryIndexes": "Source relational indexes were not migrated; no BigQuery search or vector indexes were created."
+      },
+      "verification": "https://github.com/demo-db/websites/blob/main/config/bigquery-hosting.json"
+    },
+    {
+      "id": "pubs-bigquery",
+      "dataset": "pubs",
+      "storage": "bigquery",
+      "tags": [
+        "pubs",
+        "bigquery"
+      ],
+      "sourceProjectId": "demodb-dev",
+      "datasetId": "pubs",
+      "location": "US",
+      "authentication": "google-account-required",
+      "executionProjectId": "user-selected",
+      "publicReadRole": "READER",
+      "publicReadPrincipal": "allAuthenticatedUsers",
+      "readiness": "public-read-user-project-required",
+      "query": "not-enabled-in-browser",
+      "copy": "not-enabled",
+      "tableCount": 11,
+      "rowCount": 255,
+      "sourceRepository": "https://github.com/demo-db/pubs",
+      "sourceRevision": "6c06c5c7395b03ff1a02c2b1a21485add3e1b65b",
+      "sourceSqliteSha256": "b45b08b7c06441cc0b138b031ea5bd32bd5866aebf874c89d2ebf7fc6abb3691",
+      "importToolVersion": "v0.62.0",
+      "importToolCommit": "c6b98734cb4ac33892453b6112c5d8c004e84426",
+      "schemaNotes": {
+        "primaryKeys": "Unverified primary-key metadata was omitted from BigQuery declarations; BigQuery does not enforce declared keys.",
+        "foreignKeys": "Unverified foreign-key metadata was omitted from BigQuery declarations; BigQuery does not enforce declared keys.",
+        "secondaryIndexes": "Source relational indexes were not migrated; no BigQuery search or vector indexes were created."
+      },
+      "verification": "https://github.com/demo-db/websites/blob/main/config/bigquery-hosting.json"
+    },
+    {
+      "id": "sakila-bigquery",
+      "dataset": "sakila",
+      "storage": "bigquery",
+      "tags": [
+        "sakila",
+        "bigquery"
+      ],
+      "sourceProjectId": "demodb-dev",
+      "datasetId": "sakila",
+      "location": "US",
+      "authentication": "google-account-required",
+      "executionProjectId": "user-selected",
+      "publicReadRole": "READER",
+      "publicReadPrincipal": "allAuthenticatedUsers",
+      "readiness": "public-read-user-project-required",
+      "query": "not-enabled-in-browser",
+      "copy": "not-enabled",
+      "tableCount": 16,
+      "rowCount": 47268,
+      "sourceRepository": "https://github.com/demo-db/sakila",
+      "sourceRevision": "cb9a81a8cbedcd8831737f281f888d5d584fae85",
+      "sourceSqliteSha256": "9bebeee50fecb1fee115c206a4f380f2f6d1f009e7796b18b8a8cfba7c810454",
+      "importToolVersion": "v0.62.0",
+      "importToolCommit": "c6b98734cb4ac33892453b6112c5d8c004e84426",
+      "schemaNotes": {
+        "primaryKeys": "Unverified primary-key metadata was omitted from BigQuery declarations; BigQuery does not enforce declared keys.",
+        "foreignKeys": "Unverified foreign-key metadata was omitted from BigQuery declarations; BigQuery does not enforce declared keys.",
+        "secondaryIndexes": "Source relational indexes were not migrated; no BigQuery search or vector indexes were created."
+      },
+      "verification": "https://github.com/demo-db/websites/blob/main/config/bigquery-hosting.json"
+    },
+    {
+      "id": "adventureworks-bigquery",
+      "dataset": "adventureworks",
+      "storage": "bigquery",
+      "tags": [
+        "adventureworks",
+        "bigquery"
+      ],
+      "sourceProjectId": "demodb-dev",
+      "datasetId": "adventureworks",
+      "location": "US",
+      "authentication": "google-account-required",
+      "executionProjectId": "user-selected",
+      "publicReadRole": "READER",
+      "publicReadPrincipal": "allAuthenticatedUsers",
+      "readiness": "public-read-user-project-required",
+      "query": "not-enabled-in-browser",
+      "copy": "not-enabled",
+      "tableCount": 71,
+      "rowCount": 759240,
+      "sourceRepository": "https://github.com/demo-db/adventureworks",
+      "sourceRevision": "5028a27189b487d6fd8025fafc1307aada707fd2",
+      "sourceSqliteSha256": "6a105e1982becfe003fc7a307d7cad9d738390cedd79d166c2167fd817168109",
+      "importToolVersion": "v0.62.0",
+      "importToolCommit": "c6b98734cb4ac33892453b6112c5d8c004e84426",
+      "schemaNotes": {
+        "primaryKeys": "Unverified primary-key metadata was omitted from BigQuery declarations; BigQuery does not enforce declared keys.",
+        "foreignKeys": "Unverified foreign-key metadata was omitted from BigQuery declarations; BigQuery does not enforce declared keys.",
+        "secondaryIndexes": "Source relational indexes were not migrated; no BigQuery search or vector indexes were created."
+      },
+      "verification": "https://github.com/demo-db/websites/blob/main/config/bigquery-hosting.json"
+    },
+    {
+      "id": "employees-bigquery",
+      "dataset": "employees",
+      "storage": "bigquery",
+      "tags": [
+        "employees",
+        "bigquery"
+      ],
+      "sourceProjectId": "demodb-dev",
+      "datasetId": "employees",
+      "location": "US",
+      "authentication": "google-account-required",
+      "executionProjectId": "user-selected",
+      "publicReadRole": "READER",
+      "publicReadPrincipal": "allAuthenticatedUsers",
+      "readiness": "public-read-user-project-required",
+      "query": "not-enabled-in-browser",
+      "copy": "not-enabled",
+      "tableCount": 6,
+      "rowCount": 13584,
+      "sourceRepository": "https://github.com/demo-db/employees",
+      "sourceRevision": "2069e26e8fdb60bdb16507f75569a579cf3da7cf",
+      "sourceSqliteSha256": "46b49dd0e141cd8db66d57680a10febfccc15e6f54dc7b8f3c2316b55e11c5f0",
+      "importToolVersion": "v0.62.0",
+      "importToolCommit": "c6b98734cb4ac33892453b6112c5d8c004e84426",
+      "schemaNotes": {
+        "primaryKeys": "Unverified primary-key metadata was omitted from BigQuery declarations; BigQuery does not enforce declared keys.",
+        "foreignKeys": "Unverified foreign-key metadata was omitted from BigQuery declarations; BigQuery does not enforce declared keys.",
+        "secondaryIndexes": "Source relational indexes were not migrated; no BigQuery search or vector indexes were created."
+      },
+      "verification": "https://github.com/demo-db/websites/blob/main/config/bigquery-hosting.json"
+    }
+  ],
+  "bigQueryPlans": [
+    {
+      "id": "bigquery-world-bank-wdi",
+      "title": "World Development Indicators on BigQuery",
+      "tags": [
+        "bigquery-world-bank-wdi",
+        "bigquery"
+      ],
+      "readiness": "setup-required",
+      "directory": "https://github.com/openvaultdb/directory/blob/253e419214da22a1bcc2b5e78577bb2d46323074/index.json",
+      "query": "plan-only",
+      "copy": "unavailable",
+      "authentication": "user-google-account",
+      "executionProject": "user-selected"
+    },
+    {
+      "id": "bigquery-new-york-citibike",
+      "title": "Citi Bike candidates within BigQuery new_york",
+      "tags": [
+        "bigquery-new-york-citibike",
+        "bigquery"
+      ],
+      "readiness": "setup-required",
+      "directory": "https://github.com/openvaultdb/directory/blob/253e419214da22a1bcc2b5e78577bb2d46323074/index.json",
+      "query": "plan-only",
+      "copy": "unavailable",
+      "authentication": "user-google-account",
+      "executionProject": "user-selected"
+    }
+  ]
+}

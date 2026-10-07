@@ -1,0 +1,12 @@
+{
+  "id": "QA",
+  "dbServers": [],
+  "editionConnections": [
+    "chinook-postgresql",
+    "northwind-postgresql",
+    "pubs-postgresql",
+    "sakila-postgresql",
+    "adventureworks-postgresql",
+    "employees-postgresql"
+  ]
+}
