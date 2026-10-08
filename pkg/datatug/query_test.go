@@ -28,6 +28,20 @@ func newQueryDef(queryType QueryType, text string) QueryDef {
 	}
 }
 
+func TestQueryDefConnectionIDRejectsConnectionStrings(t *testing.T) {
+	query := newQueryDef(QueryTypeSQL, "SELECT 1")
+	query.ConnectionID = "chinook-sqlite"
+	if err := query.Validate(); err != nil {
+		t.Fatalf("valid project connection ID refused: %v", err)
+	}
+	for _, value := range []string{"https://example.com/db", "user:password@host", "../private"} {
+		query.ConnectionID = value
+		if err := query.Validate(); err == nil {
+			t.Errorf("unsafe connection ID %q accepted", value)
+		}
+	}
+}
+
 func TestIsKnownQueryType(t *testing.T) {
 	tests := []struct {
 		name      string

@@ -155,6 +155,9 @@ type QueryDef struct {
 	// Capture is the provenance of a query captured from exploration; nil
 	// for a query authored any other way. See QueryCapture.
 	Capture *QueryCapture `json:"capture,omitempty" yaml:"capture,omitempty"`
+	// ConnectionID names a project connection declaration. It is an identifier,
+	// never a URL, driver string, credential, or execution grant.
+	ConnectionID string `json:"connectionId,omitempty" yaml:"connectionId,omitempty"`
 	// Federation contains client-side source routing and optional per-row HTTP
 	// lookups. It is project metadata, never a place for credentials.
 	Federation *QueryFederation `json:"federation,omitempty" yaml:"federation,omitempty"`
@@ -244,6 +247,9 @@ func (v QueryDef) Validate() error {
 	// a value that embeds one is not.
 	if reason, found := EmbeddedCredentialReason(v.Purpose); found {
 		return validation.NewErrBadRecordFieldValue("purpose", reason+"; a query's purpose is stored in git-tracked project files")
+	}
+	if v.ConnectionID != "" && !ValidConnectionID(v.ConnectionID) {
+		return validation.NewErrBadRecordFieldValue("connectionId", "must be a project connection ID")
 	}
 	if v.Capture != nil {
 		if err := v.Capture.validateCaptureAgainst(v.Parameters); err != nil {

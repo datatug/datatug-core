@@ -138,6 +138,7 @@ const storedQueryHint = "a query is stored in git-tracked project files"
 //	type                                          closed set (QueryDef.Validate's switch)
 //	text                                          credential (QueryDef.Validate)
 //	purpose                                       credential (QueryDef.Validate)
+//	connectionId                                  identifier (QueryDef.Validate)
 //	parameters[].id                               identifier
 //	parameters[].type                             identifier
 //	parameters[].title                            credential - free prose, like a query title

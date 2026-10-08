@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
@@ -47,6 +48,30 @@ func TestPutQuery_CreateSucceeds(t *testing.T) {
 	}
 	if !fileExists(t, filepath.Join(queriesDir, "q1.query.dtql")) {
 		t.Error("expected q1.query.dtql to exist")
+	}
+}
+
+func TestPutQuery_PreservesConnectionID(t *testing.T) {
+	store, queriesDir := newTestQueriesStore(t)
+	query := dtqlQuery("q1", "", "SELECT 1")
+	query.Type = datatug.QueryTypeSQL
+	query.ConnectionID = "chinook-sqlite"
+	if _, err := store.PutQuery(context.Background(), &query, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := store.LoadQuery(context.Background(), "q1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.ConnectionID != query.ConnectionID {
+		t.Fatalf("connection ID lost on read: %q", loaded.ConnectionID)
+	}
+	metadata, err := os.ReadFile(filepath.Join(queriesDir, "q1.query.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(metadata), `"connectionId": "chinook-sqlite"`) {
+		t.Fatalf("connection ID missing from metadata: %s", metadata)
 	}
 }
 
