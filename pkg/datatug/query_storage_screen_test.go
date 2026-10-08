@@ -40,9 +40,10 @@ func queryDefWithEveryPersistedField() QueryDef {
 				ListOfTags: ListOfTags{Tags: []string{"team:finance", "revenue"}},
 			},
 		},
-		Type:    QueryTypeDTQL,
-		Text:    "from: Invoice\n",
-		Purpose: "Which customers reset their password last week, and did any invoice go unpaid?",
+		Type:         QueryTypeDTQL,
+		ConnectionID: "chinook-sqlite",
+		Text:         "from: Invoice\n",
+		Purpose:      "Which customers reset their password last week, and did any invoice go unpaid?",
 		Parameters: Parameters{
 			{
 				ID: "CustomerId", Type: "integer", IsRequired: true,
@@ -390,6 +391,7 @@ var queryStorageFieldDecisions = map[string]string{
 	"capture.collection":             "identifier (QueryCapture.Validate)",
 	"capture.bindings[].parameterId": "identifier (QueryCapture.Validate)",
 	"capture.bindings[].origin":      "closed set (QueryCapture.Validate)",
+	"connectionId":                   "identifier (QueryDef.Validate)",
 }
 
 // TestQueryDefStorageScreen_CoversEveryPersistedStringField is what makes
