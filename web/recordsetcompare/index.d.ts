@@ -1,5 +1,5 @@
 export type RecordsetCompare = {
-  compareJSON(input: string): Promise<string>;
+  compareJSON(input: string, options?: { signal?: AbortSignal }): Promise<string>;
 };
 
 export declare const RECORDSET_COMPARE_ABI: 'recordsetcompare/1';

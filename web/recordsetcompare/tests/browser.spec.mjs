@@ -33,7 +33,7 @@ test.beforeAll(async () => {
     }
     if (path === '/harness.mjs') {
       response.writeHead(200, { 'content-type': 'text/javascript', ...csp });
-      response.end(`import {createRecordsetComparer} from '/index.mjs'; window.wasmPin = ${JSON.stringify(wasmPin)}; window.compare = (input) => createRecordsetComparer(window.wasmPin).compareJSON(input); window.compareWithPin = (input, pin) => createRecordsetComparer(pin).compareJSON(input); window.compareWithWorker = (input, workerURL, timeoutMs) => createRecordsetComparer({...window.wasmPin, workerURL, timeoutMs}).compareJSON(input);`);
+      response.end(`import {createRecordsetComparer} from '/index.mjs'; window.wasmPin = ${JSON.stringify(wasmPin)}; window.compare = (input, options) => createRecordsetComparer(window.wasmPin).compareJSON(input, options); window.compareWithPin = (input, pin) => createRecordsetComparer(pin).compareJSON(input); window.compareWithWorker = (input, workerURL, timeoutMs, options) => createRecordsetComparer({...window.wasmPin, workerURL, timeoutMs}).compareJSON(input, options); window.trackWorkers = ({throwOnType} = {}) => { const NativeWorker = window.Worker; window.workerRecords = []; window.Worker = class extends NativeWorker { constructor(...args) { super(...args); const record = { worker: this, terminated: false, messages: [], postMessages: 0, handlersAtTermination: null }; window.workerRecords.push(record); this.addEventListener('message', ({data}) => record.messages.push(data)); this.addEventListener('error', ({message}) => record.messages.push({type:'error', message})); const postMessage = this.postMessage.bind(this); this.postMessage = (message, ...rest) => { record.postMessages++; if (message?.type === throwOnType) throw new Error('intentional postMessage failure'); return postMessage(message, ...rest); }; const terminate = this.terminate.bind(this); this.terminate = () => { record.terminated = true; record.handlersAtTermination = {onmessage: this.onmessage, onerror: this.onerror, onmessageerror: this.onmessageerror}; return terminate(); }; } }; };`);
       return;
     }
     if (path === '/hang.js') {
@@ -44,6 +44,11 @@ test.beforeAll(async () => {
     if (path === '/bad-worker.js') {
       response.writeHead(200, { 'content-type': 'text/javascript', ...csp });
       response.end('throw new Error("intentional worker startup failure");');
+      return;
+    }
+    if (path === '/delayed-result.js') {
+      response.writeHead(200, { 'content-type': 'text/javascript', ...csp });
+      response.end(`self.onmessage = ({data}) => { if (data.type === 'initialize') self.postMessage({type:'ready', abi:'recordsetcompare/1'}); if (data.type === 'compare') setTimeout(() => self.postMessage({type:'result', json:'{}'}), 250); };`);
       return;
     }
     const filename = normalize(join(packageDirectory, path.slice(1)));
@@ -117,6 +122,122 @@ test('browser worker rejects bytes that fail the consumer-supplied external pin'
     }
   }, input);
   expect(failure).toContain('SHA-256 does not match its external pin');
+});
+
+test('pre-aborted comparisons create no worker', async ({ page }) => {
+  await page.goto(`${origin}/`);
+  const result = await page.evaluate(async () => {
+    window.trackWorkers();
+    const controller = new AbortController();
+    controller.abort();
+    try {
+      await window.compare('{}', { signal: controller.signal });
+      return { name: '' };
+    } catch (error) {
+      return { name: error.name, workers: window.workerRecords.length };
+    }
+  });
+  expect(result).toEqual({ name: 'AbortError', workers: 0 });
+});
+
+test('a null abort signal is rejected without creating a worker', async ({ page }) => {
+  await page.goto(`${origin}/`);
+  const result = await page.evaluate(async () => {
+    window.trackWorkers();
+    try {
+      await window.compare('{}', { signal: null });
+      return { name: '' };
+    } catch (error) {
+      return { name: error.name, workers: window.workerRecords.length };
+    }
+  });
+  expect(result).toEqual({ name: 'TypeError', workers: 0 });
+});
+
+test('aborting during worker startup terminates the active worker immediately', async ({ page }) => {
+  await page.goto(`${origin}/`);
+  const result = await page.evaluate(async () => {
+    window.trackWorkers();
+    const controller = new AbortController();
+    const pending = window.compareWithWorker('{}', '/hang.js', 2_000, { signal: controller.signal });
+    controller.abort();
+    try {
+      await pending;
+      return { name: '' };
+    } catch (error) {
+      const record = window.workerRecords[0];
+      return { name: error.name, count: window.workerRecords.length, terminated: record?.terminated, handlers: record?.handlersAtTermination };
+    }
+  });
+  expect(result).toEqual({ name: 'AbortError', count: 1, terminated: true, handlers: { onmessage: null, onerror: null, onmessageerror: null } });
+});
+
+test('aborting after readiness terminates the worker and fences a late result', async ({ page }) => {
+  await page.goto(`${origin}/`);
+  const beforeAbort = await page.evaluate(() => {
+    window.trackWorkers();
+    const controller = new AbortController();
+    window.pendingComparison = window.compareWithWorker('{}', '/delayed-result.js', 2_000, { signal: controller.signal }).then(
+      () => ({ name: '' }),
+      (error) => ({ name: error.name }),
+    );
+    window.comparisonController = controller;
+  });
+  await page.waitForFunction(() => window.workerRecords?.[0]?.messages.some((message) => message.type === 'ready'));
+  const result = await page.evaluate(async () => {
+    const capturedReadyHandler = window.workerRecords[0].worker.onmessage;
+    const postMessagesBeforeAbort = window.workerRecords[0].postMessages;
+    window.comparisonController.abort();
+    const outcome = await window.pendingComparison;
+    capturedReadyHandler({ data: { type: 'ready', abi: 'recordsetcompare/1' } });
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    const record = window.workerRecords[0];
+    return { ...outcome, terminated: record.terminated, resultMessages: record.messages.filter((message) => message.type === 'result').length, postMessagesBeforeAbort, postMessagesAfterAbort: record.postMessages };
+  });
+  expect(beforeAbort).toBeUndefined();
+  expect(result).toEqual({ name: 'AbortError', terminated: true, resultMessages: 0, postMessagesBeforeAbort: 2, postMessagesAfterAbort: 2 });
+});
+
+test('successful comparison terminates its worker and removes the abort listener', async ({ page }) => {
+  await page.goto(`${origin}/`);
+  const result = await page.evaluate(async (value) => {
+    window.trackWorkers();
+    const controller = new AbortController();
+    const signal = controller.signal;
+    const add = signal.addEventListener.bind(signal);
+    const remove = signal.removeEventListener.bind(signal);
+    let added = 0;
+    let removed = 0;
+    signal.addEventListener = (type, ...args) => { if (type === 'abort') added++; return add(type, ...args); };
+    signal.removeEventListener = (type, ...args) => { if (type === 'abort') removed++; return remove(type, ...args); };
+    const json = await window.compare(value, { signal });
+    const record = window.workerRecords[0];
+    return { parsed: JSON.parse(json).ok, count: window.workerRecords.length, terminated: record.terminated, handlers: record.handlersAtTermination, added, removed };
+  }, input);
+  expect(result).toEqual({ parsed: true, count: 1, terminated: true, handlers: { onmessage: null, onerror: null, onmessageerror: null }, added: 1, removed: 1 });
+});
+
+test('synchronous postMessage failures terminate the worker and remove the abort listener', async ({ page }) => {
+  await page.goto(`${origin}/`);
+  const result = await page.evaluate(async () => {
+    window.trackWorkers({ throwOnType: 'initialize' });
+    const controller = new AbortController();
+    const signal = controller.signal;
+    const add = signal.addEventListener.bind(signal);
+    const remove = signal.removeEventListener.bind(signal);
+    let added = 0;
+    let removed = 0;
+    signal.addEventListener = (type, ...args) => { if (type === 'abort') added++; return add(type, ...args); };
+    signal.removeEventListener = (type, ...args) => { if (type === 'abort') removed++; return remove(type, ...args); };
+    try {
+      await window.compare('{}', { signal });
+      return { name: '' };
+    } catch (error) {
+      const record = window.workerRecords[0];
+      return { name: error.name, message: error.message, count: window.workerRecords.length, terminated: record?.terminated, handlers: record?.handlersAtTermination, added, removed };
+    }
+  });
+  expect(result).toEqual({ name: 'Error', message: 'intentional postMessage failure', count: 1, terminated: true, handlers: { onmessage: null, onerror: null, onmessageerror: null }, added: 1, removed: 1 });
 });
 
 test('actual linked callback returns a strict error for a non-string worker argument', async ({ page }) => {
