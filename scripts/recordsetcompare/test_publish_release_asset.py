@@ -71,20 +71,124 @@ class PublishReleaseAssetTests(unittest.TestCase):
         absent = subprocess.CompletedProcess([], 1, "", "HTTP 404: Not Found")
         created = subprocess.CompletedProcess([], 0, "", "")
         draft = {"tag_name": "v1.2.3", "draft": True, "assets": []}
-        with patch.object(publisher.subprocess, "run", side_effect=[absent, created, subprocess.CompletedProcess([], 0, json.dumps(draft), "")]) as run:
+        with patch.object(publisher, "run", side_effect=[json.dumps([]), json.dumps([draft])]) as list_call, patch.object(
+            publisher.subprocess, "run", side_effect=[absent, created, absent]
+        ) as gh_call:
             release = publisher.ensure_release("datatug/datatug-core", "v1.2.3")
         self.assertTrue(release["draft"])
-        create_args = run.call_args_list[1].args[0]
+        create_args = gh_call.call_args_list[1].args[0]
         self.assertIn("--verify-tag", create_args)
         self.assertIn("--draft", create_args)
         self.assertEqual(create_args[-2:], ["--repo", "datatug/datatug-core"])
+        self.assertEqual(list_call.call_count, 2)
+        self.assertIn("page=1", list_call.call_args_list[0].args[0][2])
 
     def test_non_not_found_release_lookup_fails_closed(self):
         failure = subprocess.CompletedProcess([], 1, "", "HTTP 403: Forbidden")
-        with patch.object(publisher.subprocess, "run", return_value=failure) as run:
+        with patch.object(publisher.subprocess, "run", return_value=failure) as run, patch.object(publisher, "run") as list_call:
             with self.assertRaisesRegex(RuntimeError, "403"):
                 publisher.ensure_release("datatug/datatug-core", "v1.2.3")
         self.assertEqual(run.call_count, 1)
+        list_call.assert_not_called()
+
+    def test_published_release_is_read_from_by_tag_endpoint(self):
+        published = {"tag_name": "v1.2.3", "draft": False, "assets": []}
+        with patch.object(
+            publisher.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, json.dumps(published), "")
+        ) as gh_call, patch.object(publisher, "run") as list_call:
+            release = publisher.read_release("datatug/datatug-core", "v1.2.3")
+        self.assertFalse(release["draft"])
+        self.assertEqual(gh_call.call_args.args[0], ["gh", "api", "repos/datatug/datatug-core/releases/tags/v1.2.3"])
+        list_call.assert_not_called()
+
+    def test_draft_release_is_found_after_by_tag_endpoint_returns_404(self):
+        absent = subprocess.CompletedProcess([], 1, "", "HTTP 404: Not Found")
+        draft = {"id": 42, "tag_name": "v1.2.3", "draft": True, "assets": []}
+        with patch.object(publisher.subprocess, "run", return_value=absent), patch.object(
+            publisher, "run", return_value=json.dumps([draft])
+        ) as list_call:
+            release = publisher.read_release("datatug/datatug-core", "v1.2.3")
+        self.assertEqual(release, draft)
+        self.assertEqual(
+            list_call.call_args.args[0],
+            ["gh", "api", "repos/datatug/datatug-core/releases?per_page=100&page=1"],
+        )
+
+    def test_true_release_absence_is_returned_only_after_complete_short_page(self):
+        absent = subprocess.CompletedProcess([], 1, "", "HTTP 404: Not Found")
+        with patch.object(publisher.subprocess, "run", return_value=absent), patch.object(
+            publisher, "run", return_value=json.dumps([])
+        ) as list_call:
+            self.assertIsNone(publisher.read_release("datatug/datatug-core", "v1.2.3"))
+        list_call.assert_called_once_with(["gh", "api", "repos/datatug/datatug-core/releases?per_page=100&page=1"])
+
+    def test_release_list_paginates_until_exact_tag_is_found(self):
+        absent = subprocess.CompletedProcess([], 1, "", "HTTP 404: Not Found")
+        older = [{"tag_name": f"v1.0.{index}", "draft": False, "assets": []} for index in range(publisher.RELEASES_PER_PAGE)]
+        draft = {"id": 42, "tag_name": "v1.2.3", "draft": True, "assets": []}
+        with patch.object(publisher.subprocess, "run", return_value=absent), patch.object(
+            publisher, "run", side_effect=[json.dumps(older), json.dumps([draft])]
+        ) as list_call:
+            release = publisher.read_release("datatug/datatug-core", "v1.2.3")
+        self.assertEqual(release, draft)
+        self.assertEqual(list_call.call_count, 2)
+        self.assertIn("page=2", list_call.call_args_list[1].args[0][2])
+
+    def test_release_lookup_rejects_duplicate_exact_tags(self):
+        absent = subprocess.CompletedProcess([], 1, "", "HTTP 404: Not Found")
+        duplicate = {"tag_name": "v1.2.3", "draft": True, "assets": []}
+        first_page = [{"tag_name": f"v1.0.{index}", "draft": False, "assets": []} for index in range(publisher.RELEASES_PER_PAGE - 1)]
+        first_page.append(duplicate)
+        with patch.object(publisher.subprocess, "run", return_value=absent), patch.object(
+            publisher, "run", side_effect=[json.dumps(first_page), json.dumps([duplicate])]
+        ) as list_call:
+            with self.assertRaisesRegex(RuntimeError, "multiple GitHub Releases"):
+                publisher.read_release("datatug/datatug-core", "v1.2.3")
+        self.assertEqual(list_call.call_count, 2)
+
+    def test_release_lookup_rejects_lookalike_tag_and_treats_list_lookalike_as_absent(self):
+        lookalike = {"tag_name": "v1.2.30", "draft": False, "assets": []}
+        with patch.object(
+            publisher.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, json.dumps(lookalike), "")
+        ), patch.object(publisher, "run") as list_call:
+            with self.assertRaisesRegex(RuntimeError, "did not match exact tag"):
+                publisher.read_release("datatug/datatug-core", "v1.2.3")
+        list_call.assert_not_called()
+
+        absent = subprocess.CompletedProcess([], 1, "", "HTTP 404: Not Found")
+        with patch.object(publisher.subprocess, "run", return_value=absent), patch.object(
+            publisher, "run", return_value=json.dumps([lookalike])
+        ):
+            self.assertIsNone(publisher.read_release("datatug/datatug-core", "v1.2.3"))
+
+    def test_release_lookup_rejects_incomplete_release_metadata(self):
+        incomplete = {"tag_name": "v1.2.3", "draft": "false", "assets": []}
+        with patch.object(
+            publisher.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, json.dumps(incomplete), "")
+        ):
+            with self.assertRaisesRegex(RuntimeError, "omitted its draft state or asset list"):
+                publisher.read_release("datatug/datatug-core", "v1.2.3")
+
+    def test_release_list_api_error_fails_closed(self):
+        absent = subprocess.CompletedProcess([], 1, "", "HTTP 404: Not Found")
+        failure = subprocess.CalledProcessError(1, ["gh", "api"], stderr="HTTP 403: Forbidden")
+        with patch.object(publisher.subprocess, "run", return_value=absent), patch.object(
+            publisher, "run", side_effect=failure
+        ):
+            with self.assertRaisesRegex(RuntimeError, "403"):
+                publisher.read_release("datatug/datatug-core", "v1.2.3")
+
+    def test_release_list_fails_closed_when_page_bound_is_exhausted(self):
+        absent = subprocess.CompletedProcess([], 1, "", "HTTP 404: Not Found")
+        full_page = json.dumps([{"tag_name": f"v1.0.{index}"} for index in range(2)])
+        with patch.object(publisher, "MAX_RELEASE_LIST_PAGES", 2), patch.object(
+            publisher, "RELEASES_PER_PAGE", 2
+        ), patch.object(publisher.subprocess, "run", return_value=absent), patch.object(
+            publisher, "run", side_effect=[full_page, full_page]
+        ) as list_call:
+            with self.assertRaisesRegex(RuntimeError, "exceeded 2 pages"):
+                publisher.read_release("datatug/datatug-core", "v9.9.9")
+        self.assertEqual(list_call.call_count, 2)
 
     def test_moved_tag_blocks_release_publication(self):
         with patch.object(publisher, "remote_tag_commit", return_value="f" * 40), patch.object(publisher, "ensure_release") as ensure:

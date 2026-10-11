@@ -14,6 +14,9 @@ import tempfile
 
 from verify_package import verify_archive
 
+RELEASES_PER_PAGE = 100
+MAX_RELEASE_LIST_PAGES = 10
+
 
 def run(args: list[str], *, capture: bool = True) -> str:
     result = subprocess.run(args, check=True, text=True, capture_output=capture)
@@ -40,6 +43,16 @@ def remote_tag_commit(repository: str, tag: str) -> str:
     raise SystemExit("remote source tag does not resolve to a commit")
 
 
+def validate_release(release: object, tag: str) -> dict:
+    if not isinstance(release, dict) or release.get("tag_name") != tag:
+        raise RuntimeError(f"GitHub Release response did not match exact tag {tag}")
+    if not isinstance(release.get("draft"), bool) or not isinstance(release.get("assets"), list):
+        raise RuntimeError("GitHub Release response omitted its draft state or asset list")
+    if any(not isinstance(asset, dict) for asset in release["assets"]):
+        raise RuntimeError("GitHub Release response contained an invalid asset entry")
+    return release
+
+
 def read_release(repository: str, tag: str) -> dict | None:
     result = subprocess.run(
         ["gh", "api", f"repos/{repository}/releases/tags/{tag}"],
@@ -48,10 +61,38 @@ def read_release(repository: str, tag: str) -> dict | None:
         capture_output=True,
     )
     if result.returncode == 0:
-        return json.loads(result.stdout)
-    if "HTTP 404" in result.stderr or "Not Found" in result.stderr:
-        return None
-    raise RuntimeError(result.stderr.strip() or "could not read GitHub Release")
+        try:
+            release = json.loads(result.stdout)
+        except json.JSONDecodeError as error:
+            raise RuntimeError("GitHub Release response was not valid JSON") from error
+        return validate_release(release, tag)
+    if "HTTP 404" not in result.stderr:
+        raise RuntimeError(result.stderr.strip() or "could not read GitHub Release")
+    return read_release_from_list(repository, tag)
+
+
+def read_release_from_list(repository: str, tag: str) -> dict | None:
+    matches: list[dict] = []
+    for page in range(1, MAX_RELEASE_LIST_PAGES + 1):
+        endpoint = f"repos/{repository}/releases?per_page={RELEASES_PER_PAGE}&page={page}"
+        try:
+            response = json.loads(run(["gh", "api", endpoint]))
+        except subprocess.CalledProcessError as error:
+            detail = error.stderr.strip() if error.stderr else ""
+            raise RuntimeError(detail or "could not list GitHub Releases") from error
+        except json.JSONDecodeError as error:
+            raise RuntimeError("GitHub Releases response was not valid JSON") from error
+        if not isinstance(response, list) or any(
+            not isinstance(release, dict) or not isinstance(release.get("tag_name"), str)
+            for release in response
+        ):
+            raise RuntimeError("GitHub Releases response did not contain a valid release list")
+        matches.extend(release for release in response if release["tag_name"] == tag)
+        if len(matches) > 1:
+            raise RuntimeError(f"multiple GitHub Releases found for exact tag {tag}")
+        if len(response) < RELEASES_PER_PAGE:
+            return validate_release(matches[0], tag) if matches else None
+    raise RuntimeError(f"GitHub Releases lookup exceeded {MAX_RELEASE_LIST_PAGES} pages")
 
 
 def ensure_release(repository: str, tag: str) -> dict:
