@@ -197,6 +197,27 @@ func (r CompareSideReceipt) Validate() error {
 	return nil
 }
 
+// CompareSideInfo carries only the receipt-free facts required to validate a
+// comparison. It conveys neither execution identity nor completeness or
+// authorization authority.
+type CompareSideInfo struct {
+	RowCount    int          `json:"rowCount"`
+	Limitations []Limitation `json:"limitations"`
+}
+
+// Validate checks the context-free side facts used by CompareDiff.
+func (s CompareSideInfo) Validate() error {
+	if s.RowCount < 0 {
+		return &ValidationError{Field: "rowCount", Message: "must not be negative"}
+	}
+	for i, limitation := range s.Limitations {
+		if err := limitation.Validate(); err != nil {
+			return &ValidationError{Field: "limitations", Message: fmt.Sprintf("index %d: %s", i, err)}
+		}
+	}
+	return nil
+}
+
 type CompareRow struct {
 	Key []TypedValue `json:"key"`
 	Row []TypedValue `json:"row"`
@@ -224,6 +245,21 @@ type CompareSummary struct {
 	Changed              int                     `json:"changed"`
 	Unchanged            int                     `json:"unchanged"`
 	ColumnsOnlyOnOneSide []CompareOneSidedColumn `json:"columnsOnlyOnOneSide"`
+}
+
+// CompareDiff is the receipt-free typed result of aligning two recordsets.
+// CompareResult remains the durable server response with its explicit side
+// receipts and established JSON/object field layout.
+type CompareDiff struct {
+	Columns       []Column             `json:"columns"`
+	Key           []string             `json:"key"`
+	Added         []CompareRow         `json:"added"`
+	Removed       []CompareRow         `json:"removed"`
+	Changed       []CompareChangedRow  `json:"changed"`
+	Summary       CompareSummary       `json:"summary"`
+	Distribution  *CompareDistribution `json:"distribution,omitempty"`
+	PolicyLimited bool                 `json:"policyLimited"`
+	Truncated     bool                 `json:"truncated"`
 }
 
 type CompareDistributionSide struct {
@@ -265,10 +301,33 @@ func (r CompareResult) Validate() error {
 	if err := r.Right.Validate(); err != nil {
 		return &ValidationError{Field: "right", Message: err.Error()}
 	}
-	hiddenColumnSet := compareHiddenColumns(r.Left.Limitations, r.Right.Limitations)
+	return r.compareDiff().Validate(
+		CompareSideInfo{RowCount: r.Left.RowCount, Limitations: r.Left.Limitations},
+		CompareSideInfo{RowCount: r.Right.RowCount, Limitations: r.Right.Limitations},
+	)
+}
+
+func (r CompareResult) compareDiff() CompareDiff {
+	return CompareDiff{
+		Columns: r.Columns, Key: r.Key, Added: r.Added, Removed: r.Removed,
+		Changed: r.Changed, Summary: r.Summary, Distribution: r.Distribution,
+		PolicyLimited: r.PolicyLimited, Truncated: r.Truncated,
+	}
+}
+
+// Validate checks the diff against its receipt-free side context. Callers
+// cannot use these facts to assert that an execution is complete or authorized.
+func (d CompareDiff) Validate(leftInfo, rightInfo CompareSideInfo) error {
+	if err := leftInfo.Validate(); err != nil {
+		return &ValidationError{Field: "leftInfo", Message: err.Error()}
+	}
+	if err := rightInfo.Validate(); err != nil {
+		return &ValidationError{Field: "rightInfo", Message: err.Error()}
+	}
+	hiddenColumnSet := compareHiddenColumns(leftInfo.Limitations, rightInfo.Limitations)
 	columnSet := map[string]bool{}
 	columnByName := map[string]Column{}
-	for i, c := range r.Columns {
+	for i, c := range d.Columns {
 		if hiddenColumnSet[c.Name] {
 			return &ValidationError{Field: "columns", Message: fmt.Sprintf("shared column index %d is hidden by policy", i)}
 		}
@@ -278,19 +337,19 @@ func (r CompareResult) Validate() error {
 		if columnSet[c.Name] {
 			return &ValidationError{Field: "columns", Message: fmt.Sprintf("duplicate column %q", c.Name)}
 		}
-		if i > 0 && r.Columns[i-1].Name >= c.Name {
+		if i > 0 && d.Columns[i-1].Name >= c.Name {
 			return &ValidationError{Field: "columns", Message: "must be in stable name order"}
 		}
 		columnSet[c.Name] = true
 		columnByName[c.Name] = c
 	}
-	if len(r.Key) == 0 {
+	if len(d.Key) == 0 {
 		return &ValidationError{Field: "key", Message: "is required"}
 	}
 	keySet := map[string]bool{}
-	keyColumns := make([]Column, 0, len(r.Key))
-	keyIndexes := make([]int, 0, len(r.Key))
-	for _, key := range r.Key {
+	keyColumns := make([]Column, 0, len(d.Key))
+	keyIndexes := make([]int, 0, len(d.Key))
+	for _, key := range d.Key {
 		if strings.TrimSpace(key) == "" || !columnSet[key] {
 			return &ValidationError{Field: "key", Message: fmt.Sprintf("column %q is not shared", key)}
 		}
@@ -299,14 +358,14 @@ func (r CompareResult) Validate() error {
 		}
 		keySet[key] = true
 		keyColumns = append(keyColumns, columnByName[key])
-		for index, column := range r.Columns {
+		for index, column := range d.Columns {
 			if column.Name == key {
 				keyIndexes = append(keyIndexes, index)
 				break
 			}
 		}
 	}
-	emitted := len(r.Added) + len(r.Removed) + len(r.Changed)
+	emitted := len(d.Added) + len(d.Removed) + len(d.Changed)
 	if emitted > CompareMaximumLimit {
 		return &ValidationError{Field: "added/removed/changed", Message: fmt.Sprintf("emitted rows exceed maximum %d", CompareMaximumLimit)}
 	}
@@ -314,19 +373,19 @@ func (r CompareResult) Validate() error {
 	for _, rows := range []struct {
 		name string
 		rows []CompareRow
-	}{{"added", r.Added}, {"removed", r.Removed}} {
+	}{{"added", d.Added}, {"removed", d.Removed}} {
 		var priorKey []TypedValue
 		for i, row := range rows.rows {
-			if err := validateCompareValues(rows.name, i, "key", row.Key, len(r.Key)); err != nil {
+			if err := validateCompareValues(rows.name, i, "key", row.Key, len(d.Key)); err != nil {
 				return err
 			}
-			if err := validateCompareValues(rows.name, i, "row", row.Row, len(r.Columns)); err != nil {
+			if err := validateCompareValues(rows.name, i, "row", row.Row, len(d.Columns)); err != nil {
 				return err
 			}
 			if err := validateCompareColumnTypes(rows.name, i, "key", row.Key, keyColumns); err != nil {
 				return err
 			}
-			if err := validateCompareColumnTypes(rows.name, i, "row", row.Row, r.Columns); err != nil {
+			if err := validateCompareColumnTypes(rows.name, i, "row", row.Row, d.Columns); err != nil {
 				return err
 			}
 			for keyIndex, rowIndex := range keyIndexes {
@@ -341,8 +400,8 @@ func (r CompareResult) Validate() error {
 		}
 	}
 	var priorChangedKey []TypedValue
-	for i, row := range r.Changed {
-		if err := validateCompareValues("changed", i, "key", row.Key, len(r.Key)); err != nil {
+	for i, row := range d.Changed {
+		if err := validateCompareValues("changed", i, "key", row.Key, len(d.Key)); err != nil {
 			return err
 		}
 		if len(row.Columns) == 0 {
@@ -379,18 +438,18 @@ func (r CompareResult) Validate() error {
 			seen[change.Column] = true
 		}
 	}
-	if r.Summary.Added < len(r.Added) || r.Summary.Removed < len(r.Removed) || r.Summary.Changed < len(r.Changed) || r.Summary.Unchanged < 0 {
+	if d.Summary.Added < len(d.Added) || d.Summary.Removed < len(d.Removed) || d.Summary.Changed < len(d.Changed) || d.Summary.Unchanged < 0 {
 		return &ValidationError{Field: "summary", Message: "counts must be non-negative and cover emitted rows"}
 	}
-	totalDifferences := r.Summary.Added + r.Summary.Removed + r.Summary.Changed
-	if r.Truncated != (emitted < totalDifferences) {
+	totalDifferences := d.Summary.Added + d.Summary.Removed + d.Summary.Changed
+	if d.Truncated != (emitted < totalDifferences) {
 		return &ValidationError{Field: "truncated", Message: "must equal emitted rows less than summary differences"}
 	}
-	if r.Left.RowCount != r.Summary.Removed+r.Summary.Changed+r.Summary.Unchanged || r.Right.RowCount != r.Summary.Added+r.Summary.Changed+r.Summary.Unchanged {
+	if leftInfo.RowCount != d.Summary.Removed+d.Summary.Changed+d.Summary.Unchanged || rightInfo.RowCount != d.Summary.Added+d.Summary.Changed+d.Summary.Unchanged {
 		return &ValidationError{Field: "summary", Message: "counts do not reconcile with side receipts"}
 	}
 	oneSidedNames := map[string]bool{}
-	for i, oneSided := range r.Summary.ColumnsOnlyOnOneSide {
+	for i, oneSided := range d.Summary.ColumnsOnlyOnOneSide {
 		if strings.TrimSpace(oneSided.Column) == "" || (oneSided.Side != CompareColumnLeft && oneSided.Side != CompareColumnRight) {
 			return &ValidationError{Field: "columnsOnlyOnOneSide", Message: fmt.Sprintf("index %d is invalid", i)}
 		}
@@ -405,29 +464,29 @@ func (r CompareResult) Validate() error {
 		}
 		oneSidedNames[oneSided.Column] = true
 		if i > 0 {
-			prior := r.Summary.ColumnsOnlyOnOneSide[i-1]
+			prior := d.Summary.ColumnsOnlyOnOneSide[i-1]
 			if prior.Column > oneSided.Column || (prior.Column == oneSided.Column && prior.Side >= oneSided.Side) {
 				return &ValidationError{Field: "columnsOnlyOnOneSide", Message: "must be stable and unique"}
 			}
 		}
 	}
-	if r.PolicyLimited != (compareRowsFiltered(r.Left.Limitations) || compareRowsFiltered(r.Right.Limitations)) {
+	if d.PolicyLimited != (compareRowsFiltered(leftInfo.Limitations) || compareRowsFiltered(rightInfo.Limitations)) {
 		return &ValidationError{Field: "policyLimited", Message: "must reflect rowsFiltered limitations"}
 	}
-	if r.Distribution != nil {
-		if !columnSet[r.Distribution.Column] {
+	if d.Distribution != nil {
+		if !columnSet[d.Distribution.Column] {
 			return &ValidationError{Field: "distribution", Message: "column must be shared"}
 		}
-		if len(r.Distribution.Values) > CompareDistributionMaximumValues {
+		if len(d.Distribution.Values) > CompareDistributionMaximumValues {
 			return &ValidationError{Field: "distribution", Message: fmt.Sprintf("must contain at most %d values", CompareDistributionMaximumValues)}
 		}
 		leftCount, rightCount := 0, 0
 		priorKey := ""
-		for i, value := range r.Distribution.Values {
+		for i, value := range d.Distribution.Values {
 			if err := value.Value.Validate(); err != nil {
 				return &ValidationError{Field: "distribution", Message: fmt.Sprintf("value %d: %s", i, err)}
 			}
-			if !typedValueMatchesColumn(value.Value, columnByName[r.Distribution.Column]) {
+			if !typedValueMatchesColumn(value.Value, columnByName[d.Distribution.Column]) {
 				return &ValidationError{Field: "distribution", Message: fmt.Sprintf("value %d does not match declared column type", i)}
 			}
 			stableKey, _ := TypedValueSortKey(value.Value)
@@ -440,7 +499,7 @@ func (r CompareResult) Validate() error {
 			}
 			leftCount += value.Left.Count
 			rightCount += value.Right.Count
-			if value.Left.Pct != comparePercentage(value.Left.Count, r.Left.RowCount) || value.Right.Pct != comparePercentage(value.Right.Count, r.Right.RowCount) {
+			if value.Left.Pct != comparePercentage(value.Left.Count, leftInfo.RowCount) || value.Right.Pct != comparePercentage(value.Right.Count, rightInfo.RowCount) {
 				return &ValidationError{Field: "distribution", Message: fmt.Sprintf("value %d pct does not match count and side total", i)}
 			}
 			if (value.Ratio == nil) != (value.Right.Pct == 0) {
@@ -450,13 +509,13 @@ func (r CompareResult) Validate() error {
 				return &ValidationError{Field: "distribution", Message: fmt.Sprintf("value %d ratio must equal left pct divided by right pct", i)}
 			}
 		}
-		if leftCount > r.Left.RowCount || rightCount > r.Right.RowCount || (!r.Distribution.Truncated && (leftCount != r.Left.RowCount || rightCount != r.Right.RowCount)) {
+		if leftCount > leftInfo.RowCount || rightCount > rightInfo.RowCount || (!d.Distribution.Truncated && (leftCount != leftInfo.RowCount || rightCount != rightInfo.RowCount)) {
 			return &ValidationError{Field: "distribution", Message: "counts do not reconcile with side totals"}
 		}
-		if r.Distribution.Truncated && len(r.Distribution.Values) != CompareDistributionMaximumValues {
+		if d.Distribution.Truncated && len(d.Distribution.Values) != CompareDistributionMaximumValues {
 			return &ValidationError{Field: "distribution", Message: fmt.Sprintf("truncated distribution must emit exactly %d values", CompareDistributionMaximumValues)}
 		}
-		if r.Distribution.Truncated && leftCount == r.Left.RowCount && rightCount == r.Right.RowCount {
+		if d.Distribution.Truncated && leftCount == leftInfo.RowCount && rightCount == rightInfo.RowCount {
 			return &ValidationError{Field: "distribution", Message: "truncated distribution must have at least one omitted side count"}
 		}
 	}

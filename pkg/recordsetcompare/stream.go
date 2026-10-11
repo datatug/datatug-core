@@ -62,6 +62,8 @@ type ComparedRecord struct {
 // comparison and closes both input streams so a caller can roll back its sink.
 type RecordObserver func(ComparedRecord) error
 
+var errOrderedStreamRowCountMismatch = errors.New("ordered stream rowCount mismatch")
+
 type comparisonPlan struct {
 	leftColumns    map[string]int
 	rightColumns   map[string]int
@@ -70,8 +72,8 @@ type comparisonPlan struct {
 	keyNames       []string
 	keySet         map[string]bool
 	oneSided       []apicontract.CompareOneSidedColumn
-	leftReceipt    apicontract.CompareSideReceipt
-	rightReceipt   apicontract.CompareSideReceipt
+	leftInfo       apicontract.CompareSideInfo
+	rightInfo      apicontract.CompareSideInfo
 	distribution   string
 	distributionAt [2]int
 	limit          int
@@ -97,21 +99,34 @@ func CompareOrdered(left, right OrderedRecordset, leftReceipt, rightReceipt apic
 	if err := (apicontract.Recordset{Columns: right.Columns}).Validate(); err != nil {
 		return apicontract.CompareResult{}, fmt.Errorf("right ordered recordset: %w", err)
 	}
-	prepared, err := prepareComparison(left.Columns, right.Columns, leftReceipt, rightReceipt, options)
+	if err := leftReceipt.Validate(); err != nil {
+		return apicontract.CompareResult{}, fmt.Errorf("left receipt: %w", err)
+	}
+	if err := rightReceipt.Validate(); err != nil {
+		return apicontract.CompareResult{}, fmt.Errorf("right receipt: %w", err)
+	}
+	prepared, err := prepareComparison(left.Columns, right.Columns, sideInfo(leftReceipt), sideInfo(rightReceipt), options)
 	if err != nil {
 		return apicontract.CompareResult{}, err
 	}
-	return compareOrderedPrepared(left, right, prepared)
+	diff, err := compareOrderedPrepared(left, right, prepared)
+	if err != nil {
+		if errors.Is(err, errOrderedStreamRowCountMismatch) {
+			return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: receipt rowCount must match the supplied ordered stream: %w", err)
+		}
+		return apicontract.CompareResult{}, err
+	}
+	return finalizeResult(diff, leftReceipt, rightReceipt, apicontract.CompareResult.Validate)
 }
 
-func prepareComparison(leftList, rightList []apicontract.Column, leftReceipt, rightReceipt apicontract.CompareSideReceipt, options Options) (comparisonPlan, error) {
-	if err := leftReceipt.Validate(); err != nil {
-		return comparisonPlan{}, fmt.Errorf("left receipt: %w", err)
+func prepareComparison(leftList, rightList []apicontract.Column, leftInfo, rightInfo apicontract.CompareSideInfo, options Options) (comparisonPlan, error) {
+	if err := leftInfo.Validate(); err != nil {
+		return comparisonPlan{}, fmt.Errorf("left side info: %w", err)
 	}
-	if err := rightReceipt.Validate(); err != nil {
-		return comparisonPlan{}, fmt.Errorf("right receipt: %w", err)
+	if err := rightInfo.Validate(); err != nil {
+		return comparisonPlan{}, fmt.Errorf("right side info: %w", err)
 	}
-	hidden := hiddenColumns(leftReceipt.Limitations, rightReceipt.Limitations)
+	hidden := hiddenColumns(leftInfo.Limitations, rightInfo.Limitations)
 	if len(options.Key) == 0 {
 		return comparisonPlan{}, fmt.Errorf("recordsetcompare: key is required")
 	}
@@ -167,19 +182,18 @@ func prepareComparison(leftList, rightList []apicontract.Column, leftReceipt, ri
 		leftColumns: leftColumns, rightColumns: rightColumns,
 		shared: shared, sharedNames: sharedNames,
 		keyNames: append([]string(nil), options.Key...), keySet: keySet,
-		oneSided: oneSided, leftReceipt: leftReceipt, rightReceipt: rightReceipt,
+		oneSided: oneSided, leftInfo: leftInfo, rightInfo: rightInfo,
 		distribution: options.DistributionColumn, distributionAt: distributionAt,
 		limit: limit, observer: options.Observer,
 	}, nil
 }
 
-func compareOrderedPrepared(left, right OrderedRecordset, plan comparisonPlan) (apicontract.CompareResult, error) {
-	result := apicontract.CompareResult{
-		Left: plan.leftReceipt, Right: plan.rightReceipt,
+func compareOrderedPrepared(left, right OrderedRecordset, plan comparisonPlan) (apicontract.CompareDiff, error) {
+	result := apicontract.CompareDiff{
 		Columns: plan.shared, Key: append([]string(nil), plan.keyNames...),
 		Added: []apicontract.CompareRow{}, Removed: []apicontract.CompareRow{}, Changed: []apicontract.CompareChangedRow{},
 		Summary:       apicontract.CompareSummary{ColumnsOnlyOnOneSide: plan.oneSided},
-		PolicyLimited: rowsFiltered(plan.leftReceipt.Limitations) || rowsFiltered(plan.rightReceipt.Limitations),
+		PolicyLimited: rowsFiltered(plan.leftInfo.Limitations) || rowsFiltered(plan.rightInfo.Limitations),
 	}
 	tracker := newDistributionTracker(plan.distribution)
 	rowCounts := [2]int{}
@@ -194,20 +208,20 @@ func compareOrderedPrepared(left, right OrderedRecordset, plan comparisonPlan) (
 		if err != nil {
 			switch {
 			case errors.Is(err, recordops.ErrDuplicateID):
-				return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: duplicate key in ordered stream: %w", err)
+				return apicontract.CompareDiff{}, fmt.Errorf("recordsetcompare: duplicate key in ordered stream: %w", err)
 			case errors.Is(err, recordops.ErrUnsortedInput):
-				return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: ordered stream is not strictly ascending by key: %w", err)
+				return apicontract.CompareDiff{}, fmt.Errorf("recordsetcompare: ordered stream is not strictly ascending by key: %w", err)
 			default:
-				return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: compare ordered streams: %w", err)
+				return apicontract.CompareDiff{}, fmt.Errorf("recordsetcompare: compare ordered streams: %w", err)
 			}
 		}
 		recordResult, changes, err := classifyDiffFunc(diff, ordinal, plan)
 		if err != nil {
-			return apicontract.CompareResult{}, err
+			return apicontract.CompareDiff{}, err
 		}
 		if plan.observer != nil {
 			if err := plan.observer(recordResult); err != nil {
-				return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: observer at ordinal %d: %w", ordinal, err)
+				return apicontract.CompareDiff{}, fmt.Errorf("recordsetcompare: observer at ordinal %d: %w", ordinal, err)
 			}
 		}
 		switch recordResult.State {
@@ -232,20 +246,20 @@ func compareOrderedPrepared(left, right OrderedRecordset, plan comparisonPlan) (
 		case RecordMatched:
 			result.Summary.Unchanged++
 		default:
-			return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: unsupported record state %q", recordResult.State)
+			return apicontract.CompareDiff{}, fmt.Errorf("recordsetcompare: unsupported record state %q", recordResult.State)
 		}
 		ordinal++
 	}
-	if rowCounts[0] != plan.leftReceipt.RowCount || rowCounts[1] != plan.rightReceipt.RowCount {
-		return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: receipt rowCount must match the supplied ordered stream")
+	if rowCounts[0] != plan.leftInfo.RowCount || rowCounts[1] != plan.rightInfo.RowCount {
+		return apicontract.CompareDiff{}, errOrderedStreamRowCountMismatch
 	}
 	totalDifferences := result.Summary.Added + result.Summary.Removed + result.Summary.Changed
 	result.Truncated = emitted < totalDifferences
 	if plan.distribution != "" {
 		result.Distribution = tracker.result(rowCounts[0], rowCounts[1])
 	}
-	if err := result.Validate(); err != nil {
-		return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: invalid result: %w", err)
+	if err := result.Validate(plan.leftInfo, plan.rightInfo); err != nil {
+		return apicontract.CompareDiff{}, fmt.Errorf("recordsetcompare: invalid diff: %w", err)
 	}
 	return result, nil
 }

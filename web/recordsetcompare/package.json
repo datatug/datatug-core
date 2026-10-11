@@ -1,0 +1,12 @@
+{
+  "name": "@datatug/recordsetcompare-browser-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:node": "node --test tests/node.test.mjs",
+    "test:browser": "playwright test tests/browser.spec.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.1"
+  }
+}

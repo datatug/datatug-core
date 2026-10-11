@@ -3,6 +3,7 @@ package recordsetcompare
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/dal-go/dalgo/recordops"
@@ -82,6 +83,66 @@ func TestCompare_ValidationErrors(t *testing.T) {
 		_, err := Compare(rs, badRight, rcpt, badReceipt, Options{Key: []string{"id"}})
 		assert.ErrorContains(t, err, "right recordset: row 0 has null/missing key column")
 	})
+}
+
+func TestCompareData_ValidationErrors(t *testing.T) {
+	valid := apicontract.Recordset{
+		Columns: []apicontract.Column{{Name: "id", Type: "integer"}},
+		Rows:    [][]apicontract.TypedValue{{apicontract.NewIntegerValue("1")}},
+	}
+	info := SideInfo{RowCount: 1, Limitations: []apicontract.Limitation{}}
+	options := Options{Key: []string{"id"}}
+
+	bad := valid
+	bad.Columns = []apicontract.Column{{Name: "", Type: "integer"}}
+	if _, err := CompareData(bad, valid, info, info, options); err == nil || !strings.Contains(err.Error(), "left recordset") {
+		t.Fatalf("left validation error = %v", err)
+	}
+	if _, err := CompareData(valid, bad, info, info, options); err == nil || !strings.Contains(err.Error(), "right recordset") {
+		t.Fatalf("right validation error = %v", err)
+	}
+
+	badType := apicontract.Recordset{
+		Columns: valid.Columns,
+		Rows:    [][]apicontract.TypedValue{{apicontract.NewStringValue("1")}},
+	}
+	if _, err := CompareData(badType, valid, info, info, options); err == nil || !strings.Contains(err.Error(), "left recordset") {
+		t.Fatalf("left column-type error = %v", err)
+	}
+	if _, err := CompareData(valid, badType, info, info, options); err == nil || !strings.Contains(err.Error(), "right recordset") {
+		t.Fatalf("right column-type error = %v", err)
+	}
+
+	if _, err := CompareData(valid, valid, SideInfo{}, info, options); err == nil || !strings.Contains(err.Error(), "side info rowCount") {
+		t.Fatalf("side count error = %v", err)
+	}
+	if _, err := CompareData(valid, valid, info, info, Options{}); err == nil {
+		t.Fatal("missing comparison key was accepted")
+	}
+	duplicates := apicontract.Recordset{
+		Columns: valid.Columns,
+		Rows: [][]apicontract.TypedValue{
+			{apicontract.NewIntegerValue("1")},
+			{apicontract.NewIntegerValue("1")},
+		},
+	}
+	duplicateInfo := SideInfo{RowCount: 2, Limitations: []apicontract.Limitation{}}
+	if _, err := CompareData(duplicates, valid, duplicateInfo, info, options); err == nil || !strings.Contains(err.Error(), "duplicate key") {
+		t.Fatalf("left materialized rows error = %v", err)
+	}
+	if _, err := CompareData(valid, duplicates, info, duplicateInfo, options); err == nil || !strings.Contains(err.Error(), "duplicate key") {
+		t.Fatalf("right materialized rows error = %v", err)
+	}
+}
+
+func TestFinalizeResultReportsValidationFailure(t *testing.T) {
+	left, right := receipt("left", 0), receipt("right", 0)
+	want := errors.New("injected validation error")
+	result, err := finalizeResult(Diff{}, left, right, func(apicontract.CompareResult) error { return want })
+	if err == nil || !strings.Contains(err.Error(), want.Error()) {
+		t.Fatalf("validation error = %v", err)
+	}
+	require.Equal(t, apicontract.CompareResult{}, result)
 }
 
 func TestCompare_HelpersCoverage(t *testing.T) {
@@ -165,53 +226,53 @@ func TestCompareOrdered_ValidationErrors(t *testing.T) {
 }
 
 func TestPrepareComparison_Errors(t *testing.T) {
-	rcpt := receipt("1", 0)
+	info := SideInfo{RowCount: 0}
 	cols := []apicontract.Column{{Name: "id", Type: "integer"}}
 
-	t.Run("left_receipt_invalid", func(t *testing.T) {
-		bad := rcpt
+	t.Run("left_side_info_invalid", func(t *testing.T) {
+		bad := info
 		bad.RowCount = -1
-		_, err := prepareComparison(cols, cols, bad, rcpt, Options{Key: []string{"id"}})
-		assert.ErrorContains(t, err, "left receipt")
+		_, err := prepareComparison(cols, cols, bad, info, Options{Key: []string{"id"}})
+		assert.ErrorContains(t, err, "left side info")
 	})
 
-	t.Run("right_receipt_invalid", func(t *testing.T) {
-		bad := rcpt
+	t.Run("right_side_info_invalid", func(t *testing.T) {
+		bad := info
 		bad.RowCount = -1
-		_, err := prepareComparison(cols, cols, rcpt, bad, Options{Key: []string{"id"}})
-		assert.ErrorContains(t, err, "right receipt")
+		_, err := prepareComparison(cols, cols, info, bad, Options{Key: []string{"id"}})
+		assert.ErrorContains(t, err, "right side info")
 	})
 
 	t.Run("limit_invalid", func(t *testing.T) {
-		_, err := prepareComparison(cols, cols, rcpt, rcpt, Options{Key: []string{"id"}, Limit: -1})
+		_, err := prepareComparison(cols, cols, info, info, Options{Key: []string{"id"}, Limit: -1})
 		assert.ErrorContains(t, err, "limit must be between 1 and")
 	})
 
 	t.Run("left_columnsByName_error", func(t *testing.T) {
 		badCols := []apicontract.Column{{Name: "id", Type: "int"}, {Name: "id", Type: "int"}}
-		_, err := prepareComparison(badCols, cols, rcpt, rcpt, Options{Key: []string{"id"}})
+		_, err := prepareComparison(badCols, cols, info, info, Options{Key: []string{"id"}})
 		assert.ErrorContains(t, err, "left recordset: duplicate column")
 	})
 
 	t.Run("right_columnsByName_error", func(t *testing.T) {
 		badCols := []apicontract.Column{{Name: "id", Type: "int"}, {Name: "id", Type: "int"}}
-		_, err := prepareComparison(cols, badCols, rcpt, rcpt, Options{Key: []string{"id"}})
+		_, err := prepareComparison(cols, badCols, info, info, Options{Key: []string{"id"}})
 		assert.ErrorContains(t, err, "right recordset: duplicate column")
 	})
 
 	t.Run("intersectColumns_error", func(t *testing.T) {
 		rightCols := []apicontract.Column{{Name: "id", Type: "string"}}
-		_, err := prepareComparison(cols, rightCols, rcpt, rcpt, Options{Key: []string{"id"}})
+		_, err := prepareComparison(cols, rightCols, info, info, Options{Key: []string{"id"}})
 		assert.ErrorContains(t, err, "incompatible types")
 	})
 
 	t.Run("duplicate_key_column", func(t *testing.T) {
-		_, err := prepareComparison(cols, cols, rcpt, rcpt, Options{Key: []string{"id", "id"}})
+		_, err := prepareComparison(cols, cols, info, info, Options{Key: []string{"id", "id"}})
 		assert.ErrorContains(t, err, "duplicate key column \"id\"")
 	})
 
 	t.Run("distribution_column_missing_from_shared", func(t *testing.T) {
-		_, err := prepareComparison(cols, cols, rcpt, rcpt, Options{Key: []string{"id"}, DistributionColumn: "nonexistent"})
+		_, err := prepareComparison(cols, cols, info, info, Options{Key: []string{"id"}, DistributionColumn: "nonexistent"})
 		assert.ErrorContains(t, err, "distribution column \"nonexistent\" is missing from the shared columns")
 	})
 }
@@ -444,7 +505,6 @@ func TestStream_ChangedFields(t *testing.T) {
 }
 
 func TestStream_CompareOrderedPrepared_ClassifyHooks(t *testing.T) {
-	rcpt := receipt("1", 1)
 	cols := []apicontract.Column{{Name: "id", Type: "integer"}}
 	plan := comparisonPlan{
 		leftColumns:  map[string]int{"id": 0},
@@ -453,8 +513,8 @@ func TestStream_CompareOrderedPrepared_ClassifyHooks(t *testing.T) {
 		sharedNames:  []string{"id"},
 		keyNames:     []string{"id"},
 		keySet:       map[string]bool{"id": true},
-		leftReceipt:  rcpt,
-		rightReceipt: rcpt,
+		leftInfo:     SideInfo{RowCount: 1},
+		rightInfo:    SideInfo{RowCount: 1},
 		limit:        100,
 	}
 
@@ -492,7 +552,7 @@ func TestStream_CompareOrderedPrepared_ClassifyHooks(t *testing.T) {
 			}, nil, nil
 		}
 		_, err := compareOrderedPrepared(left, right, plan)
-		assert.ErrorContains(t, err, "invalid result")
+		assert.ErrorContains(t, err, "invalid diff")
 	})
 }
 

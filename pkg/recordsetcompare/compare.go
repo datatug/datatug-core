@@ -19,6 +19,70 @@ type Options struct {
 	Observer           RecordObserver
 }
 
+// Diff and SideInfo expose the receipt-free comparison contract owned by
+// apicontract. SideInfo carries no execution identity or completeness claim.
+type Diff = apicontract.CompareDiff
+type SideInfo = apicontract.CompareSideInfo
+
+// CompareData compares two materialized recordsets without requiring server
+// execution receipts. Callers remain responsible for proving authorization
+// and input completeness before invoking it.
+func CompareData(left, right apicontract.Recordset, leftInfo, rightInfo SideInfo, options Options) (Diff, error) {
+	if err := left.Validate(); err != nil {
+		return Diff{}, fmt.Errorf("left recordset: %w", err)
+	}
+	if err := right.Validate(); err != nil {
+		return Diff{}, fmt.Errorf("right recordset: %w", err)
+	}
+	if err := validateRecordsetColumnTypes(left); err != nil {
+		return Diff{}, fmt.Errorf("left recordset: %w", err)
+	}
+	if err := validateRecordsetColumnTypes(right); err != nil {
+		return Diff{}, fmt.Errorf("right recordset: %w", err)
+	}
+	if leftInfo.RowCount != len(left.Rows) || rightInfo.RowCount != len(right.Rows) {
+		return Diff{}, fmt.Errorf("recordsetcompare: side info rowCount must match the supplied recordset")
+	}
+	prepared, err := prepareComparison(left.Columns, right.Columns, leftInfo, rightInfo, options)
+	if err != nil {
+		return Diff{}, err
+	}
+	leftRows, err := materializedOrderedRows(left, prepared.leftColumns, options.Key)
+	if err != nil {
+		return Diff{}, fmt.Errorf("left recordset: %w", err)
+	}
+	rightRows, err := materializedOrderedRows(right, prepared.rightColumns, options.Key)
+	if err != nil {
+		return Diff{}, fmt.Errorf("right recordset: %w", err)
+	}
+	return compareOrderedPrepared(
+		OrderedRecordset{Columns: left.Columns, Rows: leftRows},
+		OrderedRecordset{Columns: right.Columns, Rows: rightRows},
+		prepared,
+	)
+}
+
+func sideInfo(receipt apicontract.CompareSideReceipt) SideInfo {
+	return SideInfo{RowCount: receipt.RowCount, Limitations: receipt.Limitations}
+}
+
+func compareResult(diff Diff, left, right apicontract.CompareSideReceipt) apicontract.CompareResult {
+	return apicontract.CompareResult{
+		Left: left, Right: right,
+		Columns: diff.Columns, Key: diff.Key, Added: diff.Added, Removed: diff.Removed,
+		Changed: diff.Changed, Summary: diff.Summary, Distribution: diff.Distribution,
+		PolicyLimited: diff.PolicyLimited, Truncated: diff.Truncated,
+	}
+}
+
+func finalizeResult(diff Diff, left, right apicontract.CompareSideReceipt, validate func(apicontract.CompareResult) error) (apicontract.CompareResult, error) {
+	result := compareResult(diff, left, right)
+	if err := validate(result); err != nil {
+		return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: invalid result: %w", err)
+	}
+	return result, nil
+}
+
 func Compare(left, right apicontract.Recordset, leftReceipt, rightReceipt apicontract.CompareSideReceipt, options Options) (apicontract.CompareResult, error) {
 	if err := leftReceipt.Validate(); err != nil {
 		return apicontract.CompareResult{}, fmt.Errorf("left receipt: %w", err)
@@ -41,23 +105,11 @@ func Compare(left, right apicontract.Recordset, leftReceipt, rightReceipt apicon
 	if leftReceipt.RowCount != len(left.Rows) || rightReceipt.RowCount != len(right.Rows) {
 		return apicontract.CompareResult{}, fmt.Errorf("recordsetcompare: receipt rowCount must match the supplied recordset")
 	}
-	prepared, err := prepareComparison(left.Columns, right.Columns, leftReceipt, rightReceipt, options)
+	diff, err := CompareData(left, right, sideInfo(leftReceipt), sideInfo(rightReceipt), options)
 	if err != nil {
 		return apicontract.CompareResult{}, err
 	}
-	leftRows, err := materializedOrderedRows(left, prepared.leftColumns, options.Key)
-	if err != nil {
-		return apicontract.CompareResult{}, fmt.Errorf("left recordset: %w", err)
-	}
-	rightRows, err := materializedOrderedRows(right, prepared.rightColumns, options.Key)
-	if err != nil {
-		return apicontract.CompareResult{}, fmt.Errorf("right recordset: %w", err)
-	}
-	return compareOrderedPrepared(
-		OrderedRecordset{Columns: left.Columns, Rows: leftRows},
-		OrderedRecordset{Columns: right.Columns, Rows: rightRows},
-		prepared,
-	)
+	return finalizeResult(diff, leftReceipt, rightReceipt, apicontract.CompareResult.Validate)
 }
 
 func columnsByName(columns []apicontract.Column, hidden map[string]bool) (map[string]int, error) {
