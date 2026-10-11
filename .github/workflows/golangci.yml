@@ -7,6 +7,10 @@ on:
     paths:
       - 'go.*'
       - '**/*.go'
+      - 'cmd/**'
+      - 'web/**'
+      - 'scripts/**'
+      - 'LICENSE'
       - 'src/**'
       - '.github/workflows/*.yml'
     tags:
@@ -17,6 +21,10 @@ on:
     paths:
       - 'go.*'
       - '**/*.go'
+      - 'cmd/**'
+      - 'web/**'
+      - 'scripts/**'
+      - 'LICENSE'
       - 'src/**'
       - '.github/workflows/*.yml'
 
@@ -35,3 +43,85 @@ jobs:
     with:
       code_coverage: true
       min_test_coverage_percent: 100
+
+  validate_wasm:
+    needs: strongo_workflow
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.20.0
+          check-latest: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.1'
+          cache: false
+      - name: Install lockfile-pinned browser test dependency
+        working-directory: web/recordsetcompare
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install Playwright Chromium
+        working-directory: web/recordsetcompare
+        run: npx playwright install --with-deps chromium
+      - name: Test source-bound release publisher guards
+        run: python3 -m unittest discover -s scripts/recordsetcompare -p 'test_*.py'
+      - name: Build linked module and deterministic package
+        run: python3 scripts/recordsetcompare/build_release.py --output "$RUNNER_TEMP/recordsetcompare-package" --require-licenses
+      - name: Verify package file hashes
+        run: python3 scripts/recordsetcompare/verify_package.py "$RUNNER_TEMP/recordsetcompare-package"/*.tar.gz --source "$GITHUB_SHA"
+      - name: Test packaged WASM in isolated Node workers
+        env:
+          COMPARE_PACKAGE_DIR: ${{ runner.temp }}/recordsetcompare-package/files
+        run: npm run test:node --prefix web/recordsetcompare
+      - name: Test packaged WASM in Chromium with same-origin CSP
+        env:
+          COMPARE_PACKAGE_DIR: ${{ runner.temp }}/recordsetcompare-package/files
+        run: npm run test:browser --prefix web/recordsetcompare
+
+  publish_wasm:
+    needs: validate_wasm
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.1'
+          cache: false
+      - name: Resolve one semver tag created by the existing Core CI tag owner
+        id: source
+        shell: bash
+        run: |
+          git fetch --force --tags origin
+          tag="$(python3 scripts/recordsetcompare/resolve_source_tag.py --source "$GITHUB_SHA")"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Build source-bound deterministic package
+        id: package
+        env:
+          SOURCE_TAG: ${{ steps.source.outputs.tag }}
+        run: |
+          python3 scripts/recordsetcompare/build_release.py --output "$RUNNER_TEMP/recordsetcompare-package" --require-tag --require-licenses
+          archive="$(find "$RUNNER_TEMP/recordsetcompare-package" -maxdepth 1 -type f -name '*.tar.gz' -print -quit)"
+          test -n "$archive"
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+      - name: Verify source-bound package
+        run: python3 scripts/recordsetcompare/verify_package.py "${{ steps.package.outputs.archive }}" --source "$GITHUB_SHA" --tag "${{ steps.source.outputs.tag }}"
+      - name: Attest final archive bytes
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ${{ steps.package.outputs.archive }}
+      - name: Publish the immutable archive on the existing source-tag Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/recordsetcompare/publish_release_asset.py "${{ steps.source.outputs.tag }}" "${{ steps.package.outputs.archive }}"

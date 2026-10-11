@@ -27,3 +27,6 @@ datatug.yaml
 specscore.local.yaml
 **/.*.lifecycle-transaction.lock
 .specscore-lifecycle.lock
+web/recordsetcompare/node_modules/
+web/recordsetcompare/test-results/
+scripts/recordsetcompare/__pycache__/

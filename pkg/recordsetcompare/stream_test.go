@@ -83,6 +83,16 @@ func TestCompareOrderedRejectsUnsortedAndDuplicateStreams(t *testing.T) {
 	require.ErrorContains(t, err, "duplicate key")
 }
 
+func TestCompareOrderedRejectsInvalidSideReceipts(t *testing.T) {
+	columns := []apicontract.Column{{Name: "id", Type: "integer"}}
+	valid := receipt("valid", 0)
+	bad := receipt("bad", -1)
+	_, err := CompareOrdered(orderedRecordset(columns), orderedRecordset(columns), bad, valid, Options{Key: []string{"id"}})
+	require.ErrorContains(t, err, "left receipt")
+	_, err = CompareOrdered(orderedRecordset(columns), orderedRecordset(columns), valid, bad, Options{Key: []string{"id"}})
+	require.ErrorContains(t, err, "right receipt")
+}
+
 func TestCompareOrderedObserverErrorStopsAndClosesBothInputs(t *testing.T) {
 	columns := []apicontract.Column{{Name: "id", Type: "integer"}}
 	closed := [2]bool{}
@@ -149,6 +159,38 @@ func TestCompareOrderedReceiptMismatchFollowsFullConsumptionAndClosesInputs(t *t
 	)
 	require.ErrorContains(t, err, "receipt rowCount")
 	require.Equal(t, [2]bool{true, true}, closed)
+}
+
+func TestCompareOrderedPreservesSourceAndObserverErrorsContainingCountPhrase(t *testing.T) {
+	columns := []apicontract.Column{{Name: "id", Type: "integer"}}
+	countPhrase := "side info rowCount must match the supplied ordered stream"
+
+	t.Run("source", func(t *testing.T) {
+		sourceErr := errors.New(countPhrase)
+		left := OrderedRows(func(yield func([]apicontract.TypedValue, error) bool) {
+			if !yield([]apicontract.TypedValue{apicontract.NewIntegerValue("1")}, nil) {
+				return
+			}
+			yield(nil, sourceErr)
+		})
+		_, err := CompareOrdered(
+			OrderedRecordset{Columns: columns, Rows: left}, orderedRecordset(columns, []apicontract.TypedValue{apicontract.NewIntegerValue("1")}),
+			receipt("left", 1), receipt("right", 1), Options{Key: []string{"id"}},
+		)
+		require.ErrorIs(t, err, sourceErr)
+	})
+
+	t.Run("observer", func(t *testing.T) {
+		observerErr := errors.New(countPhrase)
+		_, err := CompareOrdered(
+			orderedRecordset(columns, []apicontract.TypedValue{apicontract.NewIntegerValue("1")}),
+			orderedRecordset(columns, []apicontract.TypedValue{apicontract.NewIntegerValue("1")}),
+			receipt("left", 1), receipt("right", 1), Options{
+				Key: []string{"id"}, Observer: func(ComparedRecord) error { return observerErr },
+			},
+		)
+		require.ErrorIs(t, err, observerErr)
+	})
 }
 
 func TestCompareOrderedMatchesMaterializedCompare(t *testing.T) {
