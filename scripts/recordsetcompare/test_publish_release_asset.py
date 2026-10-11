@@ -9,6 +9,7 @@ import tarfile
 import tempfile
 import unittest
 from unittest.mock import patch
+from urllib.request import Request
 
 
 SCRIPT = Path(__file__).with_name("publish_release_asset.py")
@@ -18,6 +19,16 @@ SPEC.loader.exec_module(publisher)
 verify_spec = importlib.util.spec_from_file_location("verify_package", Path(__file__).with_name("verify_package.py"))
 verify_package = importlib.util.module_from_spec(verify_spec)
 verify_spec.loader.exec_module(verify_package)
+
+
+def make_release(*, draft: bool = True, assets: list[dict] | None = None, release_id: int = 42) -> dict:
+    return {
+        "id": release_id,
+        "tag_name": "v1.2.3",
+        "draft": draft,
+        "assets": assets or [],
+        "upload_url": f"https://uploads.github.com/repos/datatug/datatug-core/releases/{release_id}/assets{{?name,label}}",
+    }
 
 
 def make_archive(
@@ -69,30 +80,34 @@ class PublishReleaseAssetTests(unittest.TestCase):
 
     def test_missing_release_is_created_as_draft_for_existing_tag(self):
         absent = subprocess.CompletedProcess([], 1, "", "HTTP 404: Not Found")
-        created = subprocess.CompletedProcess([], 0, "", "")
-        draft = {"tag_name": "v1.2.3", "draft": True, "assets": []}
-        with patch.object(publisher, "run", side_effect=[json.dumps([]), json.dumps([draft])]) as list_call, patch.object(
-            publisher.subprocess, "run", side_effect=[absent, created, absent]
+        draft = make_release()
+        with patch.object(publisher, "run", side_effect=[json.dumps([]), json.dumps(draft)]) as gh_api, patch.object(
+            publisher.subprocess, "run", return_value=absent
         ) as gh_call:
-            release = publisher.ensure_release("datatug/datatug-core", "v1.2.3")
+            release = publisher.ensure_release("datatug/datatug-core", "v1.2.3", "a" * 40)
         self.assertTrue(release["draft"])
-        create_args = gh_call.call_args_list[1].args[0]
-        self.assertIn("--verify-tag", create_args)
-        self.assertIn("--draft", create_args)
-        self.assertEqual(create_args[-2:], ["--repo", "datatug/datatug-core"])
-        self.assertEqual(list_call.call_count, 2)
-        self.assertIn("page=1", list_call.call_args_list[0].args[0][2])
+        self.assertEqual(release["id"], 42)
+        create_args = gh_api.call_args_list[1].args[0]
+        self.assertIn("--method", create_args)
+        self.assertIn("POST", create_args)
+        self.assertIn("repos/datatug/datatug-core/releases", create_args)
+        self.assertIn("tag_name=v1.2.3", create_args)
+        self.assertIn("draft=true", create_args)
+        self.assertIn(f"target_commitish={'a' * 40}", create_args)
+        self.assertEqual(gh_api.call_count, 2)
+        self.assertEqual(gh_call.call_count, 1)
+        self.assertIn("releases/tags/v1.2.3", gh_call.call_args.args[0][2])
 
     def test_non_not_found_release_lookup_fails_closed(self):
         failure = subprocess.CompletedProcess([], 1, "", "HTTP 403: Forbidden")
         with patch.object(publisher.subprocess, "run", return_value=failure) as run, patch.object(publisher, "run") as list_call:
             with self.assertRaisesRegex(RuntimeError, "403"):
-                publisher.ensure_release("datatug/datatug-core", "v1.2.3")
+                publisher.ensure_release("datatug/datatug-core", "v1.2.3", "a" * 40)
         self.assertEqual(run.call_count, 1)
         list_call.assert_not_called()
 
     def test_published_release_is_read_from_by_tag_endpoint(self):
-        published = {"tag_name": "v1.2.3", "draft": False, "assets": []}
+        published = make_release(draft=False)
         with patch.object(
             publisher.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, json.dumps(published), "")
         ) as gh_call, patch.object(publisher, "run") as list_call:
@@ -103,7 +118,7 @@ class PublishReleaseAssetTests(unittest.TestCase):
 
     def test_draft_release_is_found_after_by_tag_endpoint_returns_404(self):
         absent = subprocess.CompletedProcess([], 1, "", "HTTP 404: Not Found")
-        draft = {"id": 42, "tag_name": "v1.2.3", "draft": True, "assets": []}
+        draft = make_release()
         with patch.object(publisher.subprocess, "run", return_value=absent), patch.object(
             publisher, "run", return_value=json.dumps([draft])
         ) as list_call:
@@ -125,7 +140,7 @@ class PublishReleaseAssetTests(unittest.TestCase):
     def test_release_list_paginates_until_exact_tag_is_found(self):
         absent = subprocess.CompletedProcess([], 1, "", "HTTP 404: Not Found")
         older = [{"tag_name": f"v1.0.{index}", "draft": False, "assets": []} for index in range(publisher.RELEASES_PER_PAGE)]
-        draft = {"id": 42, "tag_name": "v1.2.3", "draft": True, "assets": []}
+        draft = make_release()
         with patch.object(publisher.subprocess, "run", return_value=absent), patch.object(
             publisher, "run", side_effect=[json.dumps(older), json.dumps([draft])]
         ) as list_call:
@@ -136,7 +151,7 @@ class PublishReleaseAssetTests(unittest.TestCase):
 
     def test_release_lookup_rejects_duplicate_exact_tags(self):
         absent = subprocess.CompletedProcess([], 1, "", "HTTP 404: Not Found")
-        duplicate = {"tag_name": "v1.2.3", "draft": True, "assets": []}
+        duplicate = make_release()
         first_page = [{"tag_name": f"v1.0.{index}", "draft": False, "assets": []} for index in range(publisher.RELEASES_PER_PAGE - 1)]
         first_page.append(duplicate)
         with patch.object(publisher.subprocess, "run", return_value=absent), patch.object(
@@ -147,7 +162,7 @@ class PublishReleaseAssetTests(unittest.TestCase):
         self.assertEqual(list_call.call_count, 2)
 
     def test_release_lookup_rejects_lookalike_tag_and_treats_list_lookalike_as_absent(self):
-        lookalike = {"tag_name": "v1.2.30", "draft": False, "assets": []}
+        lookalike = {**make_release(draft=False), "tag_name": "v1.2.30"}
         with patch.object(
             publisher.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, json.dumps(lookalike), "")
         ), patch.object(publisher, "run") as list_call:
@@ -162,7 +177,7 @@ class PublishReleaseAssetTests(unittest.TestCase):
             self.assertIsNone(publisher.read_release("datatug/datatug-core", "v1.2.3"))
 
     def test_release_lookup_rejects_incomplete_release_metadata(self):
-        incomplete = {"tag_name": "v1.2.3", "draft": "false", "assets": []}
+        incomplete = {**make_release(draft=False), "draft": "false"}
         with patch.object(
             publisher.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, json.dumps(incomplete), "")
         ):
@@ -193,30 +208,143 @@ class PublishReleaseAssetTests(unittest.TestCase):
     def test_moved_tag_blocks_release_publication(self):
         with patch.object(publisher, "remote_tag_commit", return_value="f" * 40), patch.object(publisher, "ensure_release") as ensure:
             with self.assertRaisesRegex(SystemExit, "changed before"):
-                publisher.publish_release("datatug/datatug-core", "v1.2.3", "0" * 40, "a" * 64, "package.tar.gz")
+                publisher.publish_release("datatug/datatug-core", 42, "v1.2.3", "0" * 40, 77, "a" * 64, "package.tar.gz")
         ensure.assert_not_called()
 
     def test_downloaded_asset_mismatch_is_rejected(self):
-        def download(args):
-            target = Path(args[args.index("--dir") + 1]) / "package.tar.gz"
-            target.write_bytes(b"different immutable bytes")
-            return ""
+        def api_response(args, **kwargs):
+            if "stdout" in kwargs:
+                kwargs["stdout"].write(b"different immutable bytes")
+                return subprocess.CompletedProcess(args, 0, None, b"")
+            return json.dumps([{"id": 77, "name": "package.tar.gz"}])
 
-        with patch.object(publisher, "run", side_effect=download) as run:
+        with patch.object(publisher, "run", return_value=json.dumps([{"id": 77, "name": "package.tar.gz"}])) as api_run, patch.object(
+            publisher.subprocess, "run", side_effect=api_response
+        ) as run:
             with self.assertRaisesRegex(SystemExit, "differs"):
-                publisher.verify_download("datatug/datatug-core", "v1.2.3", "package.tar.gz", "0" * 64)
-        self.assertEqual(run.call_args.args[0][-2:], ["--repo", "datatug/datatug-core"])
+                publisher.verify_download("datatug/datatug-core", 42, {"id": 77}, "package.tar.gz", "0" * 64)
+        self.assertIn("repos/datatug/datatug-core/releases/42/assets", api_run.call_args.args[0][2])
+        self.assertIn("releases/assets/77", run.call_args.args[0][-1])
 
     def test_edit_and_upload_commands_are_repository_scoped(self):
         with patch.object(publisher, "remote_tag_commit", return_value="a" * 40), patch.object(
-            publisher, "ensure_release", return_value={"tag_name": "v1.2.3", "draft": True, "assets": []}
-        ), patch.object(publisher.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "", "")) as run:
-            publisher.publish_release("datatug/datatug-core", "v1.2.3", "a" * 40, "b" * 64, "package.tar.gz")
-        self.assertEqual(run.call_args.args[0][-2:], ["--repo", "datatug/datatug-core"])
+            publisher, "read_release_by_id", side_effect=[make_release(), make_release(draft=False, assets=[{"id": 77, "name": "package.tar.gz"}])]
+        ), patch.object(publisher, "read_release", return_value=make_release(draft=False, assets=[{"id": 77, "name": "package.tar.gz"}])), patch.object(
+            publisher, "verify_download"
+        ) as verify, patch.object(publisher, "run", return_value="{}") as run, patch.object(
+            publisher, "remote_tag_commit", side_effect=["a" * 40, "a" * 40]
+        ):
+            publisher.publish_release("datatug/datatug-core", 42, "v1.2.3", "a" * 40, 77, "b" * 64, "package.tar.gz")
+        self.assertIn("repos/datatug/datatug-core/releases/42", run.call_args.args[0])
+        self.assertIn("draft=false", run.call_args.args[0])
+        verify.assert_called_once()
 
-        with patch.object(publisher.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "", "")) as run:
-            publisher.upload_asset("datatug/datatug-core", "v1.2.3", Path("package.tar.gz"))
-        self.assertEqual(run.call_args.args[0][-2:], ["--repo", "datatug/datatug-core"])
+    def test_upload_uses_create_response_upload_url_and_never_tag_lookup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / "package.tar.gz"
+            archive.write_bytes(b"verified bytes")
+            response = unittest.mock.MagicMock()
+            response.__enter__.return_value.read.return_value = json.dumps({"id": 77, "name": archive.name, "size": archive.stat().st_size}).encode()
+            with patch.dict("os.environ", {"GH_TOKEN": "test-token"}), patch.object(publisher, "open_upload", return_value=response) as open_url:
+                uploaded = publisher.upload_asset("datatug/datatug-core", make_release(), archive)
+        request = open_url.call_args.args[0]
+        self.assertEqual(uploaded["id"], 77)
+        self.assertEqual(request.full_url, "https://uploads.github.com/repos/datatug/datatug-core/releases/42/assets?name=package.tar.gz")
+        self.assertEqual(request.get_method(), "POST")
+        self.assertEqual(request.data, b"verified bytes")
+        self.assertEqual(request.get_header("Authorization"), "Bearer test-token")
+
+    def test_upload_rejects_mismatched_release_upload_url_before_network(self):
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / "package.tar.gz"
+            archive.write_bytes(b"bytes")
+            other = {**make_release(), "upload_url": "https://uploads.github.com/repos/other/repo/releases/42/assets{?name,label}"}
+            with patch.object(publisher, "open_upload") as open_url:
+                with self.assertRaisesRegex(RuntimeError, "unsafe or mismatched"):
+                    publisher.upload_asset("datatug/datatug-core", other, archive)
+            open_url.assert_not_called()
+
+    def test_upload_rejects_wrong_asset_identity_or_size(self):
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / "package.tar.gz"
+            archive.write_bytes(b"verified bytes")
+            for result in (
+                {"id": True, "name": archive.name, "size": archive.stat().st_size},
+                {"id": 77, "name": archive.name, "size": 0},
+            ):
+                response = unittest.mock.MagicMock()
+                response.__enter__.return_value.read.return_value = json.dumps(result).encode()
+                with self.subTest(result=result), patch.dict("os.environ", {"GH_TOKEN": "test-token"}), patch.object(
+                    publisher, "open_upload", return_value=response
+                ):
+                    with self.assertRaises(RuntimeError):
+                        publisher.upload_asset("datatug/datatug-core", make_release(), archive)
+
+    def test_redirects_are_rejected_before_upload_token_can_be_forwarded(self):
+        handler = publisher.RejectRedirects()
+        redirected = handler.redirect_request(
+            Request("https://uploads.github.com/release", headers={"Authorization": "Bearer secret"}),
+            None,
+            302,
+            "Found",
+            {},
+            "https://attacker.invalid/collect",
+        )
+        self.assertIsNone(redirected)
+
+    def test_tag_moved_during_publish_fails_before_published_readback(self):
+        with patch.object(publisher, "read_release_by_id", return_value=make_release()), patch.object(
+            publisher, "remote_tag_commit", side_effect=["a" * 40, "b" * 40]
+        ), patch.object(publisher, "read_release") as by_tag, patch.object(publisher, "run") as api_run:
+            with self.assertRaisesRegex(SystemExit, "changed during"):
+                publisher.publish_release("datatug/datatug-core", 42, "v1.2.3", "a" * 40, 77, "b" * 64, "package.tar.gz")
+        api_run.assert_called_once()
+        self.assertIn("PATCH", api_run.call_args.args[0])
+        by_tag.assert_not_called()
+
+    def test_published_readback_must_preserve_exact_uploaded_asset_id(self):
+        with patch.object(publisher, "read_release_by_id", side_effect=[make_release(), make_release(draft=False)]), patch.object(
+            publisher, "remote_tag_commit", return_value="a" * 40
+        ), patch.object(publisher, "read_release", return_value=make_release(draft=False, assets=[{"id": 88, "name": "package.tar.gz"}])), patch.object(
+            publisher, "verify_download"
+        ) as verify, patch.object(publisher, "run", return_value="{}"):
+            with self.assertRaisesRegex(SystemExit, "missing its exact immutable package asset"):
+                publisher.publish_release("datatug/datatug-core", 42, "v1.2.3", "a" * 40, 77, "b" * 64, "package.tar.gz")
+        verify.assert_not_called()
+
+    def test_creation_error_with_invisible_draft_fails_closed_without_rediscovery_guess(self):
+        absent = subprocess.CompletedProcess([], 1, "", "HTTP 404: Not Found")
+        conflict = subprocess.CalledProcessError(1, ["gh", "api"], stderr="HTTP 422: Validation Failed")
+        with patch.object(publisher, "run", side_effect=[json.dumps([]), conflict]) as api_run, patch.object(
+            publisher.subprocess, "run", return_value=absent
+        ) as tag_lookup:
+            with self.assertRaisesRegex(RuntimeError, "422"):
+                publisher.ensure_release("datatug/datatug-core", "v1.2.3", "a" * 40)
+        self.assertEqual(api_run.call_count, 2)
+        tag_lookup.assert_called_once()
+
+    def test_read_release_by_id_requires_exact_tag_and_numeric_id(self):
+        wrong_tag = {**make_release(), "tag_name": "v9.9.9"}
+        with patch.object(publisher, "run", return_value=json.dumps(wrong_tag)) as api_run:
+            with self.assertRaisesRegex(RuntimeError, "did not match exact tag"):
+                publisher.read_release_by_id("datatug/datatug-core", 42, "v1.2.3")
+        self.assertEqual(api_run.call_args.args[0][-1], "repos/datatug/datatug-core/releases/42")
+
+        with self.assertRaisesRegex(RuntimeError, "ID is invalid"):
+            publisher.read_release_by_id("datatug/datatug-core", 0, "v1.2.3")
+
+        wrong_id = {**make_release(), "id": 43}
+        with patch.object(publisher, "run", return_value=json.dumps(wrong_id)):
+            with self.assertRaisesRegex(RuntimeError, "did not match the requested numeric ID"):
+                publisher.read_release_by_id("datatug/datatug-core", 42, "v1.2.3")
+
+    def test_download_refuses_asset_not_listed_on_exact_release_id(self):
+        with patch.object(publisher, "run", return_value=json.dumps([{"id": 88, "name": "package.tar.gz"}])), patch.object(
+            publisher.subprocess, "run"
+        ) as download:
+            with self.assertRaisesRegex(SystemExit, "not the unique exact-name asset"):
+                publisher.verify_download("datatug/datatug-core", 42, {"id": 77}, "package.tar.gz", "0" * 64)
+        download.assert_not_called()
 
     def test_publisher_rejects_self_asserted_archive_before_any_github_request(self):
         for invalid, source, tag in (
