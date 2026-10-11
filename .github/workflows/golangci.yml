@@ -71,9 +71,9 @@ jobs:
       - name: Test source-bound release publisher guards
         run: python3 -m unittest discover -s scripts/recordsetcompare -p 'test_*.py'
       - name: Build linked module and deterministic package
-        run: python3 scripts/recordsetcompare/build_release.py --output "$RUNNER_TEMP/recordsetcompare-package"
+        run: python3 scripts/recordsetcompare/build_release.py --output "$RUNNER_TEMP/recordsetcompare-package" --require-licenses
       - name: Verify package file hashes
-        run: python3 scripts/recordsetcompare/verify_package.py "$RUNNER_TEMP/recordsetcompare-package"/*.tar.gz --source "$GITHUB_SHA" --allow-missing-licenses
+        run: python3 scripts/recordsetcompare/verify_package.py "$RUNNER_TEMP/recordsetcompare-package"/*.tar.gz --source "$GITHUB_SHA"
       - name: Test packaged WASM in isolated Node workers
         env:
           COMPARE_PACKAGE_DIR: ${{ runner.temp }}/recordsetcompare-package/files

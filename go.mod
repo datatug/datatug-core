@@ -6,7 +6,7 @@ toolchain go1.27.1
 
 require (
 	github.com/dal-go/dalgo v0.89.4
-	github.com/dal-go/record v0.1.4
+	github.com/dal-go/record v0.1.5
 	github.com/gofrs/flock v0.13.1
 	github.com/ingitdb/ingitdb-go/ingitdb v0.7.7
 	github.com/mitchellh/go-homedir v1.1.0
