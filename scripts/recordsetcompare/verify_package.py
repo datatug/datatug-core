@@ -40,7 +40,7 @@ def verify_archive(path: Path, source: str, tag: str | None, *, allow_missing_li
     manifest = json.loads(files["manifest.json"])
     if manifest.get("abi") != ABI or manifest.get("sourceCommit") != source or manifest.get("sourceTag") != tag:
         raise SystemExit("manifest ABI/source/tag does not match requested release identity")
-    if manifest.get("goVersion") != "1.27.1":
+    if manifest.get("goVersion") != "1.27.2":
         raise SystemExit("manifest Go compiler pin does not match the supported release toolchain")
     expected_files = set(manifest.get("files", {}))
     if expected_files != REQUIRED - {"manifest.json"}:
