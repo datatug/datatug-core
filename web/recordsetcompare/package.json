@@ -7,6 +7,6 @@
     "test:browser": "playwright test tests/browser.spec.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "1.55.1"
+    "@playwright/test": "1.64.0"
   }
 }
