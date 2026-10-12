@@ -125,13 +125,15 @@ const (
 	QueryTypeSQL           QueryType = "SQL"
 	QueryTypeHTTP          QueryType = "HTTP"
 	QueryTypeStructuredSQL QueryType = "StructuredSQL"
-	// QueryTypeDTQL is a query executed through DALgo's dtql.Deserialize -> policy path.
+	// QueryTypeTugQL is the canonical query type for TugQL queries.
+	QueryTypeTugQL QueryType = "TugQL"
+	// Deprecated: QueryTypeDTQL is the legacy name for QueryTypeTugQL.
 	QueryTypeDTQL QueryType = "DTQL"
 )
 
 func IsKnownQueryType(queryType QueryType) bool {
 	switch queryType {
-	case QueryTypeSQL, QueryTypeHTTP, QueryTypeStructuredSQL, QueryTypeDTQL:
+	case QueryTypeSQL, QueryTypeHTTP, QueryTypeStructuredSQL, QueryTypeTugQL, QueryTypeDTQL:
 		return true
 	default:
 		return false

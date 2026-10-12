@@ -1039,6 +1039,22 @@ func readCurrentQueryPair(dir, id string) (currentQueryPair, error) {
 		return cur, fmt.Errorf("failed to read query body: %w", err)
 	}
 	if !bodyExists {
+		// Fallback check between canonical TugQL and legacy DTQL file extensions
+		var altFileName string
+		if meta.Type == datatug.QueryTypeTugQL {
+			altFileName, _ = queryBodyFileName(id, datatug.QueryTypeDTQL)
+		} else if meta.Type == datatug.QueryTypeDTQL {
+			altFileName, _ = queryBodyFileName(id, datatug.QueryTypeTugQL)
+		}
+		if altFileName != "" {
+			if altBytes, altExists, altErr := readRegularFileCapped(path.Join(dir, altFileName), maxQueryFileSize); altErr == nil && altExists {
+				bodyBytes = altBytes
+				bodyExists = true
+				bodyFileName = altFileName
+			}
+		}
+	}
+	if !bodyExists {
 		cur.revision = computeQueryRevision(jsonBytes, "", nil)
 		return cur, nil
 	}
