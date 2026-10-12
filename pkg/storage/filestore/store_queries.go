@@ -38,17 +38,17 @@ func readQueryTextSidecar(dirPath string, query *datatug.QueryDef, budget *query
 	}
 	if !exists {
 		// Fallback check between canonical TugQL and legacy DTQL file extensions
-		if query.Type == datatug.QueryTypeTugQL {
-			if legacyName, lErr := queryBodyFileName(query.ID, datatug.QueryTypeDTQL); lErr == nil {
-				if lData, lExists, lErr := readRegularFileBudgeted(path.Join(dirPath, legacyName), maxQueryFileSize, budget); lErr == nil && lExists {
-					return string(lData), nil
-				}
-			}
-		} else if query.Type == datatug.QueryTypeDTQL {
-			if canonName, cErr := queryBodyFileName(query.ID, datatug.QueryTypeTugQL); cErr == nil {
-				if cData, cExists, cErr := readRegularFileBudgeted(path.Join(dirPath, canonName), maxQueryFileSize, budget); cErr == nil && cExists {
-					return string(cData), nil
-				}
+		var altType datatug.QueryType
+		switch query.Type {
+		case datatug.QueryTypeTugQL:
+			altType = datatug.QueryTypeDTQL
+		case datatug.QueryTypeDTQL:
+			altType = datatug.QueryTypeTugQL
+		}
+		if altType != "" {
+			altName, _ := queryBodyFileName(query.ID, altType)
+			if altData, altExists, err := readRegularFileBudgeted(path.Join(dirPath, altName), maxQueryFileSize, budget); err == nil && altExists {
+				return string(altData), nil
 			}
 		}
 		return "", nil

@@ -127,7 +127,7 @@ const (
 	QueryTypeStructuredSQL QueryType = "StructuredSQL"
 	// QueryTypeTugQL is the canonical query type for TugQL queries.
 	QueryTypeTugQL QueryType = "TugQL"
-	// Deprecated: QueryTypeDTQL is the legacy name for QueryTypeTugQL.
+	// QueryTypeDTQL is the legacy alias for QueryTypeTugQL.
 	QueryTypeDTQL QueryType = "DTQL"
 )
 

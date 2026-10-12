@@ -103,6 +103,55 @@ func TestUpdateQuery_TypeChangeRemovesStaleSidecar(t *testing.T) {
 	}
 }
 
+func TestReadQueryTextSidecar_FallbackBetweenTugQLAndDTQL(t *testing.T) {
+	dir := t.TempDir()
+
+	// 1. TugQL query loading from legacy .query.dtql
+	if err := os.WriteFile(filepath.Join(dir, "q1.query.dtql"), []byte("from:\n  name: Invoice\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	tugqlQuery := &datatug.QueryDef{
+		ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "q1"}},
+		Type:        datatug.QueryTypeTugQL,
+	}
+	got, err := readQueryTextSidecar(dir, tugqlQuery, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "from:\n  name: Invoice\n" {
+		t.Errorf("expected TugQL query to fall back to .query.dtql, got %q", got)
+	}
+
+	// 2. DTQL query loading from canonical .query.tugql
+	if err := os.WriteFile(filepath.Join(dir, "q2.query.tugql"), []byte("from:\n  name: Order\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	legacyQuery := &datatug.QueryDef{
+		ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "q2"}},
+		Type:        datatug.QueryTypeDTQL,
+	}
+	got2, err := readQueryTextSidecar(dir, legacyQuery, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got2 != "from:\n  name: Order\n" {
+		t.Errorf("expected DTQL query to fall back to .query.tugql, got %q", got2)
+	}
+
+	// 3. TugQL query with neither sidecar present
+	q3 := &datatug.QueryDef{
+		ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "q3"}},
+		Type:        datatug.QueryTypeTugQL,
+	}
+	got3, err := readQueryTextSidecar(dir, q3, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got3 != "" {
+		t.Errorf("expected empty string when neither sidecar exists, got %q", got3)
+	}
+}
+
 func TestUpdateQuery_HonorsFolderEmbeddedInID(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
 	q := datatug.QueryDef{
