@@ -1041,9 +1041,10 @@ func readCurrentQueryPair(dir, id string) (currentQueryPair, error) {
 	if !bodyExists {
 		// Fallback check between canonical TugQL and legacy DTQL file extensions
 		var altFileName string
-		if meta.Type == datatug.QueryTypeTugQL {
+		switch meta.Type {
+		case datatug.QueryTypeTugQL:
 			altFileName, _ = queryBodyFileName(id, datatug.QueryTypeDTQL)
-		} else if meta.Type == datatug.QueryTypeDTQL {
+		case datatug.QueryTypeDTQL:
 			altFileName, _ = queryBodyFileName(id, datatug.QueryTypeTugQL)
 		}
 		if altFileName != "" {
