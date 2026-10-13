@@ -110,7 +110,6 @@ type CaseEdit struct {
 	Title           string                          `json:"title,omitempty"`
 	Context         map[string]detective.InputValue `json:"context,omitempty"`
 	Findings        []detective.Finding             `json:"findings,omitempty"`
-	IncidentRefs    []string                        `json:"incidentRefs,omitempty"`
 	Status          string                          `json:"status,omitempty"`
 	ClosureReason   string                          `json:"closureReason,omitempty"`
 }
@@ -148,15 +147,16 @@ type Draft struct {
 // Proposal is stored privately with the exact trusted scope and snapshot
 // basis used for review. Digest binds its complete immutable payload.
 type Proposal struct {
-	ID             string           `json:"id"`
-	Scope          Scope            `json:"scope"`
-	Basis          Snapshot         `json:"basis"`
-	Draft          Draft            `json:"draft"`
-	Sources        []SourceEvidence `json:"sources"`
-	ExpectedCounts map[string]int   `json:"expectedCounts,omitempty"`
-	CreatedAt      time.Time        `json:"createdAt"`
-	ExpiresAt      time.Time        `json:"expiresAt"`
-	Digest         string           `json:"digest"`
+	ID               string           `json:"id"`
+	ParentProposalID string           `json:"parentProposalId,omitempty"`
+	Scope            Scope            `json:"scope"`
+	Basis            Snapshot         `json:"basis"`
+	Draft            Draft            `json:"draft"`
+	Sources          []SourceEvidence `json:"sources"`
+	ExpectedCounts   map[string]int   `json:"expectedCounts,omitempty"`
+	CreatedAt        time.Time        `json:"createdAt"`
+	ExpiresAt        time.Time        `json:"expiresAt"`
+	Digest           string           `json:"digest"`
 }
 
 type Request struct {
@@ -192,8 +192,15 @@ type ProposalStore interface {
 type ConfirmationPorts interface {
 	ProposalStore
 	Current(context.Context, Scope) (Snapshot, error)
+	// Authorize checks current principal/action/resource permissions. It must
+	// not treat a version advanced by this same completed operation as lost
+	// permission; Core checks freshness for new operations separately.
 	Authorize(context.Context, Scope, Proposal) error
 	AuthorizeSources(context.Context, Scope, []SourceEvidence) error
+	// PriorReceipt returns an immutable, scoped operation receipt, if any.
+	// The adapter must reauthorize the principal before revealing it and bind
+	// lookup to the same operation scope used by Dispatch's atomic receipt.
+	PriorReceipt(context.Context, Scope, string) (Receipt, bool, error)
 	Dispatch(context.Context, Command) (Receipt, error)
 }
 
@@ -201,6 +208,17 @@ type ConfirmRequest struct {
 	ProposalID  string `json:"proposalId"`
 	Digest      string `json:"digest"`
 	OperationID string `json:"operationId"`
+}
+
+// ContextReviewRequest records the human-edited values to apply to an
+// existing Case. Core derives a separate, digest-bound Case edit proposal;
+// confirming that proposal uses the same audited deterministic Case route.
+type ContextReviewRequest struct {
+	ProposalID      string                          `json:"proposalId"`
+	Digest          string                          `json:"digest"`
+	CaseID          string                          `json:"caseId"`
+	ExpectedVersion int64                           `json:"expectedVersion"`
+	Context         map[string]detective.InputValue `json:"context"`
 }
 
 // Command is formed only by Confirm after it rechecks scope, freshness and

@@ -107,7 +107,7 @@ func TestSourceEvidenceAndStrictJSON(t *testing.T) {
 	if validStoredSources(evidence) {
 		t.Fatal("invalid digest accepted")
 	}
-	for _, raw := range [][]byte{nil, []byte(`{"kind":"run-check","kind":"edit-case"}`), []byte(`{"kind":"run-check"} {}`), []byte(`{"kind":`)} {
+	for _, raw := range [][]byte{nil, []byte(`{"kind":"run-check","kind":"edit-case"}`), []byte(`{"kind":"run-check"} {}`), []byte(`{"kind":`), []byte(`{"kind":"edit-case","title":"x","case":{"caseId":"case-a","expectedVersion":3,"incidentRefs":["foreign"]},"sources":[]}`)} {
 		var draft Draft
 		if err := strictDecode(raw, &draft); !errors.Is(err, ErrInvalid) {
 			t.Fatalf("bad model JSON accepted: %s", raw)
@@ -204,7 +204,7 @@ func TestAdditionalEvidenceAndCaseEditBoundaries(t *testing.T) {
 	for _, edit := range []CaseEdit{
 		{Title: strings.Repeat("x", 257)},
 		{Findings: []detective.Finding{{ID: "bad", Text: " ", Status: "hypothesis"}}},
-		{IncidentRefs: []string{""}},
+		{Status: "archived"},
 	} {
 		if validCaseEdit(edit) {
 			t.Fatalf("invalid Case edit accepted: %#v", edit)

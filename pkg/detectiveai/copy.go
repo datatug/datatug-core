@@ -104,7 +104,6 @@ func cloneDraft(value Draft) Draft {
 		for i := range caseEdit.Findings {
 			caseEdit.Findings[i].EvidenceRefs = append([]string(nil), caseEdit.Findings[i].EvidenceRefs...)
 		}
-		caseEdit.IncidentRefs = append([]string(nil), caseEdit.IncidentRefs...)
 		value.Case = &caseEdit
 	}
 	if value.Run != nil {

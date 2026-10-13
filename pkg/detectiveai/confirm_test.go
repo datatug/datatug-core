@@ -11,16 +11,19 @@ import (
 
 type fakePorts struct {
 	*memoryStore
-	snapshot       Snapshot
-	authorizeErr   error
-	sourceErr      error
-	currentErr     error
-	dispatchErr    error
-	badReceipt     bool
-	authorizations int
-	sourceChecks   int
-	dispatches     int
-	receipts       map[string]Receipt
+	snapshot          Snapshot
+	authorizeErr      error
+	authorizeAt       int
+	sourceErr         error
+	currentErr        error
+	dispatchErr       error
+	badReceipt        bool
+	advanceOnDispatch bool
+	receiptErr        error
+	authorizations    int
+	sourceChecks      int
+	dispatches        int
+	receipts          map[string]Receipt
 }
 
 func (p *fakePorts) Current(_ context.Context, _ Scope) (Snapshot, error) {
@@ -28,11 +31,21 @@ func (p *fakePorts) Current(_ context.Context, _ Scope) (Snapshot, error) {
 }
 func (p *fakePorts) Authorize(_ context.Context, _ Scope, _ Proposal) error {
 	p.authorizations++
+	if p.authorizeAt == p.authorizations {
+		return ErrUnauthorized
+	}
 	return p.authorizeErr
 }
 func (p *fakePorts) AuthorizeSources(_ context.Context, _ Scope, _ []SourceEvidence) error {
 	p.sourceChecks++
 	return p.sourceErr
+}
+func (p *fakePorts) PriorReceipt(_ context.Context, _ Scope, operationID string) (Receipt, bool, error) {
+	if p.receiptErr != nil {
+		return Receipt{}, false, p.receiptErr
+	}
+	r, exists := p.receipts[operationID]
+	return r, exists, nil
 }
 func (p *fakePorts) Dispatch(_ context.Context, command Command) (Receipt, error) {
 	p.dispatches++
@@ -53,6 +66,10 @@ func (p *fakePorts) Dispatch(_ context.Context, command Command) (Receipt, error
 		p.receipts = map[string]Receipt{}
 	}
 	p.receipts[command.OperationID] = r
+	if p.advanceOnDispatch {
+		p.snapshot.CatalogRevision = "catalog-after-mutation"
+		p.snapshot.Cases[0].Revision = "4"
+	}
 	return r, nil
 }
 
@@ -70,23 +87,24 @@ func proposalFixture(t *testing.T) (Scope, Proposal, *fakePorts, time.Time) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ports := &fakePorts{memoryStore: &memoryStore{items: map[string]Proposal{proposal.ID: proposal}}, snapshot: snapshot}
+	ports := &fakePorts{memoryStore: &memoryStore{items: map[string]Proposal{proposal.ID: proposal}}, snapshot: cloneSnapshot(snapshot)}
 	return scope, proposal, ports, now
 }
 
 func TestConfirmBindsFullScopeAndReauthorizesOnReplay(t *testing.T) {
 	scope, proposal, ports, now := proposalFixture(t)
 	request := ConfirmRequest{ProposalID: proposal.ID, Digest: proposal.Digest, OperationID: "op-1"}
+	ports.advanceOnDispatch = true
 	first, err := Confirm(context.Background(), scope, request, ports, now)
 	if err != nil || first.ScopeKey != scope.Key || ports.dispatches != 1 || ports.authorizations != 1 || ports.sourceChecks != 1 {
 		t.Fatalf("first confirmation = %#v, %v", first, err)
 	}
 	again, err := Confirm(context.Background(), scope, request, ports, now)
-	if err != nil || again != first || ports.authorizations != 2 || ports.sourceChecks != 2 {
+	if err != nil || again != first || ports.authorizations != 2 || ports.sourceChecks != 2 || ports.dispatches != 1 {
 		t.Fatalf("replay skipped authorization: %#v, %v", again, err)
 	}
 	ports.sourceErr = errors.New("source revoked")
-	if _, err := Confirm(context.Background(), scope, request, ports, now); !errors.Is(err, ErrUnauthorized) || ports.dispatches != 2 {
+	if _, err := Confirm(context.Background(), scope, request, ports, now); !errors.Is(err, ErrUnauthorized) || ports.dispatches != 1 {
 		t.Fatalf("revoked-source retry should stop before dispatch: %v", err)
 	}
 	ports.sourceErr = nil
@@ -94,6 +112,15 @@ func TestConfirmBindsFullScopeAndReauthorizesOnReplay(t *testing.T) {
 	other.Key = "store:cloud/space:s2/project:demo/branch:main"
 	if _, err := Confirm(context.Background(), other, request, ports, now); !errors.Is(err, ErrUnauthorized) {
 		t.Fatalf("same slug in another Space accepted: %v", err)
+	}
+	if replay, err := Confirm(context.Background(), scope, request, ports, now.Add(16*time.Minute)); err != nil || replay != first {
+		t.Fatalf("expired exact retry lost its durable receipt: %+v %v", replay, err)
+	}
+	conflict := first
+	conflict.PayloadDigest = "foreign"
+	ports.receipts[request.OperationID] = conflict
+	if _, err := Confirm(context.Background(), scope, request, ports, now); !errors.Is(err, detective.ErrConflict) {
+		t.Fatalf("conflicting operation receipt accepted: %v", err)
 	}
 }
 
@@ -151,11 +178,17 @@ func TestConfirmRejectsBadDispatcherReceiptAndErrors(t *testing.T) {
 		t.Fatalf("foreign receipt accepted: %v", err)
 	}
 	ports.badReceipt = false
+	ports.receipts = nil
 	ports.dispatchErr = detective.ErrConflict
 	if _, err := Confirm(context.Background(), scope, request, ports, now); !errors.Is(err, detective.ErrConflict) {
 		t.Fatalf("dispatch conflict lost: %v", err)
 	}
 	ports.dispatchErr = nil
+	ports.receiptErr = errors.New("receipt store unavailable")
+	if _, err := Confirm(context.Background(), scope, request, ports, now); err == nil || errors.Is(err, ErrStale) {
+		t.Fatalf("receipt read error flattened: %v", err)
+	}
+	ports.receiptErr = nil
 	ports.currentErr = errors.New("catalog unavailable")
 	if _, err := Confirm(context.Background(), scope, request, ports, now); err == nil || errors.Is(err, ErrStale) {
 		t.Fatalf("catalog read failure flattened: %v", err)

@@ -246,7 +246,7 @@ func validScenarioReferences(scenario detective.Scenario, snapshot Snapshot) boo
 }
 
 func validCaseEdit(edit CaseEdit) bool {
-	if len(edit.Title) > 256 || len(edit.Context) > 64 || len(edit.Findings) > 100 || len(edit.IncidentRefs) > 100 || len(edit.ClosureReason) > 2048 || !oneOf(edit.Status, "", "active", "closed") {
+	if len(edit.Title) > 256 || len(edit.Context) > 64 || len(edit.Findings) > 100 || len(edit.ClosureReason) > 2048 || !oneOf(edit.Status, "", "active", "closed") {
 		return false
 	}
 	for name, value := range edit.Context {
@@ -256,11 +256,6 @@ func validCaseEdit(edit CaseEdit) bool {
 	}
 	for _, finding := range edit.Findings {
 		if !detective.ValidSlug(finding.ID) || strings.TrimSpace(finding.Text) == "" || len(finding.Text) > 2048 || !oneOf(finding.Status, "hypothesis", "confirmed") {
-			return false
-		}
-	}
-	for _, ref := range edit.IncidentRefs {
-		if ref == "" || len(ref) > 512 {
 			return false
 		}
 	}
@@ -300,7 +295,7 @@ func proposalDigest(proposal Proposal) (string, error) {
 }
 
 func validateProposal(proposal Proposal, now time.Time) error {
-	if !validScope(proposal.Scope) || !validSnapshot(proposal.Basis) || proposal.ID == "" || len(proposal.ID) > 128 || proposal.CreatedAt.IsZero() || !proposal.ExpiresAt.After(proposal.CreatedAt) || !now.Before(proposal.ExpiresAt) {
+	if !validScope(proposal.Scope) || !validSnapshot(proposal.Basis) || !detective.ValidSlug(proposal.ID) || proposal.ParentProposalID != "" && !detective.ValidSlug(proposal.ParentProposalID) || proposal.CreatedAt.IsZero() || !proposal.ExpiresAt.After(proposal.CreatedAt) || !now.Before(proposal.ExpiresAt) {
 		return ErrInvalid
 	}
 	if !validStoredSources(proposal.Sources) || !validExpectedCounts(proposal.ExpectedCounts) {

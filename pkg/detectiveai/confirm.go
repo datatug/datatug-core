@@ -31,7 +31,10 @@ func Confirm(ctx context.Context, scope Scope, request ConfirmRequest, ports Con
 		return Receipt{}, ErrUnauthorized
 	}
 	proposal = cloneProposal(proposal)
-	if err := validateProposal(proposal, now); err != nil || subtle.ConstantTimeCompare([]byte(proposal.Digest), []byte(request.Digest)) != 1 {
+	// Integrity is checked against the creation instant first. An authorized
+	// exact replay can recover a durable receipt even after the proposal's
+	// creation window or the mutation has advanced Case/catalog revisions.
+	if err := validateProposal(proposal, proposal.CreatedAt); err != nil || subtle.ConstantTimeCompare([]byte(proposal.Digest), []byte(request.Digest)) != 1 {
 		return Receipt{}, ErrInvalid
 	}
 	if proposal.Draft.Kind == KindContext || proposal.Draft.Kind == KindExplain || !oneOf(proposal.Draft.Kind, KindQuery, KindCheck, KindValidator, KindScenario, KindCase, KindRun) {
@@ -43,6 +46,20 @@ func Confirm(ctx context.Context, scope Scope, request ConfirmRequest, ports Con
 	if err := ports.AuthorizeSources(ctx, scope, proposal.Sources); err != nil {
 		return Receipt{}, ErrUnauthorized
 	}
+	binding := confirmationBinding(scope, proposal)
+	prior, exists, err := ports.PriorReceipt(ctx, scope, request.OperationID)
+	if err != nil {
+		return Receipt{}, err
+	}
+	if exists {
+		if !receiptMatches(prior, request, scope, proposal, binding) {
+			return Receipt{}, detective.ErrConflict
+		}
+		return prior, nil
+	}
+	if !now.Before(proposal.ExpiresAt) {
+		return Receipt{}, ErrInvalid
+	}
 	current, err := ports.Current(ctx, scope)
 	if err != nil {
 		return Receipt{}, err
@@ -50,15 +67,18 @@ func Confirm(ctx context.Context, scope Scope, request ConfirmRequest, ports Con
 	if !validSnapshot(current) || !sameSnapshot(proposal.Basis, current) {
 		return Receipt{}, ErrStale
 	}
-	binding := confirmationBinding(scope, proposal)
 	receipt, err := ports.Dispatch(ctx, Command{Scope: scope, OperationID: request.OperationID, Proposal: proposal, Binding: binding})
 	if err != nil {
 		return Receipt{}, err
 	}
-	if receipt.OperationID != request.OperationID || receipt.ScopeKey != scope.Key || receipt.Project != scope.Project || receipt.Actor != scope.Actor || receipt.ProposalID != proposal.ID || subtle.ConstantTimeCompare([]byte(receipt.PayloadDigest), []byte(binding.PayloadDigest)) != 1 || receipt.ResourceID == "" || receipt.At.IsZero() {
+	if !receiptMatches(receipt, request, scope, proposal, binding) {
 		return Receipt{}, ErrInvalid
 	}
 	return receipt, nil
+}
+
+func receiptMatches(receipt Receipt, request ConfirmRequest, scope Scope, proposal Proposal, binding detective.OperationBinding) bool {
+	return receipt.OperationID == request.OperationID && receipt.ScopeKey == scope.Key && receipt.Project == scope.Project && receipt.Actor == scope.Actor && receipt.ProposalID == proposal.ID && subtle.ConstantTimeCompare([]byte(receipt.PayloadDigest), []byte(binding.PayloadDigest)) == 1 && receipt.ResourceID != "" && !receipt.At.IsZero()
 }
 
 // confirmationBinding hashes length-prefixed fields. A verified proposal

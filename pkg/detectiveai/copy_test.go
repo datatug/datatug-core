@@ -99,11 +99,10 @@ func TestCopySetRangeValidatorAndCaseReferences(t *testing.T) {
 	if validatorCopy.Expected.Str != "2" || validatorCopy.Bindings[0].Input != "invoice_id" {
 		t.Fatal("Validator copy aliases original")
 	}
-	caseEdit := Draft{Kind: KindCase, Case: &CaseEdit{Findings: []detective.Finding{{EvidenceRefs: []string{"e-1"}}}, IncidentRefs: []string{"incident-1"}}}
+	caseEdit := Draft{Kind: KindCase, Case: &CaseEdit{Findings: []detective.Finding{{EvidenceRefs: []string{"e-1"}}}}}
 	caseCopy := cloneDraft(caseEdit)
 	caseEdit.Case.Findings[0].EvidenceRefs[0] = "changed"
-	caseEdit.Case.IncidentRefs[0] = "changed"
-	if caseCopy.Case.Findings[0].EvidenceRefs[0] != "e-1" || caseCopy.Case.IncidentRefs[0] != "incident-1" {
+	if caseCopy.Case.Findings[0].EvidenceRefs[0] != "e-1" {
 		t.Fatal("Case references alias original")
 	}
 }
