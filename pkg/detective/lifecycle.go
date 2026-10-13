@@ -334,6 +334,9 @@ func AttachRun(c Case, run CheckRun, eventID, actor string, at time.Time) (Case,
 	return c, AuditEvent{ID: eventID, At: at, Actor: actor, Action: "check-run", CaseID: c.ID, RunID: run.ID}, nil
 }
 
+// ValidateScenario checks query range bindings per step and requires each
+// required range input to be consumed by at least one query in the Scenario.
+// Other query steps may use different subsets of the declared inputs.
 func ValidateScenario(scenario Scenario) error {
 	if !validSlug(scenario.ID) || strings.TrimSpace(scenario.Title) == "" || len(scenario.Steps) == 0 || len(scenario.Steps) > 32 || len(scenario.Inputs) > 64 {
 		return ErrInvalid

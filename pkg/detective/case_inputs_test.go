@@ -252,6 +252,7 @@ func TestMatchScenarioQueryCohortReconstructsExactClosedRange(t *testing.T) {
 		{"a": {Scalar: ptrValue(start)}, "b": {Scalar: ptrValue(investigation.NewIntegerValue("7"))}},
 		{"a": ids, "b": {Scalar: ptrValue(end)}},
 		{"a": {Scalar: ptrValue(investigation.NewStringValue("not a range bound"))}, "b": {Scalar: ptrValue(investigation.NewStringValue("not a range bound"))}},
+		{"a": {Scalar: ptrValue(end)}, "b": {Scalar: ptrValue(start)}},
 	} {
 		step := ScenarioStep{Kind: "query", Bindings: []Binding{{Input: "a", FromInput: "free", Part: "start"}, {Input: "b", FromInput: "free", Part: "end"}}}
 		if err := MatchScenarioQueryCohort(step, nil, params); !errors.Is(err, ErrInvalid) {

@@ -146,6 +146,9 @@ func MatchScenarioQueryCohort(step ScenarioStep, caseContext, recordedParams map
 		if !parts.hasStart || !parts.hasEnd || parts.start.Type != parts.end.Type || !validRangeInputType(parts.start.Type) {
 			return ErrInvalid
 		}
+		if (InputValue{Range: &ValueRange{Type: "range", Start: parts.start, End: parts.end}}).Validate() != nil {
+			return ErrInvalid
+		}
 	}
 	for name, value := range caseContext {
 		if value.Range != nil {
