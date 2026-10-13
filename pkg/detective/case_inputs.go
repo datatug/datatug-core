@@ -8,7 +8,8 @@ import (
 // BindCaseInputs merges the authoritative Case context into a Check's declared
 // inputs. A declared Case value cannot be replaced by a caller-supplied value;
 // a set or range in the Case must be declared by the Check. Unrelated scalar
-// facts remain Case context and are not passed to the Check.
+// facts remain Case context and are not passed to the Check. Returned values
+// own their nested storage so later caller edits cannot change accepted inputs.
 func BindCaseInputs(schema []Input, supplied, context map[string]InputValue) (map[string]InputValue, error) {
 	declared := make(map[string]bool, len(schema))
 	for _, input := range schema {
@@ -38,6 +39,22 @@ func BindCaseInputs(schema []Input, supplied, context map[string]InputValue) (ma
 	}
 	if err := ValidateInputs(schema, effective); err != nil {
 		return nil, err
+	}
+	for name, value := range effective {
+		if value.Scalar != nil {
+			copy := *value.Scalar
+			value.Scalar = &copy
+		}
+		if value.Set != nil {
+			copy := *value.Set
+			copy.Values = append([]Value(nil), copy.Values...)
+			value.Set = &copy
+		}
+		if value.Range != nil {
+			copy := *value.Range
+			value.Range = &copy
+		}
+		effective[name] = value
 	}
 	return effective, nil
 }

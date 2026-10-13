@@ -84,6 +84,49 @@ func TestBindCaseInputsRejectsReplacementOrUndeclaredCohorts(t *testing.T) {
 	}
 }
 
+func TestBoundCaseInputsOwnAcceptedScalarSetAndRangeValues(t *testing.T) {
+	for _, fromCase := range []bool{false, true} {
+		name := "supplied"
+		if fromCase {
+			name = "case"
+		}
+		t.Run(name, func(t *testing.T) {
+			original := map[string]InputValue{
+				"id":     {Scalar: ptrValue(investigation.NewIntegerValue("1"))},
+				"ids":    {Set: &apicontract.TypedValueSet{Values: []Value{investigation.NewIntegerValue("1")}}},
+				"window": {Range: &ValueRange{Type: "range", Start: investigation.NewDateValue("2026-10-01"), End: investigation.NewDateValue("2026-10-07")}},
+			}
+			schema := []Input{
+				{Name: "id", Type: investigation.ValueTypeInteger, Cardinality: "scalar"},
+				{Name: "ids", Type: investigation.ValueTypeInteger, Cardinality: "set"},
+				{Name: "window", Type: investigation.ValueTypeDate, Cardinality: "range"},
+			}
+			var supplied, context map[string]InputValue
+			if fromCase {
+				context = original
+			} else {
+				supplied = original
+			}
+			got, err := BindCaseInputs(schema, supplied, context)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got["id"].Scalar.Str = "99"
+			got["ids"].Set.Values[0].Str = "99"
+			got["window"].Range.Start.Str = "2026-10-02"
+			if original["id"].Scalar.Str != "1" || original["ids"].Set.Values[0].Str != "1" || original["window"].Range.Start.Str != "2026-10-01" {
+				t.Fatal("accepted inputs mutated caller-owned Case or supplied values")
+			}
+			original["id"].Scalar.Str = "2"
+			original["ids"].Set.Values[0].Str = "2"
+			original["window"].Range.End.Str = "2026-10-08"
+			if got["id"].Scalar.Str != "99" || got["ids"].Set.Values[0].Str != "99" || got["window"].Range.End.Str != "2026-10-07" {
+				t.Fatal("caller mutation changed accepted inputs")
+			}
+		})
+	}
+}
+
 func TestMatchCaseCohortRequiresExactConfirmedValues(t *testing.T) {
 	one := investigation.NewIntegerValue("1")
 	two := investigation.NewIntegerValue("2")
