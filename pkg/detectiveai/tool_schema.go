@@ -181,7 +181,11 @@ func buildProposalToolSchema() json.RawMessage {
 		proposalBranch(KindScenario, "scenario", "scenario"), proposalBranch(KindCase, "case", "case"),
 		proposalBranch(KindRun, "run", "run"), proposalBranch(KindExplain, "explanation", "explanation"),
 	}
+	// Native Anthropic tool input_schema requires an object root without root
+	// combinators. Keep the one-of discriminant beneath a required property.
+	root := objectSchema(toolSchema{"proposal": toolSchema{"oneOf": branches}}, "proposal")
+	root["$defs"] = definitions
 	// The tree contains only static JSON-safe primitives, maps and slices.
-	encoded, _ := json.Marshal(toolSchema{"type": "object", "oneOf": branches, "$defs": definitions})
+	encoded, _ := json.Marshal(root)
 	return encoded
 }

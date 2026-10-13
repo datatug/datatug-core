@@ -81,6 +81,11 @@ func runDraft() Draft {
 }
 
 func toolCall(id, name string, value any) ai.Event {
+	if name == "submit_proposal" {
+		value = struct {
+			Proposal any `json:"proposal"`
+		}{Proposal: value}
+	}
 	raw, _ := json.Marshal(value)
 	return ai.Event{Type: ai.EventToolCall, ToolCall: &ai.ToolCall{ID: id, Name: name, Arguments: raw}}
 }
@@ -99,6 +104,9 @@ func TestAssistantMakesReviewableProposalWithoutExecuting(t *testing.T) {
 	}
 	if provider.calls != 2 || len(provider.seen[0].Tools) != 2 || provider.seen[0].Product != "datatug" || provider.seen[0].MaxTokens != 1200 {
 		t.Fatalf("wrong bounded agent contract: %#v", provider.seen[0])
+	}
+	if messages := provider.seen[1].Messages; len(messages) < 3 || len(messages[len(messages)-1].ToolResults) != 2 || messages[len(messages)-1].ToolResults[1].IsError || !strings.Contains(messages[len(messages)-1].ToolResults[1].Content, `"status":"requires-confirmation"`) {
+		t.Fatalf("provider did not receive an actionable review receipt: %#v", provider.seen[1].Messages)
 	}
 	stored := store.items["proposal-1"]
 	encoded, _ := json.Marshal(stored)
@@ -141,7 +149,9 @@ func TestAssistantRejectsSpoofingAndBadSourceSpans(t *testing.T) {
 		name string
 		call ai.Event
 	}{
-		{"spoofed project", ai.Event{Type: ai.EventToolCall, ToolCall: &ai.ToolCall{ID: "1", Name: "submit_proposal", Arguments: json.RawMessage(`{"kind":"run-check","title":"x","project":"other"}`)}}},
+		{"spoofed project", ai.Event{Type: ai.EventToolCall, ToolCall: &ai.ToolCall{ID: "1", Name: "submit_proposal", Arguments: json.RawMessage(`{"proposal":{"kind":"run-check","title":"x","project":"other"}}`)}}},
+		{"unwrapped payload", ai.Event{Type: ai.EventToolCall, ToolCall: &ai.ToolCall{ID: "1", Name: "submit_proposal", Arguments: json.RawMessage(`{"kind":"run-check","title":"x"}`)}}},
+		{"extra root authority", ai.Event{Type: ai.EventToolCall, ToolCall: &ai.ToolCall{ID: "1", Name: "submit_proposal", Arguments: json.RawMessage(`{"proposal":{"kind":"run-check"},"actor":"other"}`)}}},
 		{"made-up source", toolCall("1", "submit_proposal", Draft{Kind: KindRun, Title: "x", Run: runDraft().Run, Sources: []Provenance{{SourceID: "other", Start: 0, End: 2, Confidence: .9}}})},
 		{"false quote", toolCall("1", "submit_proposal", Draft{Kind: KindRun, Title: "x", Run: runDraft().Run, Sources: []Provenance{{SourceID: "ticket", Start: 0, End: 9, Quote: "invoice 8", Confidence: .9}}})},
 		{"unknown check", toolCall("1", "submit_proposal", Draft{Kind: KindRun, Title: "x", Run: &RunDraft{CheckID: "invented", Environment: "local"}, Sources: runDraft().Sources})},

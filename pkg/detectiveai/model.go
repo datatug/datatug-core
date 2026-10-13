@@ -222,6 +222,15 @@ type ContextReviewRequest struct {
 	Context         map[string]detective.InputValue `json:"context"`
 }
 
+// ReviewedDraftRequest edits an existing proposal without changing its cited
+// source trail. The host supplies Scope separately and must decode this body
+// strictly; a successful review creates another private proposal, not a write.
+type ReviewedDraftRequest struct {
+	ProposalID string `json:"proposalId"`
+	Digest     string `json:"digest"`
+	Draft      Draft  `json:"draft"`
+}
+
 // Command is formed only by Confirm after it rechecks scope, freshness and
 // authority. Hosts translate it to their existing saved-query/Detective route.
 type Command struct {

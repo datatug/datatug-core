@@ -3,6 +3,7 @@ package detectiveai
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"reflect"
@@ -34,15 +35,21 @@ func TestProviderReceivesCompleteNestedProposalSchema(t *testing.T) {
 		t.Fatalf("provider schema is not valid JSON Schema: %v", err)
 	}
 	var root map[string]json.RawMessage
-	if err := json.Unmarshal(provider.seen[0].Tools[1].Schema, &root); err != nil || string(root["type"]) != `"object"` {
+	if err := json.Unmarshal(provider.seen[0].Tools[1].Schema, &root); err != nil || string(root["type"]) != `"object"` || len(root["oneOf"]) != 0 || len(root["allOf"]) != 0 || len(root["anyOf"]) != 0 {
 		t.Fatalf("provider tool needs a native object root: %s, %v", root["type"], err)
+	}
+	var properties map[string]json.RawMessage
+	if err := json.Unmarshal(root["properties"], &properties); err != nil || len(properties["proposal"]) == 0 || string(root["required"]) != `["proposal"]` || string(root["additionalProperties"]) != `false` {
+		t.Fatalf("provider tool needs one required proposal property: %v, %s", err, provider.seen[0].Tools[1].Schema)
 	}
 	accept := func(name string, draft Draft) {
 		t.Helper()
 		if err := validateDraft(draft, snapshot, sources); err != nil {
 			t.Fatalf("%s is not a valid Core proposal: %v", name, err)
 		}
-		encoded, err := json.Marshal(draft)
+		encoded, err := json.Marshal(struct {
+			Proposal Draft `json:"proposal"`
+		}{Proposal: draft})
 		if err != nil {
 			t.Fatalf("%s marshal: %v", name, err)
 		}
@@ -102,9 +109,21 @@ func TestProviderReceivesCompleteNestedProposalSchema(t *testing.T) {
 		"incident authority spoof":      `{"kind":"edit-case","title":"x","sources":[{"sourceId":"ticket","start":0,"end":9,"confidence":0.8}],"case":{"caseId":"case-a","expectedVersion":3,"incidentRefs":["other"]}}`,
 	} {
 		t.Run(name, func(t *testing.T) {
-			issues, err := schema.ValidateBytes(context.Background(), []byte(raw))
+			issues, err := schema.ValidateBytes(context.Background(), []byte(`{"proposal":`+raw+`}`))
 			if err != nil || len(issues) == 0 {
 				t.Fatalf("provider schema accepted bad nested payload: %v, %v", issues, err)
+			}
+		})
+	}
+	for name, raw := range map[string]string{
+		"unwrapped draft":  `{"kind":"run-check"}`,
+		"extra root field": `{"proposal":{"kind":"run-check"},"actor":"other"}`,
+		"missing proposal": `{"other":{}}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			issues, err := schema.ValidateBytes(context.Background(), []byte(raw))
+			if err != nil || len(issues) == 0 {
+				t.Fatalf("provider schema accepted invalid tool envelope: %v, %v", issues, err)
 			}
 		})
 	}
@@ -118,6 +137,44 @@ type capturedToolRequest struct{ body []byte }
 func (r *capturedToolRequest) RoundTrip(request *http.Request) (*http.Response, error) {
 	r.body, _ = io.ReadAll(request.Body)
 	return &http.Response{StatusCode: http.StatusBadRequest, Body: io.NopCloser(strings.NewReader(`{"error":{"message":"test capture"}}`)), Header: http.Header{"Content-Type": []string{"application/json"}}, Request: request}, nil
+}
+
+type nativeAnthropicToolLoop struct{ bodies [][]byte }
+
+func (r *nativeAnthropicToolLoop) RoundTrip(request *http.Request) (*http.Response, error) {
+	body, _ := io.ReadAll(request.Body)
+	r.bodies = append(r.bodies, body)
+	event := func(name string, payload any) string {
+		encoded, _ := json.Marshal(payload)
+		return fmt.Sprintf("event: %s\ndata: %s\n\n", name, encoded)
+	}
+	var stream strings.Builder
+	stream.WriteString(event("message_start", map[string]any{"type": "message_start", "message": map[string]any{"model": "test", "usage": map[string]int{"input_tokens": 1}}}))
+	if len(r.bodies) == 1 {
+		arguments := toolCall("native-call", "submit_proposal", runDraft()).ToolCall.Arguments
+		stream.WriteString(event("content_block_start", map[string]any{"type": "content_block_start", "index": 0, "content_block": map[string]any{"type": "tool_use", "id": "native-call", "name": "submit_proposal"}}))
+		stream.WriteString(event("content_block_delta", map[string]any{"type": "content_block_delta", "index": 0, "delta": map[string]any{"type": "input_json_delta", "partial_json": string(arguments)}}))
+		stream.WriteString(event("content_block_stop", map[string]any{"type": "content_block_stop", "index": 0}))
+		stream.WriteString(event("message_delta", map[string]any{"type": "message_delta", "delta": map[string]any{"stop_reason": "tool_use"}}))
+	} else {
+		stream.WriteString(event("message_delta", map[string]any{"type": "message_delta", "delta": map[string]any{"stop_reason": "end_turn"}}))
+	}
+	stream.WriteString(event("message_stop", map[string]any{"type": "message_stop"}))
+	return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(stream.String())), Header: http.Header{"Content-Type": []string{"text/event-stream"}}, Request: request}, nil
+}
+
+func TestAnthropicNativeProposalToolCallAndResult(t *testing.T) {
+	scope, snapshot, sources := baseline()
+	transport := &nativeAnthropicToolLoop{}
+	provider := anthropic.New(anthropic.Config{BaseURL: "https://example.invalid", APIKey: "test", HTTPClient: &http.Client{Transport: transport}})
+	store := &memoryStore{}
+	response, err := (Assistant{Provider: provider, Store: store, NewID: func() (string, error) { return "proposal-native", nil }}).Run(context.Background(), Request{Scope: scope, Snapshot: snapshot, Text: "Investigate", Sources: sources})
+	if err != nil || len(response.Proposals) != 1 || store.items["proposal-native"].ID != "proposal-native" || len(transport.bodies) != 2 {
+		t.Fatalf("native tool loop did not persist one review proposal: %+v, %v, outbound=%d", response, err, len(transport.bodies))
+	}
+	if !strings.Contains(string(transport.bodies[1]), `"type":"tool_result"`) || !strings.Contains(string(transport.bodies[1]), "proposal-native") || !strings.Contains(string(transport.bodies[1]), "requires-confirmation") {
+		t.Fatalf("native provider did not receive the tool result: %s", transport.bodies[1])
+	}
 }
 
 func TestProviderAdaptersSendNativeObjectToolSchemas(t *testing.T) {
@@ -161,8 +218,16 @@ func TestProviderAdaptersSendNativeObjectToolSchemas(t *testing.T) {
 				actual = function[tc.path[2]]
 			}
 			var schema map[string]json.RawMessage
-			if err := json.Unmarshal(actual, &schema); err != nil || string(schema["type"]) != `"object"` || len(schema["oneOf"]) == 0 || len(schema["$defs"]) == 0 {
-				t.Fatalf("native proposal schema lacks object root or nested definitions: %v, %s", err, actual)
+			if err := json.Unmarshal(actual, &schema); err != nil || string(schema["type"]) != `"object"` || len(schema["oneOf"]) != 0 || len(schema["allOf"]) != 0 || len(schema["anyOf"]) != 0 || len(schema["$defs"]) == 0 {
+				t.Fatalf("native proposal schema lacks a compatible object root: %v, %s", err, actual)
+			}
+			var props map[string]json.RawMessage
+			var proposal map[string]json.RawMessage
+			if err := json.Unmarshal(schema["properties"], &props); err != nil {
+				t.Fatal(err)
+			}
+			if err := json.Unmarshal(props["proposal"], &proposal); err != nil || len(proposal["oneOf"]) == 0 || string(schema["required"]) != `["proposal"]` {
+				t.Fatalf("native proposal property lost discriminated payload: %v, %s", err, actual)
 			}
 		})
 	}
@@ -182,7 +247,7 @@ func TestProposalSchemaCoversEditableCoreWireFields(t *testing.T) {
 		schema any
 		model  any
 	}{
-		{"draft", root, Draft{}},
+		{"draft", root["properties"].(map[string]any)["proposal"], Draft{}},
 		{"provenance", definitions["provenance"], Provenance{}},
 		{"extractedValue", definitions["extractedValue"], ExtractedValue{}},
 		{"query", definitions["query"], QueryDraft{}},
