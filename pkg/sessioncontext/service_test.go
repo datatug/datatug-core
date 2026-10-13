@@ -285,6 +285,121 @@ func TestDashboardReportRequiresRunVersionAndCheckExecutor(t *testing.T) {
 	}
 }
 
+func TestClientRunOutcomeUnknownSettlesWithoutClaimingFailure(t *testing.T) {
+	denied := false
+	svc, principal := newTestService(t, func(_ context.Context, access Access) error {
+		if denied && access.Action == "reportClientRun" && access.Scope != nil {
+			return ErrForbidden
+		}
+		return nil
+	})
+	created := createTestSession(t, svc, principal, "unknown-session", "unknown-bag")
+	scope := Scope{EnvironmentID: "uat", IdentityDomain: "tenant-a"}
+	pin := Command{OpID: "unknown-pin", Action: "pinInput", SessionID: created.SessionID, ExpectedVersion: created.SessionVersion,
+		InputSnapshotID: "unknown-input", RunID: "unknown-run", Kind: "query", DefinitionID: "query", DefinitionRevision: "query-r1",
+		DefinitionDocument: testDefinition("query"), Scope: &scope}
+	pinned := executeOK(t, svc, principal, pin)
+
+	unknown := Command{OpID: "unknown-report", Action: "reportClientRun", SessionID: created.SessionID, ExpectedRunVersion: 1,
+		RunID: "unknown-run", Kind: "query", RunState: "outcome-unknown", ErrorCode: "CLIENT_OUTCOME_UNKNOWN"}
+	denied = true
+	if _, err := svc.Execute(context.Background(), principal, unknown); !errors.Is(err, ErrForbidden) {
+		t.Fatalf("unknown outcome must use fresh source-scope authorization, got %v", err)
+	}
+	if snapshot, err := svc.GetSnapshot(context.Background(), principal, created.SessionID); err != nil || snapshot.Session.PendingRunCount != 1 {
+		t.Fatalf("denied report changed pending run count: session=%+v err=%v", snapshot.Session, err)
+	}
+	denied = false
+	result, err := svc.Execute(context.Background(), principal, unknown)
+	if err != nil {
+		t.Fatalf("record outcome unknown: %v", err)
+	}
+	replay, err := svc.Execute(context.Background(), principal, unknown)
+	resultReceiptJSON, _ := json.Marshal(result.Receipt)
+	replayReceiptJSON, _ := json.Marshal(replay.Receipt)
+	if err != nil || !bytes.Equal(replayReceiptJSON, resultReceiptJSON) {
+		t.Fatalf("same operation replay changed receipt: result=%+v replay=%+v err=%v", result.Receipt, replay.Receipt, err)
+	}
+	run, err := svc.ReadRun(context.Background(), principal, "unknown-run")
+	if err != nil || run.State != "outcome-unknown" || run.OutcomeOrigin != "client-outcome-unknown" || run.ErrorCode != "CLIENT_OUTCOME_UNKNOWN" || len(run.Widgets) != 0 || len(run.ResultRefs) != 0 || run.Version != 2 {
+		t.Fatalf("unknown outcome was not recorded explicitly: run=%+v err=%v", run, err)
+	}
+	snapshot, err := svc.GetSnapshot(context.Background(), principal, created.SessionID)
+	if err != nil || snapshot.Session.PendingRunCount != 0 || snapshot.Session.Version != pinned.SessionVersion+1 {
+		t.Fatalf("unknown outcome did not atomically settle pending work: session=%+v err=%v", snapshot.Session, err)
+	}
+	late := Command{OpID: "late-completion", Action: "reportClientRun", SessionID: created.SessionID, ExpectedRunVersion: 1,
+		RunID: "unknown-run", Kind: "query", RunState: "completed", Widgets: []WidgetOutcome{{ID: "query", State: "completed", ResultRef: "query-result"}}, ResultRefs: []string{"query-result"}}
+	if _, err = svc.Execute(context.Background(), principal, late); !errors.Is(err, ErrConflict) {
+		t.Fatalf("late result must not overwrite explicit unknown outcome: %v", err)
+	}
+}
+
+func TestClientRunOutcomeUnknownRejectsMalformedPayloadAndServerRuns(t *testing.T) {
+	svc, principal := newTestService(t, nil)
+	created := createTestSession(t, svc, principal, "unknown-guards", "unknown-guards-bag")
+	scope := Scope{EnvironmentID: "uat", IdentityDomain: "tenant-a"}
+	clientPin := Command{OpID: "unknown-guards-client-pin", Action: "pinInput", SessionID: created.SessionID, ExpectedVersion: created.SessionVersion,
+		InputSnapshotID: "unknown-guards-client-input", RunID: "unknown-guards-client-run", Kind: "query", DefinitionID: "query", DefinitionRevision: "r1",
+		DefinitionDocument: testDefinition("query"), Scope: &scope}
+	executeOK(t, svc, principal, clientPin)
+	base := Command{Action: "reportClientRun", SessionID: created.SessionID, ExpectedRunVersion: 1, RunID: clientPin.RunID,
+		Kind: "query", RunState: "outcome-unknown", ErrorCode: "CLIENT_OUTCOME_UNKNOWN"}
+	malformed := []Command{
+		func() Command { c := base; c.OpID, c.ErrorCode = "unknown-wrong-code", "CLIENT_FAILED"; return c }(),
+		func() Command { c := base; c.OpID, c.Text = "unknown-text", "maybe completed"; return c }(),
+		func() Command {
+			c := base
+			c.OpID, c.Widgets = "unknown-widget", []WidgetOutcome{{ID: "query", State: "failed", ErrorCode: "FAILED"}}
+			return c
+		}(),
+		func() Command { c := base; c.OpID, c.ResultRefs = "unknown-result-ref", []string{"result"}; return c }(),
+	}
+	for _, command := range malformed {
+		if _, err := svc.Execute(context.Background(), principal, command); !errors.Is(err, ErrInvalid) {
+			t.Errorf("malformed outcome-unknown command %q = %v, want ErrInvalid", command.OpID, err)
+		}
+	}
+
+	server := principal
+	server.Executor = true
+	serverPin := Command{OpID: "unknown-guards-server-pin", Action: "pinInput", SessionID: created.SessionID, ExpectedVersion: created.SessionVersion + 1,
+		InputSnapshotID: "unknown-guards-server-input", RunID: "unknown-guards-server-run", Kind: "query", DefinitionID: "query", DefinitionRevision: "r1",
+		DefinitionDocument: testDefinition("query"), Scope: &scope}
+	serverPinReceipt := executeOK(t, svc, server, serverPin)
+	seize := Command{OpID: "unknown-seize-server", Action: "reportClientRun", SessionID: created.SessionID, ExpectedRunVersion: 1,
+		RunID: serverPin.RunID, Kind: "query", RunState: "outcome-unknown", ErrorCode: "CLIENT_OUTCOME_UNKNOWN"}
+	if _, err := svc.Execute(context.Background(), principal, seize); !errors.Is(err, ErrConflict) {
+		t.Fatalf("client cannot settle a server-owned run as unknown: %v", err)
+	}
+	serverUnknown := Command{OpID: "server-unknown-runstate", Action: "completeRun", SessionID: created.SessionID, ExpectedRunVersion: 1,
+		RunID: serverPin.RunID, RunState: "outcome-unknown", ErrorCode: "CLIENT_OUTCOME_UNKNOWN"}
+	if _, err := svc.Execute(context.Background(), server, serverUnknown); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("server completion must not accept client-only unknown state: %v", err)
+	}
+	dashboardPin := Command{OpID: "unknown-guards-dashboard-pin", Action: "pinInput", SessionID: created.SessionID, ExpectedVersion: serverPinReceipt.SessionVersion,
+		InputSnapshotID: "unknown-guards-dashboard-input", RunID: "unknown-guards-dashboard-run", Kind: "dashboard", DefinitionID: "dashboard", DefinitionRevision: "r1",
+		DefinitionDocument: testDefinition("dashboard"), Scope: &scope}
+	executeOK(t, svc, principal, dashboardPin)
+	unknownDashboard := Command{OpID: "dashboard-unknown-runstate", Action: "reportDashboard", SessionID: created.SessionID,
+		ExpectedRunVersion: 1, RunID: dashboardPin.RunID, RunState: "outcome-unknown", ErrorCode: "CLIENT_OUTCOME_UNKNOWN"}
+	if _, err := svc.Execute(context.Background(), principal, unknownDashboard); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("reportDashboard must not accept client-only unknown state: %v", err)
+	}
+	if _, err := svc.Execute(context.Background(), principal, Command{OpID: "unknown-stale-cas", Action: "reportClientRun", SessionID: created.SessionID,
+		ExpectedRunVersion: 2, RunID: clientPin.RunID, Kind: "query", RunState: "outcome-unknown", ErrorCode: "CLIENT_OUTCOME_UNKNOWN"}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("stale unknown outcome CAS must fail: %v", err)
+	}
+	run, err := svc.ReadRun(context.Background(), principal, clientPin.RunID)
+	if err != nil || run.State != "accepted" || run.Version != 1 {
+		t.Fatalf("invalid unknown reports mutated the run: run=%+v err=%v", run, err)
+	}
+	snapshot, err := svc.GetSnapshot(context.Background(), principal, created.SessionID)
+	if err != nil || snapshot.Session.PendingRunCount != 3 {
+		t.Fatalf("invalid unknown reports changed pending count: session=%+v err=%v", snapshot.Session, err)
+	}
+}
+
 func TestChatPinsOnlyExplicitAttachmentsRegardlessOfAppliedContextGate(t *testing.T) {
 	svc, principal := newTestService(t, nil)
 	created := createTestSession(t, svc, principal, "s4", "b4")

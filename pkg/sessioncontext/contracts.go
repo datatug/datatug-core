@@ -196,16 +196,19 @@ type Command struct {
 	Enabled              *bool          `json:"enabled,omitempty"`
 	Transition           string         `json:"transition,omitempty"`
 	// M3 input pins and durable run routing. Result rows remain in the existing result store.
-	InputSnapshotID    string                            `json:"inputSnapshotId,omitempty"`
-	RunID              string                            `json:"runId,omitempty"`
-	Kind               string                            `json:"kind,omitempty"`
-	DefinitionID       string                            `json:"definitionId,omitempty"`
-	DefinitionRevision string                            `json:"definitionRevision,omitempty"`
-	DefinitionDocument json.RawMessage                   `json:"definitionDocument,omitempty"`
-	ExecutionDocument  json.RawMessage                   `json:"executionDocument,omitempty"`
-	Attachments        []EntryRef                        `json:"attachments,omitempty"`
-	Text               string                            `json:"text,omitempty"`
-	ExpectedRunVersion int64                             `json:"expectedRunVersion,omitempty"`
+	InputSnapshotID    string          `json:"inputSnapshotId,omitempty"`
+	RunID              string          `json:"runId,omitempty"`
+	Kind               string          `json:"kind,omitempty"`
+	DefinitionID       string          `json:"definitionId,omitempty"`
+	DefinitionRevision string          `json:"definitionRevision,omitempty"`
+	DefinitionDocument json.RawMessage `json:"definitionDocument,omitempty"`
+	ExecutionDocument  json.RawMessage `json:"executionDocument,omitempty"`
+	Attachments        []EntryRef      `json:"attachments,omitempty"`
+	Text               string          `json:"text,omitempty"`
+	ExpectedRunVersion int64           `json:"expectedRunVersion,omitempty"`
+	// reportClientRun accepts outcome-unknown only with the fixed
+	// CLIENT_OUTCOME_UNKNOWN code and no result payload. It records uncertainty
+	// after client interruption; it does not assert source failure or cancellation.
 	RunState           string                            `json:"runState,omitempty"`
 	Widgets            []WidgetOutcome                   `json:"widgets,omitempty"`
 	ResultRefs         []string                          `json:"resultRefs,omitempty"`
@@ -262,12 +265,14 @@ type WidgetOutcome struct {
 	ErrorCode string `json:"errorCode,omitempty"`
 }
 type Run struct {
-	ID                 string                            `json:"id"`
-	SessionID          string                            `json:"sessionId"`
-	InputSnapshotID    string                            `json:"inputSnapshotId"`
-	Kind               string                            `json:"kind"`
-	DefinitionID       string                            `json:"definitionId"`
-	DefinitionRevision string                            `json:"definitionRevision"`
+	ID                 string `json:"id"`
+	SessionID          string `json:"sessionId"`
+	InputSnapshotID    string `json:"inputSnapshotId"`
+	Kind               string `json:"kind"`
+	DefinitionID       string `json:"definitionId"`
+	DefinitionRevision string `json:"definitionRevision"`
+	// State is accepted/completed/failed/canceled; client reportClientRun may
+	// also settle uncertainty as outcome-unknown.
 	State              string                            `json:"state"`
 	OutcomeOrigin      string                            `json:"outcomeOrigin,omitempty"`
 	ExecutionAuthority string                            `json:"executionAuthority"`

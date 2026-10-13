@@ -1201,6 +1201,14 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 				if run.SessionID != v.ID || run.Kind != c.Kind || run.ExecutionAuthority != "client" || version != c.ExpectedRunVersion || run.State != "accepted" {
 					return ErrConflict
 				}
+				outcomeUnknown := c.RunState == "outcome-unknown"
+				if outcomeUnknown {
+					if c.ErrorCode != "CLIENT_OUTCOME_UNKNOWN" || len(c.Widgets) != 0 || len(c.ResultRefs) != 0 || c.Text != "" {
+						return ErrInvalid
+					}
+				} else if e = validateRunOutcome(c.RunState, c.Widgets, c.ResultRefs, c.ErrorCode); e != nil {
+					return e
+				}
 				var input InputSnapshot
 				if _, e = tx.Load(ctx, Inputs, run.InputSnapshotID, &input); e != nil {
 					return e
@@ -1209,11 +1217,11 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 				if e = s.allow(ctx, p, c.Action, v.ID, &input.Scope); e != nil {
 					return e
 				}
-				if e = validateRunOutcome(c.RunState, c.Widgets, c.ResultRefs, c.ErrorCode); e != nil {
-					return e
-				}
 				run.State = c.RunState
 				run.OutcomeOrigin = "client-reported"
+				if outcomeUnknown {
+					run.OutcomeOrigin = "client-outcome-unknown"
+				}
 				run.Widgets = c.Widgets
 				run.ResultRefs = c.ResultRefs
 				run.ErrorCode = c.ErrorCode
