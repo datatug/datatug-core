@@ -358,25 +358,26 @@ type State struct {
 // ActionRequest is POST /datatug/detective/action. Project and securityContextId
 // are included in the body and must match the URL/session respectively.
 type ActionRequest struct {
-	Type              string                `json:"type"` // save-check | save-validator | save-query-validators | create-case | update-case | append-event | run-check | run-query-validators | save-scenario | apply-scenario | record-scenario-step
-	Project           string                `json:"project"`
-	SecurityContextID string                `json:"securityContextId"`
-	Check             *Check                `json:"check,omitempty"`
-	Validator         *PublishedValidator   `json:"validator,omitempty"`
-	QueryValidators   *QueryValidators      `json:"queryValidators,omitempty"`
-	Case              *Case                 `json:"case,omitempty"`
-	Scenario          *Scenario             `json:"scenario,omitempty"`
-	Event             *CaseEvent            `json:"event,omitempty"`
-	CheckID           string                `json:"checkId,omitempty"`
-	QueryID           string                `json:"queryId,omitempty"`
-	CaseID            string                `json:"caseId,omitempty"`
-	ScenarioID        string                `json:"scenarioId,omitempty"`
-	ApplicationID     string                `json:"applicationId,omitempty"`
-	StepID            string                `json:"stepId,omitempty"`
-	StepStatus        string                `json:"stepStatus,omitempty"`
-	RunID             string                `json:"runId,omitempty"`
-	Environment       string                `json:"environment,omitempty"`
-	Inputs            map[string]InputValue `json:"inputs,omitempty"`
+	Type              string                    `json:"type"` // save-check | save-validator | save-query-validators | create-case | update-case | append-event | run-check | run-query-validators | save-scenario | apply-scenario | record-scenario-step
+	Project           string                    `json:"project"`
+	SecurityContextID string                    `json:"securityContextId"`
+	Check             *Check                    `json:"check,omitempty"`
+	Validator         *PublishedValidator       `json:"validator,omitempty"`
+	QueryValidators   *QueryValidators          `json:"queryValidators,omitempty"`
+	Case              *Case                     `json:"case,omitempty"`
+	Scenario          *Scenario                 `json:"scenario,omitempty"`
+	Event             *CaseEvent                `json:"event,omitempty"`
+	CheckID           string                    `json:"checkId,omitempty"`
+	QueryID           string                    `json:"queryId,omitempty"`
+	CaseID            string                    `json:"caseId,omitempty"`
+	ScenarioID        string                    `json:"scenarioId,omitempty"`
+	ApplicationID     string                    `json:"applicationId,omitempty"`
+	StepID            string                    `json:"stepId,omitempty"`
+	StepStatus        string                    `json:"stepStatus,omitempty"`
+	RunID             string                    `json:"runId,omitempty"`
+	Execution         *apicontract.ExecutionRef `json:"execution,omitempty"`
+	Environment       string                    `json:"environment,omitempty"`
+	Inputs            map[string]InputValue     `json:"inputs,omitempty"`
 }
 
 type ActionResponse struct {

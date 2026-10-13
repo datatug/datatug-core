@@ -53,6 +53,22 @@ func EvaluateCheck(ctx context.Context, req RunRequest, catalog Catalog, runner 
 // EvaluateQueryValidators runs a saved query and its local Validators without
 // creating a synthetic global Check. Catalog must contain that local entry.
 func EvaluateQueryValidators(ctx context.Context, req RunRequest, catalog Catalog, runner QueryRunner, metadata ExecutionMetadata) (CheckRun, error) {
+	return evaluateQueryValidators(ctx, req, catalog, nil, runner, metadata)
+}
+
+// EvaluateQueryValidatorsForResult validates the rows of the exact execution
+// selected by the user. The server must first authorize the execution, verify
+// its project/query/environment, load its retained row snapshot under current
+// policy, and convey any truncation or hidden/filtered population limitations.
+// Core never trusts a client-supplied Result. Nested Checks still use runner.
+func EvaluateQueryValidatorsForResult(ctx context.Context, req RunRequest, catalog Catalog, result apicontract.Result, runner QueryRunner, metadata ExecutionMetadata) (CheckRun, error) {
+	if result.Execution == nil || result.Execution.Validate() != nil || result.Recordset.Validate() != nil {
+		return CheckRun{}, ErrInvalid
+	}
+	return evaluateQueryValidators(ctx, req, catalog, &result, runner, metadata)
+}
+
+func evaluateQueryValidators(ctx context.Context, req RunRequest, catalog Catalog, existing *apicontract.Result, runner QueryRunner, metadata ExecutionMetadata) (CheckRun, error) {
 	if !catalog.sealed() || !validSlug(req.ID) || !validQueryRef(req.QueryID) || req.CheckID != "" || req.Environment == "" || runner == nil {
 		return CheckRun{}, ErrInvalid
 	}
@@ -71,6 +87,19 @@ func EvaluateQueryValidators(ctx context.Context, req RunRequest, catalog Catalo
 		bindings = append(bindings, Binding{Input: name, FromInput: name})
 	}
 	e := newEngine(catalog, req.Environment, runner, metadata)
+	if existing != nil {
+		used := false
+		e.runner = func(ctx context.Context, id, environment string, params map[string]apicontract.TypedValueOrSet) (apicontract.Result, error) {
+			if !used {
+				used = true
+				if id != req.QueryID || environment != req.Environment {
+					return apicontract.Result{}, ErrInvalid
+				}
+				return *existing, nil
+			}
+			return runner(ctx, id, environment, params)
+		}
+	}
 	for _, validator := range local.Validators {
 		v := validator
 		if v.ValidatorID != "" {
@@ -90,6 +119,9 @@ func EvaluateQueryValidators(ctx context.Context, req RunRequest, catalog Catalo
 	runCtx, cancel := context.WithTimeout(ctx, maxRunDuration)
 	defer cancel()
 	step := e.runQueryStep(runCtx, Step{ID: "query", Kind: "query", QueryID: req.QueryID, Bindings: bindings}, req.Inputs, 0, map[string]bool{})
+	if existing != nil && e.queries > 0 {
+		e.queries-- // the root rows came from a prior execution receipt
+	}
 	run := CheckRun{ID: req.ID, Kind: "query-validators", QueryID: req.QueryID, CaseID: req.CaseID, Environment: req.Environment, InputNames: sortedKeys(req.Inputs), StartedAt: start, Actor: req.Actor, Steps: []StepResult{step}, ExecutionStatus: step.ExecutionStatus, Outcome: step.Outcome, Severity: step.Severity, DurationMs: time.Since(start).Milliseconds()}
 	e.snapshot(&run, "", req.QueryID)
 	run.CheckInvocations, run.QueryExecutions = e.nodes, e.queries

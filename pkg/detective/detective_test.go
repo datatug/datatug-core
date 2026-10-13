@@ -206,6 +206,55 @@ func TestCorePerRowBlockAndNoAssertionUnknown(t *testing.T) {
 	}
 }
 
+func TestCoreValidatesExactExistingExecutionWithoutRootRerun(t *testing.T) {
+	ctx := context.Background()
+	m := mapReader{checks: map[string]Check{}, validators: map[string]PublishedValidator{}, locals: map[string]QueryValidators{}, queries: map[string]bool{"list": true, "detail": true}}
+	m.checks["child"] = Check{ID: "child", Title: "Child", Steps: []Step{{ID: "detail", Kind: "query", QueryID: "detail", Validators: []Validator{{ID: "nonnull", Kind: "non-null", Scope: "row", Severity: "error", Field: "x"}}}}}
+	m.locals["list"] = QueryValidators{QueryID: "list", Validators: []Validator{{ID: "each", Kind: "check", Scope: "row", Severity: "error", CheckID: "child"}}}
+	catalog, err := LoadCatalog(ctx, "", "list", m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	execution := &apicontract.ExecutionRef{ProjectID: "p", StoreID: "evidence", ExecutionID: "exec-1"}
+	retained := coreResult([]string{"x"}, [][]Value{{investigation.NewIntegerValue("1")}, {investigation.NewIntegerValue("2")}})
+	retained.Execution = execution
+	calls := map[string]int{}
+	run, err := EvaluateQueryValidatorsForResult(ctx, RunRequest{ID: "run-existing", QueryID: "list", Environment: "qa", Actor: "alice"}, catalog, retained, func(_ context.Context, id, _ string, _ map[string]apicontract.TypedValueOrSet) (apicontract.Result, error) {
+		calls[id]++
+		return coreResult([]string{"x"}, [][]Value{{investigation.NewIntegerValue("1")}}), nil
+	}, nil)
+	if err != nil || calls["list"] != 0 || calls["detail"] != 1 || run.QueryExecutions != 1 || run.Steps[0].Execution == nil || *run.Steps[0].Execution != *execution {
+		t.Fatalf("existing result correlation failed: run=%+v calls=%v err=%v", run, calls, err)
+	}
+	retained.Limitations = []apicontract.Limitation{{RowsFiltered: true}}
+	limited, err := EvaluateQueryValidatorsForResult(ctx, RunRequest{ID: "run-limited", QueryID: "list", Environment: "qa", Actor: "alice"}, catalog, retained, func(_ context.Context, id, _ string, _ map[string]apicontract.TypedValueOrSet) (apicontract.Result, error) {
+		if id == "list" {
+			t.Fatal("root reexecuted")
+		}
+		return coreResult([]string{"x"}, [][]Value{{investigation.NewIntegerValue("1")}}), nil
+	}, nil)
+	if err != nil || limited.Outcome != "unknown" {
+		t.Fatalf("limited retained rows passed: %+v %v", limited, err)
+	}
+	retained.Limitations = []apicontract.Limitation{{Policy: "snapshot-retention", HiddenColumns: []string{}}}
+	limited, err = EvaluateQueryValidatorsForResult(ctx, RunRequest{ID: "run-retained", QueryID: "list", Environment: "qa", Actor: "alice"}, catalog, retained, func(_ context.Context, id, _ string, _ map[string]apicontract.TypedValueOrSet) (apicontract.Result, error) {
+		if id == "list" {
+			t.Fatal("root reexecuted")
+		}
+		return coreResult([]string{"x"}, [][]Value{{investigation.NewIntegerValue("1")}}), nil
+	}, nil)
+	if err != nil || limited.Outcome != "unknown" {
+		t.Fatalf("restricted retained columns passed: %+v %v", limited, err)
+	}
+	retained.Execution = nil
+	if _, err := EvaluateQueryValidatorsForResult(ctx, RunRequest{ID: "run-missing", QueryID: "list", Environment: "qa", Actor: "alice"}, catalog, retained, func(context.Context, string, string, map[string]apicontract.TypedValueOrSet) (apicontract.Result, error) {
+		t.Fatal("runner called without receipt")
+		return apicontract.Result{}, nil
+	}, nil); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("missing execution accepted: %v", err)
+	}
+}
+
 func TestCoreCaseMutationsPreserveOwnershipAndAuditPrivacy(t *testing.T) {
 	at := time.Date(2026, 10, 13, 12, 0, 0, 0, time.UTC)
 	c, a, err := CreateCase(Case{ID: "case-1", Title: "Investigate", ScenarioApplications: []ScenarioApplication{{ID: "forged"}}}, "alice", at)

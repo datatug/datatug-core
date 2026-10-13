@@ -668,7 +668,7 @@ func incompletePopulation(truncated bool, limitations []apicontract.Limitation) 
 		return true
 	}
 	for _, limitation := range limitations {
-		if limitation.RowsFiltered || len(limitation.HiddenColumns) > 0 {
+		if limitation.RowsFiltered || len(limitation.HiddenColumns) > 0 || limitation.Policy == "snapshot-retention" || limitation.Policy == "snapshot-retention-unavailable" {
 			return true
 		}
 	}
