@@ -3,6 +3,8 @@ package detective
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/datatug/datatug-core/pkg/investigation"
 )
 
 // BindCaseInputs merges the authoritative Case context into a Check's declared
@@ -79,4 +81,132 @@ func MatchCaseCohort(context, inputs map[string]InputValue) error {
 		}
 	}
 	return nil
+}
+
+// MatchScenarioQueryCohort checks a query step's server-recorded parameter
+// values against the Case context. Range inputs are reconstructed only from
+// their bound scalar endpoints; a caller cannot supply a separate cohort proof.
+func MatchScenarioQueryCohort(step ScenarioStep, caseContext, recordedParams map[string]InputValue) error {
+	if step.Kind != "query" || validateBindings(step.Bindings) != nil {
+		return ErrInvalid
+	}
+	bound := make(map[string]InputValue, len(caseContext))
+	rangeParts := make(map[string]*scenarioRangeParts)
+	unmappedRangeParts := make(map[string]*scenarioRangeParts)
+	for _, binding := range step.Bindings {
+		if binding.FromColumn != "" {
+			return ErrInvalid
+		}
+		parameter, ok := recordedParams[binding.Input]
+		if !ok || parameter.Validate() != nil || parameter.Range != nil {
+			return ErrInvalid
+		}
+		source, inCase := caseContext[binding.FromInput]
+		if !inCase {
+			if binding.Part != "" {
+				if parameter.Scalar == nil {
+					return ErrInvalid
+				}
+				if err := addScenarioRangePart(unmappedRangeParts, binding.FromInput, binding.Part, *parameter.Scalar); err != nil {
+					return err
+				}
+			}
+			continue
+		}
+		if source.Validate() != nil {
+			return ErrInvalid
+		}
+		if source.Range != nil {
+			if parameter.Scalar == nil {
+				return ErrInvalid
+			}
+			endpoint := source.Range.Start
+			if binding.Part == "end" {
+				endpoint = source.Range.End
+			} else if binding.Part != "start" {
+				return ErrInvalid
+			}
+			if parameter.Scalar.Type != endpoint.Type {
+				return ErrInvalid
+			}
+			if err := addScenarioRangePart(rangeParts, binding.FromInput, binding.Part, *parameter.Scalar); err != nil {
+				return err
+			}
+			continue
+		}
+		if binding.Part != "" || (source.Scalar == nil) != (parameter.Scalar == nil) || (source.Set == nil) != (parameter.Set == nil) {
+			return ErrInvalid
+		}
+		if prior, exists := bound[binding.FromInput]; exists && !reflect.DeepEqual(prior, parameter) {
+			return ErrInvalid
+		}
+		bound[binding.FromInput] = parameter
+	}
+	for _, parts := range unmappedRangeParts {
+		if !parts.hasStart || !parts.hasEnd || parts.start.Type != parts.end.Type || !validRangeInputType(parts.start.Type) {
+			return ErrInvalid
+		}
+		if (InputValue{Range: &ValueRange{Type: "range", Start: parts.start, End: parts.end}}).Validate() != nil {
+			return ErrInvalid
+		}
+	}
+	for name, value := range caseContext {
+		if value.Range != nil {
+			parts := rangeParts[name]
+			if parts == nil || !parts.hasStart || !parts.hasEnd {
+				return ErrInvalid
+			}
+			bound[name] = InputValue{Range: &ValueRange{Type: value.Range.Type, Start: parts.start, End: parts.end}}
+			continue
+		}
+		if _, exists := bound[name]; exists {
+			continue
+		}
+		if direct, exists := recordedParams[name]; exists {
+			if direct.Validate() != nil {
+				return ErrInvalid
+			}
+			bound[name] = direct
+		}
+	}
+	return MatchCaseCohort(caseContext, bound)
+}
+
+type scenarioRangeParts struct {
+	start    Value
+	end      Value
+	hasStart bool
+	hasEnd   bool
+}
+
+func addScenarioRangePart(partsByInput map[string]*scenarioRangeParts, input, part string, value Value) error {
+	parts := partsByInput[input]
+	if parts == nil {
+		parts = &scenarioRangeParts{}
+		partsByInput[input] = parts
+	}
+	switch part {
+	case "start":
+		if parts.hasStart {
+			return ErrInvalid
+		}
+		parts.start, parts.hasStart = value, true
+	case "end":
+		if parts.hasEnd {
+			return ErrInvalid
+		}
+		parts.end, parts.hasEnd = value, true
+	default:
+		return ErrInvalid
+	}
+	return nil
+}
+
+func validRangeInputType(value investigation.ValueType) bool {
+	switch value {
+	case investigation.ValueTypeDate, investigation.ValueTypeDatetime, investigation.ValueTypeInteger, investigation.ValueTypeDecimal, investigation.ValueTypeNumber:
+		return true
+	default:
+		return false
+	}
 }

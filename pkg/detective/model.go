@@ -130,7 +130,8 @@ type Input struct {
 	Required    bool                    `json:"required,omitempty"`
 }
 
-// Binding maps a child input to a parent input or a query-result row column.
+// Binding maps a child input or saved-query parameter to a parent input or a
+// query-result row column. Range inputs use Part to select a scalar endpoint.
 type Binding struct {
 	Input      string `json:"input"`
 	FromInput  string `json:"fromInput,omitempty"`
@@ -270,9 +271,10 @@ type ScenarioApplication struct {
 }
 
 type ScenarioStep struct {
-	ID   string `json:"id"`
-	Kind string `json:"kind"` // query | check
-	Ref  string `json:"ref"`
+	ID       string    `json:"id"`
+	Kind     string    `json:"kind"` // query | check
+	Ref      string    `json:"ref"`
+	Bindings []Binding `json:"bindings,omitempty"`
 }
 
 type Scenario struct {

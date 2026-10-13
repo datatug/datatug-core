@@ -156,6 +156,148 @@ func TestMatchCaseCohortRequiresExactConfirmedValues(t *testing.T) {
 	}
 }
 
+func TestMatchScenarioQueryCohortReconstructsExactClosedRange(t *testing.T) {
+	start := investigation.NewDateValue("2026-10-01")
+	end := investigation.NewDateValue("2026-10-07")
+	id := investigation.NewIntegerValue("7")
+	status := investigation.NewStringValue("investigating")
+	ids := InputValue{Set: &apicontract.TypedValueSet{Values: []Value{id}}}
+	window := InputValue{Range: &ValueRange{Type: "range", Start: start, End: end}}
+	context := map[string]InputValue{
+		"window": window,
+		"ids":    ids,
+		"status": {Scalar: &status},
+	}
+	step := ScenarioStep{Kind: "query", Bindings: []Binding{
+		{Input: "from_date", FromInput: "window", Part: "start"},
+		{Input: "through_date", FromInput: "window", Part: "end"},
+		{Input: "invoice_ids", FromInput: "ids"},
+		{Input: "case_status", FromInput: "status"},
+	}}
+	params := map[string]InputValue{
+		"from_date":    {Scalar: ptrValue(start)},
+		"through_date": {Scalar: ptrValue(end)},
+		"invoice_ids":  ids,
+		"case_status":  {Scalar: ptrValue(status)},
+	}
+	contextBefore, paramsBefore := map[string]InputValue{}, map[string]InputValue{}
+	for name, value := range context {
+		contextBefore[name] = value
+	}
+	for name, value := range params {
+		paramsBefore[name] = value
+	}
+	if err := MatchScenarioQueryCohort(step, context, params); err != nil {
+		t.Fatalf("matching recorded query bounds rejected: %v", err)
+	}
+	if !reflect.DeepEqual(context, contextBefore) || !reflect.DeepEqual(params, paramsBefore) {
+		t.Fatal("cohort matching mutated caller inputs")
+	}
+
+	changed := investigation.NewDateValue("2026-10-02")
+	for name, replacement := range map[string]Value{"from_date": changed, "through_date": changed} {
+		mismatch := map[string]InputValue{}
+		for key, value := range params {
+			mismatch[key] = value
+		}
+		mismatch[name] = InputValue{Scalar: ptrValue(replacement)}
+		if err := MatchScenarioQueryCohort(step, context, mismatch); !errors.Is(err, ErrInvalid) {
+			t.Errorf("changed %s bound accepted: %v", name, err)
+		}
+	}
+
+	invalid := []struct {
+		name   string
+		step   ScenarioStep
+		params map[string]InputValue
+	}{
+		{"missing start", step, map[string]InputValue{"through_date": params["through_date"], "invoice_ids": ids}},
+		{"missing end", step, map[string]InputValue{"from_date": params["from_date"], "invoice_ids": ids}},
+		{"duplicate start", ScenarioStep{Kind: "query", Bindings: append(append([]Binding(nil), step.Bindings...), Binding{Input: "another_start", FromInput: "window", Part: "start"})}, map[string]InputValue{"from_date": params["from_date"], "through_date": params["through_date"], "another_start": params["from_date"], "invoice_ids": ids, "case_status": params["case_status"]}},
+		{"duplicate query parameter", ScenarioStep{Kind: "query", Bindings: append(append([]Binding(nil), step.Bindings...), Binding{Input: "from_date", FromInput: "window", Part: "end"})}, params},
+		{"wrong bound type", step, map[string]InputValue{"from_date": {Scalar: ptrValue(investigation.NewIntegerValue("1"))}, "through_date": params["through_date"], "invoice_ids": ids}},
+		{"range bound is not scalar", step, map[string]InputValue{"from_date": ids, "through_date": params["through_date"], "invoice_ids": ids}},
+		{"query parameter contains range", step, map[string]InputValue{"from_date": window, "through_date": params["through_date"], "invoice_ids": ids}},
+		{"range used as a whole", ScenarioStep{Kind: "query", Bindings: []Binding{{Input: "window", FromInput: "window"}}}, map[string]InputValue{"window": window}},
+		{"range binding omits part", ScenarioStep{Kind: "query", Bindings: []Binding{{Input: "window", FromInput: "window"}}}, map[string]InputValue{"window": {Scalar: ptrValue(start)}}},
+		{"column binding", ScenarioStep{Kind: "query", Bindings: []Binding{{Input: "from_date", FromColumn: "created_at"}}}, params},
+		{"wrong step kind", ScenarioStep{Kind: "check"}, params},
+		{"scalar source cannot select a part", ScenarioStep{Kind: "query", Bindings: []Binding{{Input: "status_param", FromInput: "status", Part: "start"}}}, map[string]InputValue{"status_param": params["case_status"]}},
+		{"conflicting duplicate source", ScenarioStep{Kind: "query", Bindings: append(append([]Binding(nil), step.Bindings...), Binding{Input: "other_status", FromInput: "status"})}, map[string]InputValue{"from_date": params["from_date"], "through_date": params["through_date"], "invoice_ids": ids, "case_status": params["case_status"], "other_status": {Scalar: ptrValue(investigation.NewStringValue("closed"))}}},
+		{"missing set cohort", ScenarioStep{Kind: "query", Bindings: []Binding{{Input: "from_date", FromInput: "window", Part: "start"}, {Input: "through_date", FromInput: "window", Part: "end"}}}, map[string]InputValue{"from_date": params["from_date"], "through_date": params["through_date"]}},
+		{"changed set cohort", step, map[string]InputValue{"from_date": params["from_date"], "through_date": params["through_date"], "invoice_ids": {Set: &apicontract.TypedValueSet{Values: []Value{investigation.NewIntegerValue("8")}}}, "case_status": params["case_status"]}},
+		{"changed scalar cohort", step, map[string]InputValue{"from_date": params["from_date"], "through_date": params["through_date"], "invoice_ids": ids, "case_status": {Scalar: ptrValue(investigation.NewStringValue("closed"))}}},
+		{"set cardinality mismatch", step, map[string]InputValue{"from_date": params["from_date"], "through_date": params["through_date"], "invoice_ids": {Scalar: ptrValue(id)}, "case_status": params["case_status"]}},
+	}
+	for _, test := range invalid {
+		t.Run(test.name, func(t *testing.T) {
+			if err := MatchScenarioQueryCohort(test.step, context, test.params); !errors.Is(err, ErrInvalid) {
+				t.Fatalf("invalid query cohort accepted: %v", err)
+			}
+		})
+	}
+	if err := MatchScenarioQueryCohort(step, context, nil); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("missing recorded bound accepted: %v", err)
+	}
+	if err := MatchScenarioQueryCohort(ScenarioStep{Kind: "query"}, context, nil); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("unbound Case range accepted: %v", err)
+	}
+	if err := MatchScenarioQueryCohort(ScenarioStep{Kind: "query", Bindings: []Binding{{Input: "a", FromInput: "free", Part: "start"}, {Input: "b", FromInput: "free", Part: "end"}}}, nil, map[string]InputValue{
+		"a": {Scalar: ptrValue(start)}, "b": {Scalar: ptrValue(end)},
+	}); err != nil {
+		t.Fatalf("well-formed non-Case range input should not become a Case cohort: %v", err)
+	}
+	for _, params := range []map[string]InputValue{
+		{"a": {Scalar: ptrValue(start)}},
+		{"a": {Scalar: ptrValue(start)}, "b": {Scalar: ptrValue(investigation.NewIntegerValue("7"))}},
+		{"a": ids, "b": {Scalar: ptrValue(end)}},
+		{"a": {Scalar: ptrValue(investigation.NewStringValue("not a range bound"))}, "b": {Scalar: ptrValue(investigation.NewStringValue("not a range bound"))}},
+		{"a": {Scalar: ptrValue(end)}, "b": {Scalar: ptrValue(start)}},
+	} {
+		step := ScenarioStep{Kind: "query", Bindings: []Binding{{Input: "a", FromInput: "free", Part: "start"}, {Input: "b", FromInput: "free", Part: "end"}}}
+		if err := MatchScenarioQueryCohort(step, nil, params); !errors.Is(err, ErrInvalid) {
+			t.Errorf("invalid unmapped range accepted: %+v %v", params, err)
+		}
+	}
+	duplicateUnknown := ScenarioStep{Kind: "query", Bindings: []Binding{{Input: "a", FromInput: "free", Part: "start"}, {Input: "b", FromInput: "free", Part: "end"}, {Input: "c", FromInput: "free", Part: "start"}}}
+	if err := MatchScenarioQueryCohort(duplicateUnknown, nil, map[string]InputValue{"a": {Scalar: ptrValue(start)}, "b": {Scalar: ptrValue(end)}, "c": {Scalar: ptrValue(start)}}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("duplicate unmapped range endpoint accepted: %v", err)
+	}
+	statusOnly := map[string]InputValue{"status": {Scalar: ptrValue(status)}}
+	if err := MatchScenarioQueryCohort(ScenarioStep{Kind: "query"}, statusOnly, statusOnly); err != nil {
+		t.Fatalf("directly recorded scalar Case value rejected: %v", err)
+	}
+	if err := MatchScenarioQueryCohort(ScenarioStep{Kind: "query"}, statusOnly, map[string]InputValue{"status": {}}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("invalid directly recorded scalar accepted: %v", err)
+	}
+	if err := MatchScenarioQueryCohort(ScenarioStep{Kind: "query"}, map[string]InputValue{"broken": {}}, nil); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("invalid Case value accepted: %v", err)
+	}
+	if err := MatchScenarioQueryCohort(ScenarioStep{Kind: "query", Bindings: []Binding{{Input: "broken", FromInput: "broken"}}}, map[string]InputValue{"broken": {}}, map[string]InputValue{"broken": {Scalar: ptrValue(status)}}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("invalid bound Case value accepted: %v", err)
+	}
+}
+
+func TestScenarioRangePartInsertionRejectsDuplicateAndInvalidPart(t *testing.T) {
+	parts := map[string]*scenarioRangeParts{}
+	date := investigation.NewDateValue("2026-10-01")
+	if err := addScenarioRangePart(parts, "window", "start", date); err != nil {
+		t.Fatal(err)
+	}
+	if err := addScenarioRangePart(parts, "window", "start", date); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("duplicate range start accepted: %v", err)
+	}
+	if err := addScenarioRangePart(parts, "window", "end", date); err != nil {
+		t.Fatal(err)
+	}
+	if err := addScenarioRangePart(parts, "window", "end", date); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("duplicate range end accepted: %v", err)
+	}
+	if err := addScenarioRangePart(parts, "window", "other", date); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("invalid range part accepted: %v", err)
+	}
+}
+
 func TestInputValueRangeRejectsUnknownAndDuplicateFields(t *testing.T) {
 	valid := `{"type":"range","start":{"type":"date","value":"2026-10-01"},"end":{"type":"date","value":"2026-10-07"}}`
 	for _, wire := range []string{
