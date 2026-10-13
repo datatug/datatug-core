@@ -109,7 +109,7 @@ func (v *InputValue) UnmarshalJSON(data []byte) error {
 		*v = InputValue{Set: &x}
 	case "range":
 		var x ValueRange
-		if err := json.Unmarshal(data, &x); err != nil {
+		if err := apicontract.DecodeStrict(data, &x); err != nil {
 			return err
 		}
 		*v = InputValue{Range: &x}
