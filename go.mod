@@ -1,6 +1,6 @@
 module github.com/datatug/datatug-core
 
-go 1.26.0
+go 1.27.0
 
 toolchain go1.27.2
 
@@ -12,6 +12,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/stretchr/testify v1.12.1
+	github.com/strongo/aichat v0.13.0
 	github.com/strongo/slice v0.3.12
 	github.com/strongo/validation v0.0.15
 	go.uber.org/mock v0.6.0
