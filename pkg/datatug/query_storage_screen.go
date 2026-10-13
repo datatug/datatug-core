@@ -99,6 +99,9 @@ func identifierEnvelopeReason(value string) (reason string, found bool) {
 // value cannot be stored at all rather than merely being discouraged.
 const storedQueryHint = "a query is stored in git-tracked project files"
 
+// SemanticModel strings, including dynamic ModelSpec field map keys, are all
+// credential-screened by QuerySemanticModel.Validate before this sweep.
+//
 // screenQueryDefForStorage screens every string a QueryDef persists that
 // no other check already owns. A query is written as a pair of git-tracked
 // files - "<id>.query.json" (the whole QueryDef with Text cleared) and
