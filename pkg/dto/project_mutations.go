@@ -121,6 +121,7 @@ func (r OperationReceipt) MatchSaveRetry(scope OperationScope, request SaveQuery
 // ProjectCapabilities tells clients which controls a selected store offers;
 // the server must still authorize every individual operation.
 type ProjectCapabilities struct {
+	SemanticModel  bool `json:"semanticModel"`
 	QueryRead      bool `json:"queryRead"`
 	QuerySave      bool `json:"querySave"`
 	Branches       bool `json:"branches"`

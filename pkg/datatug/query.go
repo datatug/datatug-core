@@ -162,7 +162,8 @@ type QueryDef struct {
 	ConnectionID string `json:"connectionId,omitempty" yaml:"connectionId,omitempty"`
 	// Federation contains client-side source routing and optional per-row HTTP
 	// lookups. It is project metadata, never a place for credentials.
-	Federation *QueryFederation `json:"federation,omitempty" yaml:"federation,omitempty"`
+	SemanticModel *QuerySemanticModel `json:"semanticModel,omitempty" yaml:"semanticModel,omitempty"`
+	Federation    *QueryFederation    `json:"federation,omitempty" yaml:"federation,omitempty"`
 }
 
 type QueryFederation struct {
@@ -252,6 +253,11 @@ func (v QueryDef) Validate() error {
 	}
 	if v.ConnectionID != "" && !ValidConnectionID(v.ConnectionID) {
 		return validation.NewErrBadRecordFieldValue("connectionId", "must be a project connection ID")
+	}
+	if v.SemanticModel != nil {
+		if err := v.SemanticModel.Validate(); err != nil {
+			return fmt.Errorf("semanticModel: %w", err)
+		}
 	}
 	if v.Capture != nil {
 		if err := v.Capture.validateCaptureAgainst(v.Parameters); err != nil {
