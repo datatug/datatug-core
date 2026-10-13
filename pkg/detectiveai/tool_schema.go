@@ -107,6 +107,9 @@ func buildProposalToolSchema() json.RawMessage {
 		"input": textSchema(128), "fromInput": textSchema(128),
 		"fromColumn": textSchema(256), "part": enumSchema("start", "end"),
 	}, "input")
+	scenarioBinding := objectSchema(toolSchema{
+		"input": textSchema(128), "fromInput": textSchema(128), "part": enumSchema("start", "end"),
+	}, "input", "fromInput")
 	validatorReference := toolSchema{
 		"id": textSchema(128), "validatorId": textSchema(128),
 		"kind": enumSchema(""), "scope": toolSchema{"type": "string"}, "severity": toolSchema{"type": "string"},
@@ -133,7 +136,7 @@ func buildProposalToolSchema() json.RawMessage {
 		"orderedScalar": ordered, "inputValue": inputValue,
 		"provenance":     provenance,
 		"extractedValue": objectSchema(toolSchema{"value": refSchema("inputValue"), "provenance": arraySchema(refSchema("provenance"), 1, 32)}, "value", "provenance"),
-		"context":        context, "input": input, "binding": binding, "validator": validator,
+		"context":        context, "input": input, "binding": binding, "scenarioBinding": scenarioBinding, "validator": validator,
 		"query": objectSchema(toolSchema{
 			"id": textSchema(512), "title": textSchema(256), "type": enumSchema("SQL", "TugQL", "DTQL", "StructuredSQL", "HTTP"),
 			"text": textSchema(maxText), "connectionId": textSchema(128),
@@ -150,6 +153,7 @@ func buildProposalToolSchema() json.RawMessage {
 		}, "id", "title", "steps"),
 		"scenarioStep": objectSchema(toolSchema{
 			"id": textSchema(128), "kind": enumSchema("query", "check"), "ref": textSchema(512),
+			"bindings": arraySchema(refSchema("scenarioBinding"), 0, 64),
 		}, "id", "kind", "ref"),
 		"scenario": objectSchema(toolSchema{
 			"id": textSchema(128), "title": textSchema(256), "description": toolSchema{"type": "string", "maxLength": 2048},

@@ -13,6 +13,10 @@ func TestProposalCopiesOwnEveryNestedDraftKind(t *testing.T) {
 	scope, snapshot, sources := baseline()
 	for _, draft := range typedDrafts() {
 		t.Run(draft.Kind, func(t *testing.T) {
+			if draft.Kind == KindScenario {
+				draft.Scenario.Inputs = []detective.Input{{Name: "window", Type: investigation.ValueTypeDate, Cardinality: "range", Required: true}}
+				draft.Scenario.Steps[0].Bindings = []detective.Binding{{Input: "from", FromInput: "window", Part: "start"}, {Input: "through", FromInput: "window", Part: "end"}}
+			}
 			original := Proposal{ID: "p", Scope: scope, Basis: cloneSnapshot(snapshot), Draft: cloneDraft(draft), Sources: sourceEvidence(sources), ExpectedCounts: map[string]int{"invoice_id": 1}, CreatedAt: time.Now()}
 			owned := cloneProposal(original)
 			original.Basis.Queries[0].Inputs[0].Name = "changed"
@@ -47,7 +51,8 @@ func TestProposalCopiesOwnEveryNestedDraftKind(t *testing.T) {
 				}
 			case KindScenario:
 				original.Draft.Scenario.Steps[0].Ref = "changed"
-				if owned.Draft.Scenario.Steps[0].Ref != "invoice-list" {
+				original.Draft.Scenario.Steps[0].Bindings[0].Input = "changed"
+				if owned.Draft.Scenario.Steps[0].Ref != "invoice-list" || owned.Draft.Scenario.Steps[0].Bindings[0].Input != "from" {
 					t.Fatal("Scenario step alias")
 				}
 			case KindCase:

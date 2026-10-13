@@ -99,6 +99,9 @@ func cloneDraft(value Draft) Draft {
 		scenario := *value.Scenario
 		scenario.Inputs = append([]detective.Input(nil), scenario.Inputs...)
 		scenario.Steps = append([]detective.ScenarioStep(nil), scenario.Steps...)
+		for i := range scenario.Steps {
+			scenario.Steps[i].Bindings = append([]detective.Binding(nil), scenario.Steps[i].Bindings...)
+		}
 		value.Scenario = &scenario
 	}
 	if value.Case != nil {

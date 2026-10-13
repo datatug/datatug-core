@@ -213,6 +213,65 @@ func TestScenarioManualProgressAndReceiptIdentity(t *testing.T) {
 	}
 }
 
+func TestScenarioQueryRangeBindingsAndSnapshotOwnership(t *testing.T) {
+	inputs := []Input{
+		{Name: "window", Type: investigation.ValueTypeDate, Cardinality: "range", Required: true},
+		{Name: "invoice_id", Type: investigation.ValueTypeInteger, Cardinality: "scalar"},
+		{Name: "optional_window", Type: investigation.ValueTypeDatetime, Cardinality: "range"},
+	}
+	step := ScenarioStep{ID: "query", Kind: "query", Ref: "queries/invoice", Bindings: []Binding{
+		{Input: "from_date", FromInput: "window", Part: "start"},
+		{Input: "through_date", FromInput: "window", Part: "end"},
+		{Input: "id", FromInput: "invoice_id"},
+	}}
+	scenario := Scenario{ID: "range-guide", Title: "Range guide", Inputs: inputs, Steps: []ScenarioStep{step}}
+	if err := ValidateScenario(scenario); err != nil {
+		t.Fatalf("valid endpoint bindings rejected: %v", err)
+	}
+	scenario.Steps = append(scenario.Steps, ScenarioStep{ID: "summary", Kind: "query", Ref: "queries/summary"})
+	if err := ValidateScenario(scenario); err != nil {
+		t.Fatalf("query that does not consume another step's range input rejected: %v", err)
+	}
+	scenario.Steps = scenario.Steps[:1]
+	optionalOnly := Scenario{ID: "optional-guide", Title: "Optional range", Inputs: []Input{inputs[2]}, Steps: []ScenarioStep{{ID: "query", Kind: "query", Ref: "queries/invoice"}}}
+	if err := ValidateScenario(optionalOnly); err != nil {
+		t.Fatalf("unbound optional range rejected: %v", err)
+	}
+	invalid := []Scenario{
+		{ID: "missing-required-range", Title: "Missing", Inputs: inputs[:1], Steps: []ScenarioStep{{ID: "query", Kind: "query", Ref: "queries/invoice"}}},
+		{ID: "missing-endpoint", Title: "Missing", Inputs: inputs[:1], Steps: []ScenarioStep{{ID: "query", Kind: "query", Ref: "queries/invoice", Bindings: []Binding{{Input: "from", FromInput: "window", Part: "start"}}}}},
+		{ID: "duplicate-endpoint", Title: "Duplicate", Inputs: inputs[:1], Steps: []ScenarioStep{{ID: "query", Kind: "query", Ref: "queries/invoice", Bindings: []Binding{{Input: "from", FromInput: "window", Part: "start"}, {Input: "from2", FromInput: "window", Part: "start"}, {Input: "to", FromInput: "window", Part: "end"}}}}},
+		{ID: "whole-range", Title: "Whole", Inputs: inputs[:1], Steps: []ScenarioStep{{ID: "query", Kind: "query", Ref: "queries/invoice", Bindings: []Binding{{Input: "window", FromInput: "window"}}}}},
+		{ID: "invalid-part", Title: "Part", Inputs: inputs[:1], Steps: []ScenarioStep{{ID: "query", Kind: "query", Ref: "queries/invoice", Bindings: []Binding{{Input: "from", FromInput: "window", Part: "middle"}, {Input: "to", FromInput: "window", Part: "end"}}}}},
+		{ID: "column-source", Title: "Column", Inputs: inputs[:1], Steps: []ScenarioStep{{ID: "query", Kind: "query", Ref: "queries/invoice", Bindings: []Binding{{Input: "from", FromColumn: "created_at"}}}}},
+		{ID: "unknown-source", Title: "Unknown", Inputs: inputs[:1], Steps: []ScenarioStep{{ID: "query", Kind: "query", Ref: "queries/invoice", Bindings: []Binding{{Input: "from", FromInput: "other", Part: "start"}, {Input: "to", FromInput: "other", Part: "end"}}}}},
+		{ID: "ambiguous-target", Title: "Target", Inputs: inputs[:1], Steps: []ScenarioStep{{ID: "query", Kind: "query", Ref: "queries/invoice", Bindings: []Binding{{Input: "date", FromInput: "window", Part: "start"}, {Input: "date", FromInput: "window", Part: "end"}}}}},
+		{ID: "wrong-scalar-part", Title: "Scalar", Inputs: inputs[:2], Steps: []ScenarioStep{{ID: "query", Kind: "query", Ref: "queries/invoice", Bindings: []Binding{{Input: "from", FromInput: "window", Part: "start"}, {Input: "to", FromInput: "window", Part: "end"}, {Input: "id", FromInput: "invoice_id", Part: "start"}}}}},
+		{ID: "unordered-range", Title: "Unordered", Inputs: []Input{{Name: "window", Type: investigation.ValueTypeString, Cardinality: "range"}}, Steps: []ScenarioStep{{ID: "query", Kind: "query", Ref: "queries/invoice"}}},
+		{ID: "check-binding", Title: "Check", Steps: []ScenarioStep{{ID: "check", Kind: "check", Ref: "invoice-check", Bindings: []Binding{{Input: "id", FromInput: "id"}}}}},
+	}
+	for _, item := range invalid {
+		t.Run(item.ID, func(t *testing.T) {
+			if err := ValidateScenario(item); !errors.Is(err, ErrInvalid) {
+				t.Fatalf("invalid query range bindings accepted: %v", err)
+			}
+		})
+	}
+
+	caseValue, _, err := CreateCase(Case{ID: "range-case", Title: "Case"}, "alice", lifecycleAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	applied, _, err := ApplyScenario(caseValue, scenario, "application", "alice", lifecycleAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scenario.Steps[0].Bindings[0].Input = "mutated"
+	if got := applied.ScenarioApplications[0].Snapshot.Steps[0].Bindings[0].Input; got != "from_date" {
+		t.Fatalf("applied scenario binding changed with caller memory: %q", got)
+	}
+}
+
 func TestAuditRecursivelySummarizesExecutionMetadataWithoutRows(t *testing.T) {
 	run := CheckRun{ID: "run", Kind: "check", CheckID: "root", CaseID: "case", Environment: "qa", Actor: "alice", Outcome: "fail", StartedAt: lifecycleAt, Steps: []StepResult{{StepID: "nested", Kind: "check", Children: []StepResult{{StepID: "query", Kind: "query", QueryID: "invoice", Source: "db", RowCount: 3, ErrorCode: "SOURCE_UNAVAILABLE", QueryRevision: "revision", ResultFingerprint: "fingerprint", Execution: &apicontract.ExecutionRef{ExecutionID: "receipt"}}}}}}
 	event := AuditForRun(run)
