@@ -272,7 +272,7 @@ func TestCoreCaseMutationsPreserveOwnershipAndAuditPrivacy(t *testing.T) {
 	if _, _, err := RecordScenarioStep(applied, "application-1", "check", "skipped", "", nil, false, "alice", at); !errors.Is(err, ErrInvalid) {
 		t.Fatalf("out-of-order step=%v", err)
 	}
-	run := CheckRun{ID: "run-1", Kind: "query-validators", QueryID: "q", CaseID: c.ID, StartedAt: at, Actor: "alice"}
+	run := CheckRun{ID: "run-1", Kind: "query-validators", QueryID: "q", CaseID: c.ID, ExecutionStatus: "completed", Outcome: "unknown", StartedAt: at, Actor: "alice"}
 	linked, _, err := AttachRun(applied, run, "event-1", "alice", at.Add(2*time.Minute))
 	if err != nil {
 		t.Fatal(err)

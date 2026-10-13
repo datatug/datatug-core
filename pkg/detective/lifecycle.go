@@ -37,6 +37,11 @@ func CreateCase(item Case, actor string, at time.Time) (Case, AuditEvent, error)
 	if !validSlug(item.ID) || strings.TrimSpace(item.Title) == "" || item.Version != 0 || actor == "" || at.IsZero() {
 		return Case{}, AuditEvent{}, ErrInvalid
 	}
+	var err error
+	item, err = cloneCase(item)
+	if err != nil {
+		return Case{}, AuditEvent{}, err
+	}
 	item.Status, item.Version = "active", 1
 	if item.Context == nil {
 		item.Context = map[string]InputValue{}
@@ -65,6 +70,9 @@ func UpdateCase(old, next Case, actor string, at time.Time) (Case, AuditEvent, e
 		return Case{}, AuditEvent{}, ErrConflict
 	}
 	if !validTransition(old.Status, next.Status, next.ClosureReason) {
+		return Case{}, AuditEvent{}, ErrInvalid
+	}
+	if old.Status == "archived" {
 		return Case{}, AuditEvent{}, ErrInvalid
 	}
 	if old.Status == "active" && next.Status == "closed" && old.ClosureReason != "" && strings.TrimSpace(next.ClosureReason) == strings.TrimSpace(old.ClosureReason) {
@@ -138,6 +146,10 @@ func ApplyScenario(c Case, scenario Scenario, applicationID, actor string, at ti
 	if err != nil {
 		return Case{}, AuditEvent{}, err
 	}
+	scenario, err = cloneValue(scenario)
+	if err != nil {
+		return Case{}, AuditEvent{}, err
+	}
 	application := ScenarioApplication{ID: applicationID, ScenarioID: scenario.ID, ScenarioVersion: scenario.Version, Snapshot: scenario, AppliedAt: at, AppliedBy: actor}
 	for _, step := range scenario.Steps {
 		application.Steps = append(application.Steps, ScenarioStepReceipt{StepID: step.ID, Status: "pending"})
@@ -164,10 +176,20 @@ func ApplyScenario(c Case, scenario Scenario, applicationID, actor string, at ti
 // runLinked is established by the adapter's direct run-link record, since
 // Case.RunRefs may be a bounded recent projection in hosted storage.
 func RecordScenarioStep(c Case, applicationID, stepID, status, runID string, run *CheckRun, runLinked bool, actor string, at time.Time) (Case, AuditEvent, error) {
+	return recordScenarioStep(c, applicationID, stepID, status, runID, run, runLinked, nil, actor, at)
+}
+
+// RecordScenarioQueryStep marks an ordinary saved-query guidance step reviewed
+// using a terminal, authorized receipt. No Validator pass is inferred.
+func RecordScenarioQueryStep(c Case, applicationID, stepID string, proof ScenarioQueryProof, actor string, at time.Time) (Case, AuditEvent, error) {
+	return recordScenarioStep(c, applicationID, stepID, "completed", "", nil, false, &proof, actor, at)
+}
+
+func recordScenarioStep(c Case, applicationID, stepID, status, runID string, run *CheckRun, runLinked bool, proof *ScenarioQueryProof, actor string, at time.Time) (Case, AuditEvent, error) {
 	if c.Status != "active" || !validSlug(applicationID) || !validSlug(stepID) || !oneOf(status, "completed", "skipped") || actor == "" || at.IsZero() {
 		return Case{}, AuditEvent{}, ErrInvalid
 	}
-	if status == "completed" && (!validSlug(runID) || run == nil) || status == "skipped" && (runID != "" || run != nil) {
+	if status == "completed" && proof == nil && (!validSlug(runID) || run == nil) || status == "completed" && proof != nil && (runID != "" || run != nil) || status == "skipped" && (runID != "" || run != nil || proof != nil) {
 		return Case{}, AuditEvent{}, ErrInvalid
 	}
 	var err error
@@ -201,20 +223,41 @@ func RecordScenarioStep(c Case, applicationID, stepID, status, runID string, run
 		}
 	}
 	if status == "completed" {
-		if !runLinked || run.ID != runID || run.CaseID != c.ID {
-			return Case{}, AuditEvent{}, ErrInvalid
-		}
 		step := application.Snapshot.Steps[stepIndex]
-		if step.Kind == "check" && (run.Kind != "check" || run.CheckID != step.Ref) || step.Kind == "query" && (run.Kind != "query-validators" || run.QueryID != step.Ref) {
+		if proof == nil {
+			if !runLinked || run.ID != runID || run.CaseID != c.ID || run.ExecutionStatus != "completed" || !oneOf(run.Outcome, "pass", "fail", "unknown") {
+				return Case{}, AuditEvent{}, ErrInvalid
+			}
+			if step.Kind == "check" && (run.Kind != "check" || run.CheckID != step.Ref) || step.Kind == "query" && (run.Kind != "query-validators" || run.QueryID != step.Ref) {
+				return Case{}, AuditEvent{}, ErrInvalid
+			}
+		} else if step.Kind != "query" || proof.QueryID != step.Ref || proof.Environment == "" || proof.ExecutionStatus != "completed" || proof.Execution.Validate() != nil {
 			return Case{}, AuditEvent{}, ErrInvalid
 		}
 	}
 	receipt := &application.Steps[stepIndex]
 	receipt.Status, receipt.RunID, receipt.At, receipt.Actor = status, runID, at, actor
+	if status == "completed" {
+		if proof != nil {
+			ref := proof.Execution
+			receipt.Execution = &ref
+			receipt.Environment = proof.Environment
+			receipt.EvidenceOutcome = "unknown"
+		} else {
+			receipt.Environment = run.Environment
+			receipt.EvidenceOutcome = run.Outcome
+		}
+	} else {
+		receipt.EvidenceOutcome = "unknown"
+	}
 	c.Timeline = append(c.Timeline, CaseEvent{ID: fmt.Sprintf("scenario-step-%s-%d", applicationID, c.Version+1), At: at, Actor: actor, Type: "scenario-step-" + status, Ref: applicationID, Message: stepID})
 	c.Version++
 	c.UpdatedAt = at
-	return c, AuditEvent{ID: fmt.Sprintf("scenario-step-%s-%d", applicationID, c.Version), At: at, Actor: actor, Action: "scenario-step-" + status, CaseID: c.ID, RunID: runID}, nil
+	queryID := ""
+	if proof != nil {
+		queryID = proof.QueryID
+	}
+	return c, AuditEvent{ID: fmt.Sprintf("scenario-step-%s-%d", applicationID, c.Version), At: at, Actor: actor, Action: "scenario-step-" + status, CaseID: c.ID, RunID: runID, QueryID: queryID}, nil
 }
 
 // AppendCaseEvent accepts only client notes and links to existing run evidence.
@@ -251,6 +294,9 @@ func AppendCaseEvent(c Case, event CaseEvent, eventID string, run *CheckRun, act
 		c.RunRefs = append(c.RunRefs, event.Ref)
 		c.Evidence = append(c.Evidence, EvidenceRef{ID: "evidence-" + event.Ref, Kind: "check-run", Ref: event.Ref})
 	}
+	if err := validateCaseContent(c); err != nil {
+		return Case{}, AuditEvent{}, err
+	}
 	c.Version++
 	c.UpdatedAt = at
 	return c, AuditEvent{ID: eventID, At: at, Actor: actor, Action: event.Type, CaseID: c.ID}, nil
@@ -279,6 +325,9 @@ func AttachRun(c Case, run CheckRun, eventID, actor string, at time.Time) (Case,
 	c.Timeline = append(c.Timeline, CaseEvent{ID: eventID, At: at, Actor: actor, Type: "check-run", Ref: run.ID})
 	c.RunRefs = append(c.RunRefs, run.ID)
 	c.Evidence = append(c.Evidence, EvidenceRef{ID: "evidence-" + run.ID, Kind: "check-run", Ref: run.ID})
+	if err := validateCaseContent(c); err != nil {
+		return Case{}, AuditEvent{}, err
+	}
 	c.Version++
 	c.UpdatedAt = at
 	return c, AuditEvent{ID: eventID, At: at, Actor: actor, Action: "check-run", CaseID: c.ID, RunID: run.ID}, nil
@@ -335,14 +384,28 @@ func validateCaseContent(c Case) error {
 			return ErrInvalid
 		}
 	}
+	evidenceIDs := map[string]bool{}
 	for _, e := range c.Evidence {
 		if !validSlug(e.ID) || !oneOf(e.Kind, "check-run", "query", "external") || e.Ref == "" {
 			return ErrInvalid
 		}
-	}
-	for _, f := range c.Findings {
-		if !validSlug(f.ID) || f.Text == "" || !oneOf(f.Status, "hypothesis", "confirmed") {
+		if evidenceIDs[e.ID] {
 			return ErrInvalid
+		}
+		evidenceIDs[e.ID] = true
+	}
+	findingIDs := map[string]bool{}
+	for _, f := range c.Findings {
+		if !validSlug(f.ID) || findingIDs[f.ID] || f.Text == "" || !oneOf(f.Status, "hypothesis", "confirmed") {
+			return ErrInvalid
+		}
+		findingIDs[f.ID] = true
+		seenRefs := map[string]bool{}
+		for _, ref := range f.EvidenceRefs {
+			if !evidenceIDs[ref] || seenRefs[ref] {
+				return ErrInvalid
+			}
+			seenRefs[ref] = true
 		}
 	}
 	for _, ref := range c.IncidentRefs {

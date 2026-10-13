@@ -242,6 +242,21 @@ func validateLocalBindings(child []Input, bindings []Binding) error {
 }
 
 func validateGraph(graph map[string]Check, catalog map[string]PublishedValidator, locals map[string]QueryValidators) error {
+	for id, check := range graph {
+		if id != check.ID || validateCheck(check) != nil {
+			return ErrInvalid
+		}
+	}
+	for id, item := range catalog {
+		if id != item.ID || ValidatePublishedValidator(item) != nil {
+			return ErrInvalid
+		}
+	}
+	for id, local := range locals {
+		if id != local.QueryID || ValidateQueryValidators(local) != nil {
+			return ErrInvalid
+		}
+	}
 	visiting := map[string]bool{}
 	visited := map[string]bool{}
 	var visit func(string, int) error
@@ -506,7 +521,11 @@ func (e *engine) runCheck(ctx context.Context, id string, inputs map[string]Inpu
 	}
 	key := cacheKey(id, e.environment, inputs)
 	if cached, ok := e.cache[key]; ok {
-		return cached
+		owned, err := cloneValue(cached)
+		if err != nil {
+			return StepResult{StepID: id, Kind: "check", CheckID: id, ExecutionStatus: "error", Outcome: "unknown", ErrorCode: "INTERNAL"}
+		}
+		return owned
 	}
 	e.nodes++
 	visiting[id] = true
@@ -577,6 +596,13 @@ func (e *engine) runQueryStep(ctx context.Context, step Step, inputs map[string]
 		} else {
 			res.ErrorCode = "INTERNAL"
 		}
+		return res
+	}
+	result, err = cloneValue(result)
+	if err != nil {
+		res.ExecutionStatus = "error"
+		res.ErrorCode = "INVALID_RECORDSET"
+		res.Message = "saved query returned malformed evidence"
 		return res
 	}
 	if err := result.Recordset.Validate(); err != nil {
@@ -688,6 +714,13 @@ func hiddenField(field string, limitations []apicontract.Limitation) bool {
 
 func (e *engine) validate(ctx context.Context, v Validator, rs apicontract.Recordset, truncated bool, limitations []apicontract.Limitation, inputs map[string]InputValue, depth int, visiting map[string]bool) []ValidationResult {
 	base := ValidationResult{ValidatorID: v.ID, ExecutionStatus: "completed", Outcome: "pass", Severity: v.Severity}
+	if !oneOf(v.Kind, "non-null", "equals-fields", "row-count", "unique", "sum-equals", "check") {
+		base.ExecutionStatus = "error"
+		base.Outcome = "unknown"
+		base.Message = "unsupported validator kind"
+		applyUnavailableValidation(&base, "block")
+		return []ValidationResult{base}
+	}
 	incomplete := incompletePopulation(truncated, limitations)
 	if v.Kind == "row-count" {
 		if v.Expected == nil || v.Expected.Type != investigation.ValueTypeInteger {
@@ -716,6 +749,7 @@ func (e *engine) validate(ctx context.Context, v Validator, rs apicontract.Recor
 		base.ExecutionStatus = "error"
 		base.Outcome = "unknown"
 		base.Message = "validator field is unavailable"
+		applyUnavailableValidation(&base, v.OnUnavailable)
 		return []ValidationResult{base}
 	}
 	otherIndex := indices[v.OtherField]
@@ -724,6 +758,7 @@ func (e *engine) validate(ctx context.Context, v Validator, rs apicontract.Recor
 			base.ExecutionStatus = "error"
 			base.Outcome = "unknown"
 			base.Message = "validator field is unavailable"
+			applyUnavailableValidation(&base, v.OnUnavailable)
 			return []ValidationResult{base}
 		}
 	}
@@ -810,6 +845,11 @@ func (e *engine) validate(ctx context.Context, v Validator, rs apicontract.Recor
 					applyUnavailableValidation(&item, v.OnUnavailable)
 				}
 			}
+		default:
+			item.ExecutionStatus = "error"
+			item.Outcome = "unknown"
+			item.Message = "unsupported validator kind"
+			applyUnavailableValidation(&item, "block")
 		}
 		results = append(results, item)
 		if item.ExecutionStatus == "error" && effectivePolicy(v.OnUnavailable) == "block" {

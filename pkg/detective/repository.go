@@ -19,6 +19,7 @@ type OperationReceipt struct {
 	Project         string    `json:"project"`
 	Actor           string    `json:"actor"`
 	Action          string    `json:"action"`
+	PayloadDigest   string    `json:"payloadDigest"` // server-computed canonical request binding
 	ResourceID      string    `json:"resourceId,omitempty"`
 	ResourceVersion int64     `json:"resourceVersion,omitempty"`
 	At              time.Time `json:"at"`
@@ -56,7 +57,10 @@ type Repository interface {
 // Transaction writes one operation receipt, its typed resources and its
 // metadata-only audit event atomically. Put* methods compare expectedVersion;
 // zero means the resource must be absent. The adapter must fail closed on a
-// stale version, duplicate ID or an unavailable audit/receipt store.
+// stale version, duplicate ID or an unavailable audit/receipt store. Before
+// returning a stored response, GetOperation callers must call
+// CheckOperationReplay with a fresh server-side BindOperation. PutOperation
+// must reject receipts that fail Validate.
 type Transaction interface {
 	GetCase(context.Context, string) (Case, error)
 	GetRun(context.Context, string) (CheckRun, error)

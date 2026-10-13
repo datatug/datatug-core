@@ -29,6 +29,11 @@ func EvaluateCheck(ctx context.Context, req RunRequest, catalog Catalog, runner 
 	if err := ValidateCatalog(catalog); err != nil {
 		return CheckRun{}, err
 	}
+	var err error
+	catalog, err = cloneCatalog(catalog)
+	if err != nil {
+		return CheckRun{}, err
+	}
 	root, ok := catalog.Checks[req.CheckID]
 	if !ok {
 		return CheckRun{}, ErrNotFound
@@ -65,7 +70,11 @@ func EvaluateQueryValidatorsForResult(ctx context.Context, req RunRequest, catal
 	if result.Execution == nil || result.Execution.Validate() != nil || result.Recordset.Validate() != nil {
 		return CheckRun{}, ErrInvalid
 	}
-	return evaluateQueryValidators(ctx, req, catalog, &result, runner, metadata)
+	owned, err := cloneValue(result)
+	if err != nil {
+		return CheckRun{}, err
+	}
+	return evaluateQueryValidators(ctx, req, catalog, &owned, runner, metadata)
 }
 
 func evaluateQueryValidators(ctx context.Context, req RunRequest, catalog Catalog, existing *apicontract.Result, runner QueryRunner, metadata ExecutionMetadata) (CheckRun, error) {
@@ -73,6 +82,11 @@ func evaluateQueryValidators(ctx context.Context, req RunRequest, catalog Catalo
 		return CheckRun{}, ErrInvalid
 	}
 	if err := ValidateCatalog(catalog); err != nil {
+		return CheckRun{}, err
+	}
+	var err error
+	catalog, err = cloneCatalog(catalog)
+	if err != nil {
 		return CheckRun{}, err
 	}
 	local, found := catalog.QueryValidators[req.QueryID]

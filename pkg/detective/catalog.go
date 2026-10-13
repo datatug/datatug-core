@@ -61,7 +61,11 @@ func LoadCatalog(ctx context.Context, rootCheckID, rootQueryID string, reader Ca
 					if item.ID != v.ValidatorID || validateValidator(item.Validator) != nil || item.Validator.ValidatorID != "" {
 						return ErrInvalid
 					}
-					catalog.Validators[item.ID] = item
+					owned, err := cloneValue(item)
+					if err != nil {
+						return err
+					}
+					catalog.Validators[item.ID] = owned
 				}
 				v = catalog.Validators[v.ValidatorID].Validator
 			}
@@ -98,15 +102,16 @@ func LoadCatalog(ctx context.Context, rootCheckID, rootQueryID string, reader Ca
 		if err != nil {
 			return err
 		}
-		if rootQueryID == id && !found {
-			return ErrNotFound
-		}
 		if found {
-			if local.QueryID != id || len(local.Validators) == 0 || len(local.Validators) > 32 {
+			if local.QueryID != id || ValidateQueryValidators(local) != nil {
 				return ErrInvalid
 			}
-			catalog.QueryValidators[id] = local
-			if err := visitValidators(local.Validators, depth); err != nil {
+			owned, err := cloneValue(local)
+			if err != nil {
+				return err
+			}
+			catalog.QueryValidators[id] = owned
+			if err := visitValidators(owned.Validators, depth); err != nil {
 				return err
 			}
 		}
@@ -129,7 +134,12 @@ func LoadCatalog(ctx context.Context, rootCheckID, rootQueryID string, reader Ca
 		if check.ID != id || validateCheck(check) != nil {
 			return ErrInvalid
 		}
-		catalog.Checks[id] = check
+		owned, err := cloneValue(check)
+		if err != nil {
+			return err
+		}
+		catalog.Checks[id] = owned
+		check = owned
 		visiting[id] = true
 		defer delete(visiting, id)
 		for _, step := range check.Steps {

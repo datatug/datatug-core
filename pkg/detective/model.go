@@ -239,11 +239,24 @@ type CaseEventsPage struct {
 }
 
 type ScenarioStepReceipt struct {
-	StepID string    `json:"stepId"`
-	Status string    `json:"status"` // pending | completed | skipped
-	RunID  string    `json:"runId,omitempty"`
-	At     time.Time `json:"at,omitempty"`
-	Actor  string    `json:"actor,omitempty"`
+	StepID          string                    `json:"stepId"`
+	Status          string                    `json:"status"` // pending | completed | skipped: procedural progress, not a health verdict
+	RunID           string                    `json:"runId,omitempty"`
+	Execution       *apicontract.ExecutionRef `json:"execution,omitempty"` // ordinary saved-query receipt
+	Environment     string                    `json:"environment,omitempty"`
+	EvidenceOutcome string                    `json:"evidenceOutcome,omitempty"` // pass | fail | unknown
+	At              time.Time                 `json:"at,omitempty"`
+	Actor           string                    `json:"actor,omitempty"`
+}
+
+// ScenarioQueryProof is formed only after an adapter verifies an immutable
+// saved-query receipt, project/principal access, query identity and environment.
+// Ordinary query execution has no positive health assertion.
+type ScenarioQueryProof struct {
+	Execution       apicontract.ExecutionRef
+	QueryID         string
+	Environment     string
+	ExecutionStatus string // completed only; errors/running cannot complete guidance
 }
 
 type ScenarioApplication struct {
