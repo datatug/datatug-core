@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-const semanticFixture = `{"version":1,"basis":{"queryHash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","resultIndex":0,"columns":[{"name":"name","dataType":"text"}]},"meaning":{"format":"meaning/draft-2","id":"query","name":"Query","description":"Query meaning","models":{"query":"query.modelspec.json"},"concepts":[{"id":"person","kind":"entity","labels":{"en":"Person"},"description":"A person"},{"id":"person-name","kind":"property","labels":{"en":"Name"},"description":"Name of a person","of":"person","bindings":[{"model":"modelspec:///query.QueryResult","field":"name","role":"value"}]}]},"model":{"modelspec":"1.0-draft-2","module":{"id":"datatug/query","name":"query","version":"0.1.0"},"records":{"QueryResult":{"fields":{"name":{"type":"string"}}}}},"bindings":[{"columnIndex":0,"field":"name","concept":"person-name"}]}`
+const semanticFixture = `{"version":1,"basis":{"queryHash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","resultIndex":0,"columns":[{"name":"name","dataType":"text"}]},"meaning":{"format":"meaning/draft-2","id":"query","name":"Query","description":"Query meaning","models":{"query":"query.modelspec.json"},"concepts":[{"id":"person","kind":"entity","labels":{"en":"Person"},"description":"A person"},{"id":"person-name","kind":"property","labels":{"en":"Name"},"description":"Name of a person","of":"person","bindings":[{"model":"modelspec:///query.QueryResult","field":"column1","role":"value"}]}]},"model":{"modelspec":"1.0-draft-2","module":{"id":"datatug/query","name":"query","version":"0.1.0"},"records":{"QueryResult":{"fields":{"column1":{"type":"string"}}}}},"bindings":[{"columnIndex":0,"field":"column1","concept":"person-name"}]}`
 
 func validSemantic(t *testing.T) QuerySemanticModel {
 	t.Helper()
@@ -21,6 +21,22 @@ func TestQuerySemanticModelValidation(t *testing.T) {
 		name   string
 		mutate func(*QuerySemanticModel)
 	}{
+		{"oversized description", func(v *QuerySemanticModel) { v.Meaning.Description = strings.Repeat("x", 4097) }},
+		{"oversized bundle", func(v *QuerySemanticModel) {
+			for i := 0; i < 100; i++ {
+				c := v.Meaning.Concepts[0]
+				c.ID = "entity-" + strings.Repeat("a", i+1)
+				c.Description = strings.Repeat("x", 4096)
+				v.Meaning.Concepts = append(v.Meaning.Concepts, c)
+			}
+		}},
+		{"missing complete field", func(v *QuerySemanticModel) { delete(v.Model.Records.QueryResult.Fields, "column1") }},
+		{"wrong column field", func(v *QuerySemanticModel) {
+			f := v.Model.Records.QueryResult.Fields["column1"]
+			delete(v.Model.Records.QueryResult.Fields, "column1")
+			v.Model.Records.QueryResult.Fields["name"] = f
+		}},
+		{"orphan meaning binding", func(v *QuerySemanticModel) { v.Bindings = []QuerySemanticBinding{} }},
 		{"hash", func(v *QuerySemanticModel) { v.Basis.QueryHash = "bad" }},
 		{"negative result", func(v *QuerySemanticModel) { v.Basis.ResultIndex = -1 }},
 		{"duplicate concept", func(v *QuerySemanticModel) { v.Meaning.Concepts = append(v.Meaning.Concepts, v.Meaning.Concepts[0]) }},
@@ -32,7 +48,7 @@ func TestQuerySemanticModelValidation(t *testing.T) {
 		{"missing meaning binding", func(v *QuerySemanticModel) { v.Meaning.Concepts[1].Bindings = nil }},
 		{"duplicate binding", func(v *QuerySemanticModel) { v.Bindings = append(v.Bindings, v.Bindings[0]) }},
 		{"unsupported type", func(v *QuerySemanticModel) {
-			v.Model.Records.QueryResult.Fields["name"] = QueryModelField{Type: "varchar"}
+			v.Model.Records.QueryResult.Fields["column1"] = QueryModelField{Type: "varchar"}
 		}},
 		{"credential description", func(v *QuerySemanticModel) { v.Meaning.Description = "password=actual-secret" }},
 		{"credential column", func(v *QuerySemanticModel) { v.Basis.Columns[0].Name = "password=actual-secret" }},
@@ -53,6 +69,7 @@ func TestQuerySemanticModelValidation(t *testing.T) {
 	}
 	// Removing the current column mapping retains reusable definitions.
 	v.Bindings = []QuerySemanticBinding{}
+	v.Meaning.Concepts[1].Bindings = nil
 	if err := v.Validate(); err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +86,7 @@ func TestQuerySemanticModelValidation(t *testing.T) {
 	}
 }
 func TestQuerySemanticModelRejectsUnknownFields(t *testing.T) {
-	for _, data := range []string{strings.Replace(semanticFixture, `"version":1`, `"version":1,"samples":["secret"]`, 1), strings.Replace(semanticFixture, `"type":"string"`, `"type":"string","required":true`, 1)} {
+	for _, data := range []string{strings.Replace(semanticFixture, `"columnIndex":0,`, ``, 1), strings.Replace(semanticFixture, `"resultIndex":0`, `"resultIndex":null`, 1), strings.Replace(semanticFixture, `"version":1`, `"version":1,"samples":["secret"]`, 1), strings.Replace(semanticFixture, `"type":"string"`, `"type":"string","required":true`, 1)} {
 		var v QuerySemanticModel
 		if err := json.Unmarshal([]byte(data), &v); err == nil {
 			t.Fatal("accepted unsupported metadata")

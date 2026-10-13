@@ -109,6 +109,29 @@ const querySemanticRecord = "modelspec:///query.QueryResult"
 
 func (v QuerySemanticModel) Validate() error {
 	bad := func(s string) error { return fmt.Errorf("invalid %s", s) }
+	encoded, err := json.Marshal(v)
+	if err != nil || len(encoded) > 256<<10 {
+		return bad("bundle size (maximum 256 KiB)")
+	}
+	if len(v.Meaning.Name) > 512 || len(v.Meaning.Description) > 4096 {
+		return bad("meaning text length")
+	}
+	for _, c := range v.Basis.Columns {
+		if len(c.Name) > 512 || len(c.DataType) > 512 {
+			return bad("column text length")
+		}
+	}
+	for _, c := range v.Meaning.Concepts {
+		if len(c.Labels.En) > 512 || len(c.Description) > 4096 {
+			return bad("concept text length")
+		}
+	}
+	for _, b := range v.Bindings {
+		if len(b.Role) > 512 {
+			return bad("role length")
+		}
+	}
+
 	if v.Version != 1 || !semanticHash.MatchString(v.Basis.QueryHash) || v.Basis.ResultIndex < 0 || len(v.Basis.Columns) == 0 || len(v.Basis.Columns) > 512 {
 		return bad("version or basis")
 	}
@@ -124,11 +147,16 @@ func (v QuerySemanticModel) Validate() error {
 		return bad("ModelSpec module")
 	}
 	fields := v.Model.Records.QueryResult.Fields
-	if len(fields) > 512 {
+	if len(fields) != len(v.Basis.Columns) || len(fields) > 512 {
 		return bad("field count")
 	}
+	for i := range v.Basis.Columns {
+		if _, ok := fields[fmt.Sprintf("column%d", i+1)]; !ok {
+			return bad("complete column fields")
+		}
+	}
 	for name, f := range fields {
-		if !semanticField.MatchString(name) {
+		if len(name) > 128 || !semanticField.MatchString(name) {
 			return bad("field name")
 		}
 		switch f.Type {
@@ -176,6 +204,9 @@ func (v QuerySemanticModel) Validate() error {
 		if !ok || c.Kind != "property" || b.ColumnIndex < 0 || b.ColumnIndex >= len(v.Basis.Columns) || columns[b.ColumnIndex] || boundFields[b.Field] {
 			return bad("column binding")
 		}
+		if b.Field != fmt.Sprintf("column%d", b.ColumnIndex+1) {
+			return bad("binding column field")
+		}
 		if _, ok := fields[b.Field]; !ok {
 			return bad("binding field")
 		}
@@ -190,6 +221,19 @@ func (v QuerySemanticModel) Validate() error {
 		}
 		columns[b.ColumnIndex] = true
 		boundFields[b.Field] = true
+	}
+	for _, c := range v.Meaning.Concepts {
+		for _, mb := range c.Bindings {
+			matched := false
+			for _, b := range v.Bindings {
+				if b.Concept == c.ID && b.Field == mb.Field {
+					matched = true
+				}
+			}
+			if !matched {
+				return bad("meaning binding without column mapping")
+			}
+		}
 	}
 	return screenSemanticStrings(reflect.ValueOf(v))
 }

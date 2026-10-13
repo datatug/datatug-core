@@ -46,6 +46,7 @@ func TestSemanticModelRevisionedRoundTripAndCAS(t *testing.T) {
 		t.Fatal("stale semantic write accepted")
 	}
 	q.SemanticModel.Bindings = []datatug.QuerySemanticBinding{}
+	q.SemanticModel.Meaning.Concepts[1].Bindings = nil
 	third, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfMatch: second.Revision})
 	if err != nil {
 		t.Fatal(err)
