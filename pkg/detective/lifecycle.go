@@ -334,9 +334,8 @@ func AttachRun(c Case, run CheckRun, eventID, actor string, at time.Time) (Case,
 	return c, AuditEvent{ID: eventID, At: at, Actor: actor, Action: "check-run", CaseID: c.ID, RunID: run.ID}, nil
 }
 
-// ValidateScenario checks query range bindings per step and requires each
-// required range input to be consumed by at least one query in the Scenario.
-// Other query steps may use different subsets of the declared inputs.
+// ValidateScenario checks query range bindings per step. Scenario inputs may
+// be consumed by query steps or by the Check steps they configure.
 func ValidateScenario(scenario Scenario) error {
 	if !validSlug(scenario.ID) || strings.TrimSpace(scenario.Title) == "" || len(scenario.Steps) == 0 || len(scenario.Steps) > 32 || len(scenario.Inputs) > 64 {
 		return ErrInvalid
@@ -354,7 +353,6 @@ func ValidateScenario(scenario Scenario) error {
 		inputs[input.Name] = input
 	}
 	stepIDs := map[string]bool{}
-	boundInputs := map[string]bool{}
 	for _, step := range scenario.Steps {
 		if !validSlug(step.ID) || stepIDs[step.ID] || !oneOf(step.Kind, "query", "check") || step.Ref == "" || step.Kind == "check" && !validSlug(step.Ref) || step.Kind == "query" && !validQueryRef(step.Ref) {
 			return ErrInvalid
@@ -368,14 +366,6 @@ func ValidateScenario(scenario Scenario) error {
 		}
 		if err := validateScenarioQueryBindings(step.Bindings, inputs); err != nil {
 			return err
-		}
-		for _, binding := range step.Bindings {
-			boundInputs[binding.FromInput] = true
-		}
-	}
-	for name, input := range inputs {
-		if input.Cardinality == "range" && input.Required && !boundInputs[name] {
-			return ErrInvalid
 		}
 	}
 	return nil

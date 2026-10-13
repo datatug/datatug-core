@@ -237,8 +237,11 @@ func TestScenarioQueryRangeBindingsAndSnapshotOwnership(t *testing.T) {
 	if err := ValidateScenario(optionalOnly); err != nil {
 		t.Fatalf("unbound optional range rejected: %v", err)
 	}
+	checkOnly := Scenario{ID: "range-check", Title: "Range check", Inputs: inputs[:1], Steps: []ScenarioStep{{ID: "check", Kind: "check", Ref: "invoice-check"}}}
+	if err := ValidateScenario(checkOnly); err != nil {
+		t.Fatalf("required range for a Check-only Scenario rejected: %v", err)
+	}
 	invalid := []Scenario{
-		{ID: "missing-required-range", Title: "Missing", Inputs: inputs[:1], Steps: []ScenarioStep{{ID: "query", Kind: "query", Ref: "queries/invoice"}}},
 		{ID: "missing-endpoint", Title: "Missing", Inputs: inputs[:1], Steps: []ScenarioStep{{ID: "query", Kind: "query", Ref: "queries/invoice", Bindings: []Binding{{Input: "from", FromInput: "window", Part: "start"}}}}},
 		{ID: "duplicate-endpoint", Title: "Duplicate", Inputs: inputs[:1], Steps: []ScenarioStep{{ID: "query", Kind: "query", Ref: "queries/invoice", Bindings: []Binding{{Input: "from", FromInput: "window", Part: "start"}, {Input: "from2", FromInput: "window", Part: "start"}, {Input: "to", FromInput: "window", Part: "end"}}}}},
 		{ID: "whole-range", Title: "Whole", Inputs: inputs[:1], Steps: []ScenarioStep{{ID: "query", Kind: "query", Ref: "queries/invoice", Bindings: []Binding{{Input: "window", FromInput: "window"}}}}},
