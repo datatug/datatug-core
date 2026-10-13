@@ -95,6 +95,9 @@ type EntryRevision struct {
 	Subject          Subject       `json:"subject"`
 	Value            ValueEnvelope `json:"value"`
 	CreatedAt        time.Time     `json:"createdAt"`
+	Provenance       string        `json:"provenance,omitempty"`
+	LegacySourceID   string        `json:"legacySourceId,omitempty"`
+	SourceDigest     string        `json:"sourceDigest,omitempty"`
 }
 type EntryRef struct {
 	EntryID    string `json:"entryId"`
@@ -210,6 +213,32 @@ type Command struct {
 	CaseID             string                            `json:"caseId,omitempty"`
 	DetectiveRunID     string                            `json:"detectiveRunId,omitempty"`
 	ResolvedParameters map[string]apicontract.TypedValue `json:"resolvedParameters,omitempty"`
+	LegacyImport       *LegacyImport                     `json:"legacyImport,omitempty"`
+}
+
+// LegacyImport is a bounded, read-only migration payload. It imports saved
+// context values and historical chat turns; it never creates executable runs.
+type LegacyImport struct {
+	SourceID string              `json:"sourceId"`
+	Title    string              `json:"title,omitempty"`
+	Scope    Scope               `json:"scope"`
+	Entries  []LegacyEntry       `json:"entries,omitempty"`
+	Messages []LegacyChatMessage `json:"messages,omitempty"`
+}
+
+type LegacyEntry struct {
+	ID        string        `json:"id"`
+	Alias     string        `json:"alias,omitempty"`
+	Subject   Subject       `json:"subject"`
+	Value     ValueEnvelope `json:"value"`
+	CreatedAt time.Time     `json:"createdAt,omitempty"`
+}
+
+type LegacyChatMessage struct {
+	ID        string    `json:"id"`
+	Role      string    `json:"role"`
+	Text      string    `json:"text"`
+	CreatedAt time.Time `json:"createdAt,omitempty"`
 }
 type CommandResult struct {
 	Receipt Receipt `json:"receipt"`
@@ -259,6 +288,23 @@ type Message struct {
 	Role            string    `json:"role"`
 	Text            string    `json:"text"`
 	CreatedAt       time.Time `json:"createdAt"`
+	Provenance      string    `json:"provenance,omitempty"`
+	LegacySourceID  string    `json:"legacySourceId,omitempty"`
+	SourceDigest    string    `json:"sourceDigest,omitempty"`
+	HistoricalAt    time.Time `json:"historicalAt,omitempty"`
+	SourceScope     Scope     `json:"sourceScope,omitempty"`
+}
+
+// LegacyImportManifest is private idempotency state keyed by a digest of the
+// source identity, actor, project, and execution scope.
+type LegacyImportManifest struct {
+	ID           string    `json:"id"`
+	SessionID    string    `json:"sessionId"`
+	BagID        string    `json:"bagId"`
+	SourceID     string    `json:"sourceId"`
+	SourceDigest string    `json:"sourceDigest"`
+	Scope        Scope     `json:"scope"`
+	CreatedAt    time.Time `json:"createdAt"`
 }
 
 // EvidenceHandoff cannot replace Detective's native CaseRunLink transaction.

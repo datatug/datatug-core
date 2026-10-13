@@ -19,17 +19,18 @@ import (
 )
 
 const (
-	Sessions    = "sessionContextSessions"
-	Bags        = "sessionContextBags"
-	Entries     = "sessionContextEntries"
-	Revisions   = "sessionContextEntryRevisions"
-	ContextSets = "sessionContextSets"
-	Operations  = "sessionContextOperations"
-	Audit       = "sessionContextAudit"
-	Inputs      = "sessionContextInputs"
-	Runs        = "sessionContextRuns"
-	Messages    = "sessionContextMessages"
-	Outbox      = "sessionContextOutbox"
+	Sessions      = "sessionContextSessions"
+	Bags          = "sessionContextBags"
+	Entries       = "sessionContextEntries"
+	Revisions     = "sessionContextEntryRevisions"
+	ContextSets   = "sessionContextSets"
+	Operations    = "sessionContextOperations"
+	Audit         = "sessionContextAudit"
+	Inputs        = "sessionContextInputs"
+	Runs          = "sessionContextRuns"
+	Messages      = "sessionContextMessages"
+	Outbox        = "sessionContextOutbox"
+	LegacyImports = "sessionContextLegacyImports"
 	// MaxSnapshotBytes caps the sum of serialized session, bag, context-set, current
 	// entry and current revision records returned by GetSnapshot.
 	MaxSnapshotBytes = 4 * 1024 * 1024
@@ -43,6 +44,71 @@ var errSnapshotLimit = errors.New("session context: snapshot limit exceeded")
 func normalizedAlias(alias string) string { return strings.ToLower(strings.TrimSpace(alias)) }
 func validAlias(alias string) bool {
 	return len(alias) <= 128 && (alias == "" || normalizedAlias(alias) != "")
+}
+
+func legacyHash(values []string) string {
+	// []string has no JSON marshaling failure mode; keep the JSON-array encoding
+	// stable because this digest also determines imported resource IDs.
+	encoded, _ := json.Marshal(values)
+	digest := sha256.Sum256(encoded)
+	return hex.EncodeToString(digest[:])
+}
+
+func prepareLegacyImport(p Principal, payload *LegacyImport) (LegacyImportManifest, []string, []string, error) {
+	if payload == nil || !safeID.MatchString(payload.SourceID) || !validScope(&payload.Scope) || len(payload.Title) > 256 || len(payload.Entries) > MaxSnapshotEntries || len(payload.Messages) > 1000 {
+		return LegacyImportManifest{}, nil, nil, ErrInvalid
+	}
+	// Firestore permits at most 500 writes in one transaction. Each entry
+	// requires an immutable revision plus a current entry record; the remainder
+	// accounts for session, bag, context set, manifest, audit, and receipt.
+	if 2*len(payload.Entries)+len(payload.Messages)+6 > 500 {
+		return LegacyImportManifest{}, nil, nil, ErrInvalid
+	}
+	if strings.TrimSpace(payload.Title) == "" {
+		payload.Title = "Imported session"
+	}
+	entryIDs := map[string]bool{}
+	aliases := map[string]bool{}
+	for _, entry := range payload.Entries {
+		if !safeID.MatchString(entry.ID) || entryIDs[entry.ID] || !validAlias(entry.Alias) || entry.Subject.ConceptID == "" || entry.Subject.FieldID == "" || entry.Subject.FieldMappingRef == "" || validateValue(entry.Value) != nil {
+			return LegacyImportManifest{}, nil, nil, ErrInvalid
+		}
+		entryIDs[entry.ID] = true
+		if alias := normalizedAlias(entry.Alias); alias != "" {
+			if aliases[alias] {
+				return LegacyImportManifest{}, nil, nil, ErrInvalid
+			}
+			aliases[alias] = true
+		}
+	}
+	messageIDs := map[string]bool{}
+	for _, message := range payload.Messages {
+		if !safeID.MatchString(message.ID) || messageIDs[message.ID] || (message.Role != "user" && message.Role != "assistant") || len(message.Text) > 100000 {
+			return LegacyImportManifest{}, nil, nil, ErrInvalid
+		}
+		messageIDs[message.ID] = true
+	}
+	encoded, err := json.Marshal(payload)
+	if err != nil || len(encoded) > MaxSnapshotBytes {
+		return LegacyImportManifest{}, nil, nil, ErrInvalid
+	}
+	importDigest := sha256.Sum256(encoded)
+	identity := legacyHash([]string{p.Actor, p.DatabaseID, p.ProjectID, payload.Scope.EnvironmentID, payload.Scope.IdentityDomain, payload.SourceID})
+	manifestID := "li_" + identity
+	sessionID := "legacy_s_" + identity
+	bagID := "legacy_b_" + identity
+	entryTargetIDs := make([]string, len(payload.Entries))
+	for i, entry := range payload.Entries {
+		digest := sha256.Sum256([]byte(identity + "\x00" + entry.ID))
+		entryTargetIDs[i] = "legacy_e_" + hex.EncodeToString(digest[:])
+	}
+	messageTargetIDs := make([]string, len(payload.Messages))
+	for i, message := range payload.Messages {
+		digest := sha256.Sum256([]byte(identity + "\x00" + message.ID))
+		messageTargetIDs[i] = fmt.Sprintf("legacy_m_%04d_%s", i, hex.EncodeToString(digest[:]))
+	}
+	manifest := LegacyImportManifest{ID: manifestID, SessionID: sessionID, BagID: bagID, SourceID: payload.SourceID, SourceDigest: hex.EncodeToString(importDigest[:]), Scope: payload.Scope}
+	return manifest, entryTargetIDs, messageTargetIDs, nil
 }
 
 func validateResolvedParameters(parameters map[string]apicontract.TypedValue) error {
@@ -62,9 +128,10 @@ func canonicalDefinitionDocument(expectedKind string, raw json.RawMessage) (json
 		return nil, "", ErrInvalid
 	}
 	var compact bytes.Buffer
-	if err := json.Compact(&compact, raw); err != nil {
-		return nil, "", ErrInvalid
-	}
+	// json.Valid above makes Compact's syntax error impossible, and bytes.Buffer
+	// cannot fail as a writer. Keep this single normalization pass as the compact
+	// representation used for the immutable definition digest.
+	_ = json.Compact(&compact, raw)
 	type queryParameter struct {
 		ID         string `json:"id"`
 		Type       string `json:"type"`
@@ -414,6 +481,12 @@ func (s *Service) ListMessages(ctx context.Context, p Principal, sessionID, curs
 			if message.SessionID != sessionID {
 				return message.ID, false, nil
 			}
+			if message.Provenance == "legacy-import" {
+				if e := s.allow(ctx, p, "listMessages", sessionID, &message.SourceScope); e != nil {
+					return message.ID, false, e
+				}
+				return message.ID, true, nil
+			}
 			var input InputSnapshot
 			if _, e := r.Load(ctx, Inputs, message.InputSnapshotID, &input); e != nil {
 				return message.ID, false, e
@@ -534,7 +607,24 @@ func (s *Service) ReadOperation(ctx context.Context, p Principal, id string) (Re
 }
 func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandResult, error) {
 	var result CommandResult
-	if !safeID.MatchString(c.OpID) || !safeID.MatchString(c.SessionID) {
+	legacy := c.Action == "importLegacy"
+	var legacyManifest LegacyImportManifest
+	var legacyEntryIDs, legacyMessageIDs []string
+	targetSessionID, targetScope := c.SessionID, c.Scope
+	if legacy {
+		if c.SessionID != "" || c.LegacyImport == nil || c.Scope != nil {
+			return result, ErrInvalid
+		}
+		var err error
+		legacyManifest, legacyEntryIDs, legacyMessageIDs, err = prepareLegacyImport(p, c.LegacyImport)
+		if err != nil {
+			return result, err
+		}
+		targetSessionID, targetScope = legacyManifest.SessionID, &legacyManifest.Scope
+	} else if c.LegacyImport != nil {
+		return result, ErrInvalid
+	}
+	if !safeID.MatchString(c.OpID) || (!legacy && !safeID.MatchString(c.SessionID)) {
 		return result, ErrInvalid
 	}
 	if c.Action != "pinInput" && c.Action != "recordRunExecution" && len(c.ResolvedParameters) != 0 || c.Action != "pinInput" && len(c.DefinitionDocument) != 0 || c.Action != "recordRunExecution" && len(c.ExecutionDocument) != 0 {
@@ -543,7 +633,7 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 	if c.DatabaseID != "" && c.DatabaseID != p.DatabaseID || c.ProjectID != "" && c.ProjectID != p.ProjectID {
 		return result, ErrForbidden
 	}
-	if err := s.allow(ctx, p, c.Action, c.SessionID, c.Scope); err != nil {
+	if err := s.allow(ctx, p, c.Action, targetSessionID, targetScope); err != nil {
 		return result, err
 	}
 	digest, err := boundDigest(p, c)
@@ -554,7 +644,7 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 		key := opKey(p, c.OpID)
 		var old Receipt
 		if _, e := tx.Load(ctx, Operations, key, &old); e == nil {
-			if old.PayloadDigest != digest || old.Actor != p.Actor || old.Action != c.Action {
+			if old.PayloadDigest != digest || old.Actor != p.Actor || old.Action != c.Action || legacy && old.SessionID != targetSessionID {
 				return ErrConflict
 			}
 			v, e := s.session(ctx, tx, p, old.SessionID, c.Action)
@@ -580,7 +670,72 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 		var resourceVersion int64
 		count := 0
 		receiptScope := c.Scope
-		if c.Action == "createSession" {
+		writeSession := true
+		if legacy {
+			var stored LegacyImportManifest
+			if _, e := tx.Load(ctx, LegacyImports, legacyManifest.ID, &stored); e == nil {
+				if stored.SourceID != legacyManifest.SourceID || stored.SourceDigest != legacyManifest.SourceDigest || stored.Scope != legacyManifest.Scope || stored.SessionID != targetSessionID || stored.BagID != legacyManifest.BagID {
+					return ErrConflict
+				}
+				v, e = s.session(ctx, tx, p, targetSessionID, c.Action)
+				if e != nil {
+					return e
+				}
+				writeSession = false
+				resource, resourceVersion = v.ID, v.Version
+				count = 0
+			} else if !errors.Is(e, ErrNotFound) {
+				return e
+			} else {
+				now = s.now()
+				legacyManifest.CreatedAt = now
+				contextSetID := "legacy_cs_" + strings.TrimPrefix(legacyManifest.ID, "li_")
+				v = Session{SchemaVersion: 1, ID: targetSessionID, DatabaseID: p.DatabaseID, ProjectID: p.ProjectID, Owner: p.Actor, Title: c.LegacyImport.Title, State: "active", Version: 1, DefaultBagID: legacyManifest.BagID, ContextSetID: contextSetID, BagIDs: []string{legacyManifest.BagID}, CreatedAt: now, UpdatedAt: now}
+				bag := Bag{ID: legacyManifest.BagID, SessionID: v.ID, Title: "Imported context", Scope: legacyManifest.Scope, Version: 1, EntryIDs: []string{}}
+				contextSet := AppliedContextSet{ID: contextSetID, SessionID: v.ID, Enabled: false, Slots: []AppliedSlot{}, CreatedAt: now}
+				for i, source := range c.LegacyImport.Entries {
+					revisionHash := sha256.Sum256([]byte(legacyManifest.ID + "\x00" + source.ID + "\x00" + legacyManifest.SourceDigest))
+					revisionID := "legacy_r_" + hex.EncodeToString(revisionHash[:])
+					createdAt := source.CreatedAt
+					if createdAt.IsZero() {
+						createdAt = now
+					}
+					revision := EntryRevision{ID: revisionID, EntryID: legacyEntryIDs[i], BagID: bag.ID, Subject: source.Subject, Value: source.Value, CreatedAt: createdAt, Provenance: "legacy-import", LegacySourceID: legacyManifest.SourceID, SourceDigest: legacyManifest.SourceDigest}
+					entry := Entry{ID: legacyEntryIDs[i], SessionID: v.ID, BagID: bag.ID, Alias: source.Alias, Subject: source.Subject, CurrentRevisionID: revisionID, Version: 1}
+					if e = tx.Save(ctx, Revisions, revision.ID, revision, 0, p.Actor, v.ID); e != nil {
+						return e
+					}
+					if e = tx.Save(ctx, Entries, entry.ID, entry, 0, p.Actor, v.ID); e != nil {
+						return e
+					}
+					bag.EntryIDs = append(bag.EntryIDs, entry.ID)
+				}
+				for i, source := range c.LegacyImport.Messages {
+					historicalAt := source.CreatedAt
+					message := Message{ID: legacyMessageIDs[i], SessionID: v.ID, Role: source.Role, Text: source.Text, CreatedAt: now, Provenance: "legacy-import", LegacySourceID: legacyManifest.SourceID, SourceDigest: legacyManifest.SourceDigest, HistoricalAt: historicalAt, SourceScope: legacyManifest.Scope}
+					if e = tx.Save(ctx, Messages, message.ID, message, 0, p.Actor, v.ID); e != nil {
+						return e
+					}
+				}
+				if e = tx.Save(ctx, Bags, bag.ID, bag, 0, p.Actor, v.ID); e != nil {
+					return e
+				}
+				if e = tx.Save(ctx, ContextSets, contextSet.ID, contextSet, 0, p.Actor, v.ID); e != nil {
+					return e
+				}
+				if e = tx.Save(ctx, LegacyImports, legacyManifest.ID, legacyManifest, 0, p.Actor, v.ID); e != nil {
+					return e
+				}
+				if _, e = s.loadSnapshot(ctx, tx, p, v, c.Action); errors.Is(e, errSnapshotLimit) {
+					return ErrInvalid
+				} else if e != nil {
+					return e
+				}
+				resource, resourceVersion = v.ID, v.Version
+				count = len(c.LegacyImport.Entries) + len(c.LegacyImport.Messages)
+			}
+			receiptScope = &legacyManifest.Scope
+		} else if c.Action == "createSession" {
 			if c.DatabaseID != p.DatabaseID || c.ProjectID != p.ProjectID || !safeID.MatchString(c.BagID) || !validScope(c.Scope) || len(c.Title) > 256 {
 				return ErrInvalid
 			}
@@ -1091,12 +1246,14 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 				}
 			}
 		}
-		expected := v.Version - 1
-		if c.Action == "createSession" {
-			expected = 0
-		}
-		if e := tx.Save(ctx, Sessions, v.ID, v, expected, p.Actor, v.ID); e != nil {
-			return e
+		if writeSession {
+			expected := v.Version - 1
+			if c.Action == "createSession" || legacy {
+				expected = 0
+			}
+			if e := tx.Save(ctx, Sessions, v.ID, v, expected, p.Actor, v.ID); e != nil {
+				return e
+			}
 		}
 		if c.BagID != "" {
 			b, e := s.bag(ctx, tx, p, v, c.BagID, c.Action)

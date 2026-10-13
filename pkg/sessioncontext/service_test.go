@@ -552,6 +552,17 @@ func assertPrivateFieldsAbsentFromOperationMetadata(t *testing.T, svc *Service, 
 		if err := repo.db.Get(context.Background(), rec); err != nil {
 			t.Fatalf("load %s record: %v", collection, err)
 		}
+		// Opaque digests can coincidentally contain short private strings; inspect
+		// the receipt metadata while treating only its digest as non-reversible.
+		if payloadJSON, ok := data["payload"].(string); ok {
+			var payload map[string]any
+			if err := json.Unmarshal([]byte(payloadJSON), &payload); err != nil {
+				t.Fatalf("decode %s receipt: %v", collection, err)
+			}
+			delete(payload, "payloadDigest")
+			data["payload"] = payload
+		}
+		delete(data, "recordId")
 		encoded, err := json.Marshal(data)
 		if err != nil {
 			t.Fatal(err)

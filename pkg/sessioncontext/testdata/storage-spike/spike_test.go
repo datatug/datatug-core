@@ -76,6 +76,78 @@ func fixture(t *testing.T, engine string) string {
 	return manifest
 }
 
+func TestLegacyImportPersistsWithoutDuplicateHistory(t *testing.T) {
+	engines := []string{"sqlite"}
+	if os.Getenv("FIRESTORE_EMULATOR_HOST") != "" {
+		engines = append(engines, "firestore")
+	}
+	for _, engine := range engines {
+		t.Run(engine, func(t *testing.T) {
+			manifest := ""
+			if engine == "sqlite" {
+				manifest = fixture(t, engine)
+			} else {
+				manifest = filepath.Join(t.TempDir(), "firestore.yaml")
+				body := "database: {id: session-store, schema_mode: strict}\nstorage: {engine: firestore, firestore: {project: context-bag-emulator}}\nschemas:\n" + sessioncontext.ManifestCollectionsYAML()
+				if err := os.WriteFile(manifest, []byte(body), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			ctx := context.Background()
+			principal := sessioncontext.Principal{Actor: fmt.Sprintf("legacy-%d", time.Now().UnixNano()), DatabaseID: "session-store", ProjectID: "legacy-project"}
+			makeService := func(db *core.Database) *sessioncontext.Service {
+				repo, err := sessioncontext.NewDALRepository(db, nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				svc, err := sessioncontext.NewService(repo, func(context.Context, sessioncontext.Access) error { return nil })
+				if err != nil {
+					t.Fatal(err)
+				}
+				return svc
+			}
+			value := apicontract.NewIntegerValue("9007199254740993")
+			historical := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
+			command := sessioncontext.Command{OpID: "legacy-import", Action: "importLegacy", DatabaseID: principal.DatabaseID, ProjectID: principal.ProjectID, LegacyImport: &sessioncontext.LegacyImport{
+				SourceID: "old-editor", Title: "Imported investigation", Scope: sessioncontext.Scope{EnvironmentID: "uat", IdentityDomain: "tenant-a"},
+				Entries:  []sessioncontext.LegacyEntry{{ID: "invoice", Subject: sessioncontext.Subject{ConceptID: "Invoice", FieldID: "Invoice.ID", FieldMappingRef: "mapping-r1"}, Value: sessioncontext.ValueEnvelope{SchemaVersion: 1, Kind: "scalar", Scalar: &value}, CreatedAt: historical}},
+				Messages: []sessioncontext.LegacyChatMessage{{ID: "question", Role: "user", Text: "Historical question", CreatedAt: historical}},
+			}}
+			db := open(t, manifest)
+			first, err := makeService(db).Execute(ctx, principal, command)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = db.Close(); err != nil {
+				t.Fatal(err)
+			}
+			svc := makeService(open(t, manifest))
+			command.OpID = "legacy-import-another-operation"
+			replayed, err := svc.Execute(ctx, principal, command)
+			if err != nil || replayed.Receipt.SessionID != first.Receipt.SessionID || replayed.Receipt.SessionVersion != first.Receipt.SessionVersion {
+				t.Fatalf("same source must not create or revise a second session: %v", err)
+			}
+			snapshot, err := svc.GetSnapshot(ctx, principal, first.Receipt.SessionID)
+			if err != nil || len(snapshot.Entries) != 1 || len(snapshot.Revisions) != 1 || snapshot.ContextSet.Enabled || snapshot.Revisions[0].Value.Scalar == nil || snapshot.Revisions[0].Value.Scalar.Str != value.Str {
+				t.Fatalf("import must preserve the integer and start unapplied: %v", err)
+			}
+			messages, err := svc.ListMessages(ctx, principal, first.Receipt.SessionID, "", 10)
+			if err != nil || len(messages.Items) != 1 || messages.Items[0].Text != "Historical question" || !messages.Items[0].HistoricalAt.Equal(historical) || messages.Items[0].Provenance != "legacy-import" || messages.Items[0].InputSnapshotID != "" {
+				t.Fatalf("historical transcript changed or duplicated: %v", err)
+			}
+			runs, err := svc.ListRuns(ctx, principal, first.Receipt.SessionID, "", 10)
+			if err != nil || len(runs.Items) != 0 {
+				t.Fatalf("import fabricated an execution: %v", err)
+			}
+			command.OpID = "legacy-import-changed-source"
+			command.LegacyImport.Messages[0].Text = "Changed source"
+			if _, err = svc.Execute(ctx, principal, command); !errors.Is(err, sessioncontext.ErrConflict) {
+				t.Fatalf("changed source must fail closed: %v", err)
+			}
+		})
+	}
+}
+
 func TestMountedRepositoryReopensSessionContext(t *testing.T) {
 	for _, engine := range []string{"sqlite", "ingitdb"} {
 		t.Run(engine, func(t *testing.T) {
