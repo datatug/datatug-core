@@ -2,6 +2,7 @@ package datatug
 
 import (
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -37,6 +38,24 @@ func TestQuerySemanticModelValidation(t *testing.T) {
 			v.Model.Records.QueryResult.Fields["name"] = f
 		}},
 		{"orphan meaning binding", func(v *QuerySemanticModel) { v.Bindings = []QuerySemanticBinding{} }},
+		{"column too long", func(v *QuerySemanticModel) { v.Basis.Columns[0].Name = strings.Repeat("x", 513) }},
+		{"label too long", func(v *QuerySemanticModel) { v.Meaning.Concepts[0].Labels.En = strings.Repeat("x", 513) }},
+		{"role too long", func(v *QuerySemanticModel) { v.Bindings[0].Role = strings.Repeat("x", 513) }},
+		{"empty column", func(v *QuerySemanticModel) { v.Basis.Columns[0].Name = " " }},
+		{"meaning format", func(v *QuerySemanticModel) { v.Meaning.Format = "meaning/draft-1" }},
+		{"model format", func(v *QuerySemanticModel) { v.Model.ModelSpec = "1.0-draft" }},
+		{"invalid concept", func(v *QuerySemanticModel) { v.Meaning.Concepts[1].Kind = "attribute" }},
+		{"invalid meaning binding", func(v *QuerySemanticModel) { v.Meaning.Concepts[1].Bindings[0].Role = "instances" }},
+		{"too many bindings", func(v *QuerySemanticModel) { v.Bindings = make([]QuerySemanticBinding, 513) }},
+		{"invalid field syntax", func(v *QuerySemanticModel) {
+			delete(v.Model.Records.QueryResult.Fields, "column1")
+			v.Model.Records.QueryResult.Fields["bad field"] = QueryModelField{Type: "string"}
+		}},
+		{"mismatched field index", func(v *QuerySemanticModel) {
+			v.Basis.Columns = append(v.Basis.Columns, v.Basis.Columns[0])
+			v.Model.Records.QueryResult.Fields["column2"] = QueryModelField{Type: "string"}
+			v.Bindings[0].Field = "column2"
+		}},
 		{"hash", func(v *QuerySemanticModel) { v.Basis.QueryHash = "bad" }},
 		{"negative result", func(v *QuerySemanticModel) { v.Basis.ResultIndex = -1 }},
 		{"duplicate concept", func(v *QuerySemanticModel) { v.Meaning.Concepts = append(v.Meaning.Concepts, v.Meaning.Concepts[0]) }},
@@ -91,5 +110,32 @@ func TestQuerySemanticModelRejectsUnknownFields(t *testing.T) {
 		if err := json.Unmarshal([]byte(data), &v); err == nil {
 			t.Fatal("accepted unsupported metadata")
 		}
+	}
+}
+
+func TestSemanticMalformedWireAndMapCredentialScreen(t *testing.T) {
+	var v QuerySemanticModel
+	for _, data := range []string{`{`, `[]`, strings.Replace(semanticFixture, `"fields":{"column1":{"type":"string"}}`, `"fields":{"column1":null}`, 1)} {
+		if err := v.UnmarshalJSON([]byte(data)); err == nil {
+			t.Fatalf("accepted malformed wire %s", data)
+		}
+	}
+	for _, value := range []map[string]string{{"password=actual-secret": "schema"}, {"column1": "Authorization: Bearer actual-secret"}} {
+		if err := screenSemanticStrings(reflect.ValueOf(value)); err == nil {
+			t.Fatal("credential in schema map accepted")
+		}
+	}
+}
+
+func TestQueryDefValidatesSemanticBundle(t *testing.T) {
+	model := validSemantic(t)
+	q := newQueryDef(QueryTypeSQL, "SELECT name FROM person")
+	q.SemanticModel = &model
+	if err := q.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	q.SemanticModel.Version = 2
+	if err := q.Validate(); err == nil || !strings.Contains(err.Error(), "semanticModel") {
+		t.Fatalf("query save accepted invalid semantic bundle: %v", err)
 	}
 }

@@ -150,11 +150,6 @@ func (v QuerySemanticModel) Validate() error {
 	if len(fields) != len(v.Basis.Columns) || len(fields) > 512 {
 		return bad("field count")
 	}
-	for i := range v.Basis.Columns {
-		if _, ok := fields[fmt.Sprintf("column%d", i+1)]; !ok {
-			return bad("complete column fields")
-		}
-	}
 	for name, f := range fields {
 		if len(name) > 128 || !semanticField.MatchString(name) {
 			return bad("field name")
@@ -163,6 +158,11 @@ func (v QuerySemanticModel) Validate() error {
 		case "string", "int", "float", "bool", "decimal", "uuid", "date", "time", "datetime", "document", "json", "any":
 		default:
 			return bad("field type")
+		}
+	}
+	for i := range v.Basis.Columns {
+		if _, ok := fields[fmt.Sprintf("column%d", i+1)]; !ok {
+			return bad("complete column fields")
 		}
 	}
 	concepts := make(map[string]QueryMeaningConcept, len(v.Meaning.Concepts))
@@ -204,11 +204,11 @@ func (v QuerySemanticModel) Validate() error {
 		if !ok || c.Kind != "property" || b.ColumnIndex < 0 || b.ColumnIndex >= len(v.Basis.Columns) || columns[b.ColumnIndex] || boundFields[b.Field] {
 			return bad("column binding")
 		}
-		if b.Field != fmt.Sprintf("column%d", b.ColumnIndex+1) {
-			return bad("binding column field")
-		}
 		if _, ok := fields[b.Field]; !ok {
 			return bad("binding field")
+		}
+		if b.Field != fmt.Sprintf("column%d", b.ColumnIndex+1) {
+			return bad("binding column field")
 		}
 		matched := false
 		for _, mb := range c.Bindings {
