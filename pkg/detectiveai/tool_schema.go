@@ -25,6 +25,10 @@ func arraySchema(item any, min, max int) toolSchema {
 	return toolSchema{"type": "array", "items": item, "minItems": min, "maxItems": max}
 }
 
+func nullableSchema(schema toolSchema) toolSchema {
+	return toolSchema{"oneOf": []any{schema, toolSchema{"type": "null"}}}
+}
+
 func refSchema(name string) toolSchema {
 	return toolSchema{"$ref": "#/$defs/" + name}
 }
@@ -50,6 +54,7 @@ func stepSchema(kind string) toolSchema {
 	properties := toolSchema{
 		"id": textSchema(128), "kind": enumSchema(kind),
 		"onUnavailable": enumSchema("block", "fail", "warn", "skip"),
+		"bindings":      arraySchema(refSchema("binding"), 0, 64),
 	}
 	if kind == "query" {
 		properties["queryId"] = textSchema(512)
@@ -57,7 +62,6 @@ func stepSchema(kind string) toolSchema {
 		return objectSchema(properties, "id", "kind", "queryId")
 	}
 	properties["checkId"] = textSchema(128)
-	properties["bindings"] = arraySchema(refSchema("binding"), 0, 64)
 	return objectSchema(properties, "id", "kind", "checkId")
 }
 
@@ -103,8 +107,15 @@ func buildProposalToolSchema() json.RawMessage {
 		"input": textSchema(128), "fromInput": textSchema(128),
 		"fromColumn": textSchema(256), "part": enumSchema("start", "end"),
 	}, "input")
+	validatorReference := toolSchema{
+		"id": textSchema(128), "validatorId": textSchema(128),
+		"kind": enumSchema(""), "scope": toolSchema{"type": "string"}, "severity": toolSchema{"type": "string"},
+		"field": textSchema(256), "otherField": textSchema(256), "expected": refSchema("scalar"),
+		"checkId": textSchema(128), "bindings": arraySchema(refSchema("binding"), 0, 64),
+		"onUnavailable": enumSchema("block", "fail", "warn", "skip"),
+	}
 	validator := toolSchema{"oneOf": []any{
-		objectSchema(toolSchema{"id": textSchema(128), "validatorId": textSchema(128)}, "id", "validatorId"),
+		objectSchema(validatorReference, "id", "validatorId"),
 		validatorSchema("non-null", "row", "field"),
 		validatorSchema("equals-fields", "row", "field", "otherField"),
 		validatorSchema("row-count", "set", "expected"),
@@ -134,7 +145,7 @@ func buildProposalToolSchema() json.RawMessage {
 		"step": toolSchema{"oneOf": []any{stepSchema("query"), stepSchema("check")}},
 		"check": objectSchema(toolSchema{
 			"id": textSchema(128), "title": textSchema(256), "description": toolSchema{"type": "string", "maxLength": 2048},
-			"version": toolSchema{"type": "integer"}, "inputs": arraySchema(refSchema("input"), 0, 64),
+			"version": toolSchema{"type": "integer"}, "inputs": nullableSchema(arraySchema(refSchema("input"), 0, 64)),
 			"steps": arraySchema(refSchema("step"), 1, 32), "updatedAt": toolSchema{"type": "string"}, "updatedBy": toolSchema{"type": "string"},
 		}, "id", "title", "steps"),
 		"scenarioStep": objectSchema(toolSchema{
@@ -142,7 +153,7 @@ func buildProposalToolSchema() json.RawMessage {
 		}, "id", "kind", "ref"),
 		"scenario": objectSchema(toolSchema{
 			"id": textSchema(128), "title": textSchema(256), "description": toolSchema{"type": "string", "maxLength": 2048},
-			"version": toolSchema{"type": "integer"}, "inputs": arraySchema(refSchema("input"), 0, 64),
+			"version": toolSchema{"type": "integer"}, "inputs": nullableSchema(arraySchema(refSchema("input"), 0, 64)),
 			"steps": arraySchema(refSchema("scenarioStep"), 1, 32),
 		}, "id", "title", "steps"),
 		"finding": objectSchema(toolSchema{
@@ -158,7 +169,7 @@ func buildProposalToolSchema() json.RawMessage {
 		}, "caseId", "expectedVersion"),
 		"run": objectSchema(toolSchema{
 			"checkId": textSchema(128), "caseId": textSchema(128), "environment": textSchema(128),
-			"inputs": toolSchema{"type": "object", "additionalProperties": refSchema("inputValue"), "maxProperties": 64},
+			"inputs": nullableSchema(toolSchema{"type": "object", "additionalProperties": refSchema("inputValue"), "maxProperties": 64}),
 		}, "checkId", "environment", "inputs"),
 		"explanation": objectSchema(toolSchema{
 			"runId": textSchema(128), "summary": textSchema(2048), "basis": textSchema(2048),
@@ -171,6 +182,6 @@ func buildProposalToolSchema() json.RawMessage {
 		proposalBranch(KindRun, "run", "run"), proposalBranch(KindExplain, "explanation", "explanation"),
 	}
 	// The tree contains only static JSON-safe primitives, maps and slices.
-	encoded, _ := json.Marshal(toolSchema{"oneOf": branches, "$defs": definitions})
+	encoded, _ := json.Marshal(toolSchema{"type": "object", "oneOf": branches, "$defs": definitions})
 	return encoded
 }
