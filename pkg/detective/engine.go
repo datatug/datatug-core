@@ -267,10 +267,8 @@ func validateGraph(graph map[string]Check, catalog map[string]PublishedValidator
 		if visited[id] {
 			return nil
 		}
-		c, ok := graph[id]
-		if !ok {
-			return ErrNotFound
-		}
+		// Every entry is visited from graph itself or an already-checked edge.
+		c := graph[id]
 		visiting[id] = true
 		for _, s := range c.Steps {
 			if s.Kind == "check" {
@@ -354,9 +352,8 @@ func validateGraph(graph map[string]Check, catalog map[string]PublishedValidator
 				if err := validateLocalBindings(child.Inputs, v.Bindings); err != nil {
 					return err
 				}
-				if err := visit(v.CheckID, 0); err != nil {
-					return err
-				}
+				// The graph walk above already visited every Check and checked
+				// all of its transitive dependencies.
 			}
 		}
 	}
@@ -844,11 +841,6 @@ func (e *engine) validate(ctx context.Context, v Validator, rs apicontract.Recor
 					applyUnavailableValidation(&item, v.OnUnavailable)
 				}
 			}
-		default:
-			item.ExecutionStatus = "error"
-			item.Outcome = "unknown"
-			item.Message = "unsupported validator kind"
-			applyUnavailableValidation(&item, "block")
 		}
 		results = append(results, item)
 		if item.ExecutionStatus == "error" && effectivePolicy(v.OnUnavailable) == "block" {

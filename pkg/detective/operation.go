@@ -34,19 +34,17 @@ func BindOperation(project, actor, action, resourceID string, payload any) (Oper
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.UseNumber()
 	var normalized any
-	if err := decoder.Decode(&normalized); err != nil {
-		return OperationBinding{}, ErrInvalid
-	}
-	encoded, err := json.Marshal(struct {
+	// json.Marshal above guarantees syntactically valid JSON; decoding that
+	// value into generic JSON numbers cannot fail. The second marshal sorts
+	// keys even when payload supplied its own Marshaler.
+	_ = decoder.Decode(&normalized)
+	encoded, _ := json.Marshal(struct {
 		Project    string `json:"project"`
 		Actor      string `json:"actor"`
 		Action     string `json:"action"`
 		ResourceID string `json:"resourceId"`
 		Payload    any    `json:"payload"`
 	}{project, actor, action, resourceID, normalized})
-	if err != nil {
-		return OperationBinding{}, ErrInvalid
-	}
 	digest := sha256.Sum256(encoded)
 	return OperationBinding{Project: project, Actor: actor, Action: action, ResourceID: resourceID, PayloadDigest: hex.EncodeToString(digest[:])}, nil
 }

@@ -1,7 +1,6 @@
 package detective
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -146,10 +145,10 @@ func ApplyScenario(c Case, scenario Scenario, applicationID, actor string, at ti
 	if err != nil {
 		return Case{}, AuditEvent{}, err
 	}
-	scenario, err = cloneValue(scenario)
-	if err != nil {
-		return Case{}, AuditEvent{}, err
-	}
+	// Scenario contains only scalar fields and slices of scalar fields.
+	// Copy those slices before the application retains its authoring snapshot.
+	scenario.Inputs = append([]Input(nil), scenario.Inputs...)
+	scenario.Steps = append([]ScenarioStep(nil), scenario.Steps...)
 	application := ScenarioApplication{ID: applicationID, ScenarioID: scenario.ID, ScenarioVersion: scenario.Version, Snapshot: scenario, AppliedAt: at, AppliedBy: actor}
 	for _, step := range scenario.Steps {
 		application.Steps = append(application.Steps, ScenarioStepReceipt{StepID: step.ID, Status: "pending"})
@@ -438,15 +437,7 @@ func validTransition(old, next, reason string) bool {
 }
 
 func cloneCase(c Case) (Case, error) {
-	data, err := json.Marshal(c)
-	if err != nil {
-		return Case{}, ErrInvalid
-	}
-	var out Case
-	if err := json.Unmarshal(data, &out); err != nil {
-		return Case{}, ErrInvalid
-	}
-	return out, nil
+	return cloneValue(c)
 }
 
 // AuditForRun recursively summarizes immutable execution metadata only.

@@ -102,17 +102,7 @@ func evaluateQueryValidators(ctx context.Context, req RunRequest, catalog Catalo
 	}
 	e := newEngine(catalog, req.Environment, runner, metadata)
 	if existing != nil {
-		used := false
-		e.runner = func(ctx context.Context, id, environment string, params map[string]apicontract.TypedValueOrSet) (apicontract.Result, error) {
-			if !used {
-				used = true
-				if id != req.QueryID || environment != req.Environment {
-					return apicontract.Result{}, ErrInvalid
-				}
-				return *existing, nil
-			}
-			return runner(ctx, id, environment, params)
-		}
+		e.runner = withExistingResult(req, existing, runner)
 	}
 	for _, validator := range local.Validators {
 		v := validator
@@ -140,6 +130,22 @@ func evaluateQueryValidators(ctx context.Context, req RunRequest, catalog Catalo
 	e.snapshot(&run, "", req.QueryID)
 	run.CheckInvocations, run.QueryExecutions = e.nodes, e.queries
 	return run, nil
+}
+
+// withExistingResult admits a retained result once, only for its selected
+// query and environment. Nested queries continue through the secured runner.
+func withExistingResult(req RunRequest, existing *apicontract.Result, runner QueryRunner) QueryRunner {
+	used := false
+	return func(ctx context.Context, id, environment string, params map[string]apicontract.TypedValueOrSet) (apicontract.Result, error) {
+		if !used {
+			used = true
+			if id != req.QueryID || environment != req.Environment {
+				return apicontract.Result{}, ErrInvalid
+			}
+			return *existing, nil
+		}
+		return runner(ctx, id, environment, params)
+	}
 }
 
 // QueryParameters is the result of explicit scalar/set bindings. A range must
