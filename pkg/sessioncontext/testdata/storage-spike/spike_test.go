@@ -195,6 +195,76 @@ func TestMountedRepositoryReopensSessionContext(t *testing.T) {
 	}
 }
 
+func TestSQLiteOutcomeUnknownPersistsAndReplaysAfterReopen(t *testing.T) {
+	manifest := fixture(t, "sqlite")
+	principal := sessioncontext.Principal{Actor: "alice", DatabaseID: "session-store", ProjectID: "project1"}
+	scope := &sessioncontext.Scope{EnvironmentID: "uat", IdentityDomain: "tenant-a"}
+	db := open(t, manifest)
+	repo, err := sessioncontext.NewDALRepository(db, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service, err := sessioncontext.NewService(repo, func(context.Context, sessioncontext.Access) error { return nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	created, err := service.Execute(context.Background(), principal, sessioncontext.Command{
+		OpID: "unknown-create", Action: "createSession", SessionID: "unknown-session", DatabaseID: principal.DatabaseID,
+		ProjectID: principal.ProjectID, BagID: "unknown-bag", Scope: scope, Title: "unknown result",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	pin := sessioncontext.Command{
+		OpID: "unknown-pin", Action: "pinInput", SessionID: created.Receipt.SessionID, ExpectedVersion: created.Receipt.SessionVersion,
+		InputSnapshotID: "unknown-input", RunID: "unknown-run", Kind: "query", DefinitionID: "query", DefinitionRevision: "query-r1",
+		DefinitionDocument: json.RawMessage(`{"schemaVersion":1,"kind":"query","queries":[{"id":"q1","queryType":"SQL","text":"select 1"}]}`), Scope: scope,
+	}
+	pinned, err := service.Execute(context.Background(), principal, pin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	unknown := sessioncontext.Command{
+		OpID: "unknown-report", Action: "reportClientRun", SessionID: created.Receipt.SessionID, ExpectedRunVersion: 1,
+		RunID: pin.RunID, Kind: "query", RunState: "outcome-unknown", ErrorCode: "CLIENT_OUTCOME_UNKNOWN",
+	}
+	first, err := service.Execute(context.Background(), principal, unknown)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.Receipt.SessionVersion != pinned.Receipt.SessionVersion+1 {
+		t.Fatalf("unknown outcome did not settle session version: before=%d after=%d", pinned.Receipt.SessionVersion, first.Receipt.SessionVersion)
+	}
+	if err = db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := mount.File(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reopened.Close()
+	repo, err = sessioncontext.NewDALRepository(reopened, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service, err = sessioncontext.NewService(repo, func(context.Context, sessioncontext.Access) error { return nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	replay, err := service.Execute(context.Background(), principal, unknown)
+	if err != nil || replay.Receipt.SessionVersion != first.Receipt.SessionVersion || replay.Receipt.ResourceVersion != first.Receipt.ResourceVersion {
+		t.Fatalf("unknown operation replay changed after reopen: first=%+v replay=%+v err=%v", first.Receipt, replay.Receipt, err)
+	}
+	snapshot, err := service.GetSnapshot(context.Background(), principal, created.Receipt.SessionID)
+	if err != nil || snapshot.Session.PendingRunCount != 0 {
+		t.Fatalf("settled pending count did not survive reopen: session=%+v err=%v", snapshot.Session, err)
+	}
+	run, err := service.ReadRun(context.Background(), principal, pin.RunID)
+	if err != nil || run.State != "outcome-unknown" || run.OutcomeOrigin != "client-outcome-unknown" || run.ErrorCode != "CLIENT_OUTCOME_UNKNOWN" || run.Version != 2 {
+		t.Fatalf("unknown outcome did not survive reopen: run=%+v err=%v", run, err)
+	}
+}
+
 // TestFirestoreEmulatorSessionContext exercises the same MVS as the SQLite
 // crash fixture against a real dalgo2firestore driver when the local emulator is
 // explicitly enabled. It covers transactional commands, list queries and reopen.
