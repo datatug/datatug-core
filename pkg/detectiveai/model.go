@@ -59,13 +59,14 @@ type Snapshot struct {
 	Runs            []Resource `json:"runs"`
 }
 
-// Source is a host-issued citation to pasted text or an authorized resource.
-// Locator identifies a span or field without copying sensitive source text.
+// Source is host-supplied pasted text or an authorized resource excerpt. Its
+// full Text is sent to the provider but is not retained by Core. Validated
+// Provenance.Quote spans can be retained in private proposals for review.
 type Source struct {
 	ID       string `json:"id"`
 	Kind     string `json:"kind"`
 	Revision string `json:"revision"`
-	Text     string `json:"text"` // bounded authorized excerpt; never persisted or logged by Core
+	Text     string `json:"text"` // bounded input; only cited Quote spans may be privately persisted
 }
 
 type SourceEvidence struct {
@@ -80,7 +81,7 @@ type Provenance struct {
 	SourceID   string  `json:"sourceId"`
 	Start      int     `json:"start"` // byte offsets into Source.Text
 	End        int     `json:"end"`
-	Quote      string  `json:"quote,omitempty"`
+	Quote      string  `json:"quote,omitempty"` // exact bounded Source.Text span, private review evidence
 	Confidence float64 `json:"confidence"`
 	Ambiguous  bool    `json:"ambiguous,omitempty"`
 }

@@ -114,6 +114,27 @@ func TestAssistantMakesReviewableProposalWithoutExecuting(t *testing.T) {
 	}
 }
 
+func TestAssistantRetainsOnlyCitedPrivateExcerpt(t *testing.T) {
+	scope, snapshot, sources := baseline()
+	sources[0].Text = "invoice 7; confidential uncited customer details"
+	store := &memoryStore{}
+	provider := &fakeProvider{steps: [][]ai.Event{
+		{toolCall("proposal", "submit_proposal", runDraft()), {Type: ai.EventCompleted, StopReason: ai.StopReasonToolCalls}},
+		{{Type: ai.EventCompleted, StopReason: ai.StopReasonEnd}},
+	}}
+	response, err := (Assistant{Provider: provider, Store: store, NewID: func() (string, error) { return "proposal-quote", nil }}).Run(context.Background(), Request{Scope: scope, Snapshot: snapshot, Text: "Investigate", Sources: sources})
+	if err != nil || len(response.Proposals) != 1 {
+		t.Fatalf("cited proposal = %+v, %v", response, err)
+	}
+	stored, err := json.Marshal(store.items["proposal-quote"])
+	if err != nil || !strings.Contains(string(stored), `"quote":"invoice 7"`) || strings.Contains(string(stored), "confidential uncited customer details") || strings.Contains(string(stored), sources[0].Text) {
+		t.Fatalf("private proposal retained wrong source material: %s, %v", stored, err)
+	}
+	if store.items["proposal-quote"].Sources[0].Length != len(sources[0].Text) {
+		t.Fatal("source evidence did not bind full source length")
+	}
+}
+
 func TestAssistantRejectsSpoofingAndBadSourceSpans(t *testing.T) {
 	scope, snapshot, sources := baseline()
 	cases := []struct {

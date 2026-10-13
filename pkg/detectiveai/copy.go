@@ -1,13 +1,17 @@
 package detectiveai
 
-import "github.com/datatug/datatug-core/pkg/detective"
+import (
+	"slices"
+
+	"github.com/datatug/datatug-core/pkg/detective"
+)
 
 func cloneSnapshot(value Snapshot) Snapshot {
-	value.Environments = append([]string(nil), value.Environments...)
+	value.Environments = slices.Clone(value.Environments)
 	cloneList := func(items []Resource) []Resource {
-		copy := append([]Resource(nil), items...)
+		copy := slices.Clone(items)
 		for i := range copy {
-			copy[i].Inputs = append([]detective.Input(nil), copy[i].Inputs...)
+			copy[i].Inputs = slices.Clone(copy[i].Inputs)
 		}
 		return copy
 	}

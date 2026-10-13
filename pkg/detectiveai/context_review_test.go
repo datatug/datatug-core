@@ -3,6 +3,7 @@ package detectiveai
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -152,6 +153,18 @@ func TestReviewedContextSurfacesAdapterFailuresAndRejectsUnsafeIDs(t *testing.T)
 	delete(ports.items, request.ProposalID)
 	if _, err := PrepareContextCaseEdit(context.Background(), scope, request, ports, now, nil); !errors.Is(err, detective.ErrNotFound) {
 		t.Fatalf("missing extraction not surfaced: %v", err)
+	}
+}
+
+func TestReviewedContextRejectsOversizedEditedValueBeforePersistence(t *testing.T) {
+	scope, request, ports, now := contextReviewFixture(t)
+	value := investigation.NewStringValue(strings.Repeat("s", 1<<20))
+	request.Context = map[string]detective.InputValue{"notes": {Scalar: &value}}
+	if _, err := PrepareContextCaseEdit(context.Background(), scope, request, ports, now, func() (string, error) { return "review-big", nil }); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("oversized edited context accepted: %v", err)
+	}
+	if len(ports.items) != 1 || ports.items["review-big"].ID != "" {
+		t.Fatal("oversized reviewed context reached durable proposal store")
 	}
 }
 

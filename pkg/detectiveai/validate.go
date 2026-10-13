@@ -15,11 +15,12 @@ import (
 )
 
 const (
-	maxText      = 16 * 1024
-	maxDraftJSON = 32 * 1024
-	maxResources = 200
-	maxSources   = 32
-	maxProposals = 6
+	maxText         = 16 * 1024
+	maxDraftJSON    = 32 * 1024
+	maxProposalJSON = 128 * 1024
+	maxResources    = 200
+	maxSources      = 32
+	maxProposals    = 6
 )
 
 func validScope(scope Scope) bool {
@@ -97,8 +98,7 @@ func validateDraft(d Draft, snapshot Snapshot, sources []Source) error {
 }
 
 func validateDraftWithExpectations(d Draft, snapshot Snapshot, sources []Source, expectedCounts map[string]int) error {
-	raw, err := json.Marshal(d)
-	if err != nil || len(raw) > maxDraftJSON || strings.TrimSpace(d.Title) == "" || len(d.Title) > 256 || len(d.Ambiguities) > 16 {
+	if boundedDraft(d) != nil || strings.TrimSpace(d.Title) == "" || len(d.Title) > 256 || len(d.Ambiguities) > 16 {
 		return ErrInvalid
 	}
 	allowed, ok := sourceSet(sources)
@@ -287,6 +287,10 @@ func oneOf(value string, options ...string) bool {
 
 func proposalDigest(proposal Proposal) (string, error) {
 	proposal.Digest = ""
+	raw, err := json.Marshal(proposal)
+	if err != nil || len(raw) > maxProposalJSON {
+		return "", ErrInvalid
+	}
 	binding, err := detective.BindOperation(proposal.Scope.Key, proposal.Scope.Actor, "ai-proposal", proposal.ID, proposal)
 	if err != nil {
 		return "", ErrInvalid
@@ -309,7 +313,39 @@ func validateProposal(proposal Proposal, now time.Time) error {
 }
 
 func sameSnapshot(a, b Snapshot) bool {
-	return reflect.DeepEqual(a, b)
+	normalize := func(value Snapshot) Snapshot {
+		value = cloneSnapshot(value)
+		if len(value.Environments) == 0 {
+			value.Environments = nil
+		}
+		trim := func(items []Resource) []Resource {
+			if len(items) == 0 {
+				return nil
+			}
+			for i := range items {
+				if len(items[i].Inputs) == 0 {
+					items[i].Inputs = nil
+				}
+			}
+			return items
+		}
+		value.Queries = trim(value.Queries)
+		value.Checks = trim(value.Checks)
+		value.Validators = trim(value.Validators)
+		value.Scenarios = trim(value.Scenarios)
+		value.Cases = trim(value.Cases)
+		value.Runs = trim(value.Runs)
+		return value
+	}
+	return reflect.DeepEqual(normalize(a), normalize(b))
+}
+
+func boundedDraft(d Draft) error {
+	raw, err := json.Marshal(d)
+	if err != nil || len(raw) > maxDraftJSON {
+		return ErrInvalid
+	}
+	return nil
 }
 
 func strictDecode(data []byte, target any) error {

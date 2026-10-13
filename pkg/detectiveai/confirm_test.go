@@ -2,6 +2,7 @@ package detectiveai
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -121,6 +122,31 @@ func TestConfirmBindsFullScopeAndReauthorizesOnReplay(t *testing.T) {
 	ports.receipts[request.OperationID] = conflict
 	if _, err := Confirm(context.Background(), scope, request, ports, now); !errors.Is(err, detective.ErrConflict) {
 		t.Fatalf("conflicting operation receipt accepted: %v", err)
+	}
+}
+
+func TestConfirmTreatsSerializedEmptyCollectionsAsUnchanged(t *testing.T) {
+	scope, proposal, ports, now := proposalFixture(t)
+	proposal.Basis.Validators = []Resource{}
+	proposal.Basis.Checks[0].Inputs = []detective.Input{}
+	proposal.Digest, _ = proposalDigest(proposal)
+	encoded, err := json.Marshal(proposal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var stored Proposal
+	if err := json.Unmarshal(encoded, &stored); err != nil {
+		t.Fatal(err)
+	}
+	ports.items[proposal.ID] = stored
+	ports.snapshot = cloneSnapshot(stored.Basis)
+	ports.snapshot.Validators = nil
+	ports.snapshot.Checks[0].Inputs = nil
+	if _, err := Confirm(context.Background(), scope, ConfirmRequest{ProposalID: stored.ID, Digest: stored.Digest, OperationID: "unchanged"}, ports, now); err != nil {
+		t.Fatalf("unchanged JSON catalog was stale or lost its digest: %v", err)
+	}
+	if sameSnapshot(Snapshot{CatalogRevision: "r", Environments: []string{}, Queries: []Resource{}, Checks: []Resource{}, Validators: []Resource{}, Scenarios: []Resource{}, Cases: []Resource{}, Runs: []Resource{}}, Snapshot{CatalogRevision: "r"}) == false {
+		t.Fatal("empty and nil collections differ semantically")
 	}
 }
 

@@ -63,6 +63,9 @@ func prepareContextCaseEdit(ctx context.Context, scope Scope, request ContextRev
 		Basis: current, Draft: draft, Sources: original.Sources,
 		CreatedAt: now.UTC(), ExpiresAt: now.UTC().Add(15 * time.Minute),
 	})
+	if boundedDraft(derived.Draft) != nil {
+		return Proposal{}, ErrInvalid
+	}
 	derived.Digest, err = digest(derived)
 	if err != nil {
 		return Proposal{}, err

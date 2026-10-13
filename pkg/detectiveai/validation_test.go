@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -161,6 +162,17 @@ func TestBoundedCatalogAndProposalTampering(t *testing.T) {
 	}
 	if err := strictDecode([]byte(strings.Repeat("x", maxDraftJSON+1)), &Draft{}); !errors.Is(err, ErrInvalid) {
 		t.Fatalf("oversize model payload accepted: %v", err)
+	}
+	large := make([]Resource, maxResources)
+	for i := range large {
+		large[i] = Resource{ID: "item-" + strconv.Itoa(i), Title: strings.Repeat("x", 256), Revision: "1"}
+	}
+	p.Basis = Snapshot{CatalogRevision: "r", Queries: large, Checks: large, Validators: large, Scenarios: large, Cases: large, Runs: large}
+	if !validSnapshot(p.Basis) {
+		t.Fatal("bounded individual catalog lists were unexpectedly invalid")
+	}
+	if _, err := proposalDigest(p); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("oversized aggregate proposal accepted: %v", err)
 	}
 }
 
