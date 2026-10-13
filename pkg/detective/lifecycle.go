@@ -145,10 +145,12 @@ func ApplyScenario(c Case, scenario Scenario, applicationID, actor string, at ti
 	if err != nil {
 		return Case{}, AuditEvent{}, err
 	}
-	// Scenario contains only scalar fields and slices of scalar fields.
-	// Copy those slices before the application retains its authoring snapshot.
+	// Copy slices before the application retains its authoring snapshot.
 	scenario.Inputs = append([]Input(nil), scenario.Inputs...)
 	scenario.Steps = append([]ScenarioStep(nil), scenario.Steps...)
+	for i := range scenario.Steps {
+		scenario.Steps[i].Bindings = append([]Binding(nil), scenario.Steps[i].Bindings...)
+	}
 	application := ScenarioApplication{ID: applicationID, ScenarioID: scenario.ID, ScenarioVersion: scenario.Version, Snapshot: scenario, AppliedAt: at, AppliedBy: actor}
 	for _, step := range scenario.Steps {
 		application.Steps = append(application.Steps, ScenarioStepReceipt{StepID: step.ID, Status: "pending"})
@@ -332,16 +334,23 @@ func AttachRun(c Case, run CheckRun, eventID, actor string, at time.Time) (Case,
 	return c, AuditEvent{ID: eventID, At: at, Actor: actor, Action: "check-run", CaseID: c.ID, RunID: run.ID}, nil
 }
 
+// ValidateScenario checks query range bindings per step. Scenario inputs may
+// be consumed by query steps or by the Check steps they configure.
 func ValidateScenario(scenario Scenario) error {
 	if !validSlug(scenario.ID) || strings.TrimSpace(scenario.Title) == "" || len(scenario.Steps) == 0 || len(scenario.Steps) > 32 || len(scenario.Inputs) > 64 {
 		return ErrInvalid
 	}
 	inputNames := map[string]bool{}
+	inputs := make(map[string]Input, len(scenario.Inputs))
 	for _, input := range scenario.Inputs {
 		if !validParameterName(input.Name) || inputNames[input.Name] || !validInputType(input.Type) || !oneOf(input.Cardinality, "scalar", "set", "range") {
 			return ErrInvalid
 		}
+		if input.Cardinality == "range" && !validRangeInputType(input.Type) {
+			return ErrInvalid
+		}
 		inputNames[input.Name] = true
+		inputs[input.Name] = input
 	}
 	stepIDs := map[string]bool{}
 	for _, step := range scenario.Steps {
@@ -349,6 +358,53 @@ func ValidateScenario(scenario Scenario) error {
 			return ErrInvalid
 		}
 		stepIDs[step.ID] = true
+		if step.Kind == "check" {
+			if len(step.Bindings) != 0 {
+				return ErrInvalid
+			}
+			continue
+		}
+		if err := validateScenarioQueryBindings(step.Bindings, inputs); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateScenarioQueryBindings(bindings []Binding, inputs map[string]Input) error {
+	if validateBindings(bindings) != nil {
+		return ErrInvalid
+	}
+	rangeParts := make(map[string]map[string]bool)
+	for _, binding := range bindings {
+		if binding.FromColumn != "" {
+			return ErrInvalid
+		}
+		input, ok := inputs[binding.FromInput]
+		if !ok {
+			return ErrInvalid
+		}
+		if input.Cardinality == "range" {
+			if !oneOf(binding.Part, "start", "end") {
+				return ErrInvalid
+			}
+			parts := rangeParts[binding.FromInput]
+			if parts == nil {
+				parts = make(map[string]bool, 2)
+				rangeParts[binding.FromInput] = parts
+			}
+			if parts[binding.Part] {
+				return ErrInvalid
+			}
+			parts[binding.Part] = true
+		} else if binding.Part != "" {
+			return ErrInvalid
+		}
+	}
+	for _, parts := range rangeParts {
+		if len(parts) != 2 || !parts["start"] || !parts["end"] {
+			return ErrInvalid
+		}
 	}
 	return nil
 }

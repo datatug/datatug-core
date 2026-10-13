@@ -301,3 +301,38 @@ func TestProposalSchemaCoversEditableCoreWireFields(t *testing.T) {
 		})
 	}
 }
+
+func TestScenarioStepProposalSchemaUsesContextOnlyEndpointBindings(t *testing.T) {
+	var schema map[string]any
+	if err := json.Unmarshal(proposalToolSchema, &schema); err != nil {
+		t.Fatal(err)
+	}
+	definitions, ok := schema["$defs"].(map[string]any)
+	if !ok {
+		t.Fatal("proposal schema has no definitions")
+	}
+	step, ok := definitions["scenarioStep"].(map[string]any)
+	if !ok {
+		t.Fatal("proposal schema has no ScenarioStep")
+	}
+	stepProperties, ok := step["properties"].(map[string]any)
+	if !ok || stepProperties["bindings"] == nil {
+		t.Fatal("ScenarioStep has no bindings property")
+	}
+	binding, ok := definitions["scenarioBinding"].(map[string]any)
+	if !ok {
+		t.Fatal("proposal schema has no ScenarioBinding")
+	}
+	properties, ok := binding["properties"].(map[string]any)
+	if !ok || properties["input"] == nil || properties["fromInput"] == nil || properties["part"] == nil || properties["fromColumn"] != nil {
+		t.Fatalf("unsafe ScenarioBinding properties: %+v", properties)
+	}
+	part, ok := properties["part"].(map[string]any)
+	if !ok {
+		t.Fatal("ScenarioBinding part is not an enum schema")
+	}
+	values, ok := part["enum"].([]any)
+	if !ok || len(values) != 2 || values[0] != "start" || values[1] != "end" {
+		t.Fatalf("ScenarioBinding part enum is incorrect: %+v", part["enum"])
+	}
+}
