@@ -74,7 +74,9 @@ func (a Assistant) Run(ctx context.Context, request Request) (Response, error) {
 			var arguments struct {
 				Proposal Draft `json:"proposal"`
 			}
-			if len(call.Arguments) > maxDraftJSON+len(`{"proposal":}`) || apicontract.DecodeStrict(call.Arguments, &arguments, "project", "actor", "scope", "authority", "securityContextId", "credentials") != nil {
+			// Validator.scope is a typed assertion field. Authority scope is absent
+			// from this envelope and Draft, so strict unknown-field decoding rejects it.
+			if len(call.Arguments) > maxDraftJSON+len(`{"proposal":}`) || apicontract.DecodeStrict(call.Arguments, &arguments, "project", "actor", "authority", "securityContextId", "credentials") != nil {
 				return ai.ToolResult{CallID: call.ID, IsError: true, Content: "invalid typed proposal"}, nil
 			}
 			draft := arguments.Proposal
