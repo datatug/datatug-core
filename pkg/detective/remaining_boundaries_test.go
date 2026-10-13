@@ -91,6 +91,24 @@ func TestOperationBindingRejectsInvalidPayloadAndReceipt(t *testing.T) {
 	}
 }
 
+func TestOperationBindingRejectsPayloadThatOverflowsScopeEnvelope(t *testing.T) {
+	var first any = "first"
+	var second any = "second"
+	for range 10000 {
+		first = []any{first}
+		second = []any{second}
+	}
+	if _, err := json.Marshal(first); err != nil {
+		t.Fatalf("payload must be valid before the scope envelope is added: %v", err)
+	}
+	for _, payload := range []any{first, second} {
+		binding, err := BindOperation("project", "alice", "update-case", "case", payload)
+		if !errors.Is(err, ErrInvalid) || binding != (OperationBinding{}) {
+			t.Fatalf("unhashable scoped payload produced a replay digest: %+v %v", binding, err)
+		}
+	}
+}
+
 func TestDefinitionCloneAndEvaluationRejectCorruptedCatalogs(t *testing.T) {
 	ctx := context.Background()
 	reader := mapReader{checks: map[string]Check{"root": {ID: "root", Title: "Root", Steps: []Step{{ID: "q", Kind: "query", QueryID: "q"}}}}, validators: map[string]PublishedValidator{}, locals: map[string]QueryValidators{}, queries: map[string]bool{"q": true}}
