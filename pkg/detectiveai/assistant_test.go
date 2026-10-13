@@ -143,6 +143,38 @@ func TestAssistantRetainsOnlyCitedPrivateExcerpt(t *testing.T) {
 	}
 }
 
+func TestAssistantAcceptsEveryTypedProposalThroughToolEnvelope(t *testing.T) {
+	scope, snapshot, sources := baseline()
+	drafts := typedDrafts()
+	count := investigation.NewIntegerValue("1")
+	setValidator := detective.Validator{ID: "count", Scope: "set", Kind: "row-count", Severity: "error", Expected: &count}
+	check := cloneDraft(drafts[2])
+	check.Check.Steps[0].Validators = append(check.Check.Steps[0].Validators, setValidator)
+	validator := cloneDraft(drafts[3])
+	validator.Validator.Validator = setValidator
+	drafts = append(drafts, check, validator)
+	for i, draft := range drafts {
+		t.Run(fmt.Sprintf("%s-%d", draft.Kind, i), func(t *testing.T) {
+			store := &memoryStore{}
+			provider := &fakeProvider{steps: [][]ai.Event{
+				{toolCall("proposal", "submit_proposal", draft), {Type: ai.EventCompleted, StopReason: ai.StopReasonToolCalls}},
+				{{Type: ai.EventCompleted, StopReason: ai.StopReasonEnd}},
+			}}
+			response, err := (Assistant{Provider: provider, Store: store, NewID: func() (string, error) { return "typed-proposal", nil }}).Run(context.Background(), Request{Scope: scope, Snapshot: snapshot, Text: "Review invoice 7", Sources: sources})
+			if err != nil || len(response.Proposals) != 1 || len(store.items) != 1 {
+				t.Fatalf("typed tool proposal rejected: %+v, %v", response, err)
+			}
+			stored := store.items["typed-proposal"]
+			if stored.Scope != scope || stored.Draft.Kind != draft.Kind || stored.Digest == "" {
+				t.Fatalf("proposal lost trusted scope or draft: %+v", stored)
+			}
+			if err := validateProposal(stored, stored.CreatedAt); err != nil {
+				t.Fatalf("stored typed proposal invalid: %v", err)
+			}
+		})
+	}
+}
+
 func TestAssistantRejectsSpoofingAndBadSourceSpans(t *testing.T) {
 	scope, snapshot, sources := baseline()
 	cases := []struct {
@@ -155,6 +187,27 @@ func TestAssistantRejectsSpoofingAndBadSourceSpans(t *testing.T) {
 		{"made-up source", toolCall("1", "submit_proposal", Draft{Kind: KindRun, Title: "x", Run: runDraft().Run, Sources: []Provenance{{SourceID: "other", Start: 0, End: 2, Confidence: .9}}})},
 		{"false quote", toolCall("1", "submit_proposal", Draft{Kind: KindRun, Title: "x", Run: runDraft().Run, Sources: []Provenance{{SourceID: "ticket", Start: 0, End: 9, Quote: "invoice 8", Confidence: .9}}})},
 		{"unknown check", toolCall("1", "submit_proposal", Draft{Kind: KindRun, Title: "x", Run: &RunDraft{CheckID: "invented", Environment: "local"}, Sources: runDraft().Sources})},
+	}
+	for _, path := range [][]string{{}, {"proposal"}, {"proposal", "run"}} {
+		call := toolCall("scope", "submit_proposal", runDraft())
+		var envelope map[string]any
+		if err := json.Unmarshal(call.ToolCall.Arguments, &envelope); err != nil {
+			t.Fatal(err)
+		}
+		target := envelope
+		for _, key := range path {
+			target = target[key].(map[string]any)
+		}
+		target["scope"] = "foreign-project"
+		var err error
+		call.ToolCall.Arguments, err = json.Marshal(envelope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cases = append(cases, struct {
+			name string
+			call ai.Event
+		}{"scope injection " + strings.Join(path, "."), call})
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
