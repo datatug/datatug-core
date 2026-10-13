@@ -14,7 +14,7 @@ import (
 var ErrConflict = errors.New("definition or case changed; reload before saving")
 var ErrNotFound = errors.New("detective item not found")
 var ErrInvalid = errors.New("invalid detective item")
-var ErrCapacity = errors.New("Detective catalog capacity reached")
+var ErrCapacity = errors.New("detective catalog capacity reached")
 var ErrOutcomeUncertain = errors.New("mutation may have been saved but audit failed; reload before retrying")
 
 // Catalog is the bounded, transitive definition graph for one evaluation. It
@@ -48,8 +48,7 @@ func LoadCatalog(ctx context.Context, rootCheckID, rootQueryID string, reader Ca
 	visiting := map[string]bool{}
 	var visitCheck func(string, int) error
 	var visitQuery func(string, []Validator, int) error
-	var visitValidators func([]Validator, int) error
-	visitValidators = func(items []Validator, depth int) error {
+	visitValidators := func(items []Validator, depth int) error {
 		for _, original := range items {
 			v := original
 			if v.ValidatorID != "" {
@@ -201,7 +200,7 @@ func validSlug(id string) bool {
 		return false
 	}
 	for _, r := range id {
-		if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-') {
+		if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
 			return false
 		}
 	}
@@ -217,7 +216,7 @@ func validQueryRef(id string) bool {
 			return false
 		}
 		for _, r := range segment {
-			if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '.' || r == '_' || r == '-') {
+			if (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') && (r < '0' || r > '9') && r != '.' && r != '_' && r != '-' {
 				return false
 			}
 		}

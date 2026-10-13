@@ -396,8 +396,7 @@ func (e *engine) snapshot(run *CheckRun, rootCheck, rootQuery string) {
 	seenValidators := map[string]bool{}
 	var visitCheck func(string)
 	var visitQuery func(string, []Validator)
-	var visitValidators func([]Validator)
-	visitValidators = func(validators []Validator) {
+	visitValidators := func(validators []Validator) {
 		for _, v := range validators {
 			if v.ValidatorID != "" {
 				if !seenValidators[v.ValidatorID] {
@@ -682,7 +681,7 @@ func validExecutionCode(code string) bool {
 		return false
 	}
 	for _, r := range code {
-		if !((r >= 'A' && r <= 'Z') || r == '_') {
+		if (r < 'A' || r > 'Z') && r != '_' {
 			return false
 		}
 	}
