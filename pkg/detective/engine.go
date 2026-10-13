@@ -555,7 +555,7 @@ func (e *engine) runCheck(ctx context.Context, id string, inputs map[string]Inpu
 		}
 	}
 	res.Outcome, res.ExecutionStatus, res.Severity = aggregate(res.Children)
-	res.EvidenceOutcome = res.Outcome
+	res.EvidenceOutcome = aggregateStepEvidence(res.Children)
 	e.cache[key] = res
 	return res
 }
@@ -663,7 +663,7 @@ func (e *engine) runQueryStep(ctx context.Context, step Step, inputs map[string]
 		}
 	}
 	res.Outcome, res.ExecutionStatus, res.Severity = aggregateValidators(res.Validators)
-	res.EvidenceOutcome = res.Outcome
+	res.EvidenceOutcome = aggregateValidatorEvidence(res.Validators)
 	if evidenceMissing {
 		res.Outcome = "unknown"
 		res.ExecutionStatus = "error"
@@ -840,8 +840,8 @@ func (e *engine) validate(ctx context.Context, v Validator, rs apicontract.Recor
 				item.Outcome = child.Outcome
 				item.ExecutionStatus = child.ExecutionStatus
 				item.Severity = higherSeverity(item.Severity, child.Severity)
+				item.EvidenceOutcome = child.EvidenceOutcome
 				if child.ExecutionStatus == "error" {
-					item.EvidenceOutcome = "unknown"
 					applyUnavailableValidation(&item, v.OnUnavailable)
 				}
 			}
@@ -962,6 +962,46 @@ func aggregateValidators(children []ValidationResult) (string, string, string) {
 	}
 	return outcome, status, severity
 }
+
+func aggregateStepEvidence(children []StepResult) string {
+	if len(children) == 0 {
+		return "unknown"
+	}
+	outcome := "pass"
+	for _, child := range children {
+		value := child.EvidenceOutcome
+		if value == "" {
+			value = child.Outcome
+		}
+		outcome = combineEvidenceOutcome(outcome, value)
+	}
+	return outcome
+}
+
+func aggregateValidatorEvidence(children []ValidationResult) string {
+	if len(children) == 0 {
+		return "unknown"
+	}
+	outcome := "pass"
+	for _, child := range children {
+		value := child.EvidenceOutcome
+		if value == "" {
+			value = child.Outcome
+		}
+		outcome = combineEvidenceOutcome(outcome, value)
+	}
+	return outcome
+}
+
+func combineEvidenceOutcome(current, next string) string {
+	if current == "fail" || next == "fail" {
+		return "fail"
+	}
+	if current == "unknown" || next != "pass" {
+		return "unknown"
+	}
+	return "pass"
+}
 func higherSeverity(a, b string) string {
 	rank := map[string]int{"": 0, "info": 1, "warning": 2, "error": 3, "critical": 4}
 	if rank[b] > rank[a] {
@@ -979,29 +1019,41 @@ func EffectivePolicy(policy string) string { return effectivePolicy(policy) }
 func applyUnavailable(r *StepResult, policy string) {
 	r.OnUnavailable = effectivePolicy(policy)
 	r.Disposition = r.OnUnavailable
-	r.EvidenceOutcome = "unknown"
+	if r.EvidenceOutcome == "" {
+		r.EvidenceOutcome = "unknown"
+	}
 	switch r.OnUnavailable {
 	case "fail":
 		r.Outcome = "fail"
 	case "warn":
-		r.Outcome = "unknown"
+		if r.Outcome != "fail" {
+			r.Outcome = "unknown"
+		}
 		r.Severity = higherSeverity(r.Severity, "warning")
 	default:
-		r.Outcome = "unknown"
+		if r.Outcome != "fail" {
+			r.Outcome = "unknown"
+		}
 	}
 }
 func applyUnavailableValidation(r *ValidationResult, policy string) {
 	r.OnUnavailable = effectivePolicy(policy)
 	r.Disposition = r.OnUnavailable
-	r.EvidenceOutcome = "unknown"
+	if r.EvidenceOutcome == "" {
+		r.EvidenceOutcome = "unknown"
+	}
 	switch r.OnUnavailable {
 	case "fail":
 		r.Outcome = "fail"
 	case "warn":
-		r.Outcome = "unknown"
+		if r.Outcome != "fail" {
+			r.Outcome = "unknown"
+		}
 		r.Severity = higherSeverity(r.Severity, "warning")
 	default:
-		r.Outcome = "unknown"
+		if r.Outcome != "fail" {
+			r.Outcome = "unknown"
+		}
 	}
 }
 
