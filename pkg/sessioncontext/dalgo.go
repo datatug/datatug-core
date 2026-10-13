@@ -140,7 +140,7 @@ func (d *dalTransaction) Save(ctx context.Context, collection, id string, value 
 	d.pending[collection+"/"+id] = storedRecord{Collection: collection, ID: id, Version: expected + 1, Owner: owner, SessionID: sessionID, Payload: payload}
 	return nil
 }
-func (d *dalTransaction) List(ctx context.Context, collection, owner, cursor string, limit int) ([]json.RawMessage, string, error) {
+func (d *dalTransaction) List(ctx context.Context, collection, owner, cursor string, limit int) (out []json.RawMessage, next string, retErr error) {
 	if !knownCollection(collection) || owner == "" || limit < 1 || limit > 100 || cursor != "" && !safeID.MatchString(cursor) {
 		return nil, "", ErrInvalid
 	}
@@ -158,8 +158,12 @@ func (d *dalTransaction) List(ctx context.Context, collection, owner, cursor str
 	if e != nil {
 		return nil, "", storageError(e)
 	}
-	defer reader.Close()
-	out := []json.RawMessage{}
+	defer func() {
+		if closeErr := reader.Close(); retErr == nil && closeErr != nil {
+			out, next, retErr = nil, "", storageError(closeErr)
+		}
+	}()
+	out = []json.RawMessage{}
 	last := ""
 	for {
 		r, e := reader.Next()
