@@ -154,3 +154,15 @@ func TestSessionInputReferenceStrictMetadataBoundary(t *testing.T) {
 		t.Fatal("malformed private ID leaked through validation error")
 	}
 }
+
+func TestSessionInputReferenceRequiresOneVersionPerCase(t *testing.T) {
+	r := sessionInputFixture()
+	r.Bindings[2] = SessionInputBindingRef{InputName: "Currency", Origin: "case", CaseID: "case-1", CaseVersion: 3}
+	if _, err := r.Canonical(); err != nil {
+		t.Fatal("multiple facts from the same accepted Case version must be valid:", err)
+	}
+	r.Bindings[2].CaseVersion = 4
+	if _, err := r.Canonical(); err == nil {
+		t.Fatal("contradictory versions of one authoritative Case accepted")
+	}
+}

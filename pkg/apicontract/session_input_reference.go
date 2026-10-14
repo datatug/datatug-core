@@ -72,6 +72,7 @@ func (r SessionInputReference) Validate() error {
 	}
 	names := map[string]bool{}
 	entries := map[string]SessionInputEntryRef{}
+	caseVersions := map[string]int64{}
 	count := 0
 	for _, binding := range r.Bindings {
 		if !sessionReferenceID(binding.InputName, true) || names[binding.InputName] {
@@ -87,6 +88,11 @@ func (r SessionInputReference) Validate() error {
 			if len(binding.Entries) != 0 || !sessionReferenceID(binding.CaseID, false) || binding.CaseVersion <= 0 {
 				return invalid("bindings.caseId")
 			}
+			// BindCaseInputs consumes one authoritative version of each Case.
+			if prior, ok := caseVersions[binding.CaseID]; ok && prior != binding.CaseVersion {
+				return invalid("bindings.caseVersion")
+			}
+			caseVersions[binding.CaseID] = binding.CaseVersion
 		case "manual":
 			if len(binding.Entries) != 0 || binding.CaseID != "" || binding.CaseVersion != 0 {
 				return invalid("bindings.origin")

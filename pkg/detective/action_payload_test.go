@@ -282,3 +282,36 @@ func TestEvaluateCheckOwnsTrustedReferenceAndFailsBeforeSource(t *testing.T) {
 		t.Fatal("query-validator accepted Check bridge")
 	}
 }
+
+func TestCaseVersionConflictRejectsPayloadAndCheckBeforeSource(t *testing.T) {
+	bridge := bridgeActionFixture()
+	bridge.InputReference.Bindings[0] = apicontract.SessionInputBindingRef{InputName: "InvoiceId", Origin: "case", CaseID: "case-1", CaseVersion: 3}
+	if _, err := ActionOperationPayload(bridge); err != nil {
+		t.Fatal("matching Case versions rejected:", err)
+	}
+	ctx := context.Background()
+	reader := mapReader{checks: map[string]Check{"root": {ID: "root", Title: "Root", Inputs: []Input{
+		{Name: "InvoiceId", Type: investigation.ValueTypeInteger, Cardinality: "scalar", Required: true},
+		{Name: "CustomerId", Type: investigation.ValueTypeInteger, Cardinality: "scalar", Required: true},
+	}, Steps: []Step{{ID: "query", Kind: "query", QueryID: "q"}}}}, queries: map[string]bool{"q": true}}
+	catalog, err := LoadCatalog(ctx, "root", "", reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := RunRequest{ID: "run-1", CheckID: bridge.CheckID, CaseID: bridge.CaseID, Environment: bridge.Environment, Inputs: bridge.Inputs, InputReference: bridge.InputReference, ExpectedDefinitionDigest: bridge.ExpectedDefinitionDigest, ExpectedCaseContextDigest: bridge.ExpectedCaseContextDigest}
+	calls := 0
+	runner := func(context.Context, string, string, map[string]apicontract.TypedValueOrSet) (apicontract.Result, error) {
+		calls++
+		return coreResult([]string{"x"}, nil), nil
+	}
+	if _, err := EvaluateCheck(ctx, req, catalog, runner, nil); err != nil || calls != 1 {
+		t.Fatalf("matching Case versions: error=%v calls=%d", err, calls)
+	}
+	bridge.InputReference.Bindings[0].CaseVersion = 4
+	if _, err := ActionOperationPayload(bridge); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("contradictory Case versions entered operation payload: %v", err)
+	}
+	if _, err := EvaluateCheck(ctx, req, catalog, runner, nil); !errors.Is(err, ErrInvalid) || calls != 1 {
+		t.Fatalf("contradictory Case versions reached source: error=%v calls=%d", err, calls)
+	}
+}
