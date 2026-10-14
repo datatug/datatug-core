@@ -326,26 +326,27 @@ type StepResult struct {
 }
 
 type CheckRun struct {
-	ID                  string               `json:"id"`
-	Kind                string               `json:"kind"` // check | query-validators
-	CheckID             string               `json:"checkId"`
-	QueryID             string               `json:"queryId,omitempty"`
-	Definition          Check                `json:"definition"`
-	Dependencies        []Check              `json:"dependencies"`
-	PublishedValidators []PublishedValidator `json:"publishedValidators"`
-	QueryValidators     []QueryValidators    `json:"queryValidators"`
-	CaseID              string               `json:"caseId,omitempty"`
-	Environment         string               `json:"environment"`
-	InputNames          []string             `json:"inputNames"` // values deliberately excluded from history
-	ExecutionStatus     string               `json:"executionStatus"`
-	Outcome             string               `json:"outcome"`
-	Severity            string               `json:"severity,omitempty"`
-	Steps               []StepResult         `json:"steps"`
-	StartedAt           time.Time            `json:"startedAt"`
-	DurationMs          int64                `json:"durationMs"`
-	CheckInvocations    int                  `json:"checkInvocations"`
-	QueryExecutions     int                  `json:"queryExecutions"`
-	Actor               string               `json:"actor"`
+	ID                  string                             `json:"id"`
+	Kind                string                             `json:"kind"` // check | query-validators
+	CheckID             string                             `json:"checkId"`
+	QueryID             string                             `json:"queryId,omitempty"`
+	Definition          Check                              `json:"definition"`
+	Dependencies        []Check                            `json:"dependencies"`
+	PublishedValidators []PublishedValidator               `json:"publishedValidators"`
+	QueryValidators     []QueryValidators                  `json:"queryValidators"`
+	CaseID              string                             `json:"caseId,omitempty"`
+	Environment         string                             `json:"environment"`
+	InputNames          []string                           `json:"inputNames"` // values deliberately excluded from history
+	InputReference      *apicontract.SessionInputReference `json:"inputReference,omitempty"`
+	ExecutionStatus     string                             `json:"executionStatus"`
+	Outcome             string                             `json:"outcome"`
+	Severity            string                             `json:"severity,omitempty"`
+	Steps               []StepResult                       `json:"steps"`
+	StartedAt           time.Time                          `json:"startedAt"`
+	DurationMs          int64                              `json:"durationMs"`
+	CheckInvocations    int                                `json:"checkInvocations"`
+	QueryExecutions     int                                `json:"queryExecutions"`
+	Actor               string                             `json:"actor"`
 }
 
 type Capabilities struct {
@@ -373,26 +374,31 @@ type State struct {
 // ActionRequest is POST /datatug/detective/action. Project and securityContextId
 // are included in the body and must match the URL/session respectively.
 type ActionRequest struct {
-	Type              string                    `json:"type"` // save-check | save-validator | save-query-validators | create-case | update-case | append-event | run-check | run-query-validators | save-scenario | apply-scenario | record-scenario-step
-	Project           string                    `json:"project"`
-	SecurityContextID string                    `json:"securityContextId"`
-	Check             *Check                    `json:"check,omitempty"`
-	Validator         *PublishedValidator       `json:"validator,omitempty"`
-	QueryValidators   *QueryValidators          `json:"queryValidators,omitempty"`
-	Case              *Case                     `json:"case,omitempty"`
-	Scenario          *Scenario                 `json:"scenario,omitempty"`
-	Event             *CaseEvent                `json:"event,omitempty"`
-	CheckID           string                    `json:"checkId,omitempty"`
-	QueryID           string                    `json:"queryId,omitempty"`
-	CaseID            string                    `json:"caseId,omitempty"`
-	ScenarioID        string                    `json:"scenarioId,omitempty"`
-	ApplicationID     string                    `json:"applicationId,omitempty"`
-	StepID            string                    `json:"stepId,omitempty"`
-	StepStatus        string                    `json:"stepStatus,omitempty"`
-	RunID             string                    `json:"runId,omitempty"`
-	Execution         *apicontract.ExecutionRef `json:"execution,omitempty"`
-	Environment       string                    `json:"environment,omitempty"`
-	Inputs            map[string]InputValue     `json:"inputs,omitempty"`
+	// Trusted bridge fields are supplied only after fresh private-store resolution.
+	// Strict HTTP decoding rejects them; ActionOperationPayload binds them explicitly.
+	InputReference            *apicontract.SessionInputReference `json:"-"`
+	ExpectedDefinitionDigest  string                             `json:"-"`
+	ExpectedCaseContextDigest string                             `json:"-"`
+	Type                      string                             `json:"type"` // save-check | save-validator | save-query-validators | create-case | update-case | append-event | run-check | run-query-validators | save-scenario | apply-scenario | record-scenario-step
+	Project                   string                             `json:"project"`
+	SecurityContextID         string                             `json:"securityContextId"`
+	Check                     *Check                             `json:"check,omitempty"`
+	Validator                 *PublishedValidator                `json:"validator,omitempty"`
+	QueryValidators           *QueryValidators                   `json:"queryValidators,omitempty"`
+	Case                      *Case                              `json:"case,omitempty"`
+	Scenario                  *Scenario                          `json:"scenario,omitempty"`
+	Event                     *CaseEvent                         `json:"event,omitempty"`
+	CheckID                   string                             `json:"checkId,omitempty"`
+	QueryID                   string                             `json:"queryId,omitempty"`
+	CaseID                    string                             `json:"caseId,omitempty"`
+	ScenarioID                string                             `json:"scenarioId,omitempty"`
+	ApplicationID             string                             `json:"applicationId,omitempty"`
+	StepID                    string                             `json:"stepId,omitempty"`
+	StepStatus                string                             `json:"stepStatus,omitempty"`
+	RunID                     string                             `json:"runId,omitempty"`
+	Execution                 *apicontract.ExecutionRef          `json:"execution,omitempty"`
+	Environment               string                             `json:"environment,omitempty"`
+	Inputs                    map[string]InputValue              `json:"inputs,omitempty"`
 }
 
 type ActionResponse struct {
