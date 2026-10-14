@@ -10,13 +10,16 @@ import (
 // RunRequest contains server-issued identity and names only. Input values are
 // used during evaluation and never copied into CheckRun or the audit stream.
 type RunRequest struct {
-	ID          string
-	CheckID     string
-	QueryID     string
-	CaseID      string
-	Environment string
-	Actor       string
-	Inputs      map[string]InputValue
+	InputReference            *apicontract.SessionInputReference `json:"-"`
+	ExpectedDefinitionDigest  string                             `json:"-"`
+	ExpectedCaseContextDigest string                             `json:"-"`
+	ID                        string
+	CheckID                   string
+	QueryID                   string
+	CaseID                    string
+	Environment               string
+	Actor                     string
+	Inputs                    map[string]InputValue
 }
 
 // EvaluateCheck runs a preloaded, validated transitive Catalog. The caller
@@ -26,10 +29,13 @@ func EvaluateCheck(ctx context.Context, req RunRequest, catalog Catalog, runner 
 	if !catalog.sealed() || !validSlug(req.ID) || !validSlug(req.CheckID) || req.QueryID != "" || req.Environment == "" || runner == nil {
 		return CheckRun{}, ErrInvalid
 	}
+	inputReference, err := canonicalActionInputReference(req.InputReference, req.ExpectedDefinitionDigest, req.ExpectedCaseContextDigest, req.CaseID, req.Environment, req.Inputs)
+	if err != nil {
+		return CheckRun{}, err
+	}
 	if err := ValidateCatalog(catalog); err != nil {
 		return CheckRun{}, err
 	}
-	var err error
 	catalog, err = cloneCatalog(catalog)
 	if err != nil {
 		return CheckRun{}, err
@@ -42,7 +48,7 @@ func EvaluateCheck(ctx context.Context, req RunRequest, catalog Catalog, runner 
 		return CheckRun{}, err
 	}
 	start := time.Now().UTC()
-	run := CheckRun{ID: req.ID, Kind: "check", CheckID: req.CheckID, Definition: root, CaseID: req.CaseID, Environment: req.Environment, InputNames: sortedKeys(req.Inputs), StartedAt: start, Actor: req.Actor}
+	run := CheckRun{ID: req.ID, Kind: "check", CheckID: req.CheckID, Definition: root, CaseID: req.CaseID, Environment: req.Environment, InputNames: sortedKeys(req.Inputs), InputReference: inputReference, StartedAt: start, Actor: req.Actor}
 	e := newEngine(catalog, req.Environment, runner, metadata)
 	e.snapshot(&run, req.CheckID, "")
 	runCtx, cancel := context.WithTimeout(ctx, maxRunDuration)
@@ -78,6 +84,9 @@ func EvaluateQueryValidatorsForResult(ctx context.Context, req RunRequest, catal
 }
 
 func evaluateQueryValidators(ctx context.Context, req RunRequest, catalog Catalog, existing *apicontract.Result, runner QueryRunner, metadata ExecutionMetadata) (CheckRun, error) {
+	if req.InputReference != nil || req.ExpectedDefinitionDigest != "" || req.ExpectedCaseContextDigest != "" {
+		return CheckRun{}, ErrInvalid
+	}
 	if !catalog.sealed() || !validSlug(req.ID) || !validQueryRef(req.QueryID) || req.CheckID != "" || req.Environment == "" || runner == nil {
 		return CheckRun{}, ErrInvalid
 	}
