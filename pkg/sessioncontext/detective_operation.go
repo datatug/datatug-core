@@ -86,8 +86,27 @@ func detectiveRecoveryBindingDigest(work AcceptedDetectiveWork) string {
 		Reference                                                   apicontract.SessionInputReference
 		Dispatch                                                    DetectiveDispatchBinding
 		ClientRequestDigest, AcceptanceDigest                       string
-	}{"context-bag-native-recovery-v1", work.ID, work.Namespace, work.Owner, work.ClientOperationID, work.SessionID, work.RunID, work.InputSnapshotID, work.Reference, work.Dispatch, work.ClientRequestDigest, work.AcceptanceDigest}
+		SessionGeneration, OwnerProtocolVersion                     int64
+		State                                                       string
+	}{"context-bag-native-recovery-v1", work.ID, work.Namespace, work.Owner, work.ClientOperationID, work.SessionID, work.RunID, work.InputSnapshotID, work.Reference, work.Dispatch, work.ClientRequestDigest, work.AcceptanceDigest, work.SessionGeneration, work.OwnerProtocolVersion, work.State}
 	encoded, _ := json.Marshal(metadata) // typed metadata has no fallible marshaler
 	hash := sha256.Sum256(encoded)
 	return hex.EncodeToString(hash[:])
+}
+
+// New transport-bound work must verify its immutable authority independently
+// on every owner transition, not only during initial client-operation lookup.
+func verifyDetectiveRecoveryReceipt(ctx context.Context, r Reader, work AcceptedDetectiveWork) error {
+	if !safeID.MatchString(work.ClientOperationID) {
+		return ErrConflict
+	}
+	principal := Principal{Actor: work.Owner, DatabaseID: work.Namespace.DatabaseID, ProjectID: work.Namespace.ProjectID}
+	var receipt Receipt
+	if _, err := r.Load(ctx, Operations, opKey(principal, work.ClientOperationID), &receipt); err != nil {
+		return err
+	}
+	if receipt.Action != "pinDetectiveInput" || receipt.OpID != work.ClientOperationID || receipt.Actor != work.Owner || receipt.SessionID != work.SessionID || receipt.ResourceID != work.RunID || receipt.ResourceVersion != 1 || receipt.PayloadDigest != work.AcceptanceDigest || receipt.RecoveryBindingDigest == "" || receipt.RecoveryBindingDigest != detectiveRecoveryBindingDigest(work) {
+		return ErrConflict
+	}
+	return nil
 }

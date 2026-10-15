@@ -121,6 +121,11 @@ func (o *DetectiveOwner) load(ctx context.Context, r Reader, id DetectiveIdentit
 	if expected != id || work.ID != id.RunID || version != work.Version {
 		return work, detectiveOwnerRecord{}, ErrConflict
 	}
+	if work.ClientRequestDigest != "" {
+		if err = verifyDetectiveRecoveryReceipt(ctx, r, work); err != nil {
+			return work, detectiveOwnerRecord{}, err
+		}
+	}
 	state := detectiveOwnerRecord{Identity: id, Generation: 1, SessionGeneration: work.SessionGeneration}
 	v, err := r.Load(ctx, DetectiveOwners, id.RunID, &state)
 	if errors.Is(err, ErrNotFound) {

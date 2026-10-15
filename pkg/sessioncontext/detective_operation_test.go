@@ -203,7 +203,7 @@ func TestDetectiveOperationLookupDeniesWrongIdentityAndCorruption(t *testing.T) 
 	}
 }
 func TestDetectiveOperationLookupReadFailures(t *testing.T) {
-	for failAt := 1; failAt <= 4; failAt++ {
+	for failAt := 1; failAt <= 5; failAt++ {
 		s, p, o, c := operationFixture(t)
 		calls := 0
 		s.repo = &interceptedRepository{Repository: s.repo, failLoad: func(string, string) error {
@@ -277,7 +277,7 @@ func TestDetectiveFirstClaimOnlyOneWinnerAndRetryFlagReset(t *testing.T) {
 }
 
 func TestDetectiveRecoveryReceiptIndependentlyBindsValidMetadata(t *testing.T) {
-	for _, kind := range []string{"client-digest", "native-operation", "native-digest", "native-project", "namespace", "input-map", "binding-refs", "missing-receipt-binding", "changed-receipt-binding"} {
+	for _, kind := range []string{"client-digest", "native-operation", "native-digest", "native-project", "namespace", "input-map", "binding-refs", "generation", "protocol", "state", "missing-receipt-binding", "changed-receipt-binding"} {
 		t.Run(kind, func(t *testing.T) {
 			ctx := context.Background()
 			s, p, o, c := operationFixture(t)
@@ -314,6 +314,12 @@ func TestDetectiveRecoveryReceiptIndependentlyBindsValidMetadata(t *testing.T) {
 				case "input-map":
 					work.InputSnapshotID = "different-input"
 					work.Reference.InputSnapshotID = work.InputSnapshotID
+				case "generation":
+					work.SessionGeneration++
+				case "protocol":
+					work.OwnerProtocolVersion++
+				case "state":
+					work.State = "canceled"
 				case "binding-refs":
 					work.Reference.Bindings = []apicontract.SessionInputBindingRef{{InputName: "safe-input", Origin: "manual"}}
 				}
@@ -324,6 +330,47 @@ func TestDetectiveRecoveryReceiptIndependentlyBindsValidMetadata(t *testing.T) {
 			out, err := o.ResolveOperation(ctx, p, c.OpID)
 			if !errors.Is(err, ErrConflict) || out != (AcceptedDetectiveOperation{}) {
 				t.Fatalf("valid metadata tampering escaped independent receipt binding: %+v %v", out, err)
+			}
+		})
+	}
+}
+
+func TestDetectiveClaimRechecksReceiptBindingAfterResolution(t *testing.T) {
+	for _, kind := range []string{"lifecycle-generation", "invalid-client-operation", "missing-receipt"} {
+		t.Run(kind, func(t *testing.T) {
+			ctx := context.Background()
+			s, p, o, c := operationFixture(t)
+			accepted, err := o.ResolveOperation(ctx, p, c.OpID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if kind == "lifecycle-generation" {
+				snap := ownerSnapshot(t, s, p, c.SessionID)
+				executeOK(t, s, p, Command{Action: "transitionSession", Transition: "stop", OpID: "stop", SessionID: c.SessionID, ExpectedVersion: snap.Session.Version})
+				snap = ownerSnapshot(t, s, p, c.SessionID)
+				executeOK(t, s, p, Command{Action: "transitionSession", Transition: "start", OpID: "resume", SessionID: c.SessionID, ExpectedVersion: snap.Session.Version})
+			}
+			if err = s.repo.Transact(ctx, func(tx Transaction) error {
+				var work AcceptedDetectiveWork
+				version, err := tx.Load(ctx, DetectiveWork, c.RunID, &work)
+				if err != nil {
+					return err
+				}
+				work.Version++
+				if kind == "lifecycle-generation" {
+					work.SessionGeneration = 1
+				} else if kind == "invalid-client-operation" {
+					work.ClientOperationID = "/invalid"
+				} else {
+					work.ClientOperationID = "missing-receipt"
+				}
+				return tx.Save(ctx, DetectiveWork, c.RunID, work, version, p.Actor, c.SessionID)
+			}); err != nil {
+				t.Fatal(err)
+			}
+			_, _, first, err := o.ClaimDispatchOnce(ctx, p, accepted.Identity)
+			if err == nil || first {
+				t.Fatal("changed authority revived resolved acceptance", err)
 			}
 		})
 	}
