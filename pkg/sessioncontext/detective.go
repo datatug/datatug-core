@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/datatug/datatug-core/pkg/apicontract"
@@ -59,12 +60,19 @@ type AcceptedDetectiveWork struct {
 	SessionGeneration int64 `json:"sessionGeneration"`
 	// OwnerProtocolVersion binds lifecycle generation; legacy unbound acceptances cannot dispatch.
 	OwnerProtocolVersion int64 `json:"ownerProtocolVersion"`
+	// ClientOperationID and AcceptanceDigest bind the durable metadata lookup.
+	ClientOperationID   string `json:"clientOperationId,omitempty"`
+	AcceptanceDigest    string `json:"acceptanceDigest,omitempty"`
+	ClientRequestDigest string `json:"clientRequestDigest,omitempty"`
 }
 
 // PinDetectiveInputCommand is a trusted Go boundary, never a generic HTTP command.
 // The native owner supplies its existing scope-envelope OperationBinding and
 // authoritative Case snapshot. This method does not authorize or execute a Case.
 type PinDetectiveInputCommand struct {
+	// ClientRequestDigest is host-computed from a canonical transport request.
+	// Empty retains compatibility for internal callers, not transport acceptance.
+	ClientRequestDigest                     string
 	OpID, SessionID, InputSnapshotID, RunID string
 	ExpectedVersion                         int64
 	ExpectedContextSetID                    string
@@ -82,6 +90,12 @@ type PinnedDetectiveInput struct {
 
 func (s *Service) prepareDetectivePin(ctx context.Context, p Principal, c PinDetectiveInputCommand) (DetectiveInputPin, error) {
 	var pin DetectiveInputPin
+	if c.ClientRequestDigest != "" {
+		decoded, err := hex.DecodeString(c.ClientRequestDigest)
+		if err != nil || len(decoded) != 32 || strings.ToLower(c.ClientRequestDigest) != c.ClientRequestDigest {
+			return pin, ErrInvalid
+		}
+	}
 	if s.nativeNamespace == nil {
 		return pin, ErrUnavailable
 	}
@@ -198,7 +212,8 @@ func (s *Service) PinDetectiveInput(ctx context.Context, p Principal, c PinDetec
 		Version                                       int64
 		Attachments                                   []EntryRef
 		Pin                                           DetectiveInputPin
-	}{p.Actor, *s.nativeNamespace, c.OpID, c.SessionID, c.InputSnapshotID, c.RunID, c.ExpectedContextSetID, c.ExpectedVersion, c.Attachments, pin})
+		ClientRequestDigest                           string `json:"ClientRequestDigest,omitempty"`
+	}{p.Actor, *s.nativeNamespace, c.OpID, c.SessionID, c.InputSnapshotID, c.RunID, c.ExpectedContextSetID, c.ExpectedVersion, c.Attachments, pin, c.ClientRequestDigest})
 	hash := sha256.Sum256(bound)
 	digest, key := hex.EncodeToString(hash[:]), opKey(p, c.OpID)
 	err = s.repo.Transact(ctx, func(tx Transaction) error {
@@ -292,7 +307,7 @@ func (s *Service) PinDetectiveInput(ctx context.Context, p Principal, c PinDetec
 		now := s.now()
 		input := InputSnapshot{ID: c.InputSnapshotID, SessionID: v.ID, ContextSetID: set.ID, Scope: c.Scope, Entries: refs, DefinitionDigest: pin.Reference.DefinitionDigest, ParametersOrigin: "server-executor", CreatedAt: now, Detective: &pin}
 		run := Run{ID: c.RunID, SessionID: v.ID, InputSnapshotID: input.ID, Kind: "check", DefinitionID: pin.Dispatch.CheckID, DefinitionRevision: pin.Reference.DefinitionDigest, State: "accepted", ExecutionAuthority: "server", Version: 1, CreatedAt: now, InputReference: &pin.Reference, DetectiveOperationID: pin.Dispatch.NativeOperationID}
-		work := AcceptedDetectiveWork{OwnerProtocolVersion: 1, SessionGeneration: v.NativeFenceGeneration, ID: run.ID, Owner: p.Actor, Namespace: *s.nativeNamespace, SessionID: v.ID, RunID: run.ID, InputSnapshotID: input.ID, Reference: pin.Reference, Dispatch: pin.Dispatch, State: "accepted", Version: 1, AcceptedAt: now}
+		work := AcceptedDetectiveWork{ClientOperationID: c.OpID, AcceptanceDigest: digest, ClientRequestDigest: c.ClientRequestDigest, OwnerProtocolVersion: 1, SessionGeneration: v.NativeFenceGeneration, ID: run.ID, Owner: p.Actor, Namespace: *s.nativeNamespace, SessionID: v.ID, RunID: run.ID, InputSnapshotID: input.ID, Reference: pin.Reference, Dispatch: pin.Dispatch, State: "accepted", Version: 1, AcceptedAt: now}
 		v.PendingRunCount++
 		v.Version++
 		v.UpdatedAt = now

@@ -201,12 +201,24 @@ func (o *DetectiveOwner) ReadStatus(ctx context.Context, p Principal, id Detecti
 // ClaimDispatch returns the SAME generation on retry. It has no clock or lease.
 // Recovery must reconcile the native operation identity before any execution.
 func (o *DetectiveOwner) ClaimDispatch(ctx context.Context, p Principal, id DetectiveIdentity) (DetectiveFence, DetectiveInputPin, error) {
+	token, pin, _, err := o.ClaimDispatchOnce(ctx, p, id)
+	return token, pin, err
+}
+
+// ClaimDispatchOnce distinguishes the successful first ownership claim from
+// replay. Only first=true may begin original native acceptance; it is still
+// subject to native admission/fencing and durable journaling before dispatch.
+// first=false never authorizes execution merely because native work is absent.
+// A native accepted-but-not-started continuation needs its own durable proof.
+func (o *DetectiveOwner) ClaimDispatchOnce(ctx context.Context, p Principal, id DetectiveIdentity) (DetectiveFence, DetectiveInputPin, bool, error) {
+	first := false
 	var token DetectiveFence
 	var pin DetectiveInputPin
 	if err := o.identity(ctx, p, id, true); err != nil {
-		return token, pin, err
+		return token, pin, false, err
 	}
 	err := o.service.repo.Transact(ctx, func(tx Transaction) error {
+		first = false
 		work, state, err := o.load(ctx, tx, id)
 		if err != nil {
 			return err
@@ -238,12 +250,13 @@ func (o *DetectiveOwner) ClaimDispatch(ctx context.Context, p Principal, id Dete
 			return nil
 		}
 		state.Claimed = true
+		first = true
 		return o.save(ctx, tx, &state)
 	})
 	if err != nil {
-		return DetectiveFence{}, DetectiveInputPin{}, err
+		return DetectiveFence{}, DetectiveInputPin{}, false, err
 	}
-	return token, pin, nil
+	return token, pin, first, nil
 }
 
 // CheckFence observes the fence in a fresh session repository read.
