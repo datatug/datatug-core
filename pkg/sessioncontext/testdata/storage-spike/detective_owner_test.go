@@ -3,8 +3,10 @@ package storage_spike
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/dal-go/dalgo/dal"
 	"github.com/dal-go/record"
 	"os"
 	"path/filepath"
@@ -168,5 +170,54 @@ func TestFirestoreEmulatorNativeOwnerFenceAndStatus(t *testing.T) {
 	}
 	if status, err := o.ReadStatus(ctx, p, id); err != nil || status.FenceReason != "contentrevoked" {
 		t.Fatalf("hosted accepted status: %+v %v", status, err)
+	}
+}
+
+func TestSQLiteNativeTransactionFenceReadsUncommittedMarker(t *testing.T) {
+	ctx := context.Background()
+	db := open(t, fixture(t, "sqlite"))
+	p := sessioncontext.Principal{Actor: "transaction-owner", DatabaseID: "session-store", ProjectID: "project", Executor: true}
+	s, repo := nativePinService(t, db, p)
+	pin := nativePin(t, s, repo, p)
+	if _, err := s.PinDetectiveInput(ctx, p, pin); err != nil {
+		t.Fatal(err)
+	}
+	d := pin.Pin.Dispatch
+	id := sessioncontext.DetectiveIdentity{Namespace: repo.NativeNamespace(), Actor: p.Actor, SessionID: pin.SessionID, RunID: pin.RunID, NativeStoreID: d.NativeStoreID, NativeProjectID: d.NativeProjectID, NativeOperationID: d.NativeOperationID, Digest: d.NativeRequestDigest}
+	o, err := sessioncontext.NewDetectiveOwner(s, func(context.Context, sessioncontext.Principal, sessioncontext.DetectiveIdentity) error { return nil }, func(context.Context, sessioncontext.DetectiveIdentity) (sessioncontext.DetectiveObservation, error) {
+		return sessioncontext.DetectiveObservation{}, sessioncontext.ErrNotFound
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	token, _, err := o.ClaimDispatch(ctx, p, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rollback := errors.New("intentional native transaction rollback")
+	err = db.DB().RunReadwriteTransaction(ctx, func(txCtx context.Context, tx dal.ReadwriteTransaction) error {
+		marker := sessioncontext.SessionRedaction{SessionID: id.SessionID, Owner: p.Actor, Namespace: repo.NativeNamespace(), DeleteOpID: "delete", Version: 1}
+		body, e := json.Marshal(marker)
+		if e != nil {
+			return e
+		}
+		data := map[string]any{"recordId": id.SessionID, "owner": p.Actor, "sessionId": id.SessionID, "version": int64(1), "payload": string(body)}
+		if e = tx.Set(txCtx, record.NewRecordWithData(record.NewKeyWithID(sessioncontext.Redactions, id.SessionID), data)); e != nil {
+			return e
+		}
+		reader, e := repo.ReaderInTransaction(tx)
+		if e != nil {
+			return e
+		}
+		if e = o.CheckFenceWithReader(txCtx, p, token, reader); !errors.Is(e, sessioncontext.ErrReadOnly) {
+			t.Fatalf("native transaction missed own fence: %v", e)
+		}
+		return rollback
+	})
+	if !errors.Is(err, rollback) {
+		t.Fatal(err)
+	}
+	if err = o.CheckFence(ctx, p, token); err != nil {
+		t.Fatal("uncommitted marker escaped native rollback", err)
 	}
 }

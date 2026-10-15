@@ -246,27 +246,46 @@ func (o *DetectiveOwner) ClaimDispatch(ctx context.Context, p Principal, id Dete
 	return token, pin, nil
 }
 
+// CheckFence observes the fence in a fresh session repository read.
+// Native owners sharing the authority should use CheckFenceWithReader inside
+// their existing transaction so concurrent fences cause a transaction conflict.
 func (o *DetectiveOwner) CheckFence(ctx context.Context, p Principal, token DetectiveFence) error {
 	if err := o.identity(ctx, p, token.Identity, true); err != nil {
 		return err
 	}
-	return o.service.repo.View(ctx, func(r Reader) error {
-		_, state, err := o.load(ctx, r, token.Identity)
-		if err != nil {
-			return err
-		}
-		if !state.Claimed || state.Generation != token.Generation || state.FenceReason != "" || state.Settled {
-			return ErrReadOnly
-		}
-		session, err := o.service.session(ctx, r, p, token.Identity.SessionID, "checkDetectiveFence")
-		if err != nil {
-			return err
-		}
-		if session.State != "active" || session.NativeFenceGeneration != token.SessionGeneration || state.SessionGeneration != token.SessionGeneration {
-			return ErrReadOnly
-		}
-		return nil
-	})
+	return o.service.repo.View(ctx, func(r Reader) error { return o.checkFenceReader(ctx, p, token, r) })
+}
+
+// CheckFenceWithReader performs the same fence and authorization validation
+// using the caller's transaction snapshot. It starts or commits no transaction.
+// The trusted native owner must supply a namespace-bound Reader and perform all
+// reads before writes where its storage engine requires that ordering.
+func (o *DetectiveOwner) CheckFenceWithReader(ctx context.Context, p Principal, token DetectiveFence, r Reader) error {
+	if r == nil || reflect.ValueOf(r).Kind() == reflect.Pointer && reflect.ValueOf(r).IsNil() {
+		return ErrInvalid
+	}
+	if err := o.identity(ctx, p, token.Identity, true); err != nil {
+		return err
+	}
+	return o.checkFenceReader(ctx, p, token, r)
+}
+
+func (o *DetectiveOwner) checkFenceReader(ctx context.Context, p Principal, token DetectiveFence, r Reader) error {
+	_, state, err := o.load(ctx, r, token.Identity)
+	if err != nil {
+		return err
+	}
+	if !state.Claimed || state.Generation != token.Generation || state.FenceReason != "" || state.Settled {
+		return ErrReadOnly
+	}
+	session, err := o.service.session(ctx, r, p, token.Identity.SessionID, "checkDetectiveFence")
+	if err != nil {
+		return err
+	}
+	if session.State != "active" || session.NativeFenceGeneration != token.SessionGeneration || state.SessionGeneration != token.SessionGeneration {
+		return ErrReadOnly
+	}
+	return nil
 }
 
 // Fence durably invalidates all prior dispatch tokens. Repeating a reason does
