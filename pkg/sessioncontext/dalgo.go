@@ -242,7 +242,7 @@ func storageError(e error) error {
 	return ErrUnavailable
 }
 func Collections() []string {
-	return []string{Sessions, Bags, Entries, Revisions, ContextSets, Operations, Audit, Inputs, Runs, Messages, Outbox, LegacyImports, DetectiveWork, Redactions}
+	return []string{Sessions, Bags, Entries, Revisions, ContextSets, Operations, Audit, Inputs, Runs, Messages, Outbox, LegacyImports, DetectiveWork, Redactions, DetectiveOwners}
 }
 func knownCollection(name string) bool {
 	for _, v := range Collections() {
