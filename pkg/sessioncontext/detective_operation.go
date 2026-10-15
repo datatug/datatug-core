@@ -94,7 +94,7 @@ func detectiveRecoveryBindingDigest(work AcceptedDetectiveWork) string {
 	return hex.EncodeToString(hash[:])
 }
 
-// New transport-bound work must verify its immutable authority independently
+// All owner-protocol work must verify its immutable authority independently
 // on every owner transition, not only during initial client-operation lookup.
 func verifyDetectiveRecoveryReceipt(ctx context.Context, r Reader, work AcceptedDetectiveWork) error {
 	if !safeID.MatchString(work.ClientOperationID) {

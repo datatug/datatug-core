@@ -121,10 +121,11 @@ func (o *DetectiveOwner) load(ctx context.Context, r Reader, id DetectiveIdentit
 	if expected != id || work.ID != id.RunID || version != work.Version {
 		return work, detectiveOwnerRecord{}, ErrConflict
 	}
-	if work.ClientRequestDigest != "" {
-		if err = verifyDetectiveRecoveryReceipt(ctx, r, work); err != nil {
-			return work, detectiveOwnerRecord{}, err
-		}
+	// Every current pin has an independent receipt seal, including internal pins
+	// without a client digest. Unsealed legacy work fails closed; mutable work
+	// fields cannot select a weaker authorization path.
+	if err = verifyDetectiveRecoveryReceipt(ctx, r, work); err != nil {
+		return work, detectiveOwnerRecord{}, err
 	}
 	state := detectiveOwnerRecord{Identity: id, Generation: 1, SessionGeneration: work.SessionGeneration}
 	v, err := r.Load(ctx, DetectiveOwners, id.RunID, &state)

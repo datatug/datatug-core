@@ -336,7 +336,7 @@ func TestDetectiveRecoveryReceiptIndependentlyBindsValidMetadata(t *testing.T) {
 }
 
 func TestDetectiveClaimRechecksReceiptBindingAfterResolution(t *testing.T) {
-	for _, kind := range []string{"lifecycle-generation", "invalid-client-operation", "missing-receipt"} {
+	for _, kind := range []string{"lifecycle-generation", "cleared-client-binding", "cleared-digest", "invalid-client-operation", "missing-receipt"} {
 		t.Run(kind, func(t *testing.T) {
 			ctx := context.Background()
 			s, p, o, c := operationFixture(t)
@@ -344,7 +344,7 @@ func TestDetectiveClaimRechecksReceiptBindingAfterResolution(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if kind == "lifecycle-generation" {
+			if kind == "lifecycle-generation" || kind == "cleared-client-binding" {
 				snap := ownerSnapshot(t, s, p, c.SessionID)
 				executeOK(t, s, p, Command{Action: "transitionSession", Transition: "stop", OpID: "stop", SessionID: c.SessionID, ExpectedVersion: snap.Session.Version})
 				snap = ownerSnapshot(t, s, p, c.SessionID)
@@ -357,7 +357,13 @@ func TestDetectiveClaimRechecksReceiptBindingAfterResolution(t *testing.T) {
 					return err
 				}
 				work.Version++
-				if kind == "lifecycle-generation" {
+				if kind == "cleared-client-binding" {
+					work.SessionGeneration = 1
+					work.ClientOperationID = ""
+					work.ClientRequestDigest = ""
+				} else if kind == "cleared-digest" {
+					work.ClientRequestDigest = ""
+				} else if kind == "lifecycle-generation" {
 					work.SessionGeneration = 1
 				} else if kind == "invalid-client-operation" {
 					work.ClientOperationID = "/invalid"
