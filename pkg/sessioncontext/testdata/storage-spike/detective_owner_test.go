@@ -10,6 +10,7 @@ import (
 	"github.com/dal-go/record"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,6 +24,7 @@ func TestSQLiteNativeOwnerRecoveryFenceAndScrub(t *testing.T) {
 	p := sessioncontext.Principal{Actor: "owner", DatabaseID: "session-store", ProjectID: "project", Executor: true}
 	s, repo := nativePinService(t, db, p)
 	pin := nativePin(t, s, repo, p)
+	pin.ClientRequestDigest = strings.Repeat("a", 64)
 	if _, err := s.PinDetectiveInput(ctx, p, pin); err != nil {
 		t.Fatal(err)
 	}
@@ -40,9 +42,9 @@ func TestSQLiteNativeOwnerRecoveryFenceAndScrub(t *testing.T) {
 		return o
 	}
 	o := owner(s)
-	token, _, err := o.ClaimDispatch(ctx, p, id)
-	if err != nil {
-		t.Fatal(err)
+	token, _, first, err := o.ClaimDispatchOnce(ctx, p, id)
+	if err != nil || !first {
+		t.Fatal("first claim failed", err)
 	}
 	observation.Produced = true
 	observation.NativeRunID = "native-result"
@@ -59,8 +61,8 @@ func TestSQLiteNativeOwnerRecoveryFenceAndScrub(t *testing.T) {
 	if err != nil || !status.Produced || status.Done {
 		t.Fatalf("durable produced result lost: %+v %v", status, err)
 	}
-	again, _, err := o.ClaimDispatch(ctx, p, id)
-	if err != nil || again != token {
+	again, _, first, err := o.ClaimDispatchOnce(ctx, p, id)
+	if err != nil || first || again != token {
 		t.Fatal("restart replaced dispatch identity", err)
 	}
 	raw, err := sql.Open("sqlite", filepath.Join(filepath.Dir(manifest), "data.sqlite"))
@@ -122,6 +124,11 @@ func TestSQLiteNativeOwnerRecoveryFenceAndScrub(t *testing.T) {
 	if err != nil || status.FenceReason != "deleted" || !status.Done {
 		t.Fatalf("safe redacted status lost: %+v %v", status, err)
 	}
+	accepted, err := o.ResolveOperation(ctx, p, pin.OpID)
+	if err != nil || accepted.Identity != id || accepted.ClientRequestDigest != pin.ClientRequestDigest {
+		t.Fatalf("durable redacted operation mapping lost: %+v %v", accepted, err)
+	}
+
 }
 
 // This is session transaction-owner conformance only. It does not claim native
