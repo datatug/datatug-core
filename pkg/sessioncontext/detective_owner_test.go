@@ -764,7 +764,7 @@ func TestDetectiveOwnerScrubRejectsCorruptPages(t *testing.T) {
 }
 func TestDetectiveOwnerStoppedUnfinishedNativeResultIsPreserved(t *testing.T) {
 	ctx := context.Background()
-	s, p, o, id, obs, _ := ownerFixture(t, true)
+	s, p, o, id, _, _ := ownerFixture(t, true)
 	snap := ownerSnapshot(t, s, p, id.SessionID)
 	executeOK(t, s, p, Command{Action: "transitionSession", Transition: "stop", OpID: "before-dispatch", SessionID: id.SessionID, ExpectedVersion: snap.Session.Version})
 	if _, _, err := o.ClaimDispatch(ctx, p, id); !errors.Is(err, ErrReadOnly) {
@@ -773,6 +773,7 @@ func TestDetectiveOwnerStoppedUnfinishedNativeResultIsPreserved(t *testing.T) {
 	snap = ownerSnapshot(t, s, p, id.SessionID)
 	executeOK(t, s, p, Command{Action: "transitionSession", Transition: "start", OpID: "after-stop", SessionID: id.SessionID, ExpectedVersion: snap.Session.Version})
 	// Use a fresh fixture for a source result produced before Stop.
+	var obs *DetectiveObservation
 	s, p, o, id, obs, _ = ownerFixture(t, true)
 	if _, _, err := o.ClaimDispatch(ctx, p, id); err != nil {
 		t.Fatal(err)
