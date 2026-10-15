@@ -357,17 +357,18 @@ func TestDetectiveClaimRechecksReceiptBindingAfterResolution(t *testing.T) {
 					return err
 				}
 				work.Version++
-				if kind == "cleared-client-binding" {
+				switch kind {
+				case "cleared-client-binding":
 					work.SessionGeneration = 1
 					work.ClientOperationID = ""
 					work.ClientRequestDigest = ""
-				} else if kind == "cleared-digest" {
+				case "cleared-digest":
 					work.ClientRequestDigest = ""
-				} else if kind == "lifecycle-generation" {
+				case "lifecycle-generation":
 					work.SessionGeneration = 1
-				} else if kind == "invalid-client-operation" {
+				case "invalid-client-operation":
 					work.ClientOperationID = "/invalid"
-				} else {
+				default:
 					work.ClientOperationID = "missing-receipt"
 				}
 				return tx.Save(ctx, DetectiveWork, c.RunID, work, version, p.Actor, c.SessionID)
