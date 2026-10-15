@@ -39,6 +39,9 @@ type Session struct {
 	BagIDs          []string  `json:"bagIds"`
 	CreatedAt       time.Time `json:"createdAt"`
 	UpdatedAt       time.Time `json:"updatedAt"`
+
+	// NativeFenceGeneration monotonically invalidates native claims on Stop/archive/delete.
+	NativeFenceGeneration int64 `json:"nativeFenceGeneration,omitempty"`
 }
 type Bag struct {
 	ID           string   `json:"id"`

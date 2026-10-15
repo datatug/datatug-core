@@ -41,6 +41,22 @@ func (r *DALRepository) View(ctx context.Context, f func(Reader) error) error {
 	}))
 }
 
+// ReaderInTransaction binds the caller's existing transaction to this
+// repository's operational parent. It never starts, commits, or writes a
+// transaction. Its lifetime is the caller's transaction; do not retain it.
+// On Firestore, use this before native writes so session fence reads participate
+// in the same optimistic transaction conflict boundary as native finalization.
+func (r *DALRepository) ReaderInTransaction(tx dal.ReadTransaction) (Reader, error) {
+	if r == nil || r.db == nil || !safeID.MatchString(r.databaseID) || r.adapter == "" || tx == nil || reflect.ValueOf(tx).Kind() == reflect.Pointer && reflect.ValueOf(tx).IsNil() {
+		return nil, ErrInvalid
+	}
+	unit := &dalTransaction{reader: tx, parent: r.parent, adapter: r.adapter, loaded: map[string]storedRecord{}, pending: map[string]storedRecord{}}
+	return transactionReader{unit}, nil
+}
+
+// Only Reader methods are exposed, even through an interface type assertion.
+type transactionReader struct{ Reader }
+
 // Transact queues every write until the worker has completed all reads. Firestore
 // transactions prohibit reads after writes, so this ordering is part of the contract.
 func (r *DALRepository) Transact(ctx context.Context, f func(Transaction) error) error {
@@ -242,7 +258,7 @@ func storageError(e error) error {
 	return ErrUnavailable
 }
 func Collections() []string {
-	return []string{Sessions, Bags, Entries, Revisions, ContextSets, Operations, Audit, Inputs, Runs, Messages, Outbox, LegacyImports, DetectiveWork, Redactions}
+	return []string{Sessions, Bags, Entries, Revisions, ContextSets, Operations, Audit, Inputs, Runs, Messages, Outbox, LegacyImports, DetectiveWork, Redactions, DetectiveOwners}
 }
 func knownCollection(name string) bool {
 	for _, v := range Collections() {

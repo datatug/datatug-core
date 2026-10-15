@@ -1000,6 +1000,9 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 				if next == "" {
 					return ErrInvalid
 				}
+				if v.State == "active" || next == "deleted" {
+					v.NativeFenceGeneration++
+				}
 				v.State = next
 				resource = v.ID
 			case "pinInput":

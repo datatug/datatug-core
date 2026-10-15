@@ -54,6 +54,11 @@ type AcceptedDetectiveWork struct {
 	State           string                            `json:"state"`
 	Version         int64                             `json:"version"`
 	AcceptedAt      time.Time                         `json:"acceptedAt"`
+
+	// SessionGeneration is captured atomically with acceptance, before any dispatch claim.
+	SessionGeneration int64 `json:"sessionGeneration"`
+	// OwnerProtocolVersion binds lifecycle generation; legacy unbound acceptances cannot dispatch.
+	OwnerProtocolVersion int64 `json:"ownerProtocolVersion"`
 }
 
 // PinDetectiveInputCommand is a trusted Go boundary, never a generic HTTP command.
@@ -287,7 +292,7 @@ func (s *Service) PinDetectiveInput(ctx context.Context, p Principal, c PinDetec
 		now := s.now()
 		input := InputSnapshot{ID: c.InputSnapshotID, SessionID: v.ID, ContextSetID: set.ID, Scope: c.Scope, Entries: refs, DefinitionDigest: pin.Reference.DefinitionDigest, ParametersOrigin: "server-executor", CreatedAt: now, Detective: &pin}
 		run := Run{ID: c.RunID, SessionID: v.ID, InputSnapshotID: input.ID, Kind: "check", DefinitionID: pin.Dispatch.CheckID, DefinitionRevision: pin.Reference.DefinitionDigest, State: "accepted", ExecutionAuthority: "server", Version: 1, CreatedAt: now, InputReference: &pin.Reference, DetectiveOperationID: pin.Dispatch.NativeOperationID}
-		work := AcceptedDetectiveWork{ID: run.ID, Owner: p.Actor, Namespace: *s.nativeNamespace, SessionID: v.ID, RunID: run.ID, InputSnapshotID: input.ID, Reference: pin.Reference, Dispatch: pin.Dispatch, State: "accepted", Version: 1, AcceptedAt: now}
+		work := AcceptedDetectiveWork{OwnerProtocolVersion: 1, SessionGeneration: v.NativeFenceGeneration, ID: run.ID, Owner: p.Actor, Namespace: *s.nativeNamespace, SessionID: v.ID, RunID: run.ID, InputSnapshotID: input.ID, Reference: pin.Reference, Dispatch: pin.Dispatch, State: "accepted", Version: 1, AcceptedAt: now}
 		v.PendingRunCount++
 		v.Version++
 		v.UpdatedAt = now
