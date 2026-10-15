@@ -21,10 +21,11 @@ type MountedDatabase interface {
 	DB() dal.DB
 }
 type DALRepository struct {
-	db         dal.DB
-	adapter    string
-	databaseID string
-	parent     *record.Key
+	db              dal.DB
+	adapter         string
+	databaseID      string
+	parent          *record.Key
+	nativeNamespace NativeNamespace
 }
 
 func NewDALRepository(mounted MountedDatabase, parent *record.Key) (*DALRepository, error) {
@@ -241,7 +242,7 @@ func storageError(e error) error {
 	return ErrUnavailable
 }
 func Collections() []string {
-	return []string{Sessions, Bags, Entries, Revisions, ContextSets, Operations, Audit, Inputs, Runs, Messages, Outbox, LegacyImports}
+	return []string{Sessions, Bags, Entries, Revisions, ContextSets, Operations, Audit, Inputs, Runs, Messages, Outbox, LegacyImports, DetectiveWork, Redactions}
 }
 func knownCollection(name string) bool {
 	for _, v := range Collections() {

@@ -257,6 +257,7 @@ type InputSnapshot struct {
 	ResolvedParameters map[string]apicontract.TypedValue `json:"resolvedParameters,omitempty"`
 	ParametersOrigin   string                            `json:"parametersOrigin,omitempty"`
 	CreatedAt          time.Time                         `json:"createdAt"`
+	Detective          *DetectiveInputPin                `json:"detective,omitempty"`
 }
 type WidgetOutcome struct {
 	ID        string `json:"id"`
@@ -273,18 +274,20 @@ type Run struct {
 	DefinitionRevision string `json:"definitionRevision"`
 	// State is accepted/completed/failed/canceled; client reportClientRun may
 	// also settle uncertainty as outcome-unknown.
-	State              string                            `json:"state"`
-	OutcomeOrigin      string                            `json:"outcomeOrigin,omitempty"`
-	ExecutionAuthority string                            `json:"executionAuthority"`
-	ExecutionDigest    string                            `json:"executionDigest,omitempty"`
-	ExecutionDocument  json.RawMessage                   `json:"executionDocument,omitempty"`
-	ResolvedParameters map[string]apicontract.TypedValue `json:"resolvedParameters,omitempty"`
-	Version            int64                             `json:"version"`
-	Widgets            []WidgetOutcome                   `json:"widgets,omitempty"`
-	ResultRefs         []string                          `json:"resultRefs,omitempty"`
-	ErrorCode          string                            `json:"errorCode,omitempty"`
-	CreatedAt          time.Time                         `json:"createdAt"`
-	CompletedAt        *time.Time                        `json:"completedAt,omitempty"`
+	State                string                             `json:"state"`
+	OutcomeOrigin        string                             `json:"outcomeOrigin,omitempty"`
+	ExecutionAuthority   string                             `json:"executionAuthority"`
+	ExecutionDigest      string                             `json:"executionDigest,omitempty"`
+	ExecutionDocument    json.RawMessage                    `json:"executionDocument,omitempty"`
+	ResolvedParameters   map[string]apicontract.TypedValue  `json:"resolvedParameters,omitempty"`
+	Version              int64                              `json:"version"`
+	Widgets              []WidgetOutcome                    `json:"widgets,omitempty"`
+	ResultRefs           []string                           `json:"resultRefs,omitempty"`
+	ErrorCode            string                             `json:"errorCode,omitempty"`
+	CreatedAt            time.Time                          `json:"createdAt"`
+	CompletedAt          *time.Time                         `json:"completedAt,omitempty"`
+	InputReference       *apicontract.SessionInputReference `json:"inputReference,omitempty"`
+	DetectiveOperationID string                             `json:"detectiveOperationId,omitempty"`
 }
 type Message struct {
 	ID              string    `json:"id"`

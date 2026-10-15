@@ -212,9 +212,10 @@ func settlePendingRun(session *Session) error {
 
 // Service requires a live authorization boundary. It never executes source queries on reads.
 type Service struct {
-	repo      Repository
-	authorize Authorizer
-	now       func() time.Time
+	repo            Repository
+	authorize       Authorizer
+	now             func() time.Time
+	nativeNamespace *NativeNamespace
 }
 
 func NewService(repo Repository, authorize Authorizer) (*Service, error) {
@@ -246,6 +247,9 @@ func (s *Service) session(ctx context.Context, r Reader, p Principal, id, action
 	}
 	if version != v.Version || v.SchemaVersion != 1 {
 		return Session{}, ErrUnavailable
+	}
+	if err = guardSessionRedaction(ctx, r, id); err != nil {
+		return Session{}, err
 	}
 	return v, s.allow(ctx, p, action, id, nil)
 }
@@ -363,7 +367,14 @@ func (s *Service) ListSessions(ctx context.Context, p Principal, cursor string, 
 			if v.Owner != p.Actor {
 				return v.ID, false, ErrForbidden
 			}
-			return v.ID, v.DatabaseID == p.DatabaseID && v.ProjectID == p.ProjectID, nil
+			if v.DatabaseID != p.DatabaseID || v.ProjectID != p.ProjectID {
+				return v.ID, false, nil
+			}
+			err := guardSessionRedaction(ctx, r, v.ID)
+			if errors.Is(err, ErrReadOnly) {
+				return v.ID, false, nil
+			}
+			return v.ID, err == nil, err
 		})
 		return e
 	})
@@ -671,6 +682,11 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 		count := 0
 		receiptScope := c.Scope
 		writeSession := true
+		if legacy || c.Action == "createSession" {
+			if e := guardSessionRedaction(ctx, tx, targetSessionID); e != nil {
+				return e
+			}
+		}
 		if legacy {
 			var stored LegacyImportManifest
 			if _, e := tx.Load(ctx, LegacyImports, legacyManifest.ID, &stored); e == nil {
@@ -1058,7 +1074,7 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 				if e != nil {
 					return e
 				}
-				if run.SessionID != v.ID || run.ExecutionAuthority != "server" {
+				if run.SessionID != v.ID || run.ExecutionAuthority != "server" || run.InputReference != nil || run.DetectiveOperationID != "" {
 					return ErrForbidden
 				}
 				if version != c.ExpectedRunVersion || run.State != "accepted" {
@@ -1460,6 +1476,9 @@ func (s *Service) ReadInput(ctx context.Context, p Principal, id string) (InputS
 		v, e := s.session(ctx, r, p, input.SessionID, "readInput")
 		if e != nil {
 			return e
+		}
+		if input.Detective != nil && v.State == "deleted" {
+			return ErrReadOnly
 		}
 		if e = s.allow(ctx, p, "readInput", v.ID, &input.Scope); e != nil {
 			return e
