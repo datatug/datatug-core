@@ -312,7 +312,7 @@ func (s *Service) PinDetectiveInput(ctx context.Context, p Principal, c PinDetec
 		v.Version++
 		v.UpdatedAt = now
 		scope := c.Scope
-		receipt = Receipt{Scope: &scope, OpID: c.OpID, Actor: p.Actor, Action: "pinDetectiveInput", PayloadDigest: digest, SessionID: v.ID, SessionVersion: v.Version, ResourceID: run.ID, ResourceVersion: 1, At: now}
+		receipt = Receipt{RecoveryBindingDigest: detectiveRecoveryBindingDigest(work), Scope: &scope, OpID: c.OpID, Actor: p.Actor, Action: "pinDetectiveInput", PayloadDigest: digest, SessionID: v.ID, SessionVersion: v.Version, ResourceID: run.ID, ResourceVersion: 1, At: now}
 		for _, item := range []struct {
 			collection, id string
 			value          any

@@ -163,6 +163,9 @@ type Receipt struct {
 	ResourceID      string    `json:"resourceId,omitempty"`
 	ResourceVersion int64     `json:"resourceVersion,omitempty"`
 	At              time.Time `json:"at"`
+
+	// RecoveryBindingDigest independently binds accepted native recovery metadata.
+	RecoveryBindingDigest string `json:"recoveryBindingDigest,omitempty"`
 }
 type AuditEvent struct {
 	OpID       string    `json:"opId"`

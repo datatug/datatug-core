@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/datatug/datatug-core/pkg/apicontract"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -272,5 +273,58 @@ func TestDetectiveFirstClaimOnlyOneWinnerAndRetryFlagReset(t *testing.T) {
 	s.repo = &interceptedRepository{Repository: s.repo, failSave: func(string, string) error { return ErrUnavailable }}
 	if _, _, first, err := o.ClaimDispatchOnce(ctx, p, accepted.Identity); !errors.Is(err, ErrUnavailable) || first {
 		t.Fatal("failed claim granted dispatch", err)
+	}
+}
+
+func TestDetectiveRecoveryReceiptIndependentlyBindsValidMetadata(t *testing.T) {
+	for _, kind := range []string{"client-digest", "native-operation", "native-digest", "native-project", "namespace", "input-map", "binding-refs", "missing-receipt-binding", "changed-receipt-binding"} {
+		t.Run(kind, func(t *testing.T) {
+			ctx := context.Background()
+			s, p, o, c := operationFixture(t)
+			if err := s.repo.Transact(ctx, func(tx Transaction) error {
+				if strings.Contains(kind, "receipt-binding") {
+					var receipt Receipt
+					version, err := tx.Load(ctx, Operations, opKey(p, c.OpID), &receipt)
+					if err != nil {
+						return err
+					}
+					receipt.RecoveryBindingDigest = ""
+					if kind == "changed-receipt-binding" {
+						receipt.RecoveryBindingDigest = strings.Repeat("b", 64)
+					}
+					return tx.Save(ctx, Operations, opKey(p, c.OpID), receipt, version, p.Actor, c.SessionID)
+				}
+				var work AcceptedDetectiveWork
+				version, err := tx.Load(ctx, DetectiveWork, c.RunID, &work)
+				if err != nil {
+					return err
+				}
+				work.Version++
+				switch kind {
+				case "client-digest":
+					work.ClientRequestDigest = strings.Repeat("b", 64)
+				case "native-operation":
+					work.Dispatch.NativeOperationID = "different-safe-operation"
+				case "native-digest":
+					work.Dispatch.NativeRequestDigest = strings.Repeat("b", 64)
+				case "native-project":
+					work.Dispatch.NativeProjectID = "different-safe-project"
+				case "namespace":
+					work.Namespace.NamespaceID = "different-safe-namespace"
+				case "input-map":
+					work.InputSnapshotID = "different-input"
+					work.Reference.InputSnapshotID = work.InputSnapshotID
+				case "binding-refs":
+					work.Reference.Bindings = []apicontract.SessionInputBindingRef{{InputName: "safe-input", Origin: "manual"}}
+				}
+				return tx.Save(ctx, DetectiveWork, c.RunID, work, version, p.Actor, c.SessionID)
+			}); err != nil {
+				t.Fatal(err)
+			}
+			out, err := o.ResolveOperation(ctx, p, c.OpID)
+			if !errors.Is(err, ErrConflict) || out != (AcceptedDetectiveOperation{}) {
+				t.Fatalf("valid metadata tampering escaped independent receipt binding: %+v %v", out, err)
+			}
+		})
 	}
 }
