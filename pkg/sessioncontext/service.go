@@ -32,10 +32,12 @@ const (
 	Outbox        = "sessionContextOutbox"
 	LegacyImports = "sessionContextLegacyImports"
 	// MaxSnapshotBytes caps the sum of serialized session, bag, context-set, current
-	// entry and current revision records returned by GetSnapshot.
+	// entry and current/applied revision records returned by GetSnapshot.
 	MaxSnapshotBytes = 4 * 1024 * 1024
-	// MaxSnapshotEntries bounds current entry and revision reads in one snapshot.
+	// MaxSnapshotEntries bounds current entries and applied references in one snapshot.
 	MaxSnapshotEntries = 400
+	// MaxSnapshotRevisions bounds the union of current and applied revisions.
+	MaxSnapshotRevisions = 2 * MaxSnapshotEntries
 )
 
 var safeID = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$`)
@@ -302,9 +304,42 @@ func (s *Service) loadSnapshot(ctx context.Context, r Reader, p Principal, v Ses
 	if err != nil {
 		return Snapshot{}, err
 	}
+	if out.ContextSet.ID != v.ContextSetID || out.ContextSet.SessionID != v.ID {
+		return Snapshot{}, ErrUnavailable
+	}
+	if len(out.ContextSet.Slots) > 64 {
+		return Snapshot{}, errSnapshotLimit
+	}
 	used, err = addSnapshotBytes(used, out.ContextSet)
 	if err != nil {
 		return Snapshot{}, errSnapshotLimit
+	}
+	bags := map[string]Bag{}
+	entries := map[string]Entry{}
+	revisions := map[string]EntryRevision{}
+	loadRevision := func(entry Entry, id string) error {
+		if !safeID.MatchString(id) {
+			return ErrUnavailable
+		}
+		revision, loaded := revisions[id]
+		if !loaded {
+			if _, err := r.Load(ctx, Revisions, id, &revision); err != nil {
+				return err
+			}
+		}
+		if revision.ID != id || revision.EntryID != entry.ID || revision.BagID != entry.BagID {
+			return ErrUnavailable
+		}
+		if !loaded {
+			var err error
+			used, err = addSnapshotBytes(used, revision)
+			if err != nil {
+				return errSnapshotLimit
+			}
+			revisions[id] = revision
+			out.Revisions = append(out.Revisions, revision)
+		}
+		return nil
 	}
 	for _, bid := range v.BagIDs {
 		b, err := s.bag(ctx, r, p, v, bid, action)
@@ -316,6 +351,7 @@ func (s *Service) loadSnapshot(ctx context.Context, r Reader, p Principal, v Ses
 			return Snapshot{}, errSnapshotLimit
 		}
 		out.Bags = append(out.Bags, b)
+		bags[b.ID] = b
 		for _, eid := range b.EntryIDs {
 			if len(out.Entries) >= MaxSnapshotEntries {
 				return Snapshot{}, errSnapshotLimit
@@ -324,26 +360,51 @@ func (s *Service) loadSnapshot(ctx context.Context, r Reader, p Principal, v Ses
 			if _, err = r.Load(ctx, Entries, eid, &entry); err != nil {
 				return Snapshot{}, err
 			}
-			if entry.BagID != b.ID || entry.SessionID != v.ID {
+			if entry.ID != eid || entry.BagID != b.ID || entry.SessionID != v.ID {
 				return Snapshot{}, ErrUnavailable
 			}
 			used, err = addSnapshotBytes(used, entry)
 			if err != nil {
 				return Snapshot{}, errSnapshotLimit
 			}
-			var revision EntryRevision
-			if _, err = r.Load(ctx, Revisions, entry.CurrentRevisionID, &revision); err != nil {
+			if err := loadRevision(entry, entry.CurrentRevisionID); err != nil {
 				return Snapshot{}, err
 			}
-			if revision.EntryID != eid || revision.BagID != bid {
+			out.Entries = append(out.Entries, entry)
+			entries[eid] = entry
+		}
+	}
+	seenScopes := map[Scope]bool{}
+	appliedCount := 0
+	for _, slot := range out.ContextSet.Slots {
+		if !validScope(&slot.Scope) || seenScopes[slot.Scope] || slot.Version <= 0 {
+			return Snapshot{}, ErrUnavailable
+		}
+		seenScopes[slot.Scope] = true
+		if slot.BagID == "" {
+			if len(slot.Entries) != 0 || slot.BagVersion != 0 {
 				return Snapshot{}, ErrUnavailable
 			}
-			used, err = addSnapshotBytes(used, revision)
-			if err != nil {
-				return Snapshot{}, errSnapshotLimit
+			continue
+		}
+		bag, ok := bags[slot.BagID]
+		if !ok || bag.Scope != slot.Scope || slot.BagVersion <= 0 || slot.BagVersion > bag.Version || slot.BagVersion < bag.ClearVersion {
+			return Snapshot{}, ErrUnavailable
+		}
+		if len(slot.Entries) > MaxSnapshotEntries-appliedCount {
+			return Snapshot{}, errSnapshotLimit
+		}
+		appliedCount += len(slot.Entries)
+		seenEntries := map[string]bool{}
+		for _, ref := range slot.Entries {
+			entry, ok := entries[ref.EntryID]
+			if !safeID.MatchString(ref.EntryID) || !ok || entry.BagID != bag.ID || seenEntries[ref.EntryID] {
+				return Snapshot{}, ErrUnavailable
 			}
-			out.Entries = append(out.Entries, entry)
-			out.Revisions = append(out.Revisions, revision)
+			seenEntries[ref.EntryID] = true
+			if err := loadRevision(entry, ref.RevisionID); err != nil {
+				return Snapshot{}, err
+			}
 		}
 	}
 	return out, nil
