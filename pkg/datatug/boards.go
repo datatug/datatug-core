@@ -1,8 +1,10 @@
 package datatug
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/strongo/validation"
 )
@@ -190,6 +192,12 @@ func (v BoardWidget) validateAtDepth(depth int) (err error) {
 				return err
 			}
 		}
+	case "chart":
+		if widget, ok = v.Data.(*ChartWidgetDef); !ok {
+			if widget, err = newStrictWidgetDef(&ChartWidgetDef{}, v.Data); err != nil {
+				return err
+			}
+		}
 	default:
 		return validation.NewErrBadRecordFieldValue("id", "unknown widget id")
 	}
@@ -206,6 +214,9 @@ func (v BoardWidget) validateAtDepth(depth int) (err error) {
 	if http, ok := widget.(*HTTPWidgetDef); ok && http == nil {
 		return validation.NewErrBadRecordFieldValue("data", "HTTP widget definition is null")
 	}
+	if chart, ok := widget.(*ChartWidgetDef); ok && chart == nil {
+		return validation.NewErrBadRecordFieldValue("data", "chart widget definition is null")
+	}
 	if err = widget.Validate(); err != nil {
 		return fmt.Errorf("failed to test widget of type %T: %w", widget, err)
 	}
@@ -218,6 +229,19 @@ func newWidgetDef(widgetDef validatable, data interface{}) (validatable, error) 
 		return nil, err
 	}
 	return widgetDef, json.Unmarshal(d, widgetDef)
+}
+
+// New chart wires reject extra fields so an untyped board read cannot carry
+// result rows, execution state or a second, unsupported source contract into
+// saved JSON. Older widget kinds retain their existing permissive behavior.
+func newStrictWidgetDef(widgetDef validatable, data interface{}) (validatable, error) {
+	d, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	decoder := json.NewDecoder(bytes.NewReader(d))
+	decoder.DisallowUnknownFields()
+	return widgetDef, decoder.Decode(widgetDef)
 }
 
 // WidgetBase is base struct for widgets
@@ -409,6 +433,8 @@ func (v HTTPWidgetDef) Validate() error {
 
 // TabWidget describes a tab widget
 type TabWidget struct {
+	// ID is a stable identity for newly authored tabs. Legacy tabs may omit it.
+	ID     string      `json:"id,omitempty"`
 	Title  string      `json:"title"`
 	Widget BoardWidget `json:"widget,omitempty"`
 }
@@ -428,7 +454,17 @@ func (v TabsWidgetDef) validateAtDepth(depth int) error {
 	if err := v.WidgetBase.Validate(false); err != nil {
 		return err
 	}
+	seenIDs := make(map[string]bool, len(v.Tabs))
 	for i, tab := range v.Tabs {
+		if tab.ID != "" {
+			if strings.TrimSpace(tab.ID) != tab.ID {
+				return fmt.Errorf("invalid tab at index %v: id must not have surrounding whitespace", i)
+			}
+			if seenIDs[tab.ID] {
+				return fmt.Errorf("invalid tab at index %v: duplicate id=%q", i, tab.ID)
+			}
+			seenIDs[tab.ID] = true
+		}
 		// The wire permits placeholder tabs without a widget. Existing boards
 		// also use titles as display text, not a guaranteed unique identity.
 		if tab.Widget.Name == "" && tab.Widget.Data == nil {
@@ -439,4 +475,90 @@ func (v TabsWidgetDef) validateAtDepth(depth int) error {
 		}
 	}
 	return nil
+}
+
+// ChartWidgetDef stores presentation choices and saved-query references only.
+// Results, execution receipts and access rights are resolved at view time.
+type ChartWidgetDef struct {
+	WidgetBase
+	Sources     []ChartSourceBinding `json:"sources"`
+	Chart       ChartSpec            `json:"chart"`
+	DefaultView string               `json:"defaultView,omitempty"`
+}
+
+// ChartSourceBinding identifies an independently executed saved query.
+// It never embeds a connection, query text, or a cached result.
+type ChartSourceBinding struct {
+	ID         string                  `json:"id"`
+	QueryID    string                  `json:"queryId"`
+	Parameters WidgetParameterBindings `json:"parameters,omitempty"`
+}
+
+func (v ChartSourceBinding) Validate() error {
+	if v.ID == "" || strings.TrimSpace(v.ID) != v.ID {
+		return validation.NewErrBadRecordFieldValue("id", "must be nonempty without surrounding whitespace")
+	}
+	if v.QueryID == "" {
+		return validation.NewErrRecordIsMissingRequiredField("queryId")
+	}
+	return v.Parameters.Validate()
+}
+
+// ChartSpec maps fields in the admitted result to a chart. A race consumes
+// prepared period/category/value rows, not raw orders; that transform is runtime work.
+type ChartSpec struct {
+	Type           string `json:"type"`
+	CategoryColumn string `json:"categoryColumn"`
+	ValueColumn    string `json:"valueColumn"`
+	PeriodColumn   string `json:"periodColumn,omitempty"`
+}
+
+func (v ChartSpec) Validate() error {
+	switch v.Type {
+	case "bar":
+		if v.PeriodColumn != "" {
+			return validation.NewErrBadRecordFieldValue("periodColumn", "only bar-race uses a period column")
+		}
+	case "bar-race":
+		if v.PeriodColumn == "" {
+			return validation.NewErrRecordIsMissingRequiredField("periodColumn")
+		}
+	default:
+		return validation.NewErrBadRecordFieldValue("type", "must be bar or bar-race")
+	}
+	if v.CategoryColumn == "" {
+		return validation.NewErrRecordIsMissingRequiredField("categoryColumn")
+	}
+	if v.ValueColumn == "" {
+		return validation.NewErrRecordIsMissingRequiredField("valueColumn")
+	}
+	return nil
+}
+
+func (v ChartWidgetDef) Validate() error {
+	if err := v.WidgetBase.Validate(false); err != nil {
+		return err
+	}
+	if len(v.Sources) == 0 {
+		return validation.NewErrRecordIsMissingRequiredField("sources")
+	}
+	seenIDs := make(map[string]bool, len(v.Sources))
+	for i, source := range v.Sources {
+		if err := source.Validate(); err != nil {
+			return fmt.Errorf("invalid source at index %v: %w", i, err)
+		}
+		if seenIDs[source.ID] {
+			return fmt.Errorf("invalid source at index %v: duplicate id=%q", i, source.ID)
+		}
+		seenIDs[source.ID] = true
+	}
+	if err := v.Chart.Validate(); err != nil {
+		return validation.NewErrBadRecordFieldValue("chart", err.Error())
+	}
+	switch v.DefaultView {
+	case "", "chart", "grid":
+		return nil
+	default:
+		return validation.NewErrBadRecordFieldValue("defaultView", "must be chart or grid")
+	}
 }
