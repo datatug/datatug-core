@@ -652,6 +652,13 @@ func TestBoardWidget_ValidateTabsNilData(t *testing.T) {
 	assert.NoError(t, (BoardWidget{Name: "tabs", Data: nilTabs}).Validate())
 }
 
+func TestBoardWidget_ValidateTypedNilQueryData(t *testing.T) {
+	var nilSQL *SQLWidgetDef
+	assert.ErrorContains(t, (BoardWidget{Name: "SQL", Data: nilSQL}).Validate(), "SQL widget definition is null")
+	var nilHTTP *HTTPWidgetDef
+	assert.ErrorContains(t, (BoardWidget{Name: "HTTP", Data: nilHTTP}).Validate(), "HTTP widget definition is null")
+}
+
 func TestBoard_ValidateLegacyTabsJSONRoundTrip(t *testing.T) {
 	const legacy = `{"id":"b1","title":"Board","rows":[{"cards":[{"id":"c1","widget":{"name":"tabs","data":{"tabs":[{"title":""},{"title":"Same","widget":{}},{"title":"Same","widget":{"name":"SQL","data":{"sql":{"queryId":"q1"}}}}]}}}]}]}`
 	var board Board
