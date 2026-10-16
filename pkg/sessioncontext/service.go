@@ -323,9 +323,6 @@ func (s *Service) loadSnapshot(ctx context.Context, r Reader, p Principal, v Ses
 		}
 		revision, loaded := revisions[id]
 		if !loaded {
-			if len(revisions) >= MaxSnapshotRevisions {
-				return errSnapshotLimit
-			}
 			if _, err := r.Load(ctx, Revisions, id, &revision); err != nil {
 				return err
 			}
