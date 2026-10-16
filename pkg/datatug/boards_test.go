@@ -608,11 +608,12 @@ func TestTabsWidgetDef_ValidateChildren(t *testing.T) {
 		{name: "empty tabs remain valid"},
 		{name: "SQL and HTTP", tabs: []TabWidget{{Title: "Query", Widget: validSQL()}, {Title: "Feed", Widget: validHTTP()}}},
 		{name: "nested tabs", tabs: []TabWidget{{Title: "Outer", Widget: BoardWidget{Name: "tabs", Data: &TabsWidgetDef{Tabs: []TabWidget{{Title: "Inner", Widget: validSQL()}}}}}}},
-		{name: "missing title", tabs: []TabWidget{{Widget: validSQL()}}, wantErr: "title"},
-		{name: "whitespace title", tabs: []TabWidget{{Title: "  ", Widget: validSQL()}}, wantErr: "title"},
-		{name: "padded title", tabs: []TabWidget{{Title: " Query ", Widget: validSQL()}}, wantErr: "whitespace"},
-		{name: "duplicate title", tabs: []TabWidget{{Title: "Query", Widget: validSQL()}, {Title: "Query", Widget: validHTTP()}}, wantErr: "duplicate tab title"},
-		{name: "missing child widget", tabs: []TabWidget{{Title: "Query"}}, wantErr: "name"},
+		{name: "legacy missing title", tabs: []TabWidget{{Widget: validSQL()}}},
+		{name: "legacy whitespace title", tabs: []TabWidget{{Title: "  ", Widget: validSQL()}}},
+		{name: "legacy padded title", tabs: []TabWidget{{Title: " Query ", Widget: validSQL()}}},
+		{name: "legacy duplicate title", tabs: []TabWidget{{Title: "Query", Widget: validSQL()}, {Title: "Query", Widget: validHTTP()}}},
+		{name: "placeholder without child widget", tabs: []TabWidget{{Title: "Query"}}},
+		{name: "malformed child without name", tabs: []TabWidget{{Title: "Query", Widget: BoardWidget{Data: map[string]interface{}{"sql": map[string]interface{}{"queryId": "q1"}}}}}, wantErr: "name"},
 		{name: "invalid SQL child", tabs: []TabWidget{{Title: "Query", Widget: BoardWidget{Name: "SQL", Data: &SQLWidgetDef{}}}}, wantErr: "queryId"},
 		{name: "invalid HTTP child", tabs: []TabWidget{{Title: "Feed", Widget: BoardWidget{Name: "HTTP", Data: &HTTPWidgetDef{Request: HTTPRequest{Method: "GET"}}}}}, wantErr: "url"},
 		{
@@ -643,6 +644,24 @@ func TestTabsWidgetDef_ValidateCycle(t *testing.T) {
 	tabs := &TabsWidgetDef{}
 	tabs.Tabs = []TabWidget{{Title: "Loop", Widget: BoardWidget{Name: "tabs", Data: tabs}}}
 	assert.ErrorContains(t, tabs.Validate(), "nesting exceeds maximum depth")
+}
+
+func TestBoardWidget_ValidateTabsNilData(t *testing.T) {
+	assert.NoError(t, (BoardWidget{Name: "tabs"}).Validate())
+	var nilTabs *TabsWidgetDef
+	assert.NoError(t, (BoardWidget{Name: "tabs", Data: nilTabs}).Validate())
+}
+
+func TestBoard_ValidateLegacyTabsJSONRoundTrip(t *testing.T) {
+	const legacy = `{"id":"b1","title":"Board","rows":[{"cards":[{"id":"c1","widget":{"name":"tabs","data":{"tabs":[{"title":""},{"title":"Same","widget":{}},{"title":"Same","widget":{"name":"SQL","data":{"sql":{"queryId":"q1"}}}}]}}}]}]}`
+	var board Board
+	assert.NoError(t, json.Unmarshal([]byte(legacy), &board))
+	assert.NoError(t, board.Validate())
+	data, err := json.Marshal(board)
+	assert.NoError(t, err)
+	var roundTripped Board
+	assert.NoError(t, json.Unmarshal(data, &roundTripped))
+	assert.NoError(t, roundTripped.Validate())
 }
 
 func TestBoard_ValidateNestedTabFromJSON(t *testing.T) {

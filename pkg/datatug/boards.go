@@ -3,7 +3,6 @@ package datatug
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/strongo/validation"
 )
@@ -196,7 +195,8 @@ func (v BoardWidget) validateAtDepth(depth int) (err error) {
 	}
 	if tabs, ok := widget.(*TabsWidgetDef); ok {
 		if tabs == nil {
-			return validation.NewErrBadRecordFieldValue("data", "tabs widget definition is null")
+			// A nil definition is the same empty placeholder as absent JSON data.
+			tabs = &TabsWidgetDef{}
 		}
 		return tabs.validateAtDepth(depth)
 	}
@@ -428,18 +428,12 @@ func (v TabsWidgetDef) validateAtDepth(depth int) error {
 	if err := v.WidgetBase.Validate(false); err != nil {
 		return err
 	}
-	seen := make(map[string]bool, len(v.Tabs))
 	for i, tab := range v.Tabs {
-		if err := validateStringField("title", tab.Title, true, MaxTitleLength); err != nil {
-			return fmt.Errorf("invalid tab at index %v: %w", i, err)
+		// The wire permits placeholder tabs without a widget. Existing boards
+		// also use titles as display text, not a guaranteed unique identity.
+		if tab.Widget.Name == "" && tab.Widget.Data == nil {
+			continue
 		}
-		if strings.TrimSpace(tab.Title) != tab.Title {
-			return fmt.Errorf("invalid tab at index %v: %w", i, validation.NewErrBadRecordFieldValue("title", "leading or trailing whitespace is not allowed"))
-		}
-		if seen[tab.Title] {
-			return fmt.Errorf("invalid tab at index %v: %w", i, validation.NewErrBadRecordFieldValue("title", "duplicate tab title"))
-		}
-		seen[tab.Title] = true
 		if err := tab.Widget.validateAtDepth(depth + 1); err != nil {
 			return fmt.Errorf("invalid tab at index %v with title=%q: %w", i, tab.Title, err)
 		}
