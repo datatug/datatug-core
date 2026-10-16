@@ -593,6 +593,78 @@ func TestTabsWidgetDef_Validate(t *testing.T) {
 	})
 }
 
+func TestTabsWidgetDef_ValidateChildren(t *testing.T) {
+	validSQL := func() BoardWidget {
+		return BoardWidget{Name: "SQL", Data: &SQLWidgetDef{SQL: SQLWidgetSettings{QueryID: "q1"}}}
+	}
+	validHTTP := func() BoardWidget {
+		return BoardWidget{Name: "HTTP", Data: &HTTPWidgetDef{Request: HTTPRequest{Method: "GET", URL: "https://example.com"}}}
+	}
+	tests := []struct {
+		name    string
+		tabs    []TabWidget
+		wantErr string
+	}{
+		{name: "empty tabs remain valid"},
+		{name: "SQL and HTTP", tabs: []TabWidget{{Title: "Query", Widget: validSQL()}, {Title: "Feed", Widget: validHTTP()}}},
+		{name: "nested tabs", tabs: []TabWidget{{Title: "Outer", Widget: BoardWidget{Name: "tabs", Data: &TabsWidgetDef{Tabs: []TabWidget{{Title: "Inner", Widget: validSQL()}}}}}}},
+		{name: "missing title", tabs: []TabWidget{{Widget: validSQL()}}, wantErr: "title"},
+		{name: "whitespace title", tabs: []TabWidget{{Title: "  ", Widget: validSQL()}}, wantErr: "title"},
+		{name: "padded title", tabs: []TabWidget{{Title: " Query ", Widget: validSQL()}}, wantErr: "whitespace"},
+		{name: "duplicate title", tabs: []TabWidget{{Title: "Query", Widget: validSQL()}, {Title: "Query", Widget: validHTTP()}}, wantErr: "duplicate tab title"},
+		{name: "missing child widget", tabs: []TabWidget{{Title: "Query"}}, wantErr: "name"},
+		{name: "invalid SQL child", tabs: []TabWidget{{Title: "Query", Widget: BoardWidget{Name: "SQL", Data: &SQLWidgetDef{}}}}, wantErr: "queryId"},
+		{name: "invalid HTTP child", tabs: []TabWidget{{Title: "Feed", Widget: BoardWidget{Name: "HTTP", Data: &HTTPWidgetDef{Request: HTTPRequest{Method: "GET"}}}}}, wantErr: "url"},
+		{
+			name: "invalid grandchild",
+			tabs: []TabWidget{{
+				Title: "Outer",
+				Widget: BoardWidget{Name: "tabs", Data: &TabsWidgetDef{Tabs: []TabWidget{{
+					Title:  "Inner",
+					Widget: BoardWidget{Name: "SQL", Data: &SQLWidgetDef{}},
+				}}}},
+			}},
+			wantErr: "queryId",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := (TabsWidgetDef{Tabs: tt.tabs}).Validate()
+			if tt.wantErr == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorContains(t, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestTabsWidgetDef_ValidateCycle(t *testing.T) {
+	tabs := &TabsWidgetDef{}
+	tabs.Tabs = []TabWidget{{Title: "Loop", Widget: BoardWidget{Name: "tabs", Data: tabs}}}
+	assert.ErrorContains(t, tabs.Validate(), "nesting exceeds maximum depth")
+}
+
+func TestBoard_ValidateNestedTabFromJSON(t *testing.T) {
+	original := Board{
+		ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "b1", Title: "Board"}},
+		Rows: BoardRows{{Cards: BoardCards{{
+			ID: "c1",
+			Widget: &BoardWidget{Name: "tabs", Data: &TabsWidgetDef{Tabs: []TabWidget{{
+				Title: "Outer",
+				Widget: BoardWidget{Name: "tabs", Data: &TabsWidgetDef{Tabs: []TabWidget{{
+					Title: "Query", Widget: BoardWidget{Name: "SQL", Data: &SQLWidgetDef{}},
+				}}}},
+			}}}},
+		}}}},
+	}
+	data, err := json.Marshal(original)
+	assert.NoError(t, err)
+	var board Board
+	assert.NoError(t, json.Unmarshal(data, &board))
+	assert.ErrorContains(t, board.Validate(), "queryId")
+}
+
 func TestSQLWidgetDef_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
 		v := SQLWidgetDef{

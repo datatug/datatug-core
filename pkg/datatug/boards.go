@@ -3,6 +3,7 @@ package datatug
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/strongo/validation"
 )
@@ -157,6 +158,16 @@ type BoardWidget struct {
 
 // Validate returns error if failed
 func (v BoardWidget) Validate() (err error) {
+	return v.validateAtDepth(0)
+}
+
+// maxWidgetValidationDepth also bounds cycles in programmatically built widgets.
+const maxWidgetValidationDepth = 32
+
+func (v BoardWidget) validateAtDepth(depth int) (err error) {
+	if depth > maxWidgetValidationDepth {
+		return validation.NewErrBadRecordFieldValue("tabs", "widget nesting exceeds maximum depth")
+	}
 	var widget interface{ Validate() error }
 	var ok bool
 	switch v.Name {
@@ -182,6 +193,18 @@ func (v BoardWidget) Validate() (err error) {
 		}
 	default:
 		return validation.NewErrBadRecordFieldValue("id", "unknown widget id")
+	}
+	if tabs, ok := widget.(*TabsWidgetDef); ok {
+		if tabs == nil {
+			return validation.NewErrBadRecordFieldValue("data", "tabs widget definition is null")
+		}
+		return tabs.validateAtDepth(depth)
+	}
+	if sql, ok := widget.(*SQLWidgetDef); ok && sql == nil {
+		return validation.NewErrBadRecordFieldValue("data", "SQL widget definition is null")
+	}
+	if http, ok := widget.(*HTTPWidgetDef); ok && http == nil {
+		return validation.NewErrBadRecordFieldValue("data", "HTTP widget definition is null")
 	}
 	if err = widget.Validate(); err != nil {
 		return fmt.Errorf("failed to test widget of type %T: %w", widget, err)
@@ -398,8 +421,28 @@ type TabsWidgetDef struct {
 
 // Validate returns error if not valid
 func (v TabsWidgetDef) Validate() error {
+	return v.validateAtDepth(0)
+}
+
+func (v TabsWidgetDef) validateAtDepth(depth int) error {
 	if err := v.WidgetBase.Validate(false); err != nil {
 		return err
+	}
+	seen := make(map[string]bool, len(v.Tabs))
+	for i, tab := range v.Tabs {
+		if err := validateStringField("title", tab.Title, true, MaxTitleLength); err != nil {
+			return fmt.Errorf("invalid tab at index %v: %w", i, err)
+		}
+		if strings.TrimSpace(tab.Title) != tab.Title {
+			return fmt.Errorf("invalid tab at index %v: %w", i, validation.NewErrBadRecordFieldValue("title", "leading or trailing whitespace is not allowed"))
+		}
+		if seen[tab.Title] {
+			return fmt.Errorf("invalid tab at index %v: %w", i, validation.NewErrBadRecordFieldValue("title", "duplicate tab title"))
+		}
+		seen[tab.Title] = true
+		if err := tab.Widget.validateAtDepth(depth + 1); err != nil {
+			return fmt.Errorf("invalid tab at index %v with title=%q: %w", i, tab.Title, err)
+		}
 	}
 	return nil
 }
