@@ -492,6 +492,7 @@ type ChartSourceBinding struct {
 	ID         string                  `json:"id"`
 	QueryID    string                  `json:"queryId"`
 	Parameters WidgetParameterBindings `json:"parameters,omitempty"`
+	Transform  *ChartSourceTransform   `json:"transform,omitempty"`
 }
 
 func (v ChartSourceBinding) Validate() error {
@@ -501,16 +502,49 @@ func (v ChartSourceBinding) Validate() error {
 	if v.QueryID == "" {
 		return validation.NewErrRecordIsMissingRequiredField("queryId")
 	}
-	return v.Parameters.Validate()
+	if err := v.Parameters.Validate(); err != nil {
+		return err
+	}
+	if v.Transform != nil {
+		return v.Transform.Validate()
+	}
+	return nil
 }
 
-// ChartSpec maps fields in the admitted result to a chart. A race consumes
-// prepared period/category/value rows, not raw orders; that transform is runtime work.
+// ChartSourceTransform names a reusable runtime operation on an admitted result.
+// Its input column names are explicit so execution never depends on a query ID.
+type ChartSourceTransform struct {
+	Name          string `json:"name"`
+	OrderIDColumn string `json:"orderIdColumn"`
+	DateColumn    string `json:"dateColumn"`
+	CountryColumn string `json:"countryColumn"`
+}
+
+func (v ChartSourceTransform) Validate() error {
+	if v.Name != "orders-monthly-country-count" {
+		return validation.NewErrBadRecordFieldValue("name", "unsupported chart source transform")
+	}
+	if strings.TrimSpace(v.OrderIDColumn) == "" || strings.TrimSpace(v.DateColumn) == "" || strings.TrimSpace(v.CountryColumn) == "" {
+		return validation.NewErrBadRecordFieldValue("transform", "orderIdColumn, dateColumn and countryColumn are required")
+	}
+	if v.OrderIDColumn == v.DateColumn || v.OrderIDColumn == v.CountryColumn || v.DateColumn == v.CountryColumn {
+		return validation.NewErrBadRecordFieldValue("transform", "input columns must differ")
+	}
+	return nil
+}
+
+// ChartSpec maps columns in the admitted or transformed result to a chart.
+// The monthly orders transform emits period/category/value rows.
 type ChartSpec struct {
 	Type           string `json:"type"`
 	CategoryColumn string `json:"categoryColumn"`
 	ValueColumn    string `json:"valueColumn"`
 	PeriodColumn   string `json:"periodColumn,omitempty"`
+	Unit           string `json:"unit,omitempty"`
+	Grain          string `json:"grain,omitempty"`
+	OnDuplicate    string `json:"onDuplicate,omitempty"`
+	Mode           string `json:"mode,omitempty"`
+	TopN           int    `json:"topN,omitempty"`
 }
 
 func (v ChartSpec) Validate() error {
@@ -519,18 +553,39 @@ func (v ChartSpec) Validate() error {
 		if v.PeriodColumn != "" {
 			return validation.NewErrBadRecordFieldValue("periodColumn", "only bar-race uses a period column")
 		}
+		if v.Grain != "" || v.OnDuplicate != "" || v.Mode != "" || v.TopN != 0 {
+			return validation.NewErrBadRecordFieldValue("type", "race options require bar-race")
+		}
 	case "bar-race":
-		if v.PeriodColumn == "" {
+		if strings.TrimSpace(v.PeriodColumn) == "" {
 			return validation.NewErrRecordIsMissingRequiredField("periodColumn")
+		}
+		if strings.TrimSpace(v.Unit) == "" {
+			return validation.NewErrRecordIsMissingRequiredField("unit")
+		}
+		if v.Grain != "month" {
+			return validation.NewErrBadRecordFieldValue("grain", "bar-race currently requires month")
+		}
+		if v.OnDuplicate != "sum" && v.OnDuplicate != "reject" {
+			return validation.NewErrBadRecordFieldValue("onDuplicate", "must be sum or reject")
+		}
+		if v.Mode != "period" && v.Mode != "cumulative" {
+			return validation.NewErrBadRecordFieldValue("mode", "must be period or cumulative")
+		}
+		if v.TopN < 1 || v.TopN > 100 {
+			return validation.NewErrBadRecordFieldValue("topN", "must be from 1 to 100")
 		}
 	default:
 		return validation.NewErrBadRecordFieldValue("type", "must be bar or bar-race")
 	}
-	if v.CategoryColumn == "" {
+	if strings.TrimSpace(v.CategoryColumn) == "" {
 		return validation.NewErrRecordIsMissingRequiredField("categoryColumn")
 	}
-	if v.ValueColumn == "" {
+	if strings.TrimSpace(v.ValueColumn) == "" {
 		return validation.NewErrRecordIsMissingRequiredField("valueColumn")
+	}
+	if v.CategoryColumn == v.ValueColumn || (v.PeriodColumn != "" && (v.PeriodColumn == v.CategoryColumn || v.PeriodColumn == v.ValueColumn)) {
+		return validation.NewErrBadRecordFieldValue("chart", "period, category and value columns must differ")
 	}
 	return nil
 }
@@ -554,6 +609,19 @@ func (v ChartWidgetDef) Validate() error {
 	}
 	if err := v.Chart.Validate(); err != nil {
 		return validation.NewErrBadRecordFieldValue("chart", err.Error())
+	}
+	if v.Chart.Type == "bar-race" && len(v.Sources) != 1 {
+		return validation.NewErrBadRecordFieldValue("sources", "bar-race requires one source")
+	}
+	for i, source := range v.Sources {
+		if source.Transform != nil && source.Transform.Name == "orders-monthly-country-count" {
+			if v.Chart.Type != "bar-race" || v.Chart.PeriodColumn != "period" || v.Chart.CategoryColumn != "category" || v.Chart.ValueColumn != "value" {
+				return fmt.Errorf("invalid source at index %v: orders-monthly-country-count requires a bar-race mapped to period, category and value", i)
+			}
+			if v.Chart.OnDuplicate != "reject" {
+				return fmt.Errorf("invalid source at index %v: orders-monthly-country-count requires rejecting duplicate output rows", i)
+			}
+		}
 	}
 	switch v.DefaultView {
 	case "", "chart", "grid":
