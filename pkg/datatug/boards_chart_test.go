@@ -2,6 +2,7 @@ package datatug
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -56,6 +57,7 @@ func TestChartWidgetValidation(t *testing.T) {
 	}{
 		{"no sources", func(v *ChartWidgetDef) { v.Sources = nil }, "sources"},
 		{"no query", func(v *ChartWidgetDef) { v.Sources[0].QueryID = "" }, "queryId"},
+		{"padded source ID", func(v *ChartWidgetDef) { v.Sources[0].ID = " sqlite " }, "whitespace"},
 		{"duplicate source ID", func(v *ChartWidgetDef) {
 			v.Sources = append(v.Sources, ChartSourceBinding{ID: "sqlite", QueryID: "q2"})
 		}, "duplicate id"},
@@ -66,6 +68,8 @@ func TestChartWidgetValidation(t *testing.T) {
 		{"unknown type", func(v *ChartWidgetDef) { v.Chart.Type = "pie" }, "type"},
 		{"bad default view", func(v *ChartWidgetDef) { v.DefaultView = "table" }, "defaultView"},
 		{"bar with period", func(v *ChartWidgetDef) { v.Chart.PeriodColumn = "month" }, "periodColumn"},
+		{"bar with race options", func(v *ChartWidgetDef) { v.Chart.TopN = 10 }, "race options"},
+		{"invalid widget title", func(v *ChartWidgetDef) { v.Title = strings.Repeat("x", MaxTitleLength+1) }, "title"},
 		{"race without period", func(v *ChartWidgetDef) { v.Chart.Type = "bar-race" }, "periodColumn"},
 	}
 	for _, tt := range tests {
@@ -96,6 +100,9 @@ func TestChartWidgetValidation(t *testing.T) {
 			"chart":   map[string]any{"type": "bar", "categoryColumn": "ShipCountry", "valueColumn": "orders"},
 			"rows":    []any{map[string]any{"ShipCountry": "USA", "orders": 1}},
 		}}).Validate(), "unknown field")
+	})
+	t.Run("unserializable chart data is rejected", func(t *testing.T) {
+		assert.ErrorContains(t, (BoardWidget{Name: "chart", Data: make(chan int)}).Validate(), "unsupported type")
 	})
 }
 
