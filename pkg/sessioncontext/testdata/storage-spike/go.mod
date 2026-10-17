@@ -3,10 +3,10 @@ module github.com/datatug/datatug-core/pkg/sessioncontext/testdata/storage-spike
 go 1.27.0
 
 require (
-	github.com/dal-go/dalgo v0.93.0
+	github.com/dal-go/dalgo v0.95.1
 	github.com/dal-go/record v0.1.5
-	github.com/datatug/datatug-core v0.0.0
-	github.com/openvaultdb/openvaultdb-go v0.25.0
+	github.com/datatug/datatug-core v0.57.1
+	github.com/openvaultdb/openvaultdb-go v0.25.6
 	modernc.org/sqlite v1.60.1
 )
 
@@ -42,7 +42,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.23.0 // indirect
 	github.com/ingitdb/dalgo2ingitdb v0.7.1 // indirect
 	github.com/ingitdb/dalgo2ingitdb4github v0.2.3 // indirect
-	github.com/ingitdb/ingitdb-go/ingitdb v0.9.0 // indirect
+	github.com/ingitdb/ingitdb-go/ingitdb v0.9.1 // indirect
 	github.com/ingr-io/ingr-go v0.0.2 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
@@ -57,8 +57,8 @@ require (
 	github.com/qri-io/jsonschema v0.2.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/strongo/random v0.0.3 // indirect
-	github.com/strongo/slice v0.3.12 // indirect
-	github.com/strongo/validation v0.0.15 // indirect
+	github.com/strongo/slice v0.3.13 // indirect
+	github.com/strongo/validation v0.0.16 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.70.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.70.0 // indirect
@@ -70,7 +70,7 @@ require (
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.23.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	google.golang.org/api v0.292.0 // indirect

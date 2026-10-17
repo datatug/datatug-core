@@ -5,18 +5,18 @@ go 1.27.0
 toolchain go1.27.2
 
 require (
-	github.com/dal-go/dalgo v0.89.4
+	github.com/dal-go/dalgo v0.95.1
 	github.com/dal-go/record v0.1.5
 	github.com/gofrs/flock v0.13.1
-	github.com/ingitdb/ingitdb-go/ingitdb v0.7.7
+	github.com/ingitdb/ingitdb-go/ingitdb v0.9.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/stretchr/testify v1.12.1
-	github.com/strongo/aichat v0.13.0
-	github.com/strongo/slice v0.3.12
-	github.com/strongo/validation v0.0.15
+	github.com/strongo/aichat v0.15.0
+	github.com/strongo/slice v0.3.13
+	github.com/strongo/validation v0.0.16
 	go.uber.org/mock v0.6.0
-	golang.org/x/sys v0.48.0
+	golang.org/x/sys v0.49.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
