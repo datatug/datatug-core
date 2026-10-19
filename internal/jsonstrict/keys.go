@@ -17,10 +17,19 @@ import (
 // rules so two spellings cannot silently target the same field.
 func CheckNoDuplicateKeysFor(data []byte, target reflect.Type) error {
 	decoder := json.NewDecoder(bytes.NewReader(data))
-	return walkNoDuplicateKeys(decoder, target)
+	return walkNoDuplicateKeys(decoder, target, false)
 }
 
-func walkNoDuplicateKeys(decoder *json.Decoder, target reflect.Type) error {
+// CheckNoDuplicateKeysForSchema traverses an explicit typed schema, folding only
+// known field names. Unknown case-distinct metadata keys remain independent;
+// exact duplicate keys are still rejected at every depth. Custom unmarshalers
+// remain opaque: callers must supply a method-free schema to inspect their fields.
+func CheckNoDuplicateKeysForSchema(data []byte, schema reflect.Type) error {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	return walkNoDuplicateKeys(decoder, schema, true)
+}
+
+func walkNoDuplicateKeys(decoder *json.Decoder, target reflect.Type, knownFieldsOnly bool) error {
 	token, err := decoder.Token()
 	if err != nil {
 		return err
@@ -42,7 +51,10 @@ func walkNoDuplicateKeys(decoder *json.Decoder, target reflect.Type) error {
 			key, _ := keyToken.(string)
 			name := key
 			if fold {
-				name = FoldName(key)
+				folded := FoldName(key)
+				if !knownFieldsOnly || fields[folded] != nil {
+					name = folded
+				}
 			}
 			if first, duplicate := seen[name]; duplicate {
 				if first == key {
@@ -58,7 +70,7 @@ func walkNoDuplicateKeys(decoder *json.Decoder, target reflect.Type) error {
 			case target != nil && target.Kind() == reflect.Map:
 				child = target.Elem()
 			}
-			if err := walkNoDuplicateKeys(decoder, child); err != nil {
+			if err := walkNoDuplicateKeys(decoder, child, knownFieldsOnly); err != nil {
 				return err
 			}
 		}
@@ -69,7 +81,7 @@ func walkNoDuplicateKeys(decoder *json.Decoder, target reflect.Type) error {
 			element = target.Elem()
 		}
 		for decoder.More() {
-			if err := walkNoDuplicateKeys(decoder, element); err != nil {
+			if err := walkNoDuplicateKeys(decoder, element, knownFieldsOnly); err != nil {
 				return err
 			}
 		}
