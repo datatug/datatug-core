@@ -92,6 +92,9 @@ const ConfigFileName = ".datatug.yaml"
 var homedirDir = homedir.Dir
 
 func GetConfigFilePath() string {
+	if selected := explicitConfigPath.Load(); selected != nil && *selected != "" {
+		return *selected
+	}
 	configFilePath, err := homedirDir()
 	if err != nil {
 		panic(fmt.Errorf("failed to get user's home dir: %w", err))
