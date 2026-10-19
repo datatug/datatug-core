@@ -202,6 +202,10 @@ func (s fsProjectStore) ResolveEnvironmentConnection(ctx context.Context, enviro
 
 // The older environment loader accepts conventional JSON, including duplicate
 // keys. Resolution must reject that ambiguity before relying on membership.
+// This explicit schema removes Environment's custom JSON methods so validation
+// can traverse its typed fields without interpreting opaque metadata as fields.
+type connectionEnvironmentSchema datatug.Environment
+
 func (s fsProjectStore) validateConnectionEnvironmentFiles(environmentID string) error {
 	dir := filepath.Join(s.projectPath, "environments", environmentID)
 	info, err := os.Lstat(dir)
@@ -217,7 +221,7 @@ func (s fsProjectStore) validateConnectionEnvironmentFiles(environmentID string)
 			return fmt.Errorf("read environment %q: %w", environmentID, err)
 		}
 		if exists {
-			if err := jsonstrict.CheckNoDuplicateKeysFor(data, reflect.TypeOf(datatug.Environment{})); err != nil {
+			if err := jsonstrict.CheckNoDuplicateKeysForSchema(data, reflect.TypeOf(connectionEnvironmentSchema{})); err != nil {
 				return fmt.Errorf("ambiguous environment %q: %w", environmentID, err)
 			}
 		}

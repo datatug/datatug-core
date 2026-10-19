@@ -202,6 +202,74 @@ func TestEnvironmentConnectionResolverRejectsConflictingMembership(t *testing.T)
 	}
 }
 
+func TestEnvironmentConnectionResolverRejectsDuplicateMembershipKeys(t *testing.T) {
+	for _, name := range []string{"dev.env.json", "environment-summary.json"} {
+		t.Run(name, func(t *testing.T) {
+			root, _, resolver := testConnectionProject(t)
+			path := filepath.Join(root, "environments", "dev", name)
+			// A conventional decoder would keep only the final, permitted value.
+			data := `{"id":"dev","dbServers":[],"editionConnections":["unapproved"],"editionConnections":["chinook-sqlite"]}`
+			if err := os.WriteFile(path, []byte(data), 0600); err != nil {
+				t.Fatal(err)
+			}
+			connection, err := resolver.ResolveEnvironmentConnection(context.Background(), "dev", "chinook-sqlite")
+			if err == nil || !strings.Contains(err.Error(), `ambiguous environment "dev"`) || !strings.Contains(err.Error(), `duplicate key "editionConnections"`) {
+				t.Fatalf("ambiguous membership must be refused before last-value decoding: %+v, %v", connection, err)
+			}
+			if connection.ID != "" {
+				t.Fatalf("ambiguous membership returned a usable connection: %+v", connection)
+			}
+		})
+	}
+}
+
+func TestEnvironmentConnectionResolverRejectsNestedTypedAliases(t *testing.T) {
+	for _, name := range []string{"dev.env.json", "environment-summary.json"} {
+		for _, tc := range []struct{ name, fields string }{
+			{"driver identity", `"dbServers":[{"driver":"mysql","DRIVER":"sqlite3"}],"editionConnections":["chinook-sqlite"]`},
+			{"catalog membership", `"dbServers":[{"driver":"sqlite3","catalogs":["unapproved"],"Catalogs":["chinook-sqlite"]}],"editionConnections":["chinook-sqlite"]`},
+			{"edition membership", `"dbServers":[],"editionConnections":["unapproved"],"EditionConnections":["chinook-sqlite"]`},
+		} {
+			t.Run(name+"/"+tc.name, func(t *testing.T) {
+				root, _, resolver := testConnectionProject(t)
+				path := filepath.Join(root, "environments", "dev", name)
+				if err := os.WriteFile(path, []byte(`{"id":"dev",`+tc.fields+`}`), 0600); err != nil {
+					t.Fatal(err)
+				}
+				connection, err := resolver.ResolveEnvironmentConnection(context.Background(), "dev", "chinook-sqlite")
+				if err == nil || !strings.Contains(err.Error(), "duplicate key") || connection.ID != "" {
+					t.Fatalf("typed aliases must not select the last value: %+v, %v", connection, err)
+				}
+			})
+		}
+		t.Run(name+"/opaque casing and catalog readiness", func(t *testing.T) {
+			root, _, resolver := testConnectionProject(t)
+			path := filepath.Join(root, "environments", "dev", "dev.env.json")
+			if name != "dev.env.json" {
+				if err := os.Remove(path); err != nil {
+					t.Fatal(err)
+				}
+			}
+			path = filepath.Join(root, "environments", "dev", name)
+			data := `{"id":"dev","dbServers":[],"editionConnections":["chinook-sqlite"],"custom":null,"Custom":{"integer":9007199254740993},"presentation":{},"PRESENTATION":null}`
+			if err := os.WriteFile(path, []byte(data), 0600); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := resolver.ResolveEnvironmentConnection(context.Background(), "dev", "chinook-sqlite"); err != nil {
+				t.Fatalf("opaque casing must remain legal: %v", err)
+			}
+			catalog := strings.Replace(fixtureConnections, `"readiness":"public-api"`, `"readiness":"hosted-api-pending","Readiness":"public-api"`, 1)
+			if err := os.WriteFile(filepath.Join(root, "connections", "demo-db.json"), []byte(catalog), 0600); err != nil {
+				t.Fatal(err)
+			}
+			connection, err := resolver.ResolveEnvironmentConnection(context.Background(), "dev", "chinook-sqlite")
+			if err == nil || !strings.Contains(err.Error(), "duplicate key") || connection.ID != "" {
+				t.Fatalf("catalog readiness aliases must remain refused: %+v, %v", connection, err)
+			}
+		})
+	}
+}
+
 // Pinned from datatug/datatug-demo-project origin/main 51716f3 on 2026-10-07.
 // The real published v1 manifest and environment files exercise all 18
 // editions, including fields unknown to the safe metadata model.

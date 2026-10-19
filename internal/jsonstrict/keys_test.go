@@ -85,3 +85,34 @@ func TestObjectFieldsAndFolding(t *testing.T) {
 	}
 	var _ json.Unmarshaler = (*customTarget)(nil)
 }
+
+func TestCheckNoDuplicateKeysForSchema(t *testing.T) {
+	for _, tc := range []struct {
+		name, wire string
+		valid      bool
+	}{
+		{"known aliases", `{"name":"first","Name":"last"}`, false},
+		{"nested typed aliases", `{"items":[{"inner":"first","Inner":"last"}]}`, false},
+		{"map typed aliases", `{"lookup":{"one":{"inner":"first","Inner":"last"}}}`, false},
+		{"unknown root casing", `{"custom":null,"Custom":{"integer":9007199254740993}}`, true},
+		{"unknown nested casing", `{"items":[{"custom":null,"Custom":{}}]}`, true},
+		{"opaque nested casing", `{"custom":{"key":null,"KEY":1}}`, true},
+		{"exact unknown duplicate", `{"custom":null,"custom":1}`, false},
+		{"exact opaque nested duplicate", `{"custom":{"key":null,"key":1}}`, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := CheckNoDuplicateKeysForSchema([]byte(tc.wire), reflect.TypeOf(objectTarget{}))
+			if (err == nil) != tc.valid {
+				t.Fatalf("schema check error = %v, valid = %v", err, tc.valid)
+			}
+		})
+	}
+	// Existing callers still fold all struct-object names, including unknown ones.
+	if err := CheckNoDuplicateKeysFor([]byte(`{"custom":null,"Custom":1}`), reflect.TypeOf(objectTarget{})); err == nil {
+		t.Fatal("existing strict caller behavior changed")
+	}
+	// Opting into a schema does not reflect through custom unmarshalers implicitly.
+	if err := CheckNoDuplicateKeysForSchema([]byte(`{"custom":null,"Custom":1}`), reflect.TypeOf(customTarget{})); err != nil {
+		t.Fatal(err)
+	}
+}
