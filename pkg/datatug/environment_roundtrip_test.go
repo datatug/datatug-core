@@ -119,6 +119,15 @@ func TestEnvironmentJSONRejectsMalformedOrInvalidTypedFields(t *testing.T) {
 	}
 }
 
+func TestEnvironmentJSONCaseAliasRefusalDoesNotMutateExistingCatalogs(t *testing.T) {
+	var environment datatug.Environment
+	require.NoError(t, json.Unmarshal([]byte(environmentWithMetadata), &environment))
+	before := environmentDocument(t, &environment)
+	input := `{"dbServers":[{"driver":"sqlite3","catalogs":["changed"]}],"access":"private","ACCESS":"public"}`
+	require.ErrorContains(t, json.Unmarshal([]byte(input), &environment), "case-aliased")
+	require.Equal(t, before, environmentDocument(t, &environment), "new alias refusal must precede mutations through existing pointers or slices")
+}
+
 func TestEnvironmentMetadataSurvivesBothFilestoreLayouts(t *testing.T) {
 	for _, file := range []string{"local.env.json", "environment-summary.json"} {
 		t.Run(file, func(t *testing.T) {

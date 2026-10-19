@@ -38,11 +38,6 @@ func (v *Environment) UnmarshalJSON(data []byte) error {
 	if err := decoder.Decode(&fields); err != nil {
 		return err
 	}
-	// Preserve encoding/json's partial-update semantics for existing typed fields.
-	decoded := environmentJSON(*v)
-	if err := json.Unmarshal(data, &decoded); err != nil {
-		return err
-	}
 	if fields == nil {
 		return nil // root null has always been a no-op for an existing struct
 	}
@@ -64,6 +59,12 @@ func (v *Environment) UnmarshalJSON(data []byte) error {
 			}
 			metadata[key] = value
 		}
+	}
+	// Refuse aliases before typed decoding can mutate existing pointers or slices.
+	// Preserve encoding/json's partial-update semantics for ordinary typed errors.
+	decoded := environmentJSON(*v)
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
 	}
 	// Each object replaces retained metadata, including when the new object has none.
 	decoded.jsonMetadata = metadata
