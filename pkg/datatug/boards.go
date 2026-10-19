@@ -245,6 +245,9 @@ func (v BoardCard) Validate() error {
 	if v.Cols < 0 {
 		return validation.NewErrBadRecordFieldValue("cols", "should be positive")
 	}
+	if v.Widget == nil {
+		return validation.NewErrRecordIsMissingRequiredField("widget")
+	}
 	if err := v.Widget.Validate(); err != nil {
 		return fmt.Errorf("invalid card widget with id=%v: %w", v.ID, err)
 	}
