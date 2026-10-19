@@ -116,6 +116,7 @@ func TestMultiSeriesChartBoundaries(t *testing.T) {
 		{"duplicate id", func(v *ChartWidgetDef) { v.Chart.Series[1].ID = "northwind" }, "duplicate id"},
 		{"padded id", func(v *ChartWidgetDef) { v.Chart.Series[1].ID = " chinook " }, "whitespace"},
 		{"duplicate measure", func(v *ChartWidgetDef) { v.Chart.Series[1].ValueColumn = "northwindCustomers" }, "duplicate valueColumn"},
+		{"blank measure", func(v *ChartWidgetDef) { v.Chart.Series[1].ValueColumn = " " }, "valueColumn"},
 		{"category as measure", func(v *ChartWidgetDef) { v.Chart.Series[1].ValueColumn = "country" }, "must differ"},
 		{"empty title", func(v *ChartWidgetDef) { v.Chart.Series[1].Title = " " }, "title"},
 		{"multiple sources", func(v *ChartWidgetDef) { v.Sources = append(v.Sources, ChartSourceBinding{ID: "other", QueryID: "q"}) }, "one source"},
@@ -132,6 +133,114 @@ func TestMultiSeriesChartBoundaries(t *testing.T) {
 			assert.ErrorContains(t, chart.Validate(), tc.want)
 		})
 	}
+}
+
+func TestNewChartFieldNamesAndPresence(t *testing.T) {
+	valid := `{"type":"bar","categoryColumn":"country","unit":"customers","series":[{"id":"northwind","title":"Northwind","valueColumn":"northwindCustomers"},{"id":"chinook","title":"Chinook","valueColumn":"chinookCustomers"}],"selectionId":"country"}`
+	for _, tc := range []struct{ name, wire, want string }{
+		{"mixed-case legacy measure", strings.Replace(valid, `"series":`, `"ValueColumn":"","series":`, 1), "omitted"},
+		{"uppercase legacy measure", strings.Replace(valid, `"series":`, `"VALUECOLUMN":null,"series":`, 1), "omitted"},
+		{"duplicate-case legacy measure", strings.Replace(valid, `"series":`, `"valueColumn":"","ValueColumn":"","series":`, 1), "omitted"},
+		{"null series alias", strings.Replace(valid, `"series":[`, `"Series":null,"series":[`, 1), "canonical field name"},
+		{"null selection alias", strings.Replace(valid, `"selectionId":"country"`, `"SelectionId":null`, 1), "canonical field name"},
+		{"duplicate-case selection", strings.Replace(valid, `"selectionId":"country"`, `"selectionId":"country","SelectionID":null`, 1), "canonical field name"},
+		{"duplicate-case series", strings.Replace(valid, `"series":[`, `"Series":null,"series":[`, 1), "canonical field name"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var spec ChartSpec
+			require.ErrorContains(t, json.Unmarshal([]byte(tc.wire), &spec), tc.want)
+			var raw Board
+			boardWire := `{"id":"showcase","title":"Showcase","rows":[{"cards":[{"id":"chart","widget":{"name":"chart","data":{"sources":[{"id":"comparison","queryId":"comparison"}],"chart":` + tc.wire + `}}}]}]}`
+			require.NoError(t, json.Unmarshal([]byte(boardWire), &raw))
+			require.ErrorContains(t, raw.Validate(), tc.want)
+		})
+	}
+	// Legacy valueColumn capitalization remains accepted when series is absent.
+	var legacy ChartSpec
+	require.NoError(t, json.Unmarshal([]byte(`{"type":"bar","categoryColumn":"country","ValueColumn":"orders"}`), &legacy))
+	require.NoError(t, legacy.Validate())
+}
+
+func TestTypedValueChartPreservesEmptySeries(t *testing.T) {
+	legacy := comparisonChart()
+	legacy.Chart.Series = nil
+	legacy.Chart.ValueColumn = "orders"
+	legacy.Chart.SelectionID = ""
+	for _, data := range []any{legacy, &legacy} {
+		require.NoError(t, (BoardWidget{Name: "chart", Data: data}).Validate())
+	}
+	invalid := legacy
+	invalid.Chart.Series = []ChartSeries{}
+	for _, data := range []any{invalid, &invalid} {
+		require.ErrorContains(t, (BoardWidget{Name: "chart", Data: data}).Validate(), "mutually exclusive")
+	}
+	for _, parentAsValue := range []bool{false, true} {
+		parent := TabsWidgetDef{Tabs: []TabWidget{{ID: "chart", Title: "Chart", Widget: BoardWidget{Name: "chart", Data: invalid}}}}
+		var data any = &parent
+		if parentAsValue {
+			data = parent
+		}
+		require.ErrorContains(t, (BoardWidget{Name: "tabs", Data: data}).Validate(), "mutually exclusive")
+	}
+}
+
+func TestPresentationFilterFieldAliases(t *testing.T) {
+	for _, field := range []string{"PresentationFilter", "PRESENTATIONFILTER"} {
+		t.Run(field, func(t *testing.T) {
+			wire := `{"queryId":"orders","legacyUnknown":true,"` + field + `":null}`
+			var settings SQLWidgetSettings
+			require.ErrorContains(t, json.Unmarshal([]byte(wire), &settings), "canonical field name")
+			wire = `{"queryId":"orders","presentationFilter":{"selectionId":"country","column":"ShipCountry"},"` + field + `":null}`
+			require.ErrorContains(t, json.Unmarshal([]byte(wire), &settings), "canonical field name")
+			boardWire := `{"id":"showcase","title":"Showcase","rows":[{"cards":[{"id":"orders","widget":{"name":"SQL","data":{"sql":` + wire + `}}}]}]}`
+			var board Board
+			require.NoError(t, json.Unmarshal([]byte(boardWire), &board))
+			require.ErrorContains(t, board.Validate(), "canonical field name")
+		})
+	}
+}
+
+func TestPresentationLinkTraversalDefensiveBoundaries(t *testing.T) {
+	boardWithWidget := func(widget BoardWidget) Board {
+		return Board{Rows: BoardRows{{Cards: BoardCards{{ID: "card", Widget: &widget}}}}}
+	}
+	for _, tc := range []struct {
+		name   string
+		widget BoardWidget
+		want   string
+	}{
+		{"invalid chart", BoardWidget{Name: "chart", Data: map[string]any{"unrecognized": true}}, "unknown field"},
+		{"invalid SQL", BoardWidget{Name: string(QueryTypeSQL), Data: map[string]any{"sql": map[string]any{"presentationFilter": nil}}}, "presentationFilter"},
+		{"invalid tabs", BoardWidget{Name: "tabs", Data: map[string]any{"tabs": "bad"}}, "cannot unmarshal"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			board := boardWithWidget(tc.widget)
+			require.ErrorContains(t, board.validatePresentationLinks(), tc.want)
+		})
+	}
+	for _, widget := range []BoardWidget{
+		{Name: "chart", Data: comparisonChart()},
+		{Name: string(QueryTypeSQL), Data: SQLWidgetDef{SQL: SQLWidgetSettings{QueryID: "orders"}}},
+		{Name: "tabs", Data: TabsWidgetDef{Tabs: []TabWidget{{Title: "Empty"}}}},
+	} {
+		board := boardWithWidget(widget)
+		require.NoError(t, board.validatePresentationLinks())
+	}
+	var nilTabs *TabsWidgetDef
+	board := boardWithWidget(BoardWidget{Name: "tabs", Data: nilTabs})
+	require.NoError(t, board.validatePresentationLinks())
+
+	deep := BoardWidget{Name: "chart", Data: &ChartWidgetDef{}}
+	for range maxWidgetValidationDepth + 1 {
+		deep = BoardWidget{Name: "tabs", Data: &TabsWidgetDef{Tabs: []TabWidget{{Widget: deep}}}}
+	}
+	board = boardWithWidget(deep)
+	require.ErrorContains(t, board.validatePresentationLinks(), "maximum depth")
+}
+
+func TestNewWidgetDecoderMalformedJSON(t *testing.T) {
+	require.Error(t, (&ChartSpec{}).UnmarshalJSON([]byte(`{"series":`)))
+	require.Error(t, (&SQLWidgetSettings{}).UnmarshalJSON([]byte(`{"presentationFilter":`)))
 }
 
 func TestMultiSeriesRawFieldPresenceAndClosedFilter(t *testing.T) {

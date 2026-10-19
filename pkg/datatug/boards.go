@@ -72,9 +72,12 @@ func (v *Board) validatePresentationLinks() error {
 		switch widget.Name {
 		case "chart":
 			var chart *ChartWidgetDef
-			if typed, ok := widget.Data.(*ChartWidgetDef); ok {
+			switch typed := widget.Data.(type) {
+			case *ChartWidgetDef:
 				chart = typed
-			} else {
+			case ChartWidgetDef:
+				chart = &typed
+			default:
 				decoded, err := newStrictWidgetDef(&ChartWidgetDef{}, widget.Data)
 				if err != nil {
 					return fmt.Errorf("%s: %w", path, err)
@@ -90,9 +93,12 @@ func (v *Board) validatePresentationLinks() error {
 			}
 		case string(QueryTypeSQL):
 			var sql *SQLWidgetDef
-			if typed, ok := widget.Data.(*SQLWidgetDef); ok {
+			switch typed := widget.Data.(type) {
+			case *SQLWidgetDef:
 				sql = typed
-			} else {
+			case SQLWidgetDef:
+				sql = &typed
+			default:
 				decoded, err := newWidgetDef(&SQLWidgetDef{}, widget.Data)
 				if err != nil {
 					return fmt.Errorf("%s: %w", path, err)
@@ -104,9 +110,12 @@ func (v *Board) validatePresentationLinks() error {
 			}
 		case "tabs":
 			var tabs *TabsWidgetDef
-			if typed, ok := widget.Data.(*TabsWidgetDef); ok {
+			switch typed := widget.Data.(type) {
+			case *TabsWidgetDef:
 				tabs = typed
-			} else {
+			case TabsWidgetDef:
+				tabs = &typed
+			default:
 				decoded, err := newWidgetDef(&TabsWidgetDef{}, widget.Data)
 				if err != nil {
 					return fmt.Errorf("%s: %w", path, err)
@@ -278,13 +287,17 @@ func (v BoardWidget) validateAtDepth(depth int) (err error) {
 			}
 		}
 	case "tabs":
-		if widget, ok = v.Data.(*TabsWidgetDef); !ok {
+		if typed, value := v.Data.(TabsWidgetDef); value {
+			widget = &typed
+		} else if widget, ok = v.Data.(*TabsWidgetDef); !ok {
 			if widget, err = newWidgetDef(&TabsWidgetDef{}, v.Data); err != nil {
 				return err
 			}
 		}
 	case "chart":
-		if widget, ok = v.Data.(*ChartWidgetDef); !ok {
+		if typed, value := v.Data.(ChartWidgetDef); value {
+			widget = &typed
+		} else if widget, ok = v.Data.(*ChartWidgetDef); !ok {
 			if widget, err = newStrictWidgetDef(&ChartWidgetDef{}, v.Data); err != nil {
 				return err
 			}
@@ -407,6 +420,11 @@ func (v *SQLWidgetSettings) UnmarshalJSON(data []byte) error {
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(data, &fields); err != nil {
 		return err
+	}
+	for name := range fields {
+		if strings.EqualFold(name, "presentationFilter") && name != "presentationFilter" {
+			return validation.NewErrBadRecordFieldValue("presentationFilter", "must use the canonical field name")
+		}
 	}
 	if raw, present := fields["presentationFilter"]; present && bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
 		return validation.NewErrBadRecordFieldValue("presentationFilter", "must not be null")
@@ -721,11 +739,24 @@ func (v *ChartSpec) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &fields); err != nil {
 		return err
 	}
+	valuePresent := false
+	for name := range fields {
+		switch {
+		case strings.EqualFold(name, "series") && name != "series":
+			return validation.NewErrBadRecordFieldValue("series", "must use the canonical field name")
+		case strings.EqualFold(name, "selectionId") && name != "selectionId":
+			return validation.NewErrBadRecordFieldValue("selectionId", "must use the canonical field name")
+		case strings.EqualFold(name, "valueColumn"):
+			// Keep legacy case-insensitive decoding, while detecting any spelling
+			// of this field when the new series representation is also present.
+			valuePresent = true
+		}
+	}
 	if series, present := fields["series"]; present {
 		if bytes.Equal(bytes.TrimSpace(series), []byte("null")) {
 			return validation.NewErrBadRecordFieldValue("series", "must not be null")
 		}
-		if _, valuePresent := fields["valueColumn"]; valuePresent {
+		if valuePresent {
 			return validation.NewErrBadRecordFieldValue("valueColumn", "must be omitted when series is present")
 		}
 	}
