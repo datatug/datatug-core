@@ -102,7 +102,31 @@ func TestEnvironmentJSONKnownAliasesAreCanonicalAndAuthoritative(t *testing.T) {
 	}
 	var environment datatug.Environment
 	require.ErrorContains(t, json.Unmarshal([]byte(`{"access":"private","acceſs":"public"}`), &environment), "case-aliased")
-	require.ErrorContains(t, json.Unmarshal([]byte(`{"presentation":{},"PRESENTATION":null}`), &environment), "case-aliased")
+}
+
+func TestEnvironmentJSONPreservesCaseDistinctOpaqueKeys(t *testing.T) {
+	const input = `{"dbServers":null,"custom":{"nested":[null,9007199254740993]},"Custom":null,"presentation":{"label":"LOCAL"},"PRESENTATION":{"label":"opaque"}}`
+	var environment datatug.Environment
+	require.NoError(t, json.Unmarshal([]byte(input), &environment))
+	decoder := json.NewDecoder(strings.NewReader(input))
+	decoder.UseNumber()
+	var expected map[string]any
+	require.NoError(t, decoder.Decode(&expected))
+	require.Equal(t, expected, environmentDocument(t, &environment))
+}
+
+func TestEnvironmentJSONDirectDecodeRejectsTrailingContent(t *testing.T) {
+	var environment datatug.Environment
+	require.NoError(t, environment.UnmarshalJSON([]byte(environmentWithMetadata)))
+	before := environmentDocument(t, &environment)
+	for _, input := range []string{`null trailinggarbage`, `null true`, `null {}`, `null ]`, `{} trailinggarbage`} {
+		t.Run(input, func(t *testing.T) {
+			require.Error(t, environment.UnmarshalJSON([]byte(input)))
+			require.Equal(t, before, environmentDocument(t, &environment))
+		})
+	}
+	require.NoError(t, environment.UnmarshalJSON([]byte("null \n\t")))
+	require.Equal(t, before, environmentDocument(t, &environment))
 }
 
 func TestEnvironmentJSONRejectsMalformedOrInvalidTypedFields(t *testing.T) {

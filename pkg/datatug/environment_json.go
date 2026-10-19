@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 )
 
@@ -29,14 +30,18 @@ func environmentJSONField(key string) string {
 
 // UnmarshalJSON retains unknown JSON metadata without assigning it meaning.
 // Number tokens remain json.Number, so opaque integers never pass through float64.
-// Distinct case aliases are refused rather than producing contradictory fields
-// on the next save; identical duplicate keys keep encoding/json's last-value rule.
+// Distinct aliases of known fields are refused; opaque keys retain exact casing.
+// Identical duplicate keys keep encoding/json's last-value rule.
 func (v *Environment) UnmarshalJSON(data []byte) error {
 	var fields map[string]any
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.UseNumber()
 	if err := decoder.Decode(&fields); err != nil {
 		return err
+	}
+	var trailing json.RawMessage
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		return fmt.Errorf("environment JSON must contain a single value")
 	}
 	if fields == nil {
 		return nil // root null has always been a no-op for an existing struct
@@ -45,15 +50,12 @@ func (v *Environment) UnmarshalJSON(data []byte) error {
 	var metadata map[string]any
 	for key, value := range fields {
 		field := environmentJSONField(key)
-		folded := strings.ToLower(key)
 		if field != "" {
-			folded = strings.ToLower(field)
-		}
-		if seen[folded] {
-			return fmt.Errorf("environment JSON contains case-aliased field %q", key)
-		}
-		seen[folded] = true
-		if field == "" {
+			if seen[field] {
+				return fmt.Errorf("environment JSON contains case-aliased field %q", key)
+			}
+			seen[field] = true
+		} else {
 			if metadata == nil {
 				metadata = make(map[string]any)
 			}
