@@ -32,6 +32,8 @@ type Environment struct {
 	ProjectItem
 	DbServers          EnvDbServers `json:"dbServers"`
 	EditionConnections []string     `json:"editionConnections,omitempty"`
+	// Retained only for JSON round trips; never read as execution or access configuration.
+	jsonMetadata map[string]any
 }
 
 // Validate returns error if failed
