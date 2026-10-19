@@ -558,6 +558,11 @@ func TestBoardCard_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:    "missing_widget",
+			v:       BoardCard{ID: "c1"},
+			wantErr: true,
+		},
+		{
 			name: "invalid_widget",
 			v: BoardCard{
 				ID:     "c1",
@@ -573,6 +578,32 @@ func TestBoardCard_Validate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBoardMissingCardWidgetReturnsValidationError(t *testing.T) {
+	card := BoardCard{ID: "empty-card"}
+	assert.ErrorContains(t, card.Validate(), "widget")
+
+	board := Board{
+		ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "board", Title: "Board"}},
+		Rows:        BoardRows{{Cards: BoardCards{card}}},
+	}
+	assert.ErrorContains(t, board.Validate(), "widget")
+
+	for _, wire := range []string{
+		`{"id":"board","title":"Board","rows":[{"cards":[{"id":"empty-card"}]}]}`,
+		`{"id":"board","title":"Board","rows":[{"cards":[{"id":"empty-card","widget":null}]}]}`,
+	} {
+		var raw Board
+		assert.NoError(t, json.Unmarshal([]byte(wire), &raw))
+		assert.ErrorContains(t, raw.Validate(), "widget")
+	}
+
+	// Empty tab children remain placeholders inside a real card widget.
+	const placeholder = `{"id":"board","title":"Board","rows":[{"cards":[{"id":"tabs-card","widget":{"name":"tabs","data":{"tabs":[{"title":"Empty"}]}}}]}]}`
+	var raw Board
+	assert.NoError(t, json.Unmarshal([]byte(placeholder), &raw))
+	assert.NoError(t, raw.Validate())
 }
 
 func TestTabsWidgetDef_Validate(t *testing.T) {
