@@ -48,6 +48,97 @@ func (v *Board) Validate() error {
 	if err := v.Rows.Validate(); err != nil {
 		return validation.NewErrBadRecordFieldValue("rows", err.Error())
 	}
+	if err := v.validatePresentationLinks(); err != nil {
+		return validation.NewErrBadRecordFieldValue("rows", err.Error())
+	}
+	return nil
+}
+
+type presentationLink struct {
+	path        string
+	selectionID string
+}
+
+// Widget.Validate checks a widget's own shape. Only the complete Board can
+// resolve a presentation filter against a chart in another card or tab.
+func (v *Board) validatePresentationLinks() error {
+	producers := make(map[string]string)
+	var filters []presentationLink
+	var visit func(BoardWidget, int, string) error
+	visit = func(widget BoardWidget, depth int, path string) error {
+		if depth > maxWidgetValidationDepth {
+			return fmt.Errorf("%s: widget nesting exceeds maximum depth", path)
+		}
+		switch widget.Name {
+		case "chart":
+			var chart *ChartWidgetDef
+			if typed, ok := widget.Data.(*ChartWidgetDef); ok {
+				chart = typed
+			} else {
+				decoded, err := newStrictWidgetDef(&ChartWidgetDef{}, widget.Data)
+				if err != nil {
+					return fmt.Errorf("%s: %w", path, err)
+				}
+				chart = decoded.(*ChartWidgetDef)
+			}
+			if chart != nil && chart.Chart.SelectionID != "" {
+				id := chart.Chart.SelectionID
+				if previous, duplicate := producers[id]; duplicate {
+					return fmt.Errorf("%s: duplicate selectionId %q also produced at %s", path, id, previous)
+				}
+				producers[id] = path
+			}
+		case string(QueryTypeSQL):
+			var sql *SQLWidgetDef
+			if typed, ok := widget.Data.(*SQLWidgetDef); ok {
+				sql = typed
+			} else {
+				decoded, err := newWidgetDef(&SQLWidgetDef{}, widget.Data)
+				if err != nil {
+					return fmt.Errorf("%s: %w", path, err)
+				}
+				sql = decoded.(*SQLWidgetDef)
+			}
+			if sql != nil && sql.SQL.PresentationFilter != nil {
+				filters = append(filters, presentationLink{path: path, selectionID: sql.SQL.PresentationFilter.SelectionID})
+			}
+		case "tabs":
+			var tabs *TabsWidgetDef
+			if typed, ok := widget.Data.(*TabsWidgetDef); ok {
+				tabs = typed
+			} else {
+				decoded, err := newWidgetDef(&TabsWidgetDef{}, widget.Data)
+				if err != nil {
+					return fmt.Errorf("%s: %w", path, err)
+				}
+				tabs = decoded.(*TabsWidgetDef)
+			}
+			if tabs == nil {
+				return nil
+			}
+			for i, tab := range tabs.Tabs {
+				if tab.Widget.Name == "" && tab.Widget.Data == nil {
+					continue
+				}
+				if err := visit(tab.Widget, depth+1, fmt.Sprintf("%s/tab[%d]", path, i)); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+	for rowIndex, row := range v.Rows {
+		for cardIndex, card := range row.Cards {
+			if err := visit(*card.Widget, 0, fmt.Sprintf("row[%d]/card[%d]", rowIndex, cardIndex)); err != nil {
+				return err
+			}
+		}
+	}
+	for _, filter := range filters {
+		if _, exists := producers[filter.selectionID]; !exists {
+			return fmt.Errorf("%s: unresolved selectionId %q", filter.path, filter.selectionID)
+		}
+	}
 	return nil
 }
 
@@ -278,6 +369,55 @@ type SQLWidgetSettings struct {
 	QueryID string `json:"queryId"`
 	// Parameters binds the referenced query's parameters.
 	Parameters WidgetParameterBindings `json:"parameters,omitempty"`
+	// PresentationFilter narrows an already admitted, complete result in the
+	// viewer. It is never sent to the referenced query as a parameter.
+	PresentationFilter *PresentationFilter `json:"presentationFilter,omitempty"`
+}
+
+// PresentationFilter is deliberately closed even though legacy SQL widget
+// fields retain their permissive JSON decoder.
+type PresentationFilter struct {
+	SelectionID string `json:"selectionId"`
+	Column      string `json:"column"`
+}
+
+func (v *PresentationFilter) UnmarshalJSON(data []byte) error {
+	type wire PresentationFilter
+	var decoded wire
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&decoded); err != nil {
+		return err
+	}
+	*v = PresentationFilter(decoded)
+	return nil
+}
+
+func (v PresentationFilter) Validate() error {
+	if v.SelectionID == "" || strings.TrimSpace(v.SelectionID) != v.SelectionID {
+		return validation.NewErrBadRecordFieldValue("selectionId", "must be nonempty without surrounding whitespace")
+	}
+	if strings.TrimSpace(v.Column) == "" {
+		return validation.NewErrRecordIsMissingRequiredField("column")
+	}
+	return nil
+}
+
+func (v *SQLWidgetSettings) UnmarshalJSON(data []byte) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	if raw, present := fields["presentationFilter"]; present && bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+		return validation.NewErrBadRecordFieldValue("presentationFilter", "must not be null")
+	}
+	type wire SQLWidgetSettings
+	var decoded wire
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	*v = SQLWidgetSettings(decoded)
+	return nil
 }
 
 // Validate returns error if not valid
@@ -287,6 +427,11 @@ func (v SQLWidgetSettings) Validate() error {
 	}
 	if err := v.Parameters.Validate(); err != nil {
 		return validation.NewErrBadRecordFieldValue("parameters", err.Error())
+	}
+	if v.PresentationFilter != nil {
+		if err := v.PresentationFilter.Validate(); err != nil {
+			return validation.NewErrBadRecordFieldValue("presentationFilter", err.Error())
+		}
 	}
 	return nil
 }
@@ -536,15 +681,69 @@ func (v ChartSourceTransform) Validate() error {
 // ChartSpec maps columns in the admitted or transformed result to a chart.
 // The monthly orders transform emits period/category/value rows.
 type ChartSpec struct {
-	Type           string `json:"type"`
-	CategoryColumn string `json:"categoryColumn"`
-	ValueColumn    string `json:"valueColumn"`
-	PeriodColumn   string `json:"periodColumn,omitempty"`
-	Unit           string `json:"unit,omitempty"`
-	Grain          string `json:"grain,omitempty"`
-	OnDuplicate    string `json:"onDuplicate,omitempty"`
-	Mode           string `json:"mode,omitempty"`
-	TopN           int    `json:"topN,omitempty"`
+	Type           string        `json:"type"`
+	CategoryColumn string        `json:"categoryColumn"`
+	ValueColumn    string        `json:"valueColumn,omitempty"`
+	Series         []ChartSeries `json:"series,omitempty"`
+	SelectionID    string        `json:"selectionId,omitempty"`
+	PeriodColumn   string        `json:"periodColumn,omitempty"`
+	Unit           string        `json:"unit,omitempty"`
+	Grain          string        `json:"grain,omitempty"`
+	OnDuplicate    string        `json:"onDuplicate,omitempty"`
+	Mode           string        `json:"mode,omitempty"`
+	TopN           int           `json:"topN,omitempty"`
+}
+
+// ChartSeries maps one numeric column of a single admitted query result.
+type ChartSeries struct {
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	ValueColumn string `json:"valueColumn"`
+}
+
+func (v ChartSeries) Validate() error {
+	if v.ID == "" || strings.TrimSpace(v.ID) != v.ID {
+		return validation.NewErrBadRecordFieldValue("id", "must be nonempty without surrounding whitespace")
+	}
+	if strings.TrimSpace(v.Title) == "" {
+		return validation.NewErrRecordIsMissingRequiredField("title")
+	}
+	if strings.TrimSpace(v.ValueColumn) == "" {
+		return validation.NewErrRecordIsMissingRequiredField("valueColumn")
+	}
+	return nil
+}
+
+// The new branch needs to distinguish an absent legacy valueColumn from an
+// explicit empty/null field; both otherwise decode to Go's zero string.
+func (v *ChartSpec) UnmarshalJSON(data []byte) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	if series, present := fields["series"]; present {
+		if bytes.Equal(bytes.TrimSpace(series), []byte("null")) {
+			return validation.NewErrBadRecordFieldValue("series", "must not be null")
+		}
+		if _, valuePresent := fields["valueColumn"]; valuePresent {
+			return validation.NewErrBadRecordFieldValue("valueColumn", "must be omitted when series is present")
+		}
+	}
+	if selection, present := fields["selectionId"]; present {
+		var id string
+		if err := json.Unmarshal(selection, &id); err != nil || id == "" || strings.TrimSpace(id) != id {
+			return validation.NewErrBadRecordFieldValue("selectionId", "must be nonempty without surrounding whitespace")
+		}
+	}
+	type wire ChartSpec
+	var decoded wire
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&decoded); err != nil {
+		return err
+	}
+	*v = ChartSpec(decoded)
+	return nil
 }
 
 func (v ChartSpec) Validate() error {
@@ -556,7 +755,42 @@ func (v ChartSpec) Validate() error {
 		if v.Grain != "" || v.OnDuplicate != "" || v.Mode != "" || v.TopN != 0 {
 			return validation.NewErrBadRecordFieldValue("type", "race options require bar-race")
 		}
+		if v.SelectionID != "" && strings.TrimSpace(v.SelectionID) != v.SelectionID {
+			return validation.NewErrBadRecordFieldValue("selectionId", "must not have surrounding whitespace")
+		}
+		if v.Series != nil {
+			if v.ValueColumn != "" {
+				return validation.NewErrBadRecordFieldValue("valueColumn", "valueColumn and series are mutually exclusive")
+			}
+			if len(v.Series) < 2 || len(v.Series) > 8 {
+				return validation.NewErrBadRecordFieldValue("series", "must contain from 2 to 8 series")
+			}
+			if strings.TrimSpace(v.Unit) == "" {
+				return validation.NewErrRecordIsMissingRequiredField("unit")
+			}
+			seenIDs := make(map[string]bool, len(v.Series))
+			seenColumns := make(map[string]bool, len(v.Series))
+			for i, series := range v.Series {
+				if err := series.Validate(); err != nil {
+					return fmt.Errorf("invalid series at index %v: %w", i, err)
+				}
+				if seenIDs[series.ID] {
+					return validation.NewErrBadRecordFieldValue("series", "duplicate id")
+				}
+				if seenColumns[series.ValueColumn] {
+					return validation.NewErrBadRecordFieldValue("series", "duplicate valueColumn")
+				}
+				if series.ValueColumn == v.CategoryColumn {
+					return validation.NewErrBadRecordFieldValue("series", "category and value columns must differ")
+				}
+				seenIDs[series.ID] = true
+				seenColumns[series.ValueColumn] = true
+			}
+		}
 	case "bar-race":
+		if v.Series != nil || v.SelectionID != "" {
+			return validation.NewErrBadRecordFieldValue("type", "series and selectionId require bar")
+		}
 		if strings.TrimSpace(v.PeriodColumn) == "" {
 			return validation.NewErrRecordIsMissingRequiredField("periodColumn")
 		}
@@ -581,10 +815,10 @@ func (v ChartSpec) Validate() error {
 	if strings.TrimSpace(v.CategoryColumn) == "" {
 		return validation.NewErrRecordIsMissingRequiredField("categoryColumn")
 	}
-	if strings.TrimSpace(v.ValueColumn) == "" {
+	if v.Series == nil && strings.TrimSpace(v.ValueColumn) == "" {
 		return validation.NewErrRecordIsMissingRequiredField("valueColumn")
 	}
-	if v.CategoryColumn == v.ValueColumn || (v.PeriodColumn != "" && (v.PeriodColumn == v.CategoryColumn || v.PeriodColumn == v.ValueColumn)) {
+	if v.ValueColumn != "" && (v.CategoryColumn == v.ValueColumn || (v.PeriodColumn != "" && (v.PeriodColumn == v.CategoryColumn || v.PeriodColumn == v.ValueColumn))) {
 		return validation.NewErrBadRecordFieldValue("chart", "period, category and value columns must differ")
 	}
 	return nil
@@ -610,10 +844,13 @@ func (v ChartWidgetDef) Validate() error {
 	if err := v.Chart.Validate(); err != nil {
 		return validation.NewErrBadRecordFieldValue("chart", err.Error())
 	}
-	if v.Chart.Type == "bar-race" && len(v.Sources) != 1 {
-		return validation.NewErrBadRecordFieldValue("sources", "bar-race requires one source")
+	if (v.Chart.Type == "bar-race" || v.Chart.Series != nil) && len(v.Sources) != 1 {
+		return validation.NewErrBadRecordFieldValue("sources", "bar-race and multi-series bar require one source")
 	}
 	for i, source := range v.Sources {
+		if v.Chart.Series != nil && source.Transform != nil {
+			return fmt.Errorf("invalid source at index %v: multi-series bar does not support a source transform", i)
+		}
 		if source.Transform != nil && source.Transform.Name == "orders-monthly-country-count" {
 			if v.Chart.Type != "bar-race" || v.Chart.PeriodColumn != "period" || v.Chart.CategoryColumn != "category" || v.Chart.ValueColumn != "value" {
 				return fmt.Errorf("invalid source at index %v: orders-monthly-country-count requires a bar-race mapped to period, category and value", i)

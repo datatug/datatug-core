@@ -6,5 +6,5 @@ project:
     org: datatug
     repo: datatug-core
 
-# Required before using Plan commands; may point to this repository.
-# plans_repo: owner/repository
+# Plans for Core's own wire contracts live beside their owning features.
+plans_repo: datatug/datatug-core
