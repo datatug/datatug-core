@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dal-go/dalgo/adapters/dalgo2memory"
 	"github.com/dal-go/dalgo/dal"
@@ -57,6 +58,9 @@ func createTestSession(t *testing.T, svc *Service, p Principal, sessionID, bagID
 
 func TestSessionContextDALGOFlowPinsHistoryAndReportsDashboardProvenance(t *testing.T) {
 	svc, principal := newTestService(t, nil)
+	// Keep the private integer "123" out of public timestamp metadata so the
+	// substring privacy assertion tests only actual leaked values.
+	svc.now = func() time.Time { return time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC) }
 	created := createTestSession(t, svc, principal, "s1", "b1")
 	scope := Scope{EnvironmentID: "uat", IdentityDomain: "tenant-a"}
 	put := Command{

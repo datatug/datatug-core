@@ -72,6 +72,24 @@ func TestMultiSeriesBoardRoundTripAndLinks(t *testing.T) {
 	require.NoError(t, typed.Validate())
 }
 
+func TestMultiSeriesBoardChartParameterJSONRoundTrip(t *testing.T) {
+	board := linkedBoard()
+	tabs := board.Rows[0].Cards[0].Widget.Data.(*TabsWidgetDef)
+	chart := tabs.Tabs[1].Widget.Data.(*ChartWidgetDef)
+	chart.Parameters = Parameters{{ID: "top", Type: "integer", Title: "Top countries", DefaultValue: 10}}
+	require.NoError(t, board.Validate())
+	encoded, err := json.Marshal(board)
+	require.NoError(t, err)
+	var decoded Board
+	require.NoError(t, json.Unmarshal(encoded, &decoded))
+	require.NoError(t, decoded.Validate())
+	assert.Contains(t, string(encoded), `"defaultValue":10`)
+
+	invalid := strings.Replace(string(encoded), `"defaultValue":10`, `"defaultValue":10.5`, 1)
+	require.NoError(t, json.Unmarshal([]byte(invalid), &decoded))
+	require.ErrorContains(t, decoded.Validate(), "defaultValue")
+}
+
 func TestSavedLinkedComparisonBoardWire(t *testing.T) {
 	var board Board
 	require.NoError(t, json.Unmarshal([]byte(savedLinkedComparisonBoardJSON), &board))

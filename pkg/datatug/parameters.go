@@ -2,6 +2,7 @@ package datatug
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 
 	"github.com/strongo/validation"
@@ -34,14 +35,22 @@ func (v ParameterDef) Validate() error {
 		switch v.Type {
 		case "string":
 			_, ok = v.DefaultValue.(string)
-		case "integer":
-			_, ok = v.DefaultValue.(int)
+		case "integer", "bit":
+			switch value := v.DefaultValue.(type) {
+			case int:
+				// Preserve programmatically authored defaults.
+			case float64:
+				// encoding/json decodes an interface{} number as float64. Only
+				// integral values that round-trip exactly through JSON are valid.
+				const maxSafeInteger = 9007199254740991
+				ok = !math.IsNaN(value) && !math.IsInf(value, 0) && math.Trunc(value) == value && value >= -maxSafeInteger && value <= maxSafeInteger
+			default:
+				ok = false
+			}
 		case "number":
 			_, ok = v.DefaultValue.(float64)
 		case "boolean":
 			_, ok = v.DefaultValue.(bool)
-		case "bit":
-			_, ok = v.DefaultValue.(int)
 		}
 		if !ok {
 			return validation.NewErrBadRecordFieldValue("defaultValue",
