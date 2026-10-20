@@ -135,16 +135,33 @@ func (s *Store) CreateProject(ctx context.Context, request dto.CreateProjectRequ
 // an error: DALgo's Deleter contract has no not-found signal, so this
 // mirrors the delete-is-idempotent semantics every adapter implements.
 //
-// Only the project record is deleted. This store persists no project-item
-// collection yet (see the package doc comment), so a project it created has
-// no sub-items to cascade to; once a collection is implemented, its records
-// must be deleted here too.
+// A project with boards or entities is refused before any deletion. Item
+// cleanup is an explicit owning operation; parent deletion never orphans the
+// supported asset collections or cascades away authored content.
 func (s *Store) DeleteProject(ctx context.Context, id string) error {
 	if strings.TrimSpace(id) == "" {
 		return validation.NewErrRequestIsMissingRequiredField("id")
 	}
 	key := projectKey(id)
 	if err := s.db.RunReadwriteTransaction(ctx, func(ctx context.Context, tx dal.ReadwriteTransaction) error {
+		items, err := NewProjectItemsStore(tx, id, key)
+		if err != nil {
+			return err
+		}
+		boards, err := items.LoadBoards(ctx)
+		if err != nil {
+			return err
+		}
+		if len(boards) > 0 {
+			return notImplemented("DeleteProject: nonempty boards")
+		}
+		entities, err := items.LoadEntities(ctx)
+		if err != nil {
+			return err
+		}
+		if len(entities) > 0 {
+			return notImplemented("DeleteProject: nonempty entities")
+		}
 		return tx.Delete(ctx, key)
 	}); err != nil {
 		return fmt.Errorf("dalgostore: failed to delete project %s: %w", key, err)

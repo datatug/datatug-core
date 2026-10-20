@@ -27,21 +27,11 @@ func TestStubs_ReturnErrNotImplemented(t *testing.T) {
 		{"SaveQuery", func() error { return store.SaveQuery(ctx, &datatug.QueryDefWithFolderPath{}) }},
 		{"DeleteQuery", func() error { return store.DeleteQuery(ctx, "q1") }},
 
-		{"LoadBoards", func() error { _, err := store.LoadBoards(ctx); return err }},
-		{"LoadBoard", func() error { _, err := store.LoadBoard(ctx, "b1"); return err }},
-		{"SaveBoard", func() error { return store.SaveBoard(ctx, &datatug.Board{}) }},
-		{"DeleteBoard", func() error { return store.DeleteBoard(ctx, "b1") }},
-
 		{"LoadFolders", func() error { _, err := store.LoadFolders(ctx); return err }},
 		{"LoadFolder", func() error { _, err := store.LoadFolder(ctx, "f1"); return err }},
 		{"SaveFolder", func() error { return store.SaveFolder(ctx, "", &datatug.Folder{}) }},
 		{"SaveFolders", func() error { return store.SaveFolders(ctx, "", nil) }},
 		{"DeleteFolder", func() error { return store.DeleteFolder(ctx, "f1") }},
-
-		{"LoadEntities", func() error { _, err := store.LoadEntities(ctx); return err }},
-		{"LoadEntity", func() error { _, err := store.LoadEntity(ctx, "e1"); return err }},
-		{"SaveEntity", func() error { return store.SaveEntity(ctx, &datatug.Entity{}) }},
-		{"DeleteEntity", func() error { return store.DeleteEntity(ctx, "e1") }},
 
 		{"LoadEnvironments", func() error { _, err := store.LoadEnvironments(ctx); return err }},
 		{"LoadEnvironment", func() error { _, err := store.LoadEnvironment(ctx, "env1"); return err }},
