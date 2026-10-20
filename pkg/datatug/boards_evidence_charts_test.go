@@ -63,3 +63,17 @@ func TestEvidenceChartUnknownWireFields(t *testing.T) {
 		require.Error(t, json.Unmarshal([]byte(wire), &spec))
 	}
 }
+
+func TestEvidenceChartMappingAdmissionBoundaries(t *testing.T) {
+	timeline := evidenceChart("timeline")
+	timeline.Chart.Timeline.TimeColumn = ""
+	require.ErrorContains(t, timeline.Validate(), "nonempty")
+	heatmap := evidenceChart("heatmap")
+	heatmap.Chart.Heatmap.StatusColumn = " status"
+	require.ErrorContains(t, heatmap.Validate(), "canonical")
+	legacy := comparisonChart()
+	legacy.Chart.Timeline = &TimelineChartSpec{}
+	require.ErrorContains(t, legacy.Validate(), "matching type")
+	// The internal validator fails closed if a future caller bypasses dispatch.
+	require.ErrorContains(t, (ChartSpec{Type: "unsupported", SelectionID: "held"}).validateEvidenceChart(), "unknown evidence chart")
+}
