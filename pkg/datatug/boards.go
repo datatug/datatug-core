@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 
+	"github.com/datatug/datatug-core/internal/jsonstrict"
 	"github.com/strongo/validation"
 )
 
@@ -702,6 +704,7 @@ func (v ChartSourceTransform) Validate() error {
 // ChartSpec maps columns in the admitted or transformed result to a chart.
 // The monthly orders transform emits period/category/value rows.
 type ChartSpec struct {
+	Timing         *TimingChartSpec   `json:"timing,omitempty"`
 	Timeline       *TimelineChartSpec `json:"timeline,omitempty"`
 	Heatmap        *HeatmapChartSpec  `json:"heatmap,omitempty"`
 	Type           string             `json:"type"`
@@ -746,7 +749,7 @@ func (v *ChartSpec) UnmarshalJSON(data []byte) error {
 	}
 	var chartType string
 	_ = json.Unmarshal(fields["type"], &chartType)
-	if chartType == "timeline" || chartType == "heatmap" {
+	if chartType == "timeline" || chartType == "heatmap" || chartType == "timing-bars" {
 		for name := range fields {
 			for _, forbidden := range []string{"categoryColumn", "valueColumn", "series", "periodColumn", "unit", "grain", "onDuplicate", "mode", "topN"} {
 				if strings.EqualFold(name, forbidden) {
@@ -758,7 +761,7 @@ func (v *ChartSpec) UnmarshalJSON(data []byte) error {
 	valuePresent := false
 	for name := range fields {
 		switch {
-		case (strings.EqualFold(name, "timeline") && name != "timeline") || (strings.EqualFold(name, "heatmap") && name != "heatmap"):
+		case (strings.EqualFold(name, "timeline") && name != "timeline") || (strings.EqualFold(name, "heatmap") && name != "heatmap") || (strings.EqualFold(name, "timing") && name != "timing"):
 			return validation.NewErrBadRecordFieldValue(name, "must use the canonical field name")
 		case strings.EqualFold(name, "series") && name != "series":
 			return validation.NewErrBadRecordFieldValue("series", "must use the canonical field name")
@@ -784,6 +787,10 @@ func (v *ChartSpec) UnmarshalJSON(data []byte) error {
 			return validation.NewErrBadRecordFieldValue("selectionId", "must be nonempty without surrounding whitespace")
 		}
 	}
+	type schema ChartSpec
+	if err := jsonstrict.CheckNoDuplicateKeysForSchema(data, reflect.TypeOf(schema{})); err != nil {
+		return err
+	}
 	type wire ChartSpec
 	var decoded wire
 	decoder := json.NewDecoder(bytes.NewReader(data))
@@ -796,11 +803,11 @@ func (v *ChartSpec) UnmarshalJSON(data []byte) error {
 }
 
 func (v ChartSpec) Validate() error {
-	if v.Type == "timeline" || v.Type == "heatmap" {
+	if v.Type == "timeline" || v.Type == "heatmap" || v.Type == "timing-bars" {
 		return v.validateEvidenceChart()
 	}
-	if v.Timeline != nil || v.Heatmap != nil {
-		return validation.NewErrBadRecordFieldValue("chart", "timeline and heatmap fields require their matching type")
+	if v.Timeline != nil || v.Heatmap != nil || v.Timing != nil {
+		return validation.NewErrBadRecordFieldValue("chart", "evidence chart fields require their matching type")
 	}
 	switch v.Type {
 	case "bar":
@@ -899,11 +906,11 @@ func (v ChartWidgetDef) Validate() error {
 	if err := v.Chart.Validate(); err != nil {
 		return validation.NewErrBadRecordFieldValue("chart", err.Error())
 	}
-	if (v.Chart.Type == "bar-race" || v.Chart.Type == "timeline" || v.Chart.Type == "heatmap" || v.Chart.Series != nil) && len(v.Sources) != 1 {
+	if (v.Chart.Type == "bar-race" || v.Chart.Type == "timeline" || v.Chart.Type == "heatmap" || v.Chart.Type == "timing-bars" || v.Chart.Series != nil) && len(v.Sources) != 1 {
 		return validation.NewErrBadRecordFieldValue("sources", "bar-race, evidence charts and multi-series bar require one source")
 	}
 	for i, source := range v.Sources {
-		if (v.Chart.Series != nil || v.Chart.Type == "timeline" || v.Chart.Type == "heatmap") && source.Transform != nil {
+		if (v.Chart.Series != nil || v.Chart.Type == "timeline" || v.Chart.Type == "heatmap" || v.Chart.Type == "timing-bars") && source.Transform != nil {
 			return fmt.Errorf("invalid source at index %v: multi-series bar does not support a source transform", i)
 		}
 		if source.Transform != nil && source.Transform.Name == "orders-monthly-country-count" {

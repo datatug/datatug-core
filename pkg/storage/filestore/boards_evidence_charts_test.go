@@ -9,11 +9,13 @@ import (
 )
 
 func TestEvidenceChartsActualProjectStoreRoundTrip(t *testing.T) {
-	for _, kind := range []string{"timeline", "heatmap"} {
+	for _, kind := range []string{"timeline", "heatmap", "timing-bars"} {
 		t.Run(kind, func(t *testing.T) {
 			spec := datatug.ChartSpec{Type: kind, SelectionID: "evidence"}
 			if kind == "timeline" {
 				spec.Timeline = &datatug.TimelineChartSpec{LaneColumn: "lane", EventColumn: "event", SequenceColumn: "seq", TimeColumn: "at", ClockDomainColumn: "clock", PrecisionColumn: "precision", StatusColumn: "status", EvidenceRefColumn: "evidence"}
+			} else if kind == "timing-bars" {
+				spec.Timing = &datatug.TimingChartSpec{RowKeyColumn: "key", LabelColumn: "label", StartTimeColumn: "start", EndTimeColumn: "end", StartClockDomainColumn: "clock", EndClockDomainColumn: "clock", StartPrecisionColumn: "precision", EndPrecisionColumn: "precision", StartEvidenceRefColumn: "start_ref", EndEvidenceRefColumn: "end_ref", StartIdentityColumn: "start_id", EndIdentityColumn: "end_id"}
 			} else {
 				spec.Heatmap = &datatug.HeatmapChartSpec{RowColumn: "request", ColumnColumn: "expectation", StatusColumn: "status", EvidenceRefColumn: "evidence"}
 			}

@@ -1,6 +1,11 @@
 package apicontract
 
-import "fmt"
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"strings"
+)
 
 // knownColumnTypes is the closed set of type names a recordset column may
 // declare - "Type names for parameters/columns map explicitly to existing
@@ -118,6 +123,7 @@ func (p Provenance) Validate() error {
 // semantic/related/rows. "Denied requests return no recordset, sample, true
 // count, SQL text or hidden value." api-contract.md "Shared JSON types".
 type Result struct {
+	RowEvidence     *RowEvidence  `json:"rowEvidence,omitempty"`
 	Recordset       Recordset     `json:"recordset"`
 	Limitations     []Limitation  `json:"limitations"`
 	BindingsApplied []Binding     `json:"bindingsApplied"`
@@ -150,5 +156,27 @@ func (r Result) Validate() error {
 			return &ValidationError{Field: "execution", Message: err.Error()}
 		}
 	}
+	if r.RowEvidence != nil {
+		return r.RowEvidence.ValidateForResult(r)
+	}
+	return nil
+}
+
+// UnmarshalJSON preserves strict Result wire decoding and distinguishes absent
+// optional evidence from explicitly malformed null metadata.
+func (r *Result) UnmarshalJSON(data []byte) error {
+	type wire Result
+	var decoded wire
+	if err := DecodeStrict(data, &decoded); err != nil {
+		return err
+	}
+	var fields map[string]json.RawMessage
+	_ = json.Unmarshal(data, &fields)
+	for name, value := range fields {
+		if strings.EqualFold(name, "rowEvidence") && (name != "rowEvidence" || bytes.Equal(bytes.TrimSpace(value), []byte("null"))) {
+			return fmt.Errorf("rowEvidence must be a non-null object with its canonical field name")
+		}
+	}
+	*r = Result(decoded)
 	return nil
 }
