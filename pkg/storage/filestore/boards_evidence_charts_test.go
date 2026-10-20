@@ -9,12 +9,15 @@ import (
 )
 
 func TestEvidenceChartsActualProjectStoreRoundTrip(t *testing.T) {
-	for _, kind := range []string{"timeline", "heatmap"} {
+	for _, kind := range []string{"timeline", "heatmap", "timing-bars"} {
 		t.Run(kind, func(t *testing.T) {
 			spec := datatug.ChartSpec{Type: kind, SelectionID: "evidence"}
-			if kind == "timeline" {
+			switch kind {
+			case "timeline":
 				spec.Timeline = &datatug.TimelineChartSpec{LaneColumn: "lane", EventColumn: "event", SequenceColumn: "seq", TimeColumn: "at", ClockDomainColumn: "clock", PrecisionColumn: "precision", StatusColumn: "status", EvidenceRefColumn: "evidence"}
-			} else {
+			case "timing-bars":
+				spec.Timing = &datatug.TimingChartSpec{RowKeyColumn: "key", LabelColumn: "label", StartTimeColumn: "start", EndTimeColumn: "end", StartClockDomainColumn: "clock", EndClockDomainColumn: "clock", StartPrecisionColumn: "precision", EndPrecisionColumn: "precision", StartEvidenceRefColumn: "start_ref", EndEvidenceRefColumn: "end_ref", StartIdentityColumn: "start_id", EndIdentityColumn: "end_id"}
+			default:
 				spec.Heatmap = &datatug.HeatmapChartSpec{RowColumn: "request", ColumnColumn: "expectation", StatusColumn: "status", EvidenceRefColumn: "evidence"}
 			}
 			board := &datatug.Board{ProjectItem: datatug.ProjectItem{ID: "processing", Title: "Processing"}, Rows: datatug.BoardRows{{Cards: datatug.BoardCards{{ID: "process", Widget: &datatug.BoardWidget{Name: "chart", Data: &datatug.ChartWidgetDef{Sources: []datatug.ChartSourceBinding{{ID: "held", QueryID: "shipping/process"}}, Chart: spec}}}}}}}

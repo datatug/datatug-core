@@ -1,0 +1,184 @@
+{
+  "format": "datatug-recordset-fingerprint/v1",
+  "cases": [
+    {
+      "name": "nil-arrays",
+      "recordset": {
+        "columns": null,
+        "rows": null
+      },
+      "canonicalJSON": "{\"columns\":[],\"rows\":[]}",
+      "sha256": "5021a18642f0f17c1bfce9b758550e34b4cc89b286b179e6dd71a5a4d6194c95"
+    },
+    {
+      "name": "empty-arrays",
+      "recordset": {
+        "columns": [],
+        "rows": []
+      },
+      "canonicalJSON": "{\"columns\":[],\"rows\":[]}",
+      "sha256": "5021a18642f0f17c1bfce9b758550e34b4cc89b286b179e6dd71a5a4d6194c95"
+    },
+    {
+      "name": "nil-zero-column-row",
+      "recordset": {
+        "columns": null,
+        "rows": [
+          null
+        ]
+      },
+      "canonicalJSON": "{\"columns\":[],\"rows\":[[]]}",
+      "sha256": "206f0c1217076546263bb7366f199e9831244ffa9befe04b1cd503a962c4b81a"
+    },
+    {
+      "name": "escaping-unicode",
+      "recordset": {
+        "columns": [
+          {
+            "name": "first",
+            "type": "string"
+          }
+        ],
+        "rows": [
+          [
+            {
+              "type": "string",
+              "value": "<>&\"\\\n雪  "
+            }
+          ]
+        ]
+      },
+      "canonicalJSON": "{\"columns\":[{\"name\":\"first\",\"type\":\"string\"}],\"rows\":[[{\"type\":\"string\",\"value\":\"\\u003c\\u003e\\u0026\\\"\\\\\\n雪\\u2028\\u2029\"}]]}",
+      "sha256": "66dfd5be4d97a9385d1ed5f24fba13220fc83e44d963ea3b0cd43370e3d7d717"
+    },
+    {
+      "name": "float-formatting",
+      "recordset": {
+        "columns": [
+          {
+            "name": "first",
+            "type": "number"
+          },
+          {
+            "name": "second",
+            "type": "number"
+          },
+          {
+            "name": "third",
+            "type": "number"
+          },
+          {
+            "name": "fourth",
+            "type": "number"
+          },
+          {
+            "name": "fifth",
+            "type": "number"
+          }
+        ],
+        "rows": [
+          [
+            {
+              "type": "number",
+              "value": 1e-07
+            },
+            {
+              "type": "number",
+              "value": 100000000000000000000
+            },
+            {
+              "type": "number",
+              "value": 1e+21
+            },
+            {
+              "type": "number",
+              "value": 1.2345678901234567
+            },
+            {
+              "type": "number",
+              "value": -0.0
+            }
+          ]
+        ]
+      },
+      "canonicalJSON": "{\"columns\":[{\"name\":\"first\",\"type\":\"number\"},{\"name\":\"second\",\"type\":\"number\"},{\"name\":\"third\",\"type\":\"number\"},{\"name\":\"fourth\",\"type\":\"number\"},{\"name\":\"fifth\",\"type\":\"number\"}],\"rows\":[[{\"type\":\"number\",\"value\":1e-7},{\"type\":\"number\",\"value\":100000000000000000000},{\"type\":\"number\",\"value\":1e+21},{\"type\":\"number\",\"value\":1.2345678901234567},{\"type\":\"number\",\"value\":-0}]]}",
+      "sha256": "3710b5472c4c3c29464dc7dde52cf7672eca59d9dd63b5c47ae0fe14ccd39507"
+    },
+    {
+      "name": "large-integer-strings",
+      "recordset": {
+        "columns": [
+          {
+            "name": "first",
+            "type": "integer"
+          },
+          {
+            "name": "second",
+            "type": "integer"
+          },
+          {
+            "name": "third",
+            "type": "decimal"
+          }
+        ],
+        "rows": [
+          [
+            {
+              "type": "integer",
+              "value": "9007199254740993"
+            },
+            {
+              "type": "integer",
+              "value": "-9007199254740993"
+            },
+            {
+              "type": "decimal",
+              "value": "1.2300"
+            }
+          ]
+        ]
+      },
+      "canonicalJSON": "{\"columns\":[{\"name\":\"first\",\"type\":\"integer\"},{\"name\":\"second\",\"type\":\"integer\"},{\"name\":\"third\",\"type\":\"decimal\"}],\"rows\":[[{\"type\":\"integer\",\"value\":\"9007199254740993\"},{\"type\":\"integer\",\"value\":\"-9007199254740993\"},{\"type\":\"decimal\",\"value\":\"1.2300\"}]]}",
+      "sha256": "8bde3487664a18b80e7c02fd0e1ec02a3e2a7681b1625990b0df2c13af8984d8"
+    },
+    {
+      "name": "ordered",
+      "recordset": {
+        "columns": [
+          {
+            "name": "b",
+            "type": "string"
+          },
+          {
+            "name": "a",
+            "type": "string"
+          }
+        ],
+        "rows": [
+          [
+            {
+              "type": "string",
+              "value": "second"
+            },
+            {
+              "type": "null",
+              "value": null
+            }
+          ],
+          [
+            {
+              "type": "string",
+              "value": "first"
+            },
+            {
+              "type": "string",
+              "value": "last"
+            }
+          ]
+        ]
+      },
+      "canonicalJSON": "{\"columns\":[{\"name\":\"b\",\"type\":\"string\"},{\"name\":\"a\",\"type\":\"string\"}],\"rows\":[[{\"type\":\"string\",\"value\":\"second\"},{\"type\":\"null\",\"value\":null}],[{\"type\":\"string\",\"value\":\"first\"},{\"type\":\"string\",\"value\":\"last\"}]]}",
+      "sha256": "02d29eff8255dbbc6f220e842dd455c3fd57794e9daf10c78368bb6622c49d52"
+    }
+  ]
+}
