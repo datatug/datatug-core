@@ -83,3 +83,33 @@ func TestNamedEntityTablesRejectMalformedAndRuntimeWire(t *testing.T) {
 	var value TableKeys
 	require.Error(t, json.Unmarshal([]byte(`[{"name":"`+strings.Repeat("x", 256<<10)+`"}]`), &value))
 }
+
+func TestEntityTableCodecBoundsAndSyntaxFailures(t *testing.T) {
+	_, err := json.Marshal(TableKeys{NewTableKey(strings.Repeat("x", 256<<10), "", "", nil)})
+	require.Error(t, err)
+	var parent *record.Key
+	for range 17 {
+		parent = record.NewKeyWithParentAndID(parent, "p", "id")
+	}
+	_, err = json.Marshal(TableKeys{NewTableKey("table", "", "", parent)})
+	require.Error(t, err)
+	_, err = json.Marshal(TableKeys{NewTableKey("table", "", "", record.NewKeyWithID("p", ""))})
+	require.Error(t, err)
+	var keys TableKeys
+	require.NoError(t, json.Unmarshal([]byte(`[{"name":"t","schema":"logical","refSchema":"physical"}]`), &keys))
+	require.Equal(t, "physical", keys[0].Ref.Schema())
+	require.Equal(t, "logical", keys[0].Schema())
+	for _, wire := range []string{`}`, `{"x`, `[{"name":`, `[{"name":"x",`, `[{"name":"x","parent":[`, `null null`, strings.Repeat("[", 42) + strings.Repeat("]", 42)} {
+		require.Error(t, validateEntityTableJSON([]byte(wire)), "wire %q", wire)
+	}
+}
+func TestAssetNumberParameterDefaultsRemainExact(t *testing.T) {
+	for _, test := range []struct {
+		kind, value string
+		valid       bool
+	}{{"integer", "9007199254740993", true}, {"integer", "9223372036854775808", false}, {"integer", "1.2", false}, {"number", "0.12345678901234567890123456789", true}, {"number", "1e9999", false}, {"number", "invalid", false}} {
+		err := (ParameterDef{ID: "p", Type: test.kind, DefaultValue: json.Number(test.value)}).Validate()
+		require.Equal(t, test.valid, err == nil)
+	}
+	require.Error(t, (ParameterDef{ID: "p", Type: "number", DefaultValue: "not numeric"}).Validate())
+}

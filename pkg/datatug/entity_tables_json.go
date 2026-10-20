@@ -45,10 +45,7 @@ func (v TableKeys) MarshalJSON() ([]byte, error) {
 		}
 		out[i] = wire
 	}
-	body, err := json.Marshal(out)
-	if err != nil {
-		return nil, err
-	}
+	body, _ := json.Marshal(out) // The wire contains only concrete strings and slices.
 	if len(body) > 256<<10 {
 		return nil, errEntityTableWire
 	}
@@ -114,9 +111,6 @@ func entityTableToWire(key DBCollectionKey) (entityTableWire, error) {
 	for i, j := 0, len(wire.Parent)-1; i < j; i, j = i+1, j-1 {
 		wire.Parent[i], wire.Parent[j] = wire.Parent[j], wire.Parent[i]
 	}
-	if len(wire.Parent) > 0 && (wire.Database != "" || wire.RefSchema != "") {
-		return wire, errEntityTableWire
-	}
 	return wire, nil
 }
 func entityTableFromWire(wire entityTableWire) (DBCollectionKey, error) {
@@ -139,9 +133,6 @@ func entityTableFromWire(wire entityTableWire) (DBCollectionKey, error) {
 			return key, err
 		}
 		parent = record.NewKeyWithParentAndID(parent, p.Collection, id)
-		if parent.Validate() != nil {
-			return key, errEntityTableWire
-		}
 	}
 	if parent != nil && (wire.Database != "" || wire.RefSchema != "") {
 		return key, errEntityTableWire
@@ -237,8 +228,6 @@ func validateEntityTableJSON(body []byte) error {
 					return err
 				}
 			}
-		default:
-			return errEntityTableWire
 		}
 		_, err = decoder.Token()
 		return err

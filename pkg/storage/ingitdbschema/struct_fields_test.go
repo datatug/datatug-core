@@ -178,7 +178,7 @@ func representativeEntity() datatug.Entity {
 		// A zero-length (but non-nil) slice is still "empty" to
 		// encoding/json's `omitempty`, so at least one element is required
 		// for "tables" to appear.
-		Tables: datatug.TableKeys{{}},
+		Tables: datatug.TableKeys{datatug.NewTableKey("representative_table", "", "", nil)},
 	}
 }
 
