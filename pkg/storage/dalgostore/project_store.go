@@ -17,7 +17,8 @@
 // Only the project record itself is implemented so far: Store's four
 // members and ProjectStore's LoadProjectFile, LoadProject and SaveProject
 // create, list, delete, read and write the record at that key path.
-// Every other project-item collection (queries, boards, folders, entities,
+// Boards and entities have bounded native and caller-scoped item persistence.
+// Other project-item collections (queries, folders,
 // environments, env db servers/catalogs, project db drivers/servers,
 // recordset definitions) is a stub that returns ErrNotImplemented; later
 // tasks in the dalgo-project-store plan implement them one collection at a
@@ -74,8 +75,10 @@ func projectKey(projectID string) *record.Key {
 // ProjectStore is a datatug.ProjectStore backed by a dal.DB the caller
 // constructs and hands in.
 type ProjectStore struct {
-	db        dal.DB
-	projectID string
+	db          dal.DB
+	projectID   string
+	itemRoot    *record.Key
+	itemSession dal.ReadSession
 }
 
 var _ datatug.ProjectStore = (*ProjectStore)(nil)
@@ -97,6 +100,9 @@ func (s *ProjectStore) ProjectID() string {
 // LoadProjectFile reads the project record at
 // ext/datatug/projects/<project-id>.
 func (s *ProjectStore) LoadProjectFile(ctx context.Context) (datatug.ProjectFile, error) {
+	if s.itemRoot != nil {
+		return datatug.ProjectFile{}, notImplemented("item-only parent read")
+	}
 	var file datatug.ProjectFile
 	rec := record.NewRecordWithData(projectKey(s.projectID), &file)
 	if err := s.db.Get(ctx, rec); err != nil {
@@ -156,6 +162,9 @@ func (s *ProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOption
 // dropped and nothing is written. Sub-item persistence is later work (see
 // the package doc comment).
 func (s *ProjectStore) SaveProject(ctx context.Context, p *datatug.Project) error {
+	if s.itemRoot != nil {
+		return notImplemented("item-only parent write")
+	}
 	if p.ID != s.projectID {
 		return validation.NewErrBadRecordFieldValue("id",
 			fmt.Sprintf("project id %q does not match this store's project id %q", p.ID, s.projectID))

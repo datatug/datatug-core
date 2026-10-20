@@ -32,26 +32,6 @@ func (s *ProjectStore) DeleteQuery(context.Context, string) error {
 	return notImplemented("DeleteQuery")
 }
 
-// LoadBoards is not implemented; see the package doc comment.
-func (s *ProjectStore) LoadBoards(context.Context, ...datatug.StoreOption) (datatug.Boards, error) {
-	return nil, notImplemented("LoadBoards")
-}
-
-// LoadBoard is not implemented; see the package doc comment.
-func (s *ProjectStore) LoadBoard(context.Context, string, ...datatug.StoreOption) (*datatug.Board, error) {
-	return nil, notImplemented("LoadBoard")
-}
-
-// SaveBoard is not implemented; see the package doc comment.
-func (s *ProjectStore) SaveBoard(context.Context, *datatug.Board) error {
-	return notImplemented("SaveBoard")
-}
-
-// DeleteBoard is not implemented; see the package doc comment.
-func (s *ProjectStore) DeleteBoard(context.Context, string) error {
-	return notImplemented("DeleteBoard")
-}
-
 // LoadFolders is not implemented; see the package doc comment.
 func (s *ProjectStore) LoadFolders(context.Context, ...datatug.StoreOption) (datatug.Folders, error) {
 	return nil, notImplemented("LoadFolders")
@@ -75,26 +55,6 @@ func (s *ProjectStore) SaveFolders(context.Context, string, datatug.Folders) err
 // DeleteFolder is not implemented; see the package doc comment.
 func (s *ProjectStore) DeleteFolder(context.Context, string) error {
 	return notImplemented("DeleteFolder")
-}
-
-// LoadEntities is not implemented; see the package doc comment.
-func (s *ProjectStore) LoadEntities(context.Context, ...datatug.StoreOption) (datatug.Entities, error) {
-	return nil, notImplemented("LoadEntities")
-}
-
-// LoadEntity is not implemented; see the package doc comment.
-func (s *ProjectStore) LoadEntity(context.Context, string, ...datatug.StoreOption) (*datatug.Entity, error) {
-	return nil, notImplemented("LoadEntity")
-}
-
-// SaveEntity is not implemented; see the package doc comment.
-func (s *ProjectStore) SaveEntity(context.Context, *datatug.Entity) error {
-	return notImplemented("SaveEntity")
-}
-
-// DeleteEntity is not implemented; see the package doc comment.
-func (s *ProjectStore) DeleteEntity(context.Context, string) error {
-	return notImplemented("DeleteEntity")
 }
 
 // LoadEnvironments is not implemented; see the package doc comment.

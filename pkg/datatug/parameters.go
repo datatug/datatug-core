@@ -1,9 +1,11 @@
 package datatug
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"reflect"
+	"strconv"
 
 	"github.com/strongo/validation"
 )
@@ -37,6 +39,9 @@ func (v ParameterDef) Validate() error {
 			_, ok = v.DefaultValue.(string)
 		case "integer", "bit":
 			switch value := v.DefaultValue.(type) {
+			case json.Number:
+				_, err := strconv.ParseInt(string(value), 10, 64)
+				ok = err == nil
 			case int:
 				// Preserve programmatically authored defaults.
 			case float64:
@@ -48,7 +53,14 @@ func (v ParameterDef) Validate() error {
 				ok = false
 			}
 		case "number":
-			_, ok = v.DefaultValue.(float64)
+			switch n := v.DefaultValue.(type) {
+			case float64:
+			case json.Number:
+				f, err := strconv.ParseFloat(string(n), 64)
+				ok = err == nil && !math.IsInf(f, 0) && !math.IsNaN(f)
+			default:
+				ok = false
+			}
 		case "boolean":
 			_, ok = v.DefaultValue.(bool)
 		}
