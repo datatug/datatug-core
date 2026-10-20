@@ -702,17 +702,19 @@ func (v ChartSourceTransform) Validate() error {
 // ChartSpec maps columns in the admitted or transformed result to a chart.
 // The monthly orders transform emits period/category/value rows.
 type ChartSpec struct {
-	Type           string        `json:"type"`
-	CategoryColumn string        `json:"categoryColumn"`
-	ValueColumn    string        `json:"valueColumn,omitempty"`
-	Series         []ChartSeries `json:"series,omitempty"`
-	SelectionID    string        `json:"selectionId,omitempty"`
-	PeriodColumn   string        `json:"periodColumn,omitempty"`
-	Unit           string        `json:"unit,omitempty"`
-	Grain          string        `json:"grain,omitempty"`
-	OnDuplicate    string        `json:"onDuplicate,omitempty"`
-	Mode           string        `json:"mode,omitempty"`
-	TopN           int           `json:"topN,omitempty"`
+	Timeline       *TimelineChartSpec `json:"timeline,omitempty"`
+	Heatmap        *HeatmapChartSpec  `json:"heatmap,omitempty"`
+	Type           string             `json:"type"`
+	CategoryColumn string             `json:"categoryColumn,omitempty"`
+	ValueColumn    string             `json:"valueColumn,omitempty"`
+	Series         []ChartSeries      `json:"series,omitempty"`
+	SelectionID    string             `json:"selectionId,omitempty"`
+	PeriodColumn   string             `json:"periodColumn,omitempty"`
+	Unit           string             `json:"unit,omitempty"`
+	Grain          string             `json:"grain,omitempty"`
+	OnDuplicate    string             `json:"onDuplicate,omitempty"`
+	Mode           string             `json:"mode,omitempty"`
+	TopN           int                `json:"topN,omitempty"`
 }
 
 // ChartSeries maps one numeric column of a single admitted query result.
@@ -742,9 +744,22 @@ func (v *ChartSpec) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &fields); err != nil {
 		return err
 	}
+	var chartType string
+	_ = json.Unmarshal(fields["type"], &chartType)
+	if chartType == "timeline" || chartType == "heatmap" {
+		for name := range fields {
+			for _, forbidden := range []string{"categoryColumn", "valueColumn", "series", "periodColumn", "unit", "grain", "onDuplicate", "mode", "topN"} {
+				if strings.EqualFold(name, forbidden) {
+					return validation.NewErrBadRecordFieldValue(name, "must be omitted for evidence charts")
+				}
+			}
+		}
+	}
 	valuePresent := false
 	for name := range fields {
 		switch {
+		case (strings.EqualFold(name, "timeline") && name != "timeline") || (strings.EqualFold(name, "heatmap") && name != "heatmap"):
+			return validation.NewErrBadRecordFieldValue(name, "must use the canonical field name")
 		case strings.EqualFold(name, "series") && name != "series":
 			return validation.NewErrBadRecordFieldValue("series", "must use the canonical field name")
 		case strings.EqualFold(name, "selectionId") && name != "selectionId":
@@ -781,6 +796,12 @@ func (v *ChartSpec) UnmarshalJSON(data []byte) error {
 }
 
 func (v ChartSpec) Validate() error {
+	if v.Type == "timeline" || v.Type == "heatmap" {
+		return v.validateEvidenceChart()
+	}
+	if v.Timeline != nil || v.Heatmap != nil {
+		return validation.NewErrBadRecordFieldValue("chart", "timeline and heatmap fields require their matching type")
+	}
 	switch v.Type {
 	case "bar":
 		if v.PeriodColumn != "" {
@@ -878,11 +899,11 @@ func (v ChartWidgetDef) Validate() error {
 	if err := v.Chart.Validate(); err != nil {
 		return validation.NewErrBadRecordFieldValue("chart", err.Error())
 	}
-	if (v.Chart.Type == "bar-race" || v.Chart.Series != nil) && len(v.Sources) != 1 {
-		return validation.NewErrBadRecordFieldValue("sources", "bar-race and multi-series bar require one source")
+	if (v.Chart.Type == "bar-race" || v.Chart.Type == "timeline" || v.Chart.Type == "heatmap" || v.Chart.Series != nil) && len(v.Sources) != 1 {
+		return validation.NewErrBadRecordFieldValue("sources", "bar-race, evidence charts and multi-series bar require one source")
 	}
 	for i, source := range v.Sources {
-		if v.Chart.Series != nil && source.Transform != nil {
+		if (v.Chart.Series != nil || v.Chart.Type == "timeline" || v.Chart.Type == "heatmap") && source.Transform != nil {
 			return fmt.Errorf("invalid source at index %v: multi-series bar does not support a source transform", i)
 		}
 		if source.Transform != nil && source.Transform.Name == "orders-monthly-country-count" {

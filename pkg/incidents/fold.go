@@ -194,10 +194,18 @@ func (r ArtifactRef) Validate() error {
 	if r.Comparison != nil {
 		set++
 	}
+	if r.CheckRun != nil {
+		set++
+	}
 	if set != 1 {
 		return fmt.Errorf("exactly one reference identity is required")
 	}
 	switch r.Kind {
+	case RefCheckRun:
+		if r.CheckRun == nil {
+			return fmt.Errorf("check-run ref requires CheckRunRef")
+		}
+		return r.CheckRun.Validate()
 	case RefIncident:
 		if r.Incident == nil {
 			return fmt.Errorf("incident ref requires IncidentRef")
@@ -244,6 +252,13 @@ func (r ExecutionRef) Validate() error {
 }
 
 func (r ProjectArtifactRef) Validate() error {
+	if r.Folder != "" {
+		for _, segment := range strings.Split(r.Folder, "/") {
+			if !validSegment(segment) || strings.Contains(segment, "%") || strings.Contains(segment, "\\") {
+				return fmt.Errorf("artifact folder must be canonical relative path segments")
+			}
+		}
+	}
 	if err := (ProjectRef{StoreID: r.StoreID, ProjectID: r.ProjectID, Environment: r.Environment}).Validate(); err != nil {
 		return err
 	}
@@ -279,8 +294,15 @@ func (p *Incident) apply(event Event) error {
 		}
 		p.CanonicalContext = payload.CanonicalContext
 		p.Status = StatusOpen
+	case EventIncidentCriterionSet, EventIncidentResolved:
+		if err := p.applyResolutionEvent(event); err != nil {
+			return err
+		}
 	case EventIncidentStatus:
 		payload := validatedPayload[StatusPayload](event.Payload)
+		if p.ResolutionCriterion != nil && p.ResolutionCriterion.Enforcement == "required" && p.Resolution == nil && statusRank(payload.Status) >= statusRank(StatusResolved) {
+			return fmt.Errorf("required resolution criterion requires verified incident.resolved")
+		}
 		if statusRank(payload.Status) < statusRank(p.Status) {
 			return fmt.Errorf("status cannot move backward from %s to %s", p.Status, payload.Status)
 		}
@@ -384,6 +406,28 @@ func decodePayload(data json.RawMessage, dst any) error {
 
 func (e Event) validatePayload(view bool) error {
 	switch e.Type {
+	case EventIncidentCriterionSet:
+		var payload ResolutionCriterion
+		if err := decodePayload(e.Payload, &payload); err != nil {
+			return err
+		}
+		return payload.Validate()
+	case EventIncidentResolved:
+		var payload ResolvedPayload
+		if err := decodePayload(e.Payload, &payload); err != nil {
+			return err
+		}
+		if err := payload.Validate(e.At); err != nil {
+			return err
+		}
+		refs := append([]ArtifactRef{{Kind: RefCheckRun, CheckRun: &payload.Proof.Run}}, payload.Proof.ObservationRefs...)
+		refs = append(refs, payload.Proof.RecoveryRefs...)
+		for _, ref := range refs {
+			if !hasMatchingAsset(e.Refs, ref) {
+				return fmt.Errorf("resolution proof reference must also appear in event refs")
+			}
+		}
+		return nil
 	case EventIncidentCreated:
 		if view {
 			var payload CreatedViewPayload
@@ -575,7 +619,7 @@ func validAssertionKind(value AssertionKind) bool {
 
 func hasEvidenceRef(refs []ArtifactRef) bool {
 	for _, ref := range refs {
-		if ref.Kind == RefExecution || ref.Kind == RefCheck || ref.Kind == RefCompare {
+		if ref.Kind == RefExecution || ref.Kind == RefCheck || ref.Kind == RefCheckRun || ref.Kind == RefCompare {
 			return true
 		}
 	}

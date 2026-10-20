@@ -25,6 +25,22 @@ func (a Actor) Validate() error {
 }
 
 func (i Incident) Validate() error {
+	if i.Resolution != nil && i.ResolutionCriterion != nil {
+		if err := ValidateResolutionProof(*i.ResolutionCriterion, i.Resolution.Proof, i.Resolution.Proof.EvaluatedAt); err != nil {
+			return err
+		}
+	}
+
+	if i.ResolutionCriterion != nil {
+		if err := i.ResolutionCriterion.Validate(); err != nil {
+			return err
+		}
+	}
+	if i.Resolution != nil {
+		if err := i.Resolution.Validate(i.Resolution.Proof.EvaluatedAt); err != nil {
+			return err
+		}
+	}
 	if err := i.Ref.Validate(); err != nil {
 		return err
 	}
@@ -124,25 +140,28 @@ type ViewPolicy struct {
 // always contains canonical facts; only this read model may contain redaction
 // markers.
 type IncidentView struct {
-	Ref               IncidentRef               `json:"ref"`
-	UID               string                    `json:"uid"`
-	Title             string                    `json:"title"`
-	Description       string                    `json:"description,omitempty"`
-	Status            Status                    `json:"status"`
-	Outcome           Outcome                   `json:"outcome,omitempty"`
-	MergedInto        *IncidentRef              `json:"mergedInto,omitempty"`
-	Projects          []ProjectRef              `json:"projects,omitempty"`
-	Participants      []Participant             `json:"participants,omitempty"`
-	CanonicalContext  investigation.ContextView `json:"canonicalContext"`
-	ContextPromotions []ContextPromotion        `json:"contextPromotions,omitempty"`
-	ContextRejections []ContextRejection        `json:"contextRejections,omitempty"`
-	AssetRefs         []ArtifactRef             `json:"assetRefs,omitempty"`
-	Notes             []string                  `json:"notes,omitempty"`
-	LastSeq           uint64                    `json:"lastSeq"`
+	ResolutionCriterion *ResolutionCriterion      `json:"resolutionCriterion,omitempty"`
+	Resolution          *ResolvedPayload          `json:"resolution,omitempty"`
+	Ref                 IncidentRef               `json:"ref"`
+	UID                 string                    `json:"uid"`
+	Title               string                    `json:"title"`
+	Description         string                    `json:"description,omitempty"`
+	Status              Status                    `json:"status"`
+	Outcome             Outcome                   `json:"outcome,omitempty"`
+	MergedInto          *IncidentRef              `json:"mergedInto,omitempty"`
+	Projects            []ProjectRef              `json:"projects,omitempty"`
+	Participants        []Participant             `json:"participants,omitempty"`
+	CanonicalContext    investigation.ContextView `json:"canonicalContext"`
+	ContextPromotions   []ContextPromotion        `json:"contextPromotions,omitempty"`
+	ContextRejections   []ContextRejection        `json:"contextRejections,omitempty"`
+	AssetRefs           []ArtifactRef             `json:"assetRefs,omitempty"`
+	Notes               []string                  `json:"notes,omitempty"`
+	LastSeq             uint64                    `json:"lastSeq"`
 }
 
 func (i IncidentView) Validate() error {
 	storedShape := Incident{
+		ResolutionCriterion: i.ResolutionCriterion, Resolution: i.Resolution,
 		Ref: i.Ref, UID: i.UID, Title: i.Title, Description: i.Description, Status: i.Status,
 		Outcome: i.Outcome, MergedInto: i.MergedInto, Projects: i.Projects,
 		Participants: i.Participants, AssetRefs: i.AssetRefs, Notes: i.Notes, LastSeq: i.LastSeq,
@@ -174,6 +193,7 @@ func ApplyIncidentView(stored Incident, policy ViewPolicy) IncidentView {
 		ContextPromotions: filterContextPromotions(stored.ContextPromotions, policy),
 		ContextRejections: filterContextRejections(stored.ContextRejections, policy),
 		AssetRefs:         filterAssetRefs(stored, policy), Notes: filterNotes(stored, policy),
+		ResolutionCriterion: visibleCriterion(stored, policy), Resolution: visibleResolution(stored, policy),
 		LastSeq: stored.LastSeq,
 	}
 }
@@ -738,6 +758,10 @@ func cloneArtifactRefs(refs []ArtifactRef) []ArtifactRef {
 }
 
 func cloneArtifactRef(ref ArtifactRef) ArtifactRef {
+	if ref.CheckRun != nil {
+		copied := *ref.CheckRun
+		ref.CheckRun = &copied
+	}
 	cloned := ref
 	cloned.Incident = cloneIncidentRef(ref.Incident)
 	if ref.Project != nil {
