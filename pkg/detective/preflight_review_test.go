@@ -164,3 +164,87 @@ func TestPreflightUniqueInputCacheCapacityMatchesEngine(t *testing.T) {
 	actual := engine.runCheck(context.Background(), "root", values, 0, map[string]bool{})
 	require.Equal(t, "error", actual.ExecutionStatus)
 }
+
+func TestIndependentR2UnknownQueryTarget(t *testing.T) {
+	for _, mode := range []string{"undeclared", "set"} {
+		t.Run(mode, func(t *testing.T) {
+			c, v, m := preflightFixture()
+			root := c.Checks["root"]
+			root.Steps[0].Validators = []Validator{{ID: "row", Scope: "row", Kind: "check", Severity: "error", CheckID: "child", Bindings: []Binding{{Input: "id", FromColumn: "id"}}}}
+			c.Checks["root"] = root
+			c.Checks["child"] = Check{ID: "child", Title: "Child", Version: 1, Inputs: []Input{{Name: "id", Type: investigation.ValueTypeInteger, Cardinality: "scalar", Required: true}}, Steps: []Step{{ID: "query", Kind: "query", QueryID: "child-query", Bindings: []Binding{{Input: "id", FromInput: "id"}}}}}
+			if mode == "undeclared" {
+				m["child-query"] = nil
+			} else {
+				m["child-query"] = []Input{{Name: "id", Type: investigation.ValueTypeInteger, Cardinality: "set", Required: true}}
+			}
+			require.NoError(t, ValidateCatalog(c))
+			preflight := PreflightBindings(c, "root", v, m)
+			mapped, err := mapBindings(c.Checks["child"].Steps[0].Bindings, v, nil, nil)
+			require.NoError(t, err)
+			actualErr := validatePartialInputs(m["child-query"], mapped, nil, true)
+			t.Logf("mode=%s preflight=%s actual query admission=%v", mode, preflight.State, actualErr)
+			require.Error(t, actualErr)
+			require.Equal(t, BindingMissingInput, preflight.State)
+		})
+	}
+}
+func TestIndependentR2CacheAtExactCapacity(t *testing.T) {
+	c, _, m := preflightFixture()
+	c.Checks = map[string]Check{}
+	values := map[string]InputValue{}
+	schema := []Input{}
+	for i := 0; i < 31; i++ {
+		name := fmt.Sprintf("input%d", i)
+		value := investigation.NewIntegerValue(fmt.Sprint(i))
+		values[name] = InputValue{Scalar: &value}
+		schema = append(schema, Input{Name: name, Type: investigation.ValueTypeInteger, Cardinality: "scalar", Required: true})
+	}
+	root := Check{ID: "root", Title: "Root", Version: 1, Inputs: schema}
+	bindings := []Binding{}
+	for _, in := range schema {
+		bindings = append(bindings, Binding{Input: in.Name, FromInput: in.Name})
+	}
+	for i := 0; i < 4; i++ {
+		id := fmt.Sprintf("child-%d", i)
+		child := Check{ID: id, Title: id, Version: 1, Inputs: schema}
+		count := 31
+		if i == 3 {
+			count = 30
+		}
+		for j := 0; j < count; j++ {
+			child.Steps = append(child.Steps, Step{ID: fmt.Sprintf("step-%d", j), Kind: "check", CheckID: fmt.Sprintf("leaf-%d", i), Bindings: []Binding{{Input: "id", FromInput: fmt.Sprintf("input%d", j)}}})
+		}
+		c.Checks[id] = child
+		root.Steps = append(root.Steps, Step{ID: id, Kind: "check", CheckID: id, Bindings: bindings})
+		leafID := fmt.Sprintf("leaf-%d", i)
+		c.Checks[leafID] = Check{ID: leafID, Title: leafID, Version: 1, Inputs: []Input{{Name: "id", Type: investigation.ValueTypeInteger, Cardinality: "scalar", Required: true}}, Steps: []Step{{ID: "query", Kind: "query", QueryID: "query"}}}
+	}
+	root.Steps = append(root.Steps, Step{ID: "repeat", Kind: "check", CheckID: "child-0", Bindings: bindings})
+	c.Checks["root"] = root
+	m["query"] = nil
+	require.NoError(t, ValidateCatalog(c))
+	preflight := PreflightBindings(c, "root", values, m)
+	engine := newEngine(c, "demo", func(context.Context, string, string, map[string]apicontract.TypedValueOrSet) (apicontract.Result, error) {
+		return apicontract.Result{}, nil
+	}, nil)
+	actual := engine.runCheck(context.Background(), "root", values, 0, map[string]bool{})
+	t.Logf("preflight=%s actualEngine=%s engineNodes=%d", preflight.State, actual.ExecutionStatus, engine.nodes)
+	require.Equal(t, 128, engine.nodes)
+	require.Equal(t, "error", actual.ExecutionStatus)
+	require.Equal(t, BindingInvalidDefinition, preflight.State)
+}
+
+func TestPendingRangeEndpointShapeMatchesActualMapping(t *testing.T) {
+	source := []Input{{Name: "window", Type: investigation.ValueTypeInteger, Cardinality: "range", Required: true}}
+	target := []Input{{Name: "id", Type: investigation.ValueTypeInteger, Cardinality: "scalar", Required: true}}
+	bindings := []Binding{{Input: "id", FromInput: "window", Part: "end"}}
+	one := investigation.NewIntegerValue("1")
+	two := investigation.NewIntegerValue("2")
+	mapped, err := mapBindings(bindings, map[string]InputValue{"window": {Range: &ValueRange{Type: "range", Start: one, End: two}}}, nil, nil)
+	require.NoError(t, err)
+	require.NoError(t, validatePartialInputs(target, mapped, nil, true))
+	require.NoError(t, validatePendingQueryBindings(source, target, bindings, map[string]bool{"id": true}))
+	target[0].Cardinality = "set"
+	require.Error(t, validatePendingQueryBindings(source, target, bindings, map[string]bool{"id": true}))
+}

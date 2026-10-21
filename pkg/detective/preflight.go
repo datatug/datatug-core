@@ -64,15 +64,15 @@ func PreflightBindings(c Catalog, root string, inputs map[string]InputValue, que
 		}
 		sort.Strings(names)
 		key := cacheKey(id, "", values) + "/" + strings.Join(names, ",")
-		if prior, ok := memo[key]; ok {
-			return prior
-		}
 		out := BindingPreflight{State: BindingInputBindable, CheckID: id}
-		nodes++
-		if depth > maxDepth || nodes > maxNodes {
+		if depth > maxDepth || nodes >= maxNodes {
 			out.State = BindingInvalidDefinition
 			return out
 		}
+		if prior, ok := memo[key]; ok {
+			return prior
+		}
+		nodes++
 		check := c.Checks[id]
 		if validatePartialInputs(check.Inputs, values, unknown, false) != nil {
 			out.State = BindingMissingInput
@@ -95,7 +95,7 @@ func PreflightBindings(c Catalog, root string, inputs map[string]InputValue, que
 				}
 				continue
 			}
-			if validatePartialInputs(queryInputs[step.QueryID], mapped, pending, true) != nil {
+			if validatePendingQueryBindings(check.Inputs, queryInputs[step.QueryID], step.Bindings, pending) != nil || validatePartialInputs(queryInputs[step.QueryID], mapped, pending, true) != nil {
 				out.State = BindingMissingInput
 				out.StepID = step.ID
 				return out
@@ -189,6 +189,37 @@ func validatePartialInputs(schema []Input, values map[string]InputValue, unknown
 					return ErrInvalid
 				}
 			}
+		}
+	}
+	return nil
+}
+
+// Row-dependent values are unknown, but destination existence and propagated
+// scalar/set shape are known without inventing a row or executing the query.
+func validatePendingQueryBindings(source, target []Input, bindings []Binding, pending map[string]bool) error {
+	sources := map[string]Input{}
+	targets := map[string]Input{}
+	for _, in := range source {
+		sources[in.Name] = in
+	}
+	for _, in := range target {
+		targets[in.Name] = in
+	}
+	for _, binding := range bindings {
+		if !pending[binding.Input] {
+			continue
+		}
+		expected, ok := targets[binding.Input]
+		if !ok {
+			return ErrInvalid
+		}
+		provided := sources[binding.FromInput]
+		cardinality := provided.Cardinality
+		if binding.Part != "" {
+			cardinality = "scalar"
+		}
+		if cardinality != expected.Cardinality || provided.Type != expected.Type && (expected.Required || cardinality == "set") {
+			return ErrInvalid
 		}
 	}
 	return nil
