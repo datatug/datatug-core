@@ -28,6 +28,27 @@ func (s *ProjectStore) LoadEnvironments(ctx context.Context, _ ...datatug.StoreO
 	for i, v := range values {
 		out[i] = v.(*datatug.Environment)
 	}
+	saved := s.environmentOrder
+	if s.itemRoot == nil {
+		file, loadErr := s.LoadProjectFile(ctx)
+		if loadErr != nil {
+			return nil, loadErr
+		}
+		saved = file.EnvironmentOrder
+	}
+	ids := make([]string, len(out))
+	byID := make(map[string]*datatug.Environment, len(out))
+	for i, environment := range out {
+		ids[i] = environment.ID
+		byID[environment.ID] = environment
+	}
+	order, _, err := datatug.ResolveEnvironmentOrder(ids, saved)
+	if err != nil {
+		return nil, err
+	}
+	for i, id := range order {
+		out[i] = byID[id]
+	}
 	return out, nil
 }
 func (s *ProjectStore) SaveEnvironment(ctx context.Context, v *datatug.Environment) error {

@@ -132,11 +132,11 @@ func LoadProjectFile(projPath string) (v datatug.ProjectFile, err error) {
 	if _, e := os.Stat(projPath); os.IsNotExist(e) {
 		return v, fmt.Errorf("%w: %v", datatug.ErrProjectDoesNotExist, e)
 	}
-	err = withEnvironmentStoreLock(context.Background(), projPath, func(_ context.Context) error { v, err = loadProjectFileUnlocked(projPath); return err })
+	err = withEnvironmentStoreReadLock(context.Background(), projPath, func(_ context.Context) error { v, err = loadProjectFileUnlocked(projPath); return err })
 	return
 }
 
 func (s fsProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOption) (v *datatug.Project, err error) {
-	err = withEnvironmentStoreLock(ctx, s.projectPath, func(ctx context.Context) error { v, err = s.loadProjectUnlocked(ctx, o...); return err })
+	err = withEnvironmentStoreReadLock(ctx, s.projectPath, func(ctx context.Context) error { v, err = s.loadProjectUnlocked(ctx, o...); return err })
 	return
 }

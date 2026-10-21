@@ -273,6 +273,15 @@ func environmentNamespace(root, stateRoot string) (string, error) {
 
 // WithEnvironmentFiles serializes cooperating processes and recovers before any callback.
 func WithEnvironmentFiles(ctx context.Context, projectRoot, stateRoot string, fn func(*EnvironmentFiles) error) error {
+	return withEnvironmentFiles(ctx, projectRoot, stateRoot, true, fn)
+}
+
+// ReadEnvironmentFiles serializes reads without creating project or private state.
+// Existing operation ownership is still validated and recovered before reading.
+func ReadEnvironmentFiles(ctx context.Context, projectRoot string, fn func(*EnvironmentFiles) error) error {
+	return withEnvironmentFiles(ctx, projectRoot, "", false, fn)
+}
+func withEnvironmentFiles(ctx context.Context, projectRoot, stateRoot string, initialize bool, fn func(*EnvironmentFiles) error) error {
 	if projectRoot == "" {
 		return datatug.ErrProjectDoesNotExist
 	}
@@ -288,7 +297,9 @@ func WithEnvironmentFiles(ctx context.Context, projectRoot, stateRoot string, fn
 	if st, e := os.Lstat(lockPath); e == nil && (!st.Mode().IsRegular() || st.Mode()&os.ModeSymlink != 0) {
 		return fmt.Errorf("%w: %s is not a plain file", ErrEnvironmentRecoveryRequired, filepath.Base(lockPath))
 	}
-	lock := flock.New(lockPath)
+	// The directory inode exists even for read-only projects. All readers and
+	// writers use it, so first-time initialization cannot race a read.
+	lock := flock.New(root, flock.SetFlag(os.O_RDONLY))
 	ok, e := lock.TryLockContext(ctx, 10_000_000)
 	if e != nil {
 		return e
@@ -297,6 +308,37 @@ func WithEnvironmentFiles(ctx context.Context, projectRoot, stateRoot string, fn
 		return ctx.Err()
 	}
 	defer lock.Unlock()
+	if !initialize {
+		existing := false
+		for _, name := range []string{".datatug-environments.lock", ".datatug-environments-owner.json"} {
+			if _, err := os.Lstat(filepath.Join(root, name)); err == nil {
+				existing = true
+			} else if !os.IsNotExist(err) {
+				return err
+			}
+		}
+		git := exec.Command("git", "-C", root, "rev-parse", "--absolute-git-dir")
+		if body, err := git.Output(); err == nil {
+			_, err = os.Lstat(filepath.Join(strings.TrimSpace(string(body)), "datatug-environment-operations", environmentHash([]byte(root))))
+			if err == nil {
+				existing = true
+			} else if !os.IsNotExist(err) {
+				return err
+			}
+		}
+		if !existing {
+			return fn(&EnvironmentFiles{Root: root})
+		}
+	}
+	if initialize {
+		marker, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0600)
+		if err != nil {
+			return err
+		}
+		if err = marker.Close(); err != nil {
+			return err
+		}
+	}
 	namespace, e := environmentNamespace(root, stateRoot)
 	if e != nil {
 		return e
@@ -415,6 +457,9 @@ func (f *EnvironmentFiles) Commit(changes map[string][]byte, binding string, res
 
 // CommitChecked fences exact bytes captured by the mutation's authoritative read.
 func (f *EnvironmentFiles) CommitChecked(changes map[string][]byte, expected map[string]string, binding string, result dto.EnvironmentOperationResult) error {
+	if f.namespace == "" {
+		return os.ErrPermission
+	}
 	intent := environmentIntent{Binding: binding, Result: result}
 	keys := make([]string, 0, len(changes))
 	for rel := range changes {
@@ -480,6 +525,9 @@ func (f *EnvironmentFiles) CommitChecked(changes map[string][]byte, expected map
 
 // Operation returns private evidence only for the matching verified actor scope.
 func (f *EnvironmentFiles) Operation(id, binding string) (*dto.EnvironmentOperationResult, error) {
+	if f.namespace == "" {
+		return nil, os.ErrNotExist
+	}
 	b, e := readEnvironmentPrivateFile(filepath.Join(f.namespace, environmentHash([]byte(id))+".receipt.json"))
 	if e != nil {
 		return nil, e
@@ -528,4 +576,17 @@ func (f *EnvironmentFiles) LoadEnvironments(ctx context.Context) (datatug.Enviro
 }
 func (f *EnvironmentFiles) LoadProjectFile() (datatug.ProjectFile, error) {
 	return loadProjectFileUnlocked(f.Root)
+}
+
+func withEnvironmentStoreReadLock(ctx context.Context, root string, fn func(context.Context) error) error {
+	canonical, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return err
+	}
+	if ctx.Value(environmentLockContextKey{}) == canonical {
+		return fn(ctx)
+	}
+	return ReadEnvironmentFiles(ctx, canonical, func(_ *EnvironmentFiles) error {
+		return fn(context.WithValue(ctx, environmentLockContextKey{}, canonical))
+	})
 }

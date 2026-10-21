@@ -196,15 +196,15 @@ func (s fsEnvironmentsStore) deleteEnvironment(_ context.Context, id string) err
 }
 
 func (s fsEnvironmentsStore) LoadEnvironment(ctx context.Context, id string, o ...datatug.StoreOption) (v *datatug.Environment, err error) {
-	err = withEnvironmentStoreLock(ctx, s.projectDir, func(ctx context.Context) error { v, err = s.loadEnvironment(ctx, id, o...); return err })
+	err = withEnvironmentStoreReadLock(ctx, s.projectDir, func(ctx context.Context) error { v, err = s.loadEnvironment(ctx, id, o...); return err })
 	return
 }
 func (s fsEnvironmentsStore) LoadEnvironments(ctx context.Context, o ...datatug.StoreOption) (v datatug.Environments, err error) {
-	err = withEnvironmentStoreLock(ctx, s.projectDir, func(ctx context.Context) error { v, err = s.loadEnvironments(ctx, o...); return err })
+	err = withEnvironmentStoreReadLock(ctx, s.projectDir, func(ctx context.Context) error { v, err = s.loadEnvironments(ctx, o...); return err })
 	return
 }
 func (s fsEnvironmentsStore) LoadEnvironmentSummary(ctx context.Context, id string) (v *datatug.EnvironmentSummary, err error) {
-	err = withEnvironmentStoreLock(ctx, s.projectDir, func(ctx context.Context) error { v, err = s.loadEnvironmentSummary(ctx, id); return err })
+	err = withEnvironmentStoreReadLock(ctx, s.projectDir, func(ctx context.Context) error { v, err = s.loadEnvironmentSummary(ctx, id); return err })
 	return
 }
 func (s fsEnvironmentsStore) SaveEnvironment(ctx context.Context, v *datatug.Environment) error {

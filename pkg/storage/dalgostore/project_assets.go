@@ -37,7 +37,7 @@ type assetDocument struct {
 // The caller derives root from authenticated authority; this constructor is
 // deliberately incapable of reading or changing the parent project document.
 // A DALGO transaction is used directly, without starting a nested transaction.
-func NewProjectItemsStore(session dal.ReadSession, projectID string, root *record.Key) (*ProjectStore, error) {
+func NewProjectItemsStore(session dal.ReadSession, projectID string, root *record.Key, options ...ProjectItemsOption) (*ProjectStore, error) {
 	if session == nil || root == nil || !projectScopeIDPattern.MatchString(projectID) || root.Collection() != "projects" || root.ID != projectID {
 		return nil, ErrAssetInvalid
 	}
@@ -45,7 +45,11 @@ func NewProjectItemsStore(session dal.ReadSession, projectID string, root *recor
 	if err != nil {
 		return nil, err
 	}
-	return &ProjectStore{projectID: projectID, itemRoot: copied, itemSession: session}, nil
+	store := &ProjectStore{projectID: projectID, itemRoot: copied, itemSession: session}
+	for _, option := range options {
+		option(store)
+	}
+	return store, nil
 }
 
 func copyAssetKey(key *record.Key) (*record.Key, error) {
@@ -307,4 +311,14 @@ func (s *ProjectStore) LoadEntities(ctx context.Context, _ ...datatug.StoreOptio
 		out[i] = v.(*datatug.Entity)
 	}
 	return out, nil
+}
+
+// ProjectItemsOption supplies metadata already authorized and read by the caller.
+type ProjectItemsOption func(*ProjectStore)
+
+// WithEnvironmentOrder binds the parent order read in the caller-owned session.
+// It never grants the item store permission to access the parent document.
+func WithEnvironmentOrder(order []string) ProjectItemsOption {
+	copied := append([]string(nil), order...)
+	return func(s *ProjectStore) { s.environmentOrder = append([]string(nil), copied...) }
 }
