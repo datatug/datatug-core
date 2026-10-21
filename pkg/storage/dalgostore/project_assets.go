@@ -205,16 +205,20 @@ func (s *ProjectStore) deleteAsset(ctx context.Context, kind, id string) error {
 	return writer.Delete(ctx, key)
 }
 func (s *ProjectStore) listAssets(ctx context.Context, kind string, newValue func() any) ([]any, error) {
+	values, _, err := s.readAssets(ctx, kind, newValue)
+	return values, err
+}
+func (s *ProjectStore) readAssets(ctx context.Context, kind string, newValue func() any) ([]any, int, error) {
 	root := s.assetRoot()
 	query := dal.From(dal.NewCollectionRef(kind, "", root)).NewQuery().Limit(MaxProjectAssets + 1).SelectIntoRecord(func() record.Record {
 		return record.NewRecordWithData(record.NewIncompleteKey(kind, reflect.String, root), new(assetDocument))
 	})
 	records, err := dal.ExecuteQueryAndReadAllToRecords(ctx, query, s.assetSession())
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if len(records) > MaxProjectAssets {
-		return nil, ErrAssetLimit
+		return nil, 0, ErrAssetLimit
 	}
 	sort.Slice(records, func(i, j int) bool { return fmt.Sprint(records[i].Key().ID) < fmt.Sprint(records[j].Key().ID) })
 	values := make([]any, 0, len(records))
@@ -222,23 +226,23 @@ func (s *ProjectStore) listAssets(ctx context.Context, kind string, newValue fun
 	for _, r := range records {
 		id, ok := r.Key().ID.(string)
 		if !ok || !assetIDPattern.MatchString(id) {
-			return nil, ErrAssetInvalid
+			return nil, 0, ErrAssetInvalid
 		}
 		doc, ok := r.Data().(*assetDocument)
 		if !ok {
-			return nil, ErrAssetInvalid
+			return nil, 0, ErrAssetInvalid
 		}
 		total += len(doc.Content)
 		if total > MaxProjectAssetListBytes {
-			return nil, ErrAssetLimit
+			return nil, 0, ErrAssetLimit
 		}
 		value := newValue()
 		if err := decodeAsset(doc.Content, value, id); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		values = append(values, value)
 	}
-	return values, nil
+	return values, total, nil
 }
 func (s *ProjectStore) LoadBoard(ctx context.Context, id string, _ ...datatug.StoreOption) (*datatug.Board, error) {
 	value := new(datatug.Board)
