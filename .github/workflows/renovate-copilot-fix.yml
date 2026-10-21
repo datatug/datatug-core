@@ -1,0 +1,49 @@
+name: Renovate Copilot fix
+
+# When CI fails on a Renovate pull request, ask the Copilot coding agent to fix
+# the branch. The logic, guards and attempt limit live in the shared action
+# sneat-co/cicd/actions/renovate-copilot-fix; this file only says which
+# workflows to watch (every pull_request workflow of this repository).
+#
+# Setup: the org Actions secret COPILOT_TRIGGER_TOKEN (a Copilot-seat user's token).
+# Copilot's pushes run CI only after "Approve and run workflows" unless
+# Settings > Copilot > cloud agent > "Require approval for workflow runs" is off.
+# workflow_run runs this file from the default branch, never from the pull request.
+# Event-driven only; the manual run sweeps pull requests that failed before this existed.
+
+on:
+  workflow_run:
+    workflows: ["Go CI"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Renovate pull request number (empty = every open Renovate pull request with a failing pull_request run)
+        type: string
+        default: ''
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+  pull-requests: read
+
+concurrency:
+  group: renovate-copilot-fix-${{ github.event.workflow_run.head_branch || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  request-fix:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.event == 'pull_request' &&
+       github.event.workflow_run.conclusion == 'failure' &&
+       startsWith(github.event.workflow_run.head_branch, 'renovate/'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: sneat-co/cicd/actions/renovate-copilot-fix@main
+        with:
+          copilot-trigger-token: ${{ secrets.COPILOT_TRIGGER_TOKEN }}
+          check-hint: "go vet ./... && go test ./..."
+          pr: ${{ inputs.pr }}
