@@ -102,3 +102,39 @@ func TestComparisonYAMLDecodersRetainKnownFields(t *testing.T) {
 	require.Equal(t, "safe", scoped.FolderPath)
 	require.Equal(t, "SELECT 1", scoped.Purpose)
 }
+
+func TestComparisonYAMLDecodersPreserveLexemes(t *testing.T) {
+	for _, scoped := range []bool{false, true} {
+		t.Run(fmt.Sprint(scoped), func(t *testing.T) {
+			wire := "type: SQL\ntext: 001\npurpose: 2026-10-21\nprojectitem:\n  projitembrief:\n    id: 001\n    title: 2026-10-21\nparameters:\n  - id: 001\n    type: string\n"
+			var query datatug.QueryDef
+			if scoped {
+				var envelope datatug.QueryDefWithFolderPath
+				wire = "folderpath: 001\nquerydef:\n  " + strings.ReplaceAll(strings.TrimSuffix(wire, "\n"), "\n", "\n  ") + "\n"
+				decoder := yaml.NewDecoder(strings.NewReader(wire))
+				decoder.KnownFields(true)
+				require.NoError(t, decoder.Decode(&envelope))
+				require.Equal(t, "001", envelope.FolderPath)
+				query = envelope.QueryDef
+			} else {
+				decoder := yaml.NewDecoder(strings.NewReader(wire))
+				decoder.KnownFields(true)
+				require.NoError(t, decoder.Decode(&query))
+			}
+			require.Equal(t, "001", query.ID)
+			require.Equal(t, "001", query.Text)
+			require.Equal(t, "001", query.Parameters[0].ID)
+			require.Equal(t, "2026-10-21", query.Title)
+			require.Equal(t, "2026-10-21", query.Purpose)
+		})
+	}
+	// The alias target is outside the custom-decoded nested query node.
+	var envelope datatug.QueryDefWithFolderPath
+	wire := "folderpath: &label 001\nquerydef:\n  type: SQL\n  text: *label\n  purpose: &day 2026-10-21\n  projectitem:\n    projitembrief:\n      title: *day\n"
+	decoder := yaml.NewDecoder(strings.NewReader(wire))
+	decoder.KnownFields(true)
+	require.NoError(t, decoder.Decode(&envelope))
+	require.Equal(t, "001", envelope.Text)
+	require.Equal(t, "2026-10-21", envelope.Title)
+	require.Equal(t, "2026-10-21", envelope.Purpose)
+}

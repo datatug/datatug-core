@@ -204,20 +204,81 @@ func checkQueryComparisonYAML(node *yaml.Node) error {
 }
 
 func decodeKnownQueryYAML(node *yaml.Node, target any) error {
-	// node.Decode does not inherit an outer KnownFields policy. Resolve aliases
-	// first, including aliases anchored outside a nested query, then enforce the
-	// existing typed YAML schema explicitly on the method-free target.
-	var raw any
-	if err := node.Decode(&raw); err != nil {
+	// Preserve scalar Value/Tag rather than resolving into any (001 and dates
+	// may be string fields). A nested custom decoder can reference an anchor
+	// outside its subtree; detach only those aliases without changing their nodes.
+	standalone, err := standaloneQueryYAML(node)
+	if err != nil {
 		return err
 	}
-	data, err := yaml.Marshal(raw)
+	data, err := yaml.Marshal(standalone)
 	if err != nil {
 		return err
 	}
 	decoder := yaml.NewDecoder(bytes.NewReader(data))
 	decoder.KnownFields(true)
 	return decoder.Decode(target)
+}
+
+func standaloneQueryYAML(node *yaml.Node) (*yaml.Node, error) {
+	members := map[*yaml.Node]bool{}
+	var collect func(*yaml.Node)
+	collect = func(n *yaml.Node) {
+		if n == nil || members[n] {
+			return
+		}
+		members[n] = true
+		for _, child := range n.Content {
+			collect(child)
+		}
+	}
+	collect(node)
+	copies := map[*yaml.Node]*yaml.Node{}
+	expanding := map[*yaml.Node]bool{}
+	var clone func(*yaml.Node) (*yaml.Node, error)
+	clone = func(n *yaml.Node) (*yaml.Node, error) {
+		if n == nil {
+			return nil, nil
+		}
+		if n.Kind == yaml.AliasNode && !members[n.Alias] {
+			if n.Alias == nil || expanding[n.Alias] {
+				return nil, fmt.Errorf("invalid or cyclic external YAML alias")
+			}
+			expanding[n.Alias] = true
+			target, err := clone(n.Alias)
+			delete(expanding, n.Alias)
+			if err != nil {
+				return nil, err
+			}
+			// This target's anchor lives outside the serialized subtree. Materialize
+			// its unchanged scalar/tag/content; internal anchors and aliases remain.
+			detached := *target
+			detached.Anchor = ""
+			return &detached, nil
+		}
+		if copied, ok := copies[n]; ok {
+			return copied, nil
+		}
+		copied := *n
+		copies[n] = &copied
+		copied.Content = make([]*yaml.Node, len(n.Content))
+		for i, child := range n.Content {
+			var err error
+			copied.Content[i], err = clone(child)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if n.Alias != nil {
+			var err error
+			copied.Alias, err = clone(n.Alias)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return &copied, nil
+	}
+	return clone(node)
 }
 
 func (v *QueryDef) UnmarshalYAML(node *yaml.Node) error {
