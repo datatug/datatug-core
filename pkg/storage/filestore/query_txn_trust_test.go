@@ -343,7 +343,7 @@ func TestQueryStore_RefusesAQueryTypeThatCannotNameAFile(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// "t.query." + "/../../victim/secret.txt" resolves to <project>/victim/secret.txt.
-	meta := `{"title":"t","type":"/../../victim/secret.txt"}`
+	meta := `{"title":"t","type":"/../../victim/secret.txt","createdAt":"2026-10-01T00:00:00Z"}`
 	if err := os.WriteFile(filepath.Join(queriesDir, "t.query.json"), []byte(meta), 0o644); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -381,7 +381,7 @@ func TestQueryStore_StillReadsLegacyTypesOutsideValidate(t *testing.T) {
 	if err := os.MkdirAll(queriesDir, 0o755); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(queriesDir, "s.query.json"), []byte(`{"title":"s","type":"StructuredSQL"}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(queriesDir, "s.query.json"), []byte(`{"title":"s","type":"StructuredSQL","createdAt":"2026-10-01T00:00:00Z"}`), 0o644); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(queriesDir, "s.query.structuredsql"), []byte("BODY"), 0o644); err != nil {

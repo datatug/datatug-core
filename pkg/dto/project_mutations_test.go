@@ -93,3 +93,18 @@ func TestSaveQueryDigestRejectsUnencodablePayload(t *testing.T) {
 	receipt := OperationReceipt{}
 	require.ErrorContains(t, receipt.MatchSaveRetry(OperationScope{}, request), "encode save query payload")
 }
+
+func TestSaveQueryDigestIgnoresServerCreationMetadata(t *testing.T) {
+	request := demoSaveQuery()
+	before, err := request.PayloadDigest()
+	require.NoError(t, err)
+	request.Query.CreatedAt = "tampered"
+	after, err := request.PayloadDigest()
+	require.NoError(t, err)
+	require.Equal(t, before, after)
+	encoded, err := json.Marshal(request)
+	require.NoError(t, err)
+	var decoded SaveQueryRequest
+	require.NoError(t, json.Unmarshal(encoded, &decoded))
+	require.Equal(t, request.Query.CreatedAt, decoded.Query.CreatedAt)
+}

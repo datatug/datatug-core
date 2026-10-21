@@ -257,7 +257,7 @@ func TestQueryIDs_WithInvisibleCharacters_RefusedForWritesButStillReadable(t *te
 	if err := os.MkdirAll(queriesDir, 0o755); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	meta := []byte(`{"id":"` + alias + `","title":"Legacy","type":"DTQL"}` + "\n")
+	meta := []byte(`{"id":"` + alias + `","title":"Legacy","type":"DTQL","createdAt":"2026-10-01T00:00:00Z"}` + "\n")
 	if err := os.WriteFile(filepath.Join(queriesDir, alias+".query.json"), meta, 0o644); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

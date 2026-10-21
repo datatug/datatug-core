@@ -165,7 +165,7 @@ func TestFsQueriesStore(t *testing.T) {
 		require.NoError(t, os.MkdirAll(filepath.Join(queriesDir, folder1), 0777))
 		require.NoError(t, os.WriteFile(
 			filepath.Join(queriesDir, folder1, "untyped-query.query.json"),
-			[]byte(`{"id":"untyped-query","title":"Untyped"}`), 0644))
+			[]byte(`{"id":"untyped-query","title":"Untyped","createdAt":"2026-10-01T00:00:00Z"}`), 0644))
 
 		q, err := store.LoadQuery(ctx, path.Join(folder1, "untyped-query"))
 		assert.NoError(t, err)

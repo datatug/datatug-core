@@ -78,6 +78,9 @@ func (s fsQueriesStore) LoadQueryRevision(ctx context.Context, id string, o ...d
 	if err != nil {
 		return nil, err
 	}
+	if err := result.Query.ValidateCreationMetadata(); err != nil {
+		return nil, err
+	}
 	return result, nil
 }
 
@@ -87,6 +90,7 @@ func (s fsQueriesStore) LoadQueryRevision(ctx context.Context, id string, o ...d
 // request never creates the reserved transaction directory and never
 // touches the file system at all.
 func (s fsQueriesStore) PutQuery(ctx context.Context, query *datatug.QueryDefWithFolderPath, condition datatug.QueryWriteCondition) (*datatug.StoredQuery, error) {
+	s.creationTime = datatug.QueryCreationTime(ctx)
 	if query == nil {
 		return nil, fmt.Errorf("query must not be nil")
 	}
@@ -130,7 +134,7 @@ func (s fsQueriesStore) PutQuery(ctx context.Context, query *datatug.QueryDefWit
 
 		// Commit point reached inside stageAndInstallQueryPair (once its
 		// journal write returns): complete regardless of ctx from here.
-		revision, err := s.stageAndInstallQueryPair(g, query.FolderPath, query.QueryDef, current)
+		revision, err := s.stageAndInstallQueryPair(g, query.FolderPath, query.QueryDef, current, &query.QueryDef)
 		if err != nil {
 			return err
 		}
