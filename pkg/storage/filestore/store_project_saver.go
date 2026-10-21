@@ -2,9 +2,11 @@ package filestore
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"path"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/parallel"
@@ -18,7 +20,7 @@ import (
 // queries): when one part fails, the parts already saved stay written
 // (review N5, pre-existing). Each query pair is still written as its own
 // recoverable transaction.
-func (s fsProjectStore) SaveProject(ctx context.Context, project *datatug.Project) (err error) {
+func (s fsProjectStore) saveProjectUnlocked(ctx context.Context, project *datatug.Project) (err error) {
 	//log.Println("Validating project for saving to: ", s.projectPath)
 	if err = project.Validate(); err != nil {
 		return fmt.Errorf("project validation failed: %w", err)
@@ -114,7 +116,44 @@ func (s fsProjectStore) putProjectFile(projFile datatug.ProjectFile) error {
 	if err := projFile.Validate(); err != nil {
 		return fmt.Errorf("invalid project file: %w", err)
 	}
-	return saveJSONFile(s.projectPath, s.projectPath, storage.ProjectSummaryFileName, projFile)
+	if st, err := os.Lstat(path.Join(s.projectPath, storage.ProjectSummaryFileName)); err == nil && st.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("%w: %s is a symlink", ErrEnvironmentRecoveryRequired, storage.ProjectSummaryFileName)
+	}
+	existing, readErr := os.ReadFile(path.Join(s.projectPath, storage.ProjectSummaryFileName))
+	if readErr != nil && !os.IsNotExist(readErr) {
+		return readErr
+	}
+	fields := map[string]json.RawMessage{}
+	if len(existing) > 0 {
+		if err := json.Unmarshal(existing, &fields); err != nil {
+			return err
+		}
+	}
+	body, err := json.Marshal(projFile)
+	if err != nil {
+		return err
+	}
+	var updated map[string]json.RawMessage
+	if err = json.Unmarshal(body, &updated); err != nil {
+		return err
+	}
+	hasExtra := false
+	for key := range fields {
+		if _, ok := updated[key]; !ok {
+			hasExtra = true
+		}
+	}
+	if !hasExtra {
+		return saveJSONFile(s.projectPath, s.projectPath, storage.ProjectSummaryFileName, projFile)
+	}
+	for key, value := range updated {
+		fields[key] = value
+	}
+	body, err = json.Marshal(fields)
+	if err != nil {
+		return err
+	}
+	return durableEnvironmentFile(path.Join(s.projectPath, storage.ProjectSummaryFileName), body, 0600)
 }
 
 //func projItemFileName(id, prefix string) string {
@@ -136,6 +175,7 @@ func (s fsProjectStore) saveProjectFile(project *datatug.Project) error {
 	// nothing else - and left a brief that fails its own
 	// datatug.ProjectBrief.Validate().
 	projFile := datatug.ProjectFile{
+		EnvironmentOrder: project.EnvironmentOrder,
 		ProjectItem: datatug.ProjectItem{
 			ProjItemBrief: datatug.ProjItemBrief{
 				ID:    project.ID,
@@ -235,3 +275,13 @@ func (s fsProjectStore) saveProjectFile(project *datatug.Project) error {
 //	dbServer   datatug.ProjDbServer
 //	repository *datatug.ProjectRepository
 //}
+
+func (s fsProjectStore) SaveProject(ctx context.Context, p *datatug.Project) error {
+	if err := p.Validate(); err != nil {
+		return fmt.Errorf("project validation failed: %w", err)
+	}
+	if err := os.MkdirAll(s.projectPath, 0755); err != nil {
+		return err
+	}
+	return withEnvironmentStoreLock(ctx, s.projectPath, func(ctx context.Context) error { return s.saveProjectUnlocked(ctx, p) })
+}

@@ -18,7 +18,7 @@ type fileSystemLoader struct {
 }
 
 // LoadProject loads project
-func (s fsProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOption) (*datatug.Project, error) {
+func (s fsProjectStore) loadProjectUnlocked(ctx context.Context, o ...datatug.StoreOption) (*datatug.Project, error) {
 	opts := datatug.GetStoreOptions(o...)
 	project := datatug.NewProjectWithStore(s.projectID, s)
 	if err := loadProjectFile(s.projectPath, project); err != nil {
@@ -94,8 +94,11 @@ func (s fsProjectStore) LoadProjectFile(context.Context) (projectFile datatug.Pr
 }
 
 // LoadProjectFile loads project file
-func LoadProjectFile(projPath string) (v datatug.ProjectFile, err error) {
+func loadProjectFileUnlocked(projPath string) (v datatug.ProjectFile, err error) {
 	fileName := path.Join(projPath, storage.ProjectSummaryFileName)
+	if st, e := os.Lstat(fileName); e == nil && st.Mode()&os.ModeSymlink != 0 {
+		return v, ErrEnvironmentRecoveryRequired
+	}
 	if err = readJSONFile(fileName, true, &v); os.IsNotExist(err) {
 		err = fmt.Errorf("%w: %v", datatug.ErrProjectDoesNotExist, err)
 	}
@@ -122,5 +125,18 @@ func (loader fileSystemLoader) GetProjectPath(projectID string) (projID string, 
 		err = validation.NewErrBadRequestFieldValue("projectID", fmt.Sprintf("unknown: [%v]ro", projectID))
 		return
 	}
+	return
+}
+
+func LoadProjectFile(projPath string) (v datatug.ProjectFile, err error) {
+	if _, e := os.Stat(projPath); os.IsNotExist(e) {
+		return v, fmt.Errorf("%w: %v", datatug.ErrProjectDoesNotExist, e)
+	}
+	err = withEnvironmentStoreLock(context.Background(), projPath, func(_ context.Context) error { v, err = loadProjectFileUnlocked(projPath); return err })
+	return
+}
+
+func (s fsProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOption) (v *datatug.Project, err error) {
+	err = withEnvironmentStoreLock(ctx, s.projectPath, func(ctx context.Context) error { v, err = s.loadProjectUnlocked(ctx, o...); return err })
 	return
 }

@@ -1,0 +1,49 @@
+package datatug
+
+import (
+	"encoding/json"
+	"strings"
+)
+
+type projectFileJSON ProjectFile
+
+func (v *ProjectFile) UnmarshalJSON(body []byte) error {
+	var typed projectFileJSON
+	if err := json.Unmarshal(body, &typed); err != nil {
+		return err
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(body, &fields); err != nil {
+		return err
+	}
+	for key := range fields {
+		switch strings.ToLower(key) {
+		case "id", "title", "folder", "tags", "userids", "access", "created", "repository", "environmentorder":
+			delete(fields, key)
+		}
+	}
+	if len(fields) > 0 {
+		typed.jsonMetadata = fields
+	}
+	*v = ProjectFile(typed)
+	return nil
+}
+func (v ProjectFile) MarshalJSON() ([]byte, error) {
+	body, err := json.Marshal(projectFileJSON(v))
+	if err != nil || (len(v.jsonMetadata) == 0 && len(v.EnvironmentOrder) > 0) || (len(v.jsonMetadata) == 0 && v.EnvironmentOrder == nil) {
+		return body, err
+	}
+	var fields map[string]json.RawMessage
+	if err = json.Unmarshal(body, &fields); err != nil {
+		return nil, err
+	}
+	if v.EnvironmentOrder != nil {
+		fields["environmentOrder"], _ = json.Marshal(v.EnvironmentOrder)
+	}
+	for key, value := range v.jsonMetadata {
+		if _, exists := fields[key]; !exists {
+			fields[key] = value
+		}
+	}
+	return json.Marshal(fields)
+}

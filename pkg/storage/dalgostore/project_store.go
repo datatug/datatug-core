@@ -176,6 +176,7 @@ func (s *ProjectStore) SaveProject(ctx context.Context, p *datatug.Project) erro
 		return fmt.Errorf("dalgostore: project validation failed: %w", err)
 	}
 	file := datatug.ProjectFile{
+		EnvironmentOrder: p.EnvironmentOrder,
 		ProjectItem: datatug.ProjectItem{
 			ProjItemBrief: datatug.ProjItemBrief{ID: p.ID, Title: p.Title},
 			Access:        p.Access,

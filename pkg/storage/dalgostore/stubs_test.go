@@ -33,13 +33,6 @@ func TestStubs_ReturnErrNotImplemented(t *testing.T) {
 		{"SaveFolders", func() error { return store.SaveFolders(ctx, "", nil) }},
 		{"DeleteFolder", func() error { return store.DeleteFolder(ctx, "f1") }},
 
-		{"LoadEnvironments", func() error { _, err := store.LoadEnvironments(ctx); return err }},
-		{"LoadEnvironment", func() error { _, err := store.LoadEnvironment(ctx, "env1"); return err }},
-		{"LoadEnvironmentSummary", func() error { _, err := store.LoadEnvironmentSummary(ctx, "env1"); return err }},
-		{"SaveEnvironment", func() error { return store.SaveEnvironment(ctx, &datatug.Environment{}) }},
-		{"SaveEnvironments", func() error { return store.SaveEnvironments(ctx, nil) }},
-		{"DeleteEnvironment", func() error { return store.DeleteEnvironment(ctx, "env1") }},
-
 		{"LoadEnvDbServers", func() error { _, err := store.LoadEnvDbServers(ctx, "env1"); return err }},
 		{"LoadEnvDbServer", func() error { _, err := store.LoadEnvDbServer(ctx, "env1", "s1"); return err }},
 		{"SaveEnvDbServer", func() error { return store.SaveEnvDbServer(ctx, "env1", &datatug.EnvDbServer{}) }},

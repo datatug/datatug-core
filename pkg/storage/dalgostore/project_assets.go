@@ -86,6 +86,11 @@ func assetKey(root *record.Key, kind, id string) (*record.Key, error) {
 func encodeAsset(value any) ([]byte, error) {
 	var err error
 	switch v := value.(type) {
+	case *datatug.Environment:
+		if v == nil {
+			return nil, ErrAssetInvalid
+		}
+		err = v.Validate()
 	case *datatug.Board:
 		if v == nil {
 			return nil, ErrAssetInvalid
@@ -126,6 +131,8 @@ func decodeAsset(body []byte, value any, id string) error {
 	}
 	var actual string
 	switch v := value.(type) {
+	case *datatug.Environment:
+		actual = v.ID
 	case *datatug.Board:
 		actual = v.ID
 	case *datatug.Entity:
@@ -179,6 +186,9 @@ func (s *ProjectStore) saveAsset(ctx context.Context, kind, id string, value any
 	}
 	if !r.Exists() {
 		items, err := s.listAssets(ctx, kind, func() any {
+			if kind == "environments" {
+				return new(datatug.Environment)
+			}
 			if kind == "boards" {
 				return new(datatug.Board)
 			}
