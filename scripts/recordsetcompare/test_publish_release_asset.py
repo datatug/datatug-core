@@ -51,7 +51,7 @@ def make_archive(
     files["manifest.json"] = json.dumps({
         "abi": verify_package.ABI,
         "files": manifest_files,
-        "goVersion": "1.27.2",
+        "goVersion": "1.27.3",
         "sourceCommit": source_commit,
         "sourceTag": source_tag,
     }, sort_keys=True).encode()

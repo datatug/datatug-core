@@ -17,7 +17,7 @@ import tarfile
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
-EXPECTED_GO = "1.27.2"
+EXPECTED_GO = "1.27.3"
 ABI = "recordsetcompare/1"
 ASSET = "recordsetcompare.wasm"
 GO_ENV = {"GOTOOLCHAIN": "local", "GOWORK": "off", "GOFLAGS": "-mod=readonly"}
