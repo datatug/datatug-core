@@ -176,6 +176,9 @@ func (e Event) validate(view bool) error {
 
 func (r ArtifactRef) Validate() error {
 	set := 0
+	if r.SourceOperation != nil {
+		set++
+	}
 	if r.ID != "" {
 		set++
 	}
@@ -201,6 +204,11 @@ func (r ArtifactRef) Validate() error {
 		return fmt.Errorf("exactly one reference identity is required")
 	}
 	switch r.Kind {
+	case RefSourceOperation:
+		if r.SourceOperation == nil {
+			return fmt.Errorf("source-operation ref requires SourceOperationRef")
+		}
+		return r.SourceOperation.Validate()
 	case RefCheckRun:
 		if r.CheckRun == nil {
 			return fmt.Errorf("check-run ref requires CheckRunRef")
