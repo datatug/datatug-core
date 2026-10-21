@@ -273,6 +273,9 @@ func environmentNamespace(root, stateRoot string) (string, error) {
 
 // WithEnvironmentFiles serializes cooperating processes and recovers before any callback.
 func WithEnvironmentFiles(ctx context.Context, projectRoot, stateRoot string, fn func(*EnvironmentFiles) error) error {
+	if projectRoot == "" {
+		return datatug.ErrProjectDoesNotExist
+	}
 	root, e := filepath.EvalSymlinks(projectRoot)
 	if e != nil {
 		return e
@@ -506,6 +509,9 @@ func (f *EnvironmentFiles) Operation(id, binding string) (*dto.EnvironmentOperat
 type environmentLockContextKey struct{}
 
 func withEnvironmentStoreLock(ctx context.Context, root string, fn func(context.Context) error) error {
+	if root == "" {
+		return datatug.ErrProjectDoesNotExist
+	}
 	canonical, e := filepath.EvalSymlinks(root)
 	if e != nil {
 		return e
