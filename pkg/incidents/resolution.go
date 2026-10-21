@@ -68,14 +68,17 @@ func (s ResolutionScope) Validate() error {
 // ResolutionCriterion is opt-in. Required criteria cannot be bypassed with a
 // generic status mutation. Draft revisions may be completed, then are immutable.
 type ResolutionCriterion struct {
-	FinalizedAt   *time.Time      `json:"finalizedAt,omitempty"`
-	Version       uint64          `json:"version"`
-	Finalized     bool            `json:"finalized"`
-	Enforcement   string          `json:"enforcement"`
-	Scope         ResolutionScope `json:"scope"`
-	CheckID       string          `json:"checkID,omitempty"`
-	CheckVersion  uint64          `json:"checkVersion,omitempty"`
-	MaxAgeSeconds int64           `json:"maxAgeSeconds"`
+	FinalizedAt  *time.Time      `json:"finalizedAt,omitempty"`
+	Version      uint64          `json:"version"`
+	Finalized    bool            `json:"finalized"`
+	Enforcement  string          `json:"enforcement"`
+	Scope        ResolutionScope `json:"scope"`
+	CheckID      string          `json:"checkID,omitempty"`
+	CheckVersion uint64          `json:"checkVersion,omitempty"`
+	// DefinitionDigest pins CanonicalDetectiveDefinition, derived by the host from
+	// the complete admitted executable snapshot, never from client assertions.
+	DefinitionDigest string `json:"definitionDigest,omitempty"`
+	MaxAgeSeconds    int64  `json:"maxAgeSeconds"`
 }
 
 func (c ResolutionCriterion) Validate() error {
@@ -106,6 +109,12 @@ func (c ResolutionCriterion) Validate() error {
 	if (c.CheckID == "") != (c.CheckVersion == 0) {
 		return fmt.Errorf("check identity and revision must be supplied together")
 	}
+	if err := validateDefinitionDigest(c.DefinitionDigest); err != nil {
+		return err
+	}
+	if c.DefinitionDigest != "" && c.CheckID == "" {
+		return fmt.Errorf("definition digest requires check identity and revision")
+	}
 	return nil
 }
 
@@ -115,6 +124,9 @@ func (c ResolutionCriterion) Validate() error {
 // latest attempts/configuration for every affected input. Core validates the
 // immutable contract and wall-clock freshness; it does not fetch source records.
 type ResolutionProof struct {
+	// DefinitionDigest must come from the actual retained run definition, using
+	// sessioncontext.CanonicalDetectiveDefinition, under current host admission.
+	DefinitionDigest string          `json:"definitionDigest,omitempty"`
 	CriterionVersion uint64          `json:"criterionVersion"`
 	Scope            ResolutionScope `json:"scope"`
 	Run              CheckRunRef     `json:"run"`
@@ -125,6 +137,9 @@ type ResolutionProof struct {
 }
 
 func (p ResolutionProof) Validate(at time.Time) error {
+	if err := validateDefinitionDigest(p.DefinitionDigest); err != nil {
+		return err
+	}
 	if p.CriterionVersion == 0 || p.Outcome != "pass" {
 		return fmt.Errorf("resolution requires a positive criterion version and actual passing run")
 	}
@@ -172,11 +187,30 @@ func ValidateResolutionProof(c ResolutionCriterion, p ResolutionProof, at time.T
 	if p.Run.StoreID != c.Scope.Project.StoreID || p.Run.ProjectID != c.Scope.Project.ProjectID || p.Run.Environment != c.Scope.Project.Environment || p.Run.CheckID != c.CheckID || p.Run.CheckVersion != c.CheckVersion {
 		return fmt.Errorf("resolution check run scope or revision mismatch")
 	}
+	if c.DefinitionDigest != p.DefinitionDigest {
+		return fmt.Errorf("resolution executable definition digest mismatch")
+	}
 	if p.EvaluatedAt.Before(*c.FinalizedAt) {
 		return fmt.Errorf("run predates criterion finalization")
 	}
 	if at.Sub(p.EvaluatedAt) > time.Duration(c.MaxAgeSeconds)*time.Second {
 		return fmt.Errorf("resolution check run is stale")
+	}
+	return nil
+}
+
+// Empty preserves legacy criteria. Supplied digests are canonical SHA-256 hex.
+func validateDefinitionDigest(digest string) error {
+	if digest == "" {
+		return nil
+	}
+	if len(digest) != 64 {
+		return fmt.Errorf("definition digest must be lowercase SHA-256 hex")
+	}
+	for _, c := range digest {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
+			return fmt.Errorf("definition digest must be lowercase SHA-256 hex")
+		}
 	}
 	return nil
 }
