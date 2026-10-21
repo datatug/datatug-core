@@ -57,36 +57,6 @@ func (s *ProjectStore) DeleteFolder(context.Context, string) error {
 	return notImplemented("DeleteFolder")
 }
 
-// LoadEnvironments is not implemented; see the package doc comment.
-func (s *ProjectStore) LoadEnvironments(context.Context, ...datatug.StoreOption) (datatug.Environments, error) {
-	return nil, notImplemented("LoadEnvironments")
-}
-
-// LoadEnvironment is not implemented; see the package doc comment.
-func (s *ProjectStore) LoadEnvironment(context.Context, string, ...datatug.StoreOption) (*datatug.Environment, error) {
-	return nil, notImplemented("LoadEnvironment")
-}
-
-// LoadEnvironmentSummary is not implemented; see the package doc comment.
-func (s *ProjectStore) LoadEnvironmentSummary(context.Context, string) (*datatug.EnvironmentSummary, error) {
-	return nil, notImplemented("LoadEnvironmentSummary")
-}
-
-// SaveEnvironment is not implemented; see the package doc comment.
-func (s *ProjectStore) SaveEnvironment(context.Context, *datatug.Environment) error {
-	return notImplemented("SaveEnvironment")
-}
-
-// SaveEnvironments is not implemented; see the package doc comment.
-func (s *ProjectStore) SaveEnvironments(context.Context, datatug.Environments) error {
-	return notImplemented("SaveEnvironments")
-}
-
-// DeleteEnvironment is not implemented; see the package doc comment.
-func (s *ProjectStore) DeleteEnvironment(context.Context, string) error {
-	return notImplemented("DeleteEnvironment")
-}
-
 // LoadEnvDbServers is not implemented; see the package doc comment.
 func (s *ProjectStore) LoadEnvDbServers(context.Context, string, ...datatug.StoreOption) (datatug.EnvDbServers, error) {
 	return nil, notImplemented("LoadEnvDbServers")

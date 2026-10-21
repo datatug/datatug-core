@@ -75,10 +75,11 @@ func projectKey(projectID string) *record.Key {
 // ProjectStore is a datatug.ProjectStore backed by a dal.DB the caller
 // constructs and hands in.
 type ProjectStore struct {
-	db          dal.DB
-	projectID   string
-	itemRoot    *record.Key
-	itemSession dal.ReadSession
+	db               dal.DB
+	projectID        string
+	itemRoot         *record.Key
+	itemSession      dal.ReadSession
+	environmentOrder []string
 }
 
 var _ datatug.ProjectStore = (*ProjectStore)(nil)
@@ -137,6 +138,7 @@ func (s *ProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOption
 	project.ProjectItem = file.ProjectItem
 	project.Created = file.Created
 	project.Repository = file.Repository
+	project.EnvironmentOrder = append([]string(nil), file.EnvironmentOrder...)
 	return project, nil
 }
 
@@ -176,6 +178,7 @@ func (s *ProjectStore) SaveProject(ctx context.Context, p *datatug.Project) erro
 		return fmt.Errorf("dalgostore: project validation failed: %w", err)
 	}
 	file := datatug.ProjectFile{
+		EnvironmentOrder: p.EnvironmentOrder,
 		ProjectItem: datatug.ProjectItem{
 			ProjItemBrief: datatug.ProjItemBrief{ID: p.ID, Title: p.Title},
 			Access:        p.Access,

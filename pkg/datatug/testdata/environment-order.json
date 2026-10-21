@@ -1,0 +1,118 @@
+[
+  {
+    "name": "aliases-and-scalars",
+    "ids": [
+      "PROD",
+      "😀",
+      "𐀀",
+      "",
+      "Ω",
+      "é",
+      "UAT",
+      "QA",
+      "dev",
+      "Dev",
+      "LOCAL"
+    ],
+    "savedOrder": null,
+    "order": [
+      "LOCAL",
+      "Dev",
+      "dev",
+      "QA",
+      "UAT",
+      "é",
+      "Ω",
+      "",
+      "𐀀",
+      "😀",
+      "PROD"
+    ],
+    "needsRepair": false
+  },
+  {
+    "name": "aliases",
+    "ids": [
+      "LIVE",
+      "pre.production",
+      "User_Acceptance",
+      "quality-assurance",
+      "Development",
+      "localhost",
+      "unknown",
+      "demo",
+      "test",
+      "sandbox"
+    ],
+    "savedOrder": null,
+    "order": [
+      "localhost",
+      "sandbox",
+      "demo",
+      "Development",
+      "quality-assurance",
+      "test",
+      "pre.production",
+      "User_Acceptance",
+      "unknown",
+      "LIVE"
+    ],
+    "needsRepair": false
+  },
+  {
+    "name": "repair",
+    "ids": [
+      "prod",
+      "dev",
+      "local",
+      "qa"
+    ],
+    "savedOrder": [
+      "prod",
+      "dev",
+      "dev",
+      "deleted"
+    ],
+    "order": [
+      "prod",
+      "dev",
+      "local",
+      "qa"
+    ],
+    "needsRepair": true
+  },
+  {
+    "name": "explicit-empty",
+    "ids": [
+      "prod",
+      "dev"
+    ],
+    "savedOrder": [],
+    "order": [
+      "dev",
+      "prod"
+    ],
+    "needsRepair": true
+  },
+  {
+    "name": "punctuation",
+    "ids": [
+      "DEV",
+      "d_e_v",
+      "d.e.v",
+      "d-e-v",
+      "Dev",
+      "dev"
+    ],
+    "savedOrder": null,
+    "order": [
+      "DEV",
+      "Dev",
+      "d-e-v",
+      "d.e.v",
+      "d_e_v",
+      "dev"
+    ],
+    "needsRepair": false
+  }
+]
