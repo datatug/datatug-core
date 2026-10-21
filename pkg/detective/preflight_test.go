@@ -221,3 +221,26 @@ func TestBindingPreflightNeverExecutesAndMatchesEngineParameters(t *testing.T) {
 	require.Equal(t, 1, calls)
 	require.Equal(t, "completed", result.ExecutionStatus)
 }
+
+func TestBindingPreflightRejectsCorruptInputAndQueryBounds(t *testing.T) {
+	c, v, m := preflightFixture()
+	for i := 0; i <= maxNodes; i++ {
+		v[strings.Repeat("x", i+1)] = v["id"]
+	}
+	require.Equal(t, BindingInvalidDefinition, PreflightBindings(c, "root", v, m).State)
+	c, v, m = preflightFixture()
+	root := c.Checks["root"]
+	root.Inputs = nil
+	for i := 0; i <= maxNodes; i++ {
+		root.Inputs = append(root.Inputs, Input{Name: strings.Repeat("x", i+1), Type: investigation.ValueTypeInteger, Cardinality: "scalar"})
+	}
+	root.Steps[0].Bindings = nil
+	c.Checks["root"] = root
+	require.Equal(t, BindingInvalidDefinition, PreflightBindings(c, "root", v, m).State)
+	c, v, m = preflightFixture()
+	root = c.Checks["root"]
+	root.Steps[0].QueryID = "../invalid"
+	c.Checks["root"] = root
+	m["../invalid"] = m["query"]
+	require.Equal(t, BindingInvalidDefinition, PreflightBindings(c, "root", v, m).State)
+}

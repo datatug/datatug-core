@@ -20,7 +20,7 @@ const (
 // host, keyed by query reference. It accepts no executor, SQL, or source handle.
 func PreflightBindings(c Catalog, root string, inputs map[string]InputValue, queryInputs map[string][]Input) BindingPreflight {
 	result := BindingPreflight{State: BindingInvalidDefinition, CheckID: root}
-	if len(c.Checks) > maxNodes || len(c.Validators) > maxNodes || len(c.QueryValidators) > maxNodes || len(queryInputs) > maxNodes || ValidateCatalog(c) != nil {
+	if len(c.Checks) > maxNodes || len(c.Validators) > maxNodes || len(c.QueryValidators) > maxNodes || len(queryInputs) > maxNodes || len(inputs) > maxNodes || ValidateCatalog(c) != nil {
 		return result
 	}
 	if _, ok := c.Checks[root]; !ok {
@@ -28,12 +28,15 @@ func PreflightBindings(c Catalog, root string, inputs map[string]InputValue, que
 	}
 	// Validate parameter schemas even for dependencies whose values need a row.
 	for _, check := range c.Checks {
+		if len(check.Inputs) > maxNodes {
+			return result
+		}
 		for _, step := range check.Steps {
 			if step.Kind != "query" {
 				continue
 			}
 			schema, ok := queryInputs[step.QueryID]
-			if !ok || len(schema) > maxNodes {
+			if !ok || !validQueryRef(step.QueryID) || len(schema) > maxNodes {
 				return result
 			}
 			seen := map[string]bool{}
