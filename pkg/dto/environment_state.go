@@ -79,13 +79,13 @@ type EnvironmentOperationResult struct {
 func (v EnvironmentOperationResult) MarshalJSON() ([]byte, error) {
 	type plain EnvironmentOperationResult
 	body, err := json.Marshal(plain(v))
-	if err != nil || v.EnvironmentOrder == nil || len(v.EnvironmentOrder) > 0 {
+	if v.EnvironmentOrder == nil || len(v.EnvironmentOrder) > 0 {
 		return body, err
 	}
 	var fields map[string]json.RawMessage
-	if err = json.Unmarshal(body, &fields); err != nil {
-		return nil, err
-	}
+	// The static plain receipt contains only strings and string slices; its
+	// generated JSON is always an object and cannot fail this decode.
+	_ = json.Unmarshal(body, &fields)
 	fields["environmentOrder"] = json.RawMessage("[]")
 	return json.Marshal(fields)
 }

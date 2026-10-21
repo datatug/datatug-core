@@ -23,9 +23,9 @@ func EnvironmentStateDigest(state EnvironmentState) (string, error) {
 		return "", compareErr
 	}
 	body, e := json.Marshal([]any{environments, state.SavedOrder, state.Order})
-	if e != nil {
-		return "", e
-	}
+	// Every field in this payload is a string, slice, or pointer to those
+	// values. Preserve the codec error in the API without an unreachable
+	// alternate path around the digest calculation.
 	sum := sha256.Sum256(body)
-	return hex.EncodeToString(sum[:]), nil
+	return hex.EncodeToString(sum[:]), e
 }

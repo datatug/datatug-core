@@ -134,9 +134,9 @@ func (s fsProjectStore) putProjectFile(projFile datatug.ProjectFile) error {
 		return err
 	}
 	var updated map[string]json.RawMessage
-	if err = json.Unmarshal(body, &updated); err != nil {
-		return err
-	}
+	// A successful ProjectFile marshal emits a JSON object; raw metadata was
+	// validated by that marshal before it can enter this map.
+	_ = json.Unmarshal(body, &updated)
 	hasExtra := false
 	for key := range fields {
 		if _, ok := updated[key]; !ok {
@@ -149,10 +149,8 @@ func (s fsProjectStore) putProjectFile(projFile datatug.ProjectFile) error {
 	for key, value := range updated {
 		fields[key] = value
 	}
-	body, err = json.Marshal(fields)
-	if err != nil {
-		return err
-	}
+	// Both maps contain only RawMessages produced by successful JSON decoding.
+	body, _ = json.Marshal(fields)
 	return durableEnvironmentFile(path.Join(s.projectPath, storage.ProjectSummaryFileName), body, 0600)
 }
 

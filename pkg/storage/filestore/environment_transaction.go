@@ -21,6 +21,41 @@ import (
 	"time"
 )
 
+// environmentOS holds filesystem boundaries so durability failures can be exercised
+// deterministically on unprivileged hosts, as for the query transaction adapter.
+type environmentFile interface {
+	Name() string
+	Chmod(os.FileMode) error
+	Write([]byte) (int, error)
+	WriteAt([]byte, int64) (int, error)
+	Sync() error
+	Close() error
+}
+
+var environmentOS = struct {
+	ReadFile     func(string) ([]byte, error)
+	Open         func(string) (environmentFile, error)
+	CreateTemp   func(string, string) (environmentFile, error)
+	Remove       func(string) error
+	Rename       func(string, string) error
+	Lstat        func(string) (os.FileInfo, error)
+	Stat         func(string) (os.FileInfo, error)
+	OpenFile     func(string, int, os.FileMode) (environmentFile, error)
+	MkdirAll     func(string, os.FileMode) error
+	UserCacheDir func() (string, error)
+	MkdirTemp    func(string, string) (string, error)
+	EvalSymlinks func(string) (string, error)
+	Abs          func(string) (string, error)
+	Random       func([]byte) (int, error)
+}{
+	os.ReadFile,
+	func(p string) (environmentFile, error) { return os.Open(p) },
+	func(d, p string) (environmentFile, error) { return os.CreateTemp(d, p) },
+	os.Remove, os.Rename, os.Lstat, os.Stat,
+	func(p string, f int, m os.FileMode) (environmentFile, error) { return os.OpenFile(p, f, m) },
+	os.MkdirAll, os.UserCacheDir, os.MkdirTemp, filepath.EvalSymlinks, filepath.Abs, rand.Read,
+}
+
 var environmentTransactionFault func(string)
 
 func environmentTransactionStep(step string) {
@@ -58,7 +93,7 @@ type EnvironmentFiles struct {
 
 func environmentHash(b []byte) string { s := sha256.Sum256(b); return hex.EncodeToString(s[:]) }
 func environmentFileHash(p string) (string, error) {
-	b, e := os.ReadFile(p)
+	b, e := environmentOS.ReadFile(p)
 	if os.IsNotExist(e) {
 		return "absent", nil
 	}
@@ -68,7 +103,7 @@ func environmentFileHash(p string) (string, error) {
 	return environmentHash(b), nil
 }
 func syncEnvironmentDir(p string) (err error) {
-	f, e := os.Open(p)
+	f, e := environmentOS.Open(p)
 	if e != nil {
 		return e
 	}
@@ -76,13 +111,13 @@ func syncEnvironmentDir(p string) (err error) {
 	return f.Sync()
 }
 func durableEnvironmentFile(p string, b []byte, mode os.FileMode) (err error) {
-	f, e := os.CreateTemp(filepath.Dir(p), ".environment-write-")
+	f, e := environmentOS.CreateTemp(filepath.Dir(p), ".environment-write-")
 	if e != nil {
 		return e
 	}
 	tmp := f.Name()
 	defer func() {
-		if cleanupErr := os.Remove(tmp); cleanupErr != nil && !os.IsNotExist(cleanupErr) {
+		if cleanupErr := environmentOS.Remove(tmp); cleanupErr != nil && !os.IsNotExist(cleanupErr) {
 			err = errors.Join(err, cleanupErr)
 		}
 	}()
@@ -99,7 +134,7 @@ func durableEnvironmentFile(p string, b []byte, mode os.FileMode) (err error) {
 	if e != nil {
 		return e
 	}
-	if e = os.Rename(tmp, p); e != nil {
+	if e = environmentOS.Rename(tmp, p); e != nil {
 		return e
 	}
 	return syncEnvironmentDir(filepath.Dir(p))
@@ -107,7 +142,7 @@ func durableEnvironmentFile(p string, b []byte, mode os.FileMode) (err error) {
 func environmentPlainPath(p string) error {
 	p = filepath.Clean(p)
 	for at := p; ; at = filepath.Dir(at) {
-		s, e := os.Lstat(at)
+		s, e := environmentOS.Lstat(at)
 		if e != nil {
 			return e
 		}
@@ -124,7 +159,7 @@ func environmentPrivateDir(p string) error {
 	if e := environmentPlainPath(p); e != nil {
 		return e
 	}
-	s, e := os.Stat(p)
+	s, e := environmentOS.Stat(p)
 	if e != nil {
 		return e
 	}
@@ -135,7 +170,7 @@ func environmentPrivateDir(p string) error {
 	return nil
 }
 func readEnvironmentPrivateFile(p string) ([]byte, error) {
-	st, e := os.Lstat(p)
+	st, e := environmentOS.Lstat(p)
 	if e != nil {
 		return nil, e
 	}
@@ -143,12 +178,12 @@ func readEnvironmentPrivateFile(p string) ([]byte, error) {
 	if !ok || owner.Uid != uint32(os.Getuid()) || !st.Mode().IsRegular() || st.Mode().Perm() != 0600 || st.Size() > 8<<20 {
 		return nil, ErrEnvironmentRecoveryRequired
 	}
-	return os.ReadFile(p)
+	return environmentOS.ReadFile(p)
 }
 func registerEnvironmentNamespace(root, digest, id string) error {
 	lockPath := filepath.Join(root, ".datatug-environments.lock")
 	want := []byte("environment-owner/1:" + digest + ":" + id)
-	old, e := os.ReadFile(lockPath)
+	old, e := environmentOS.ReadFile(lockPath)
 	if e != nil {
 		return e
 	}
@@ -158,7 +193,7 @@ func registerEnvironmentNamespace(root, digest, id string) error {
 		}
 		return nil
 	}
-	marker, e := os.OpenFile(lockPath, os.O_WRONLY, 0600)
+	marker, e := environmentOS.OpenFile(lockPath, os.O_WRONLY, 0600)
 	if e != nil {
 		return e
 	}
@@ -180,12 +215,12 @@ func environmentNamespace(root, stateRoot string) (string, error) {
 	git := exec.Command("git", "-C", root, "rev-parse", "--absolute-git-dir")
 	if body, e := git.Output(); e == nil {
 		dir := filepath.Join(strings.TrimSpace(string(body)), "datatug-environment-operations", digest)
-		if _, e = os.Stat(dir); os.IsNotExist(e) {
-			if marker, err := os.ReadFile(filepath.Join(root, ".datatug-environments.lock")); err != nil || len(marker) > 0 {
+		if _, e = environmentOS.Stat(dir); os.IsNotExist(e) {
+			if marker, err := environmentOS.ReadFile(filepath.Join(root, ".datatug-environments.lock")); err != nil || len(marker) > 0 {
 				return "", ErrEnvironmentRecoveryRequired
 			}
 		}
-		if e = os.MkdirAll(dir, 0700); e != nil {
+		if e = environmentOS.MkdirAll(dir, 0700); e != nil {
 			return "", e
 		}
 		if e = environmentPrivateDir(dir); e != nil {
@@ -197,16 +232,16 @@ func environmentNamespace(root, stateRoot string) (string, error) {
 		return dir, nil
 	}
 	locatorPath := filepath.Join(root, ".datatug-environments-owner.json")
-	if st, err := os.Lstat(locatorPath); err == nil && st.Mode()&os.ModeSymlink != 0 {
+	if st, err := environmentOS.Lstat(locatorPath); err == nil && st.Mode()&os.ModeSymlink != 0 {
 		return "", fmt.Errorf("%w: %s is a symlink", ErrEnvironmentRecoveryRequired, filepath.Base(locatorPath))
 	}
-	body, e := os.ReadFile(locatorPath)
+	body, e := environmentOS.ReadFile(locatorPath)
 	if e == nil {
 		var locator environmentLocator
 		if json.Unmarshal(body, &locator) != nil || locator.Format != "datatug-environment-owner/1" || locator.RootDigest != digest || locator.UID != uint32(os.Getuid()) || locator.NamespaceID == "" || !filepath.IsAbs(locator.Directory) {
 			return "", ErrEnvironmentRecoveryRequired
 		}
-		st, e := os.Lstat(locatorPath)
+		st, e := environmentOS.Lstat(locatorPath)
 		if e != nil || st.Mode().Perm() != 0600 || st.Mode()&os.ModeSymlink != 0 {
 			return "", ErrEnvironmentRecoveryRequired
 		}
@@ -229,24 +264,24 @@ func environmentNamespace(root, stateRoot string) (string, error) {
 	if !os.IsNotExist(e) {
 		return "", fmt.Errorf("%w: %v", ErrEnvironmentRecoveryRequired, e)
 	}
-	if marker, err := os.ReadFile(filepath.Join(root, ".datatug-environments.lock")); err != nil || len(marker) > 0 {
+	if marker, err := environmentOS.ReadFile(filepath.Join(root, ".datatug-environments.lock")); err != nil || len(marker) > 0 {
 		return "", ErrEnvironmentRecoveryRequired
 	}
 	if stateRoot == "" {
-		stateRoot, e = os.UserCacheDir()
+		stateRoot, e = environmentOS.UserCacheDir()
 		if e != nil {
 			return "", e
 		}
 		stateRoot = filepath.Join(stateRoot, "datatug", "environment-operations")
 	}
-	if e = os.MkdirAll(stateRoot, 0700); e != nil {
+	if e = environmentOS.MkdirAll(stateRoot, 0700); e != nil {
 		return "", e
 	}
-	stateRoot, e = filepath.EvalSymlinks(stateRoot)
+	stateRoot, e = environmentOS.EvalSymlinks(stateRoot)
 	if e != nil {
 		return "", e
 	}
-	dir, e := os.MkdirTemp(stateRoot, digest+"-")
+	dir, e := environmentOS.MkdirTemp(stateRoot, digest+"-")
 	if e != nil {
 		return "", e
 	}
@@ -254,7 +289,7 @@ func environmentNamespace(root, stateRoot string) (string, error) {
 		return "", e
 	}
 	var random [16]byte
-	if _, e = rand.Read(random[:]); e != nil {
+	if _, e = environmentOS.Random(random[:]); e != nil {
 		return "", e
 	}
 	id := hex.EncodeToString(random[:])
@@ -262,10 +297,8 @@ func environmentNamespace(root, stateRoot string) (string, error) {
 		return "", e
 	}
 	locator := environmentLocator{"datatug-environment-owner/1", digest, uint32(os.Getuid()), id, dir}
-	body, e = json.Marshal(locator)
-	if e != nil {
-		return "", e
-	}
+	// Locator fields are primitive strings and integers only.
+	body, _ = json.Marshal(locator)
 	if e = durableEnvironmentFile(locatorPath, body, 0600); e != nil {
 		return "", e
 	}
@@ -289,33 +322,31 @@ func withEnvironmentFiles(ctx context.Context, projectRoot, stateRoot string, in
 	if projectRoot == "" {
 		return datatug.ErrProjectDoesNotExist
 	}
-	root, e := filepath.EvalSymlinks(projectRoot)
+	root, e := environmentOS.EvalSymlinks(projectRoot)
 	if e != nil {
 		return e
 	}
-	root, e = filepath.Abs(root)
+	root, e = environmentOS.Abs(root)
 	if e != nil {
 		return e
 	}
 	lockPath := filepath.Join(root, ".datatug-environments.lock")
-	if st, e := os.Lstat(lockPath); e == nil && (!st.Mode().IsRegular() || st.Mode()&os.ModeSymlink != 0) {
+	if st, e := environmentOS.Lstat(lockPath); e == nil && (!st.Mode().IsRegular() || st.Mode()&os.ModeSymlink != 0) {
 		return fmt.Errorf("%w: %s is not a plain file", ErrEnvironmentRecoveryRequired, filepath.Base(lockPath))
 	}
 	// The directory inode exists even for read-only projects. All readers and
 	// writers use it, so first-time initialization cannot race a read.
 	lock := flock.New(root, flock.SetFlag(os.O_RDONLY))
-	ok, e := lock.TryLockContext(ctx, 10_000_000)
+	// flock.TryLockContext returns an error whenever acquisition is false.
+	_, e = lock.TryLockContext(ctx, 10_000_000)
 	if e != nil {
 		return e
-	}
-	if !ok {
-		return ctx.Err()
 	}
 	defer func() { err = errors.Join(err, lock.Unlock()) }()
 	if !initialize {
 		existing := false
 		for _, name := range []string{".datatug-environments.lock", ".datatug-environments-owner.json"} {
-			if _, err := os.Lstat(filepath.Join(root, name)); err == nil {
+			if _, err := environmentOS.Lstat(filepath.Join(root, name)); err == nil {
 				existing = true
 			} else if !os.IsNotExist(err) {
 				return err
@@ -323,7 +354,7 @@ func withEnvironmentFiles(ctx context.Context, projectRoot, stateRoot string, in
 		}
 		git := exec.Command("git", "-C", root, "rev-parse", "--absolute-git-dir")
 		if body, err := git.Output(); err == nil {
-			_, err = os.Lstat(filepath.Join(strings.TrimSpace(string(body)), "datatug-environment-operations", environmentHash([]byte(root))))
+			_, err = environmentOS.Lstat(filepath.Join(strings.TrimSpace(string(body)), "datatug-environment-operations", environmentHash([]byte(root))))
 			if err == nil {
 				existing = true
 			} else if !os.IsNotExist(err) {
@@ -335,7 +366,7 @@ func withEnvironmentFiles(ctx context.Context, projectRoot, stateRoot string, in
 		}
 	}
 	if initialize {
-		marker, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0600)
+		marker, err := environmentOS.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0600)
 		if err != nil {
 			return err
 		}
@@ -363,7 +394,7 @@ func (f *EnvironmentFiles) destination(rel string) (string, error) {
 	}
 	p := filepath.Join(f.Root, rel)
 	for at := p; at != filepath.Dir(f.Root); at = filepath.Dir(at) {
-		s, e := os.Lstat(at)
+		s, e := environmentOS.Lstat(at)
 		if os.IsNotExist(e) {
 			continue
 		}
@@ -403,7 +434,7 @@ func (f *EnvironmentFiles) recover() error {
 			return ErrEnvironmentRecoveryRequired
 		}
 		if !decided {
-			_ = os.Remove(v.Stage)
+			_ = environmentOS.Remove(v.Stage)
 			continue
 		}
 		current, e := environmentFileHash(dest)
@@ -416,14 +447,14 @@ func (f *EnvironmentFiles) recover() error {
 		if current != v.OldHash {
 			return fmt.Errorf("destination changed outside environment lock")
 		}
-		stage, e := os.ReadFile(v.Stage)
+		stage, e := environmentOS.ReadFile(v.Stage)
 		if e != nil || environmentHash(stage) != v.NewHash {
 			return ErrEnvironmentRecoveryRequired
 		}
 		if e = environmentPlainPath(v.Stage); e != nil {
 			return e
 		}
-		if e = os.Rename(v.Stage, dest); e != nil {
+		if e = environmentOS.Rename(v.Stage, dest); e != nil {
 			return e
 		}
 		if e = syncEnvironmentDir(filepath.Dir(dest)); e != nil {
@@ -439,14 +470,14 @@ func (f *EnvironmentFiles) recover() error {
 			return e
 		}
 	}
-	if e = os.Remove(intentPath); e != nil {
+	if e = environmentOS.Remove(intentPath); e != nil {
 		return e
 	}
 	if e = syncEnvironmentDir(f.namespace); e != nil {
 		return e
 	}
 	if decided {
-		if e = os.Remove(filepath.Join(f.namespace, "commit")); e != nil {
+		if e = environmentOS.Remove(filepath.Join(f.namespace, "commit")); e != nil {
 			return e
 		}
 		return syncEnvironmentDir(f.namespace)
@@ -476,7 +507,7 @@ func (f *EnvironmentFiles) CommitChecked(changes map[string][]byte, expected map
 		if e != nil {
 			return e
 		}
-		if e = os.MkdirAll(filepath.Dir(dest), 0755); e != nil {
+		if e = environmentOS.MkdirAll(filepath.Dir(dest), 0755); e != nil {
 			return e
 		}
 		old, e := environmentFileHash(dest)
@@ -489,7 +520,7 @@ func (f *EnvironmentFiles) CommitChecked(changes map[string][]byte, expected map
 				return fmt.Errorf("destination changed since environment snapshot")
 			}
 		}
-		stage, e := os.CreateTemp(filepath.Dir(dest), ".environment-stage-")
+		stage, e := environmentOS.CreateTemp(filepath.Dir(dest), ".environment-stage-")
 		if e != nil {
 			return e
 		}
@@ -512,10 +543,10 @@ func (f *EnvironmentFiles) CommitChecked(changes map[string][]byte, expected map
 		intent.Files = append(intent.Files, environmentReplacement{rel, stage.Name(), old, environmentHash(body)})
 	}
 	environmentTransactionStep("stages")
-	body, e := json.Marshal(intent)
-	if e != nil {
-		return e
-	}
+	// Intent and its receipt codec contain only strings, integers and slices
+	// of those primitives, with no caller-supplied raw JSON.
+	body, _ := json.Marshal(intent)
+	var e error
 	if e = durableEnvironmentFile(filepath.Join(f.namespace, "intent.json"), body, 0600); e != nil {
 		return e
 	}
@@ -547,10 +578,8 @@ func (f *EnvironmentFiles) Operation(id, binding string) (*dto.EnvironmentOperat
 	if err == nil && !time.Now().Before(until) && intent.Result.Status != "expired" {
 		intent.Result.Status = "expired"
 		intent.Files = nil
-		body, err := json.Marshal(intent)
-		if err != nil {
-			return nil, err
-		}
+		// The same closed primitive-only intent schema is used for receipts.
+		body, _ := json.Marshal(intent)
 		if err = durableEnvironmentFile(filepath.Join(f.namespace, environmentHash([]byte(id))+".receipt.json"), body, 0600); err != nil {
 			return nil, err
 		}
@@ -564,7 +593,7 @@ func withEnvironmentStoreLock(ctx context.Context, root string, fn func(context.
 	if root == "" {
 		return datatug.ErrProjectDoesNotExist
 	}
-	canonical, e := filepath.EvalSymlinks(root)
+	canonical, e := environmentOS.EvalSymlinks(root)
 	if e != nil {
 		return e
 	}
@@ -583,7 +612,7 @@ func (f *EnvironmentFiles) LoadProjectFile() (datatug.ProjectFile, error) {
 }
 
 func withEnvironmentStoreReadLock(ctx context.Context, root string, fn func(context.Context) error) error {
-	canonical, err := filepath.EvalSymlinks(root)
+	canonical, err := environmentOS.EvalSymlinks(root)
 	if err != nil {
 		return err
 	}

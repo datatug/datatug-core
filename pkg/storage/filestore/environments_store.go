@@ -14,6 +14,10 @@ import (
 	"github.com/datatug/datatug-core/pkg/storage"
 )
 
+// environmentReadDir is the directory boundary for portable filename validation tests.
+var environmentReadDir = os.ReadDir
+var environmentReadJSONFile = readJSONFile
+
 var _ datatug.EnvironmentsStore = (*fsEnvironmentsStore)(nil)
 
 func newFsEnvironmentsStore(projectPath string) fsEnvironmentsStore {
@@ -50,7 +54,7 @@ func readEnvironmentFile(filePath string) (*datatug.Environment, error) {
 			return nil, ErrEnvironmentRecoveryRequired
 		}
 	}
-	if err := readJSONFile(filePath, true, env); err != nil {
+	if err := environmentReadJSONFile(filePath, true, env); err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
 		}
@@ -107,7 +111,7 @@ func (s fsEnvironmentsStore) loadEnvironment(_ context.Context, id string, o ...
 
 func (s fsEnvironmentsStore) loadEnvironments(_ context.Context, o ...datatug.StoreOption) (datatug.Environments, error) {
 	_ = datatug.GetStoreOptions(o...)
-	dirEntries, err := os.ReadDir(s.dirPath)
+	dirEntries, err := environmentReadDir(s.dirPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil

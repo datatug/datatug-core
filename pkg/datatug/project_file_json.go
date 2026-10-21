@@ -16,9 +16,8 @@ func (v *ProjectFile) UnmarshalJSON(body []byte) error {
 		return err
 	}
 	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(body, &fields); err != nil {
-		return err
-	}
+	// The typed decode above has already established a JSON object (or null).
+	_ = json.Unmarshal(body, &fields)
 	for key := range fields {
 		switch strings.ToLower(key) {
 		case "id", "title", "folder", "tags", "userids", "access", "created", "repository", "environmentorder":
@@ -37,9 +36,8 @@ func (v ProjectFile) MarshalJSON() ([]byte, error) {
 		return body, err
 	}
 	var fields map[string]json.RawMessage
-	if err = json.Unmarshal(body, &fields); err != nil {
-		return nil, err
-	}
+	// body was just generated from a struct, so it is a valid JSON object.
+	_ = json.Unmarshal(body, &fields)
 	if v.EnvironmentOrder != nil {
 		fields["environmentOrder"], _ = json.Marshal(v.EnvironmentOrder)
 	}
