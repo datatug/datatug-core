@@ -221,3 +221,14 @@ func TestQueryResult_Validate(t *testing.T) {
 		test.IsInvalidRecord(t, "invalid", v)
 	})
 }
+
+func TestQueryCreationMetadataIsRequiredForPersistedRecords(t *testing.T) {
+	for _, value := range []string{"", "not-a-date", "0001-01-01T00:00:00Z", "2026-10-21T12:00:00+01:00"} {
+		if err := (QueryDef{CreatedAt: value}).ValidateCreationMetadata(); err == nil {
+			t.Fatalf("accepted invalid persisted creation %q", value)
+		}
+	}
+	if err := (QueryDef{CreatedAt: "2026-10-21T12:00:00.123Z"}).ValidateCreationMetadata(); err != nil {
+		t.Fatal(err)
+	}
+}

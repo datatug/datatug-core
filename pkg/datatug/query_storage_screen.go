@@ -211,6 +211,9 @@ const storedQueryHint = "a query is stored in git-tracked project files"
 // TestQueryDefStorageScreen_ForeignKeyRefTablePersistsNoString pins that,
 // and the coverage guard fails if a future dalgo release exports one.
 //
+// createdAt is server-owned metadata: query writers replace client input and
+// preserve valid persisted timestamps. Missing stored timestamps are rejected.
+//
 // The screen is deliberately scoped to a query rather than pushed down
 // into ParameterDef.Validate: Parameters is shared with boards, which are
 // stored elsewhere and are not this AC's subject.

@@ -72,7 +72,7 @@ func TestPutQuery_RefusesASymlinkFromAGitCloneAndStaysUsable(t *testing.T) {
 	initGitRepo(t, origin)
 	writePreflightProjectFile(t, origin)
 	for name, content := range map[string]string{
-		"queries/other.query.json": `{"title":"o","type":"DTQL"}`,
+		"queries/other.query.json": `{"title":"o","type":"DTQL","createdAt":"2026-10-01T00:00:00Z"}`,
 		"queries/other.query.dtql": "OTHER",
 	} {
 		if err := os.WriteFile(filepath.Join(origin, name), []byte(content), 0o644); err != nil {

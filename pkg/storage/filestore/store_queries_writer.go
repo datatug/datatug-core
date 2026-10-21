@@ -1,7 +1,9 @@
 package filestore
 
 import (
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
@@ -23,7 +25,25 @@ import (
 // creating any missing segment without following a symlink - so the
 // directory a pair is installed into is always one proven under the lock,
 // never one a caller resolved before acquiring it (review N3).
-func (s fsQueriesStore) stageAndInstallQueryPair(g queryLockGuard, folderPath string, query datatug.QueryDef, current currentQueryPair) (datatug.QueryRevision, error) {
+func (s fsQueriesStore) stageAndInstallQueryPair(g queryLockGuard, folderPath string, query datatug.QueryDef, current currentQueryPair, accepted ...*datatug.QueryDef) (datatug.QueryRevision, error) {
+	at := s.creationTime
+	if at.IsZero() {
+		at = time.Now().UTC()
+	}
+	query.CreatedAt = at.UTC().Format(time.RFC3339Nano)
+	if current.exists {
+		var previous datatug.QueryDef
+		if err := json.Unmarshal(current.jsonBytes, &previous); err != nil {
+			return "", err
+		}
+		query.CreatedAt = previous.CreatedAt
+		if query.CreatedAt == "" {
+			return "", fmt.Errorf("existing query has no mandatory creation timestamp")
+		}
+	}
+	if err := query.ValidateCreationMetadata(); err != nil {
+		return "", err
+	}
 	jsonBytes, err := queryJSONBytes(query)
 	if err != nil {
 		return "", err
@@ -81,6 +101,9 @@ func (s fsQueriesStore) stageAndInstallQueryPair(g queryLockGuard, folderPath st
 	}
 	if err := finishQueryTransaction(s.dirPath, txnDir, j); err != nil {
 		return "", err
+	}
+	for _, result := range accepted {
+		result.CreatedAt = query.CreatedAt
 	}
 	return computeQueryRevision(jsonBytes, queryBodyFileExt(query.Type), bodyBytes), nil
 }

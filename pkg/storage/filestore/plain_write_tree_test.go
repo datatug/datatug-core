@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
@@ -38,6 +39,25 @@ func saveSmallProject(t *testing.T, root string) {
 func TestSaveOfASmallProjectWritesTheSameTreeAsBefore(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "proj")
 	saveSmallProject(t, root)
+	// Creation metadata is intentionally new; keep the historic byte snapshot
+	// for all other metadata, paths and sidecars.
+	for _, name := range []string{"queries/q1.query.json", "queries/sub/q1.query.json"} {
+		p := filepath.Join(root, name)
+		raw, err := os.ReadFile(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		lines := strings.Split(string(raw), "\n")
+		filtered := lines[:0]
+		for _, line := range lines {
+			if !strings.Contains(line, `"createdAt":`) {
+				filtered = append(filtered, line)
+			}
+		}
+		if err = os.WriteFile(p, []byte(strings.Join(filtered, "\n")), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
 	const want = "79614d1b9964f1097678c4e7752d755ca0dd5694831ee5e58fc04995b9d4418b"
 	if got := treeHash(t, root); got != want {
 		t.Fatalf("tree hash = %s, want %s", got, want)

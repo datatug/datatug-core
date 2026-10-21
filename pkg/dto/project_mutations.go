@@ -70,6 +70,7 @@ func (v SaveQueryRequest) Validate() error {
 // intentionally excluded so retries with the same intent have one digest.
 // Call Validate before computing it; this method does not authorize a write.
 func (v SaveQueryRequest) PayloadDigest() (string, error) {
+	v.Query.CreatedAt = "" // Server metadata is not client save intent.
 	payload := struct {
 		ProjectRef
 		Branch             string                         `json:"branch,omitempty"`

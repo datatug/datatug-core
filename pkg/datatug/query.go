@@ -1,6 +1,7 @@
 package datatug
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -81,6 +82,7 @@ func (v QueryDefs) Validate() error {
 }
 
 type QueryDefBrief struct {
+	CreatedAt string `json:"createdAt" yaml:"createdAt"`
 	ProjItemBrief
 	Type  string `json:"type"` // Possible value: folder, DDL, GraphQL, etc.
 	Draft bool   `json:"draft,omitempty" yaml:"draft,omitempty"`
@@ -143,6 +145,8 @@ func IsKnownQueryType(queryType QueryType) bool {
 // QueryDef holds query data
 // For HTTP request host, port, etc, are stored in Targets property,
 type QueryDef struct {
+	// CreatedAt is mandatory server-owned RFC3339 UTC persisted creation metadata.
+	CreatedAt string `json:"createdAt" yaml:"createdAt" firestore:"createdAt"`
 	ProjectItem
 	Type       QueryType        `json:"type"` // Possible value: folder, DDL, GraphQL, HTTP, etc.
 	Text       string           `json:"text,omitempty" yaml:"text,omitempty"`
@@ -361,6 +365,30 @@ func (v QueryResult) Validate() error {
 		if err := recordset.Validate(); err != nil {
 			return validation.NewErrBadRecordFieldValue(fmt.Sprintf("recordsets[%v]", i), err.Error())
 		}
+	}
+	return nil
+}
+
+// queryCreationTimeKey is reserved for trusted server adapters replaying an
+// immutable write intent. It is never populated from query JSON metadata.
+type queryCreationTimeKey struct{}
+
+func WithQueryCreationTime(ctx context.Context, at time.Time) context.Context {
+	return context.WithValue(ctx, queryCreationTimeKey{}, at.UTC())
+}
+func QueryCreationTime(ctx context.Context) time.Time {
+	if at, ok := ctx.Value(queryCreationTimeKey{}).(time.Time); ok && !at.IsZero() {
+		return at
+	}
+	return time.Now().UTC()
+}
+
+// ValidateCreationMetadata validates persisted records, after server metadata assignment.
+// QueryDef.Validate remains the draft/input contract and does not trust client dates.
+func (v QueryDef) ValidateCreationMetadata() error {
+	at, err := time.Parse(time.RFC3339Nano, v.CreatedAt)
+	if err != nil || at.IsZero() || at.Location() != time.UTC {
+		return fmt.Errorf("query createdAt must be a nonzero RFC3339 UTC timestamp")
 	}
 	return nil
 }

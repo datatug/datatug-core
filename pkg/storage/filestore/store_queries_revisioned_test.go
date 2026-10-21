@@ -22,6 +22,7 @@ func dtqlQuery(id, folderPath, text string) datatug.QueryDefWithFolderPath {
 	return datatug.QueryDefWithFolderPath{
 		FolderPath: folderPath,
 		QueryDef: datatug.QueryDef{
+			CreatedAt:   "2026-10-01T00:00:00Z",
 			ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: id, Title: "Title " + id}},
 			Type:        datatug.QueryTypeDTQL,
 			Text:        text,

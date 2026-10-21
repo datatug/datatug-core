@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"time"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
@@ -69,6 +70,8 @@ func newFsQueriesStore(projectPath string) fsQueriesStore {
 var _ datatug.QueriesStore = (*fsQueriesStore)(nil)
 
 type fsQueriesStore struct {
+	creationTime time.Time
+
 	fsProjectItemsStore[datatug.QueryDefs, *datatug.QueryDef, datatug.QueryDef]
 
 	// listingBudget is the byte budget of one listing call
@@ -139,6 +142,9 @@ func (s fsQueriesStore) loadQueriesLocked(ctx context.Context, g queryLockGuard,
 		if err != nil {
 			return nil, fmt.Errorf("failed to load text sidecar for query[%s]: %w", item.ID, err)
 		}
+		if err := item.ValidateCreationMetadata(); err != nil {
+			return nil, err
+		}
 		item.Text = text
 	}
 	folder = &datatug.QueriesFolder{
@@ -166,6 +172,11 @@ func (s fsQueriesStore) LoadQuery(ctx context.Context, id string, o ...datatug.S
 		query, lockedErr = s.loadQueryLocked(ctx, g, id, o...)
 		return lockedErr
 	})
+	if err == nil && query != nil {
+		if err := query.ValidateCreationMetadata(); err != nil {
+			return nil, err
+		}
+	}
 	return query, err
 }
 
@@ -226,7 +237,7 @@ func (s fsQueriesStore) UpdateQuery(ctx context.Context, query datatug.QueryDef)
 		if err != nil {
 			return err
 		}
-		_, err = s.stageAndInstallQueryPair(g, folderPath, query, current)
+		_, err = s.stageAndInstallQueryPair(g, folderPath, query, current, &query)
 		return err
 	})
 	if err != nil {
@@ -290,7 +301,7 @@ func (s fsQueriesStore) SaveQuery(ctx context.Context, query *datatug.QueryDefWi
 		if err != nil {
 			return err
 		}
-		_, err = s.stageAndInstallQueryPair(g, query.FolderPath, query.QueryDef, current)
+		_, err = s.stageAndInstallQueryPair(g, query.FolderPath, query.QueryDef, current, &query.QueryDef)
 		return err
 	})
 }
