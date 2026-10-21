@@ -213,9 +213,15 @@ func validatePendingQueryBindings(source, target []Input, bindings []Binding, pe
 		if !ok {
 			return ErrInvalid
 		}
-		provided := sources[binding.FromInput]
+		provided, exists := sources[binding.FromInput]
+		if !exists {
+			return ErrInvalid
+		}
 		cardinality := provided.Cardinality
 		if binding.Part != "" {
+			if provided.Cardinality != "range" {
+				return ErrInvalid
+			}
 			cardinality = "scalar"
 		}
 		if cardinality != expected.Cardinality || provided.Type != expected.Type && (expected.Required || cardinality == "set") {

@@ -248,3 +248,78 @@ func TestPendingRangeEndpointShapeMatchesActualMapping(t *testing.T) {
 	target[0].Cardinality = "set"
 	require.Error(t, validatePendingQueryBindings(source, target, bindings, map[string]bool{"id": true}))
 }
+
+func TestIndependentR3PendingPartOnScalar(t *testing.T) {
+	c, v, m := preflightFixture()
+	root := c.Checks["root"]
+	root.Steps[0].Validators = []Validator{{ID: "row", Scope: "row", Kind: "check", Severity: "error", CheckID: "child", Bindings: []Binding{{Input: "id", FromColumn: "id"}}}}
+	c.Checks["root"] = root
+	c.Checks["child"] = Check{ID: "child", Title: "Child", Version: 1, Inputs: []Input{{Name: "id", Type: investigation.ValueTypeInteger, Cardinality: "scalar", Required: true}}, Steps: []Step{{ID: "query", Kind: "query", QueryID: "child-query", Bindings: []Binding{{Input: "id", FromInput: "id", Part: "end"}}}}}
+	m["child-query"] = []Input{{Name: "id", Type: investigation.ValueTypeInteger, Cardinality: "scalar", Required: true}}
+	require.NoError(t, ValidateCatalog(c))
+	preflight := PreflightBindings(c, "root", v, m)
+	_, err := mapBindings(c.Checks["child"].Steps[0].Bindings, v, nil, nil)
+	t.Logf("preflight=%s actual mapper=%v", preflight.State, err)
+	require.Error(t, err)
+	require.Equal(t, BindingMissingInput, preflight.State)
+}
+
+func TestIndependentR3StaticChildTransitionsFailCatalog(t *testing.T) {
+	for _, via := range []string{"step", "validator"} {
+		for _, mode := range []string{"type", "cardinality", "part"} {
+			t.Run(via+mode, func(t *testing.T) {
+				c, _, _ := preflightFixture()
+				root := c.Checks["root"]
+				binding := []Binding{{Input: "id", FromInput: "id"}}
+				target := Input{Name: "id", Type: investigation.ValueTypeInteger, Cardinality: "scalar", Required: true}
+				if mode == "type" {
+					target.Type = investigation.ValueTypeString
+				}
+				if mode == "cardinality" {
+					target.Cardinality = "set"
+				}
+				if mode == "part" {
+					binding[0].Part = "start"
+				}
+				if via == "step" {
+					root.Steps = []Step{{ID: "child", Kind: "check", CheckID: "child", Bindings: binding}}
+				} else {
+					root.Steps[0].Validators = []Validator{{ID: "validator", Kind: "check", Scope: "row", Severity: "error", CheckID: "child", Bindings: binding}}
+				}
+				c.Checks["root"] = root
+				c.Checks["child"] = Check{ID: "child", Title: "Child", Version: 1, Inputs: []Input{target}, Steps: []Step{{ID: "leaf", Kind: "query", QueryID: "leaf"}}}
+				require.Error(t, ValidateCatalog(c))
+			})
+		}
+	}
+	for _, part := range []string{"start", "end"} {
+		require.Error(t, validatePendingQueryBindings([]Input{{Name: "id", Type: investigation.ValueTypeInteger, Cardinality: "scalar"}}, []Input{{Name: "id", Type: investigation.ValueTypeInteger, Cardinality: "scalar"}}, []Binding{{Input: "id", FromInput: "id", Part: part}}, map[string]bool{"id": true}), "Part=%s requires range", part)
+	}
+}
+
+func TestPendingEndpointRequiresActualRangeSource(t *testing.T) {
+	one := investigation.NewIntegerValue("1")
+	two := investigation.NewIntegerValue("2")
+	for _, part := range []string{"start", "end"} {
+		for _, cardinality := range []string{"scalar", "set", "range"} {
+			source := []Input{{Name: "source", Type: investigation.ValueTypeInteger, Cardinality: cardinality, Required: true}}
+			target := []Input{{Name: "parameter", Type: investigation.ValueTypeInteger, Cardinality: "scalar", Required: true}}
+			bindings := []Binding{{Input: "parameter", FromInput: "source", Part: part}}
+			value := InputValue{Scalar: &one}
+			if cardinality == "set" {
+				value = InputValue{Set: &apicontract.TypedValueSet{Values: []Value{one}}}
+			}
+			if cardinality == "range" {
+				value = InputValue{Range: &ValueRange{Type: "range", Start: one, End: two}}
+			}
+			mapped, actualErr := mapBindings(bindings, map[string]InputValue{"source": value}, nil, nil)
+			preflightErr := validatePendingQueryBindings(source, target, bindings, map[string]bool{"parameter": true})
+			require.Equal(t, cardinality != "range", actualErr != nil)
+			require.Equal(t, actualErr != nil, preflightErr != nil)
+			if actualErr == nil {
+				require.NoError(t, validatePartialInputs(target, mapped, nil, true))
+			}
+			require.Error(t, validatePendingQueryBindings(nil, target, bindings, map[string]bool{"parameter": true}))
+		}
+	}
+}
