@@ -2,16 +2,21 @@ package filestore
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
-	"sort"
 
 	"github.com/datatug/datatug-core/internal/plainfs"
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
 )
+
+// environmentReadDir is the directory boundary for portable filename validation tests.
+var environmentReadDir = os.ReadDir
+var environmentReadJSONFile = readJSONFile
 
 var _ datatug.EnvironmentsStore = (*fsEnvironmentsStore)(nil)
 
@@ -44,7 +49,12 @@ func (s fsEnvironmentsStore) demoEnvFilePath(id string) string {
 
 func readEnvironmentFile(filePath string) (*datatug.Environment, error) {
 	env := new(datatug.Environment)
-	if err := readJSONFile(filePath, true, env); err != nil {
+	for _, p := range []string{filepath.Dir(filePath), filePath} {
+		if st, e := os.Lstat(p); e == nil && st.Mode()&os.ModeSymlink != 0 {
+			return nil, ErrEnvironmentRecoveryRequired
+		}
+	}
+	if err := environmentReadJSONFile(filePath, true, env); err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
 		}
@@ -87,7 +97,7 @@ func (s fsEnvironmentsStore) loadOneEnvironment(id string) (*datatug.Environment
 	}
 }
 
-func (s fsEnvironmentsStore) LoadEnvironment(_ context.Context, id string, o ...datatug.StoreOption) (*datatug.Environment, error) {
+func (s fsEnvironmentsStore) loadEnvironment(_ context.Context, id string, o ...datatug.StoreOption) (*datatug.Environment, error) {
 	_ = datatug.GetStoreOptions(o...)
 	env, err := s.loadOneEnvironment(id)
 	if err != nil {
@@ -99,9 +109,9 @@ func (s fsEnvironmentsStore) LoadEnvironment(_ context.Context, id string, o ...
 	return env, nil
 }
 
-func (s fsEnvironmentsStore) LoadEnvironments(_ context.Context, o ...datatug.StoreOption) (datatug.Environments, error) {
+func (s fsEnvironmentsStore) loadEnvironments(_ context.Context, o ...datatug.StoreOption) (datatug.Environments, error) {
 	_ = datatug.GetStoreOptions(o...)
-	dirEntries, err := os.ReadDir(s.dirPath)
+	dirEntries, err := environmentReadDir(s.dirPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -122,13 +132,23 @@ func (s fsEnvironmentsStore) LoadEnvironments(_ context.Context, o ...datatug.St
 		}
 		envs = append(envs, env)
 	}
-	sort.Slice(envs, func(i, j int) bool {
-		return envs[i].GetID() < envs[j].GetID()
-	})
+	project, err := loadProjectFileUnlocked(s.projectDir)
+	if err != nil && !errors.Is(err, datatug.ErrProjectDoesNotExist) {
+		return nil, err
+	}
+	order, _, err := datatug.ResolveEnvironmentOrder(envs.IDs(), project.EnvironmentOrder)
+	if err != nil {
+		return nil, err
+	}
+	sorted := make(datatug.Environments, 0, len(envs))
+	for _, id := range order {
+		sorted = append(sorted, envs.GetByID(id))
+	}
+	envs = sorted
 	return envs, nil
 }
 
-func (s fsEnvironmentsStore) LoadEnvironmentSummary(_ context.Context, id string) (*datatug.EnvironmentSummary, error) {
+func (s fsEnvironmentsStore) loadEnvironmentSummary(_ context.Context, id string) (*datatug.EnvironmentSummary, error) {
 	env, err := s.loadOneEnvironment(id)
 	if err != nil {
 		return nil, err
@@ -155,7 +175,7 @@ func (s fsEnvironmentsStore) saveTarget(id string) (dirPath, fileName string) {
 	return dirPath, storage.JsonFileName(id, storage.EnvFileSuffix)
 }
 
-func (s fsEnvironmentsStore) SaveEnvironment(_ context.Context, env *datatug.Environment) error {
+func (s fsEnvironmentsStore) saveEnvironment(_ context.Context, env *datatug.Environment) error {
 	dirPath, fileName := s.saveTarget(env.ID)
 	if err := saveJSONFile(s.projectDir, dirPath, fileName, env); err != nil {
 		return fmt.Errorf("failed to save environment file: %w", err)
@@ -163,10 +183,10 @@ func (s fsEnvironmentsStore) SaveEnvironment(_ context.Context, env *datatug.Env
 	return nil
 }
 
-func (s fsEnvironmentsStore) SaveEnvironments(ctx context.Context, envs datatug.Environments) error {
+func (s fsEnvironmentsStore) saveEnvironments(ctx context.Context, envs datatug.Environments) error {
 	return saveItems(s.dirPath, len(envs), func(i int) func() error {
 		return func() error {
-			return s.SaveEnvironment(ctx, envs[i])
+			return s.saveEnvironment(ctx, envs[i])
 		}
 	})
 }
@@ -175,6 +195,28 @@ func (s fsEnvironmentsStore) SaveEnvironments(ctx context.Context, envs datatug.
 // environment is always directory-based (both filenames live inside
 // environments/<id>/), so deleting one means removing that directory,
 // whichever filename(s) it holds.
-func (s fsEnvironmentsStore) DeleteEnvironment(_ context.Context, id string) error {
+func (s fsEnvironmentsStore) deleteEnvironment(_ context.Context, id string) error {
 	return plainfs.RemoveAll(s.projectDir, path.Join(s.dirPath, id))
+}
+
+func (s fsEnvironmentsStore) LoadEnvironment(ctx context.Context, id string, o ...datatug.StoreOption) (v *datatug.Environment, err error) {
+	err = withEnvironmentStoreReadLock(ctx, s.projectDir, func(ctx context.Context) error { v, err = s.loadEnvironment(ctx, id, o...); return err })
+	return
+}
+func (s fsEnvironmentsStore) LoadEnvironments(ctx context.Context, o ...datatug.StoreOption) (v datatug.Environments, err error) {
+	err = withEnvironmentStoreReadLock(ctx, s.projectDir, func(ctx context.Context) error { v, err = s.loadEnvironments(ctx, o...); return err })
+	return
+}
+func (s fsEnvironmentsStore) LoadEnvironmentSummary(ctx context.Context, id string) (v *datatug.EnvironmentSummary, err error) {
+	err = withEnvironmentStoreReadLock(ctx, s.projectDir, func(ctx context.Context) error { v, err = s.loadEnvironmentSummary(ctx, id); return err })
+	return
+}
+func (s fsEnvironmentsStore) SaveEnvironment(ctx context.Context, v *datatug.Environment) error {
+	return withEnvironmentStoreLock(ctx, s.projectDir, func(ctx context.Context) error { return s.saveEnvironment(ctx, v) })
+}
+func (s fsEnvironmentsStore) SaveEnvironments(ctx context.Context, v datatug.Environments) error {
+	return withEnvironmentStoreLock(ctx, s.projectDir, func(ctx context.Context) error { return s.saveEnvironments(ctx, v) })
+}
+func (s fsEnvironmentsStore) DeleteEnvironment(ctx context.Context, id string) error {
+	return withEnvironmentStoreLock(ctx, s.projectDir, func(ctx context.Context) error { return s.deleteEnvironment(ctx, id) })
 }

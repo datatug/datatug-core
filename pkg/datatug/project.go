@@ -2,6 +2,7 @@ package datatug
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -28,6 +29,7 @@ func NewProjectWithStore(id string, store ProjectStore) (p *Project) {
 
 // Project holds info about a project
 type Project struct {
+	EnvironmentOrder []string `json:"environmentOrder,omitempty" firestore:"environmentOrder,omitempty"`
 	ProjectItem
 	store    ProjectStore
 	Created  *ProjectCreated `json:"created,omitempty" firestore:"created,omitempty"`
@@ -207,7 +209,9 @@ func (v *ProjectRepository) Validate() error {
 
 // ProjectFile defines what to storage to project file
 type ProjectFile struct {
-	Created *ProjectCreated `json:"created,omitempty" firestore:"created,omitempty"`
+	jsonMetadata     map[string]json.RawMessage
+	EnvironmentOrder []string        `json:"environmentOrder,omitempty" firestore:"environmentOrder,omitempty"`
+	Created          *ProjectCreated `json:"created,omitempty" firestore:"created,omitempty"`
 	ProjectItem
 	Repository *ProjectRepository `json:"repository,omitempty" firestore:"repository,omitempty"`
 	//DbModels     []*ProjDbModelBrief `json:"dbModels,omitempty" firestore:"dbModels,omitempty"`

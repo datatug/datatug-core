@@ -37,7 +37,7 @@ type assetDocument struct {
 // The caller derives root from authenticated authority; this constructor is
 // deliberately incapable of reading or changing the parent project document.
 // A DALGO transaction is used directly, without starting a nested transaction.
-func NewProjectItemsStore(session dal.ReadSession, projectID string, root *record.Key) (*ProjectStore, error) {
+func NewProjectItemsStore(session dal.ReadSession, projectID string, root *record.Key, options ...ProjectItemsOption) (*ProjectStore, error) {
 	if session == nil || root == nil || !projectScopeIDPattern.MatchString(projectID) || root.Collection() != "projects" || root.ID != projectID {
 		return nil, ErrAssetInvalid
 	}
@@ -45,7 +45,11 @@ func NewProjectItemsStore(session dal.ReadSession, projectID string, root *recor
 	if err != nil {
 		return nil, err
 	}
-	return &ProjectStore{projectID: projectID, itemRoot: copied, itemSession: session}, nil
+	store := &ProjectStore{projectID: projectID, itemRoot: copied, itemSession: session}
+	for _, option := range options {
+		option(store)
+	}
+	return store, nil
 }
 
 func copyAssetKey(key *record.Key) (*record.Key, error) {
@@ -86,6 +90,11 @@ func assetKey(root *record.Key, kind, id string) (*record.Key, error) {
 func encodeAsset(value any) ([]byte, error) {
 	var err error
 	switch v := value.(type) {
+	case *datatug.Environment:
+		if v == nil {
+			return nil, ErrAssetInvalid
+		}
+		err = v.Validate()
 	case *datatug.Board:
 		if v == nil {
 			return nil, ErrAssetInvalid
@@ -126,6 +135,8 @@ func decodeAsset(body []byte, value any, id string) error {
 	}
 	var actual string
 	switch v := value.(type) {
+	case *datatug.Environment:
+		actual = v.ID
 	case *datatug.Board:
 		actual = v.ID
 	case *datatug.Entity:
@@ -179,6 +190,9 @@ func (s *ProjectStore) saveAsset(ctx context.Context, kind, id string, value any
 	}
 	if !r.Exists() {
 		items, err := s.listAssets(ctx, kind, func() any {
+			if kind == "environments" {
+				return new(datatug.Environment)
+			}
 			if kind == "boards" {
 				return new(datatug.Board)
 			}
@@ -297,4 +311,14 @@ func (s *ProjectStore) LoadEntities(ctx context.Context, _ ...datatug.StoreOptio
 		out[i] = v.(*datatug.Entity)
 	}
 	return out, nil
+}
+
+// ProjectItemsOption supplies metadata already authorized and read by the caller.
+type ProjectItemsOption func(*ProjectStore)
+
+// WithEnvironmentOrder binds the parent order read in the caller-owned session.
+// It never grants the item store permission to access the parent document.
+func WithEnvironmentOrder(order []string) ProjectItemsOption {
+	copied := append([]string(nil), order...)
+	return func(s *ProjectStore) { s.environmentOrder = append([]string(nil), copied...) }
 }
