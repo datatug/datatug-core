@@ -189,6 +189,20 @@ func BuildProjectMeaningsCatalog(d ProjectMeaningsDocument, queries []MeaningQue
 	if err := d.Validate(); err != nil {
 		return ProjectMeaningsCatalog{}, err
 	}
+	budget, err := newMeaningCatalogBudget(scope, writable, complete)
+	if err != nil {
+		return ProjectMeaningsCatalog{}, err
+	}
+	for i, e := range d.Entities {
+		if err := budget.entity(e, i > 0); err != nil {
+			return ProjectMeaningsCatalog{}, err
+		}
+		for j, f := range e.Fields {
+			if err := budget.field(f, j > 0); err != nil {
+				return ProjectMeaningsCatalog{}, err
+			}
+		}
+	}
 	b, _ := json.Marshal(d.Entities)
 	var entities []MeaningEntity
 	_ = json.Unmarshal(b, &entities)
@@ -214,19 +228,30 @@ func BuildProjectMeaningsCatalog(d ProjectMeaningsDocument, queries []MeaningQue
 		if err := q.SemanticModel.Validate(); err != nil {
 			return ProjectMeaningsCatalog{}, fmt.Errorf("query semantic model: %w", err)
 		}
+		if len(q.ID) > maxMeaningCatalogBytes {
+			return ProjectMeaningsCatalog{}, ErrMeaningIncomplete
+		}
 		docID := QueryMeaningDocumentID(q.ID, q.SemanticModel.Meaning.ID)
 		index := map[string]int{}
 		start := len(entities)
 		for _, c := range q.SemanticModel.Meaning.Concepts {
 			if c.Kind == "entity" {
 				index[c.ID] = len(entities)
-				entities = append(entities, MeaningEntity{MeaningIdentity: MeaningIdentity{docID, c.ID}, Name: c.Labels.En, Description: c.Description, Origin: "query", Fields: []MeaningField{}, Resources: []MeaningResource{}})
+				entity := MeaningEntity{MeaningIdentity: MeaningIdentity{docID, c.ID}, Name: c.Labels.En, Description: c.Description, Origin: "query", Fields: []MeaningField{}, Resources: []MeaningResource{}}
+				if err := budget.entity(entity, len(entities) > 0); err != nil {
+					return ProjectMeaningsCatalog{}, err
+				}
+				entities = append(entities, entity)
 			}
 		}
 		for _, c := range q.SemanticModel.Meaning.Concepts {
 			if c.Kind == "property" {
 				i := index[c.Of]
-				entities[i].Fields = append(entities[i].Fields, MeaningField{MeaningIdentity: MeaningIdentity{docID, c.ID}, Name: c.Labels.En, Description: c.Description, Resources: []MeaningResource{}})
+				field := MeaningField{MeaningIdentity: MeaningIdentity{docID, c.ID}, Name: c.Labels.En, Description: c.Description, Resources: []MeaningResource{}}
+				if err := budget.field(field, len(entities[i].Fields) > 0); err != nil {
+					return ProjectMeaningsCatalog{}, err
+				}
+				entities[i].Fields = append(entities[i].Fields, field)
 			}
 		}
 		resources := []MeaningResource{{Kind: "query", ID: q.ID, Title: q.Title}}
@@ -237,13 +262,19 @@ func BuildProjectMeaningsCatalog(d ProjectMeaningsDocument, queries []MeaningQue
 			if database.Title == "" {
 				database.Title = database.ID
 			}
-			resources = appendMeaningResource(resources, database)
+			resources, err = appendBoundedMeaningResource(resources, database)
+			if err != nil {
+				return ProjectMeaningsCatalog{}, err
+			}
 		}
 		if q.Database != nil {
 			if q.Database.Kind != "database" || q.Database.ID == "" || q.Database.Environment == "" {
 				return ProjectMeaningsCatalog{}, errors.New("invalid database provenance")
 			}
-			resources = append(resources, *q.Database)
+			resources, err = appendBoundedMeaningResource(resources, *q.Database)
+			if err != nil {
+				return ProjectMeaningsCatalog{}, err
+			}
 		}
 		for _, b := range boards {
 			if b.Title == "" {
@@ -251,14 +282,21 @@ func BuildProjectMeaningsCatalog(d ProjectMeaningsDocument, queries []MeaningQue
 			}
 			for _, id := range b.QueryIDs {
 				if id == q.ID {
-					resources = appendMeaningResource(resources, MeaningResource{Kind: "board", ID: b.ID, Title: b.Title})
+					resources, err = appendBoundedMeaningResource(resources, MeaningResource{Kind: "board", ID: b.ID, Title: b.Title})
+					if err != nil {
+						return ProjectMeaningsCatalog{}, err
+					}
 				}
 			}
 		}
 		for i := start; i < len(entities); i++ {
-			entities[i].Resources = append([]MeaningResource{}, resources...)
+			if err := budget.resources(&entities[i].Resources, resources); err != nil {
+				return ProjectMeaningsCatalog{}, err
+			}
 			for j := range entities[i].Fields {
-				entities[i].Fields[j].Resources = append([]MeaningResource{}, resources...)
+				if err := budget.resources(&entities[i].Fields[j].Resources, resources); err != nil {
+					return ProjectMeaningsCatalog{}, err
+				}
 			}
 		}
 		for _, c := range q.SemanticModel.Meaning.Concepts {
@@ -273,7 +311,9 @@ func BuildProjectMeaningsCatalog(d ProjectMeaningsDocument, queries []MeaningQue
 				if c.Kind == "entity" && entities[i].ConceptID == c.MeaningRef.ConceptID {
 					found = true
 					for _, r := range resources {
-						entities[i].Resources = appendMeaningResource(entities[i].Resources, r)
+						if err := budget.resources(&entities[i].Resources, []MeaningResource{r}); err != nil {
+							return ProjectMeaningsCatalog{}, err
+						}
 					}
 				}
 				if c.Kind == "property" {
@@ -291,8 +331,12 @@ func BuildProjectMeaningsCatalog(d ProjectMeaningsDocument, queries []MeaningQue
 							}
 							found = true
 							for _, r := range resources {
-								entities[i].Fields[j].Resources = appendMeaningResource(entities[i].Fields[j].Resources, r)
-								entities[i].Resources = appendMeaningResource(entities[i].Resources, r)
+								if err := budget.resources(&entities[i].Fields[j].Resources, []MeaningResource{r}); err != nil {
+									return ProjectMeaningsCatalog{}, err
+								}
+								if err := budget.resources(&entities[i].Resources, []MeaningResource{r}); err != nil {
+									return ProjectMeaningsCatalog{}, err
+								}
 							}
 						}
 					}
