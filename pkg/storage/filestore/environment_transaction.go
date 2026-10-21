@@ -67,21 +67,25 @@ func environmentFileHash(p string) (string, error) {
 	}
 	return environmentHash(b), nil
 }
-func syncEnvironmentDir(p string) error {
+func syncEnvironmentDir(p string) (err error) {
 	f, e := os.Open(p)
 	if e != nil {
 		return e
 	}
-	defer f.Close()
+	defer func() { err = errors.Join(err, f.Close()) }()
 	return f.Sync()
 }
-func durableEnvironmentFile(p string, b []byte, mode os.FileMode) error {
+func durableEnvironmentFile(p string, b []byte, mode os.FileMode) (err error) {
 	f, e := os.CreateTemp(filepath.Dir(p), ".environment-write-")
 	if e != nil {
 		return e
 	}
 	tmp := f.Name()
-	defer os.Remove(tmp)
+	defer func() {
+		if cleanupErr := os.Remove(tmp); cleanupErr != nil && !os.IsNotExist(cleanupErr) {
+			err = errors.Join(err, cleanupErr)
+		}
+	}()
 	if e = f.Chmod(mode); e == nil {
 		_, e = f.Write(b)
 	}
@@ -281,7 +285,7 @@ func WithEnvironmentFiles(ctx context.Context, projectRoot, stateRoot string, fn
 func ReadEnvironmentFiles(ctx context.Context, projectRoot string, fn func(*EnvironmentFiles) error) error {
 	return withEnvironmentFiles(ctx, projectRoot, "", false, fn)
 }
-func withEnvironmentFiles(ctx context.Context, projectRoot, stateRoot string, initialize bool, fn func(*EnvironmentFiles) error) error {
+func withEnvironmentFiles(ctx context.Context, projectRoot, stateRoot string, initialize bool, fn func(*EnvironmentFiles) error) (err error) {
 	if projectRoot == "" {
 		return datatug.ErrProjectDoesNotExist
 	}
@@ -307,7 +311,7 @@ func withEnvironmentFiles(ctx context.Context, projectRoot, stateRoot string, in
 	if !ok {
 		return ctx.Err()
 	}
-	defer lock.Unlock()
+	defer func() { err = errors.Join(err, lock.Unlock()) }()
 	if !initialize {
 		existing := false
 		for _, name := range []string{".datatug-environments.lock", ".datatug-environments-owner.json"} {
