@@ -140,7 +140,12 @@ func validateTimelineModeWire(data []byte, value TimelineChartSpec) error {
 // additional canonical/non-null checks on top of the existing field schema.
 type queryDefWire QueryDef
 
-func checkQueryComparisonJSON(data []byte) error {
+type scopedQueryDefWire struct {
+	FolderPath string `json:"folderPath"`
+	queryDefWire
+}
+
+func checkQueryComparisonJSON(data []byte, schema reflect.Type) error {
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(data, &fields); err != nil {
 		return err
@@ -150,14 +155,15 @@ func checkQueryComparisonJSON(data []byte) error {
 			return fmt.Errorf("comparison must be canonical and nonnull")
 		}
 	}
-	return jsonstrict.CheckNoDuplicateKeysForSchema(data, reflect.TypeOf(queryDefWire{}))
+	return jsonstrict.CheckNoDuplicateKeysForSchema(data, schema)
 }
 func (v *QueryDef) UnmarshalJSON(data []byte) error {
-	if err := checkQueryComparisonJSON(data); err != nil {
+	if err := checkQueryComparisonJSON(data, reflect.TypeOf(queryDefWire{})); err != nil {
 		return err
 	}
 	var decoded queryDefWire
 	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.UseNumber() // Preserve exact interface-valued parameter defaults.
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&decoded); err != nil {
 		return err
@@ -166,14 +172,12 @@ func (v *QueryDef) UnmarshalJSON(data []byte) error {
 	return nil
 }
 func (v *QueryDefWithFolderPath) UnmarshalJSON(data []byte) error {
-	if err := checkQueryComparisonJSON(data); err != nil {
+	if err := checkQueryComparisonJSON(data, reflect.TypeOf(scopedQueryDefWire{})); err != nil {
 		return err
 	}
-	var decoded struct {
-		FolderPath string `json:"folderPath"`
-		queryDefWire
-	}
+	var decoded scopedQueryDefWire
 	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.UseNumber() // Preserve exact interface-valued parameter defaults.
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&decoded); err != nil {
 		return err
@@ -182,17 +186,38 @@ func (v *QueryDefWithFolderPath) UnmarshalJSON(data []byte) error {
 	return nil
 }
 func checkQueryComparisonYAML(node *yaml.Node) error {
-	// Resolve YAML aliases/merges before testing presence: a null comparison
-	// must not disappear when yaml skips the pointer's custom decoder.
+	// Resolve aliases/merges so null cannot skip the comparison pointer codec.
 	var raw any
 	if err := node.Decode(&raw); err != nil {
 		return err
 	}
-	data, err := json.Marshal(raw)
+	fields, ok := raw.(map[string]any)
+	if !ok {
+		return fmt.Errorf("query must be a YAML mapping")
+	}
+	for name, value := range fields {
+		if strings.EqualFold(name, "comparison") && (name != "comparison" || value == nil) {
+			return fmt.Errorf("comparison must be canonical and nonnull")
+		}
+	}
+	return nil
+}
+
+func decodeKnownQueryYAML(node *yaml.Node, target any) error {
+	// node.Decode does not inherit an outer KnownFields policy. Resolve aliases
+	// first, including aliases anchored outside a nested query, then enforce the
+	// existing typed YAML schema explicitly on the method-free target.
+	var raw any
+	if err := node.Decode(&raw); err != nil {
+		return err
+	}
+	data, err := yaml.Marshal(raw)
 	if err != nil {
 		return err
 	}
-	return checkQueryComparisonJSON(data)
+	decoder := yaml.NewDecoder(bytes.NewReader(data))
+	decoder.KnownFields(true)
+	return decoder.Decode(target)
 }
 
 func (v *QueryDef) UnmarshalYAML(node *yaml.Node) error {
@@ -200,7 +225,7 @@ func (v *QueryDef) UnmarshalYAML(node *yaml.Node) error {
 		return err
 	}
 	var decoded queryDefWire
-	if err := node.Decode(&decoded); err != nil {
+	if err := decodeKnownQueryYAML(node, &decoded); err != nil {
 		return err
 	}
 	*v = QueryDef(decoded)
@@ -212,7 +237,7 @@ func (v *QueryDefWithFolderPath) UnmarshalYAML(node *yaml.Node) error {
 		FolderPath string   `yaml:"folderpath"`
 		QueryDef   QueryDef `yaml:"querydef"`
 	}
-	if err := node.Decode(&decoded); err != nil {
+	if err := decodeKnownQueryYAML(node, &decoded); err != nil {
 		return err
 	}
 	*v = QueryDefWithFolderPath{FolderPath: decoded.FolderPath, QueryDef: decoded.QueryDef}
