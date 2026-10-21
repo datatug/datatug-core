@@ -8,6 +8,9 @@ import (
 type projectFileJSON ProjectFile
 
 func (v *ProjectFile) UnmarshalJSON(body []byte) error {
+	if err := validateProjectEnvironmentOrderJSON(body); err != nil {
+		return err
+	}
 	var typed projectFileJSON
 	if err := json.Unmarshal(body, &typed); err != nil {
 		return err
