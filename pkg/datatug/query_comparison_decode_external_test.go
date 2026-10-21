@@ -138,3 +138,101 @@ func TestComparisonYAMLDecodersPreserveLexemes(t *testing.T) {
 	require.Equal(t, "2026-10-21", envelope.Title)
 	require.Equal(t, "2026-10-21", envelope.Purpose)
 }
+
+func TestComparisonYAMLDecodersPreserveAliasIdentity(t *testing.T) {
+	type legacyQuery datatug.QueryDef
+	base := "base: &base\n  value: &label outer\nquery:\n"
+	query := "type: SQL\nprojectitem:\n  projitembrief:\n    id: aliased\n    title: Alias scope\ntext: &label SELECT 1\nparameters:\n  - id: p\n    type: custom\n    defaultvalue: *base\npurpose: *label\n"
+	for _, scoped := range []bool{false, true} {
+		t.Run(fmt.Sprint(scoped), func(t *testing.T) {
+			body := query
+			if scoped {
+				body = "folderpath: scope\nquerydef:\n  " + strings.ReplaceAll(strings.TrimSuffix(query, "\n"), "\n", "\n  ") + "\n"
+			}
+			wire := base + "  " + strings.ReplaceAll(strings.TrimSuffix(body, "\n"), "\n", "\n  ") + "\n"
+			var actual datatug.QueryDef
+			var expected legacyQuery
+			if scoped {
+				var plain struct {
+					Base  any
+					Query struct {
+						FolderPath string
+						QueryDef   legacyQuery
+					}
+				}
+				require.NoError(t, yaml.Unmarshal([]byte(wire), &plain))
+				expected = plain.Query.QueryDef
+				var custom struct {
+					Base  any
+					Query datatug.QueryDefWithFolderPath
+				}
+				dec := yaml.NewDecoder(strings.NewReader(wire))
+				dec.KnownFields(true)
+				require.NoError(t, dec.Decode(&custom))
+				require.Equal(t, plain.Query.FolderPath, custom.Query.FolderPath)
+				actual = custom.Query.QueryDef
+			} else {
+				var plain struct {
+					Base  any
+					Query legacyQuery
+				}
+				require.NoError(t, yaml.Unmarshal([]byte(wire), &plain))
+				expected = plain.Query
+				var custom struct {
+					Base  any
+					Query datatug.QueryDef
+				}
+				dec := yaml.NewDecoder(strings.NewReader(wire))
+				dec.KnownFields(true)
+				require.NoError(t, dec.Decode(&custom))
+				actual = custom.Query
+			}
+			require.Equal(t, "SELECT 1", expected.Purpose)
+			require.Equal(t, expected.Purpose, actual.Purpose)
+			require.Equal(t, expected.Text, actual.Text)
+			require.Equal(t, expected.Parameters[0].DefaultValue, actual.Parameters[0].DefaultValue)
+			require.NoError(t, actual.Validate())
+			// Decoding must not rewrite the caller's node graph or anchor labels.
+			var document yaml.Node
+			require.NoError(t, yaml.Unmarshal([]byte(wire), &document))
+			before, err := yaml.Marshal(&document)
+			require.NoError(t, err)
+			if scoped {
+				var holder struct {
+					Base  any
+					Query datatug.QueryDefWithFolderPath
+				}
+				require.NoError(t, document.Decode(&holder))
+			} else {
+				var holder struct {
+					Base  any
+					Query datatug.QueryDef
+				}
+				require.NoError(t, document.Decode(&holder))
+			}
+			after, err := yaml.Marshal(&document)
+			require.NoError(t, err)
+			require.Equal(t, string(before), string(after))
+		})
+	}
+}
+
+func TestComparisonYAMLDecodersPreserveMergedAliasIdentity(t *testing.T) {
+	wire := "base: &base\n  purpose: &label outer\nquery:\n  <<: *base\n  type: SQL\n  text: &label SELECT 1\n  purpose: *label\n"
+	type legacyQuery datatug.QueryDef
+	var plain struct {
+		Base  any
+		Query legacyQuery
+	}
+	require.NoError(t, yaml.Unmarshal([]byte(wire), &plain))
+	var custom struct {
+		Base  any
+		Query datatug.QueryDef
+	}
+	decoder := yaml.NewDecoder(strings.NewReader(wire))
+	decoder.KnownFields(true)
+	require.NoError(t, decoder.Decode(&custom))
+	require.Equal(t, "SELECT 1", plain.Query.Purpose)
+	require.Equal(t, plain.Query.Purpose, custom.Query.Purpose)
+	require.Equal(t, plain.Query.Text, custom.Query.Text)
+}

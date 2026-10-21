@@ -233,6 +233,18 @@ func standaloneQueryYAML(node *yaml.Node) (*yaml.Node, error) {
 		}
 	}
 	collect(node)
+	// Anchor labels may be reused in valid YAML. Re-serializing an external
+	// target can move an old label past a newer one, so labels must follow
+	// original node identity rather than original spelling in the detached graph.
+	anchors := map[*yaml.Node]string{}
+	anchorName := func(n *yaml.Node) string {
+		if name, ok := anchors[n]; ok {
+			return name
+		}
+		name := fmt.Sprintf("query_anchor_%d", len(anchors)+1)
+		anchors[n] = name
+		return name
+	}
 	copies := map[*yaml.Node]*yaml.Node{}
 	expanding := map[*yaml.Node]bool{}
 	var clone func(*yaml.Node) (*yaml.Node, error)
@@ -260,6 +272,12 @@ func standaloneQueryYAML(node *yaml.Node) (*yaml.Node, error) {
 			return copied, nil
 		}
 		copied := *n
+		if n.Anchor != "" {
+			copied.Anchor = anchorName(n)
+		}
+		if n.Kind == yaml.AliasNode && n.Alias != nil {
+			copied.Value = anchorName(n.Alias)
+		}
 		copies[n] = &copied
 		copied.Content = make([]*yaml.Node, len(n.Content))
 		for i, child := range n.Content {
