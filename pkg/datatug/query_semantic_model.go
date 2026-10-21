@@ -42,6 +42,7 @@ type QueryMeaningLabels struct {
 	En string `json:"en"`
 }
 type QueryMeaningConcept struct {
+	MeaningRef  *MeaningReference     `json:"meaningRef,omitempty"`
 	ID          string                `json:"id"`
 	Kind        string                `json:"kind"`
 	Labels      QueryMeaningLabels    `json:"labels"`
@@ -122,6 +123,11 @@ func (v QuerySemanticModel) Validate() error {
 		}
 	}
 	for _, c := range v.Meaning.Concepts {
+		if c.MeaningRef != nil {
+			if err := c.MeaningRef.Validate(); err != nil {
+				return err
+			}
+		}
 		if len(c.Labels.En) > 512 || len(c.Description) > 4096 {
 			return bad("concept text length")
 		}
@@ -242,6 +248,10 @@ func (v QuerySemanticModel) Validate() error {
 // schema fields as sampled data. Existing credential policy screens each value.
 func screenSemanticStrings(v reflect.Value) error {
 	switch v.Kind() {
+	case reflect.Pointer:
+		if !v.IsNil() {
+			return screenSemanticStrings(v.Elem())
+		}
 	case reflect.String:
 		if reason, found := EmbeddedCredentialReason(v.String()); found {
 			return fmt.Errorf("%s; %s", reason, storedQueryHint)
@@ -277,6 +287,8 @@ func semanticRequired(raw any, typ reflect.Type) error {
 		return fmt.Errorf("semantic metadata cannot be null")
 	}
 	switch typ.Kind() {
+	case reflect.Pointer:
+		return semanticRequired(raw, typ.Elem())
 	case reflect.Struct:
 		obj, ok := raw.(map[string]any)
 		if !ok {
@@ -284,6 +296,12 @@ func semanticRequired(raw any, typ reflect.Type) error {
 		}
 		for i := 0; i < typ.NumField(); i++ {
 			f := typ.Field(i)
+			if f.Anonymous {
+				if err := semanticRequired(raw, f.Type); err != nil {
+					return err
+				}
+				continue
+			}
 			parts := strings.Split(f.Tag.Get("json"), ",")
 			name := parts[0]
 			value, exists := obj[name]

@@ -321,6 +321,13 @@ func TestQueryDefStorageScreen_RefusesMalformedJSONSchema(t *testing.T) {
 // means screenQueryDefForStorage screens it itself; any other value names
 // the check that already owned the field.
 var queryStorageFieldDecisions = map[string]string{
+	"semanticModel.meaning.concepts[].meaningRef.documentId":    "credential (QuerySemanticModel.Validate)",
+	"semanticModel.meaning.concepts[].meaningRef.conceptId":     "credential (QuerySemanticModel.Validate)",
+	"semanticModel.meaning.concepts[].meaningRef.scope.storage": "credential (QuerySemanticModel.Validate)",
+	"semanticModel.meaning.concepts[].meaningRef.scope.project": "credential (QuerySemanticModel.Validate)",
+	"semanticModel.meaning.concepts[].meaningRef.scope.spaceID": "credential (QuerySemanticModel.Validate)",
+	"semanticModel.meaning.concepts[].meaningRef.scope.branch":  "credential (QuerySemanticModel.Validate)",
+
 	"semanticModel.basis.queryHash":                         "credential (QuerySemanticModel.Validate)",
 	"semanticModel.basis.columns[].name":                    "credential (QuerySemanticModel.Validate)",
 	"semanticModel.basis.columns[].dataType":                "credential (QuerySemanticModel.Validate)",
