@@ -2,6 +2,7 @@ package detective
 
 import (
 	"context"
+	"fmt"
 	"github.com/datatug/datatug-core/pkg/apicontract"
 	"github.com/datatug/datatug-core/pkg/investigation"
 	"github.com/stretchr/testify/require"
@@ -232,7 +233,7 @@ func TestBindingPreflightRejectsCorruptInputAndQueryBounds(t *testing.T) {
 	root := c.Checks["root"]
 	root.Inputs = nil
 	for i := 0; i <= maxNodes; i++ {
-		root.Inputs = append(root.Inputs, Input{Name: strings.Repeat("x", i+1), Type: investigation.ValueTypeInteger, Cardinality: "scalar"})
+		root.Inputs = append(root.Inputs, Input{Name: fmt.Sprintf("input%d", i), Type: investigation.ValueTypeInteger, Cardinality: "scalar"})
 	}
 	root.Steps[0].Bindings = nil
 	c.Checks["root"] = root
