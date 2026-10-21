@@ -14,6 +14,9 @@ import (
 
 func loadProjectFile(projPath string, project *datatug.Project) (err error) {
 	filePath := path.Join(projPath, storage.ProjectSummaryFileName)
+	if st, e := os.Lstat(filePath); e == nil && st.Mode()&os.ModeSymlink != 0 {
+		return ErrEnvironmentRecoveryRequired
+	}
 	if err = readJSONFile(filePath, true, project); err != nil {
 		err = fmt.Errorf("failed to load project file %s: %w", filePath, err)
 	}

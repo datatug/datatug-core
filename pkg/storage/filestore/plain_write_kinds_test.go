@@ -235,6 +235,9 @@ func treeHash(t *testing.T, dir string) string {
 		}
 		rel, _ := filepath.Rel(dir, p)
 		rel = filepath.ToSlash(rel)
+		if rel == ".datatug-environments.lock" || rel == ".datatug-environments-owner.json" {
+			return nil
+		}
 		switch {
 		case d.Type()&fs.ModeSymlink != 0:
 			entries = append(entries, "l "+rel)
