@@ -84,7 +84,7 @@ func TestFirstWriteRace_ReadersNeverSeeATornPair(t *testing.T) {
 		}
 		for k := 0; k < pairs; k++ {
 			id := fmt.Sprintf("q%04d", k)
-			if err := os.WriteFile(filepath.Join(queriesDir, id+".query.json"), []byte(`{"title":"OLD","type":"DTQL"}`), 0o644); err != nil {
+			if err := os.WriteFile(filepath.Join(queriesDir, id+".query.json"), []byte(`{"title":"OLD","type":"DTQL","createdAt":"2026-10-01T00:00:00Z"}`), 0o644); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			if err := os.WriteFile(filepath.Join(queriesDir, id+".query.dtql"), []byte("OLD"), 0o644); err != nil {

@@ -35,7 +35,7 @@ func TestRecovery_JournalWithStagedFilesCompletesToNewRevision(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	jsonBytes := []byte(`{"id":"q1","title":"Q1","type":"DTQL"}` + "\n")
+	jsonBytes := []byte(`{"id":"q1","title":"Q1","type":"DTQL","createdAt":"2026-10-01T00:00:00Z"}` + "\n")
 	bodyBytes := []byte("from:\n  name: Invoice\n")
 	if err := writeStagedFile(txnDir, queryTxnStagedJSON, jsonBytes); err != nil {
 		t.Fatalf("unexpected error staging json: %v", err)
@@ -78,7 +78,7 @@ func TestRecovery_PartiallyInstalledBodyCompletesJSONInstall(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	jsonBytes := []byte(`{"id":"q1","title":"Q1","type":"DTQL"}` + "\n")
+	jsonBytes := []byte(`{"id":"q1","title":"Q1","type":"DTQL","createdAt":"2026-10-01T00:00:00Z"}` + "\n")
 	bodyBytes := []byte("body content")
 	// Body already installed (as if a previous run's rename succeeded)...
 	if err := os.WriteFile(filepath.Join(queriesDir, "q1.query.dtql"), bodyBytes, 0o644); err != nil {
@@ -146,7 +146,7 @@ func TestRecovery_UnrelatedJournalDoesNotBlockADifferentQuery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	jsonBytes := []byte(`{"id":"leftover","title":"Leftover","type":"DTQL"}` + "\n")
+	jsonBytes := []byte(`{"id":"leftover","title":"Leftover","type":"DTQL","createdAt":"2026-10-01T00:00:00Z"}` + "\n")
 	bodyBytes := []byte("leftover body")
 	if err := writeStagedFile(txnDir, queryTxnStagedJSON, jsonBytes); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -190,7 +190,7 @@ func TestRecovery_NestedFolderPathIsRederivedFromJournal(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	jsonBytes := []byte(`{"id":"q1","title":"Q1","type":"DTQL"}` + "\n")
+	jsonBytes := []byte(`{"id":"q1","title":"Q1","type":"DTQL","createdAt":"2026-10-01T00:00:00Z"}` + "\n")
 	bodyBytes := []byte("nested body")
 	if err := writeStagedFile(txnDir, queryTxnStagedJSON, jsonBytes); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -229,7 +229,7 @@ func TestRecovery_NeverCreatesTheQuerysFolder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	jsonBytes := []byte(`{"id":"q1","title":"Q1","type":"DTQL"}` + "\n")
+	jsonBytes := []byte(`{"id":"q1","title":"Q1","type":"DTQL","createdAt":"2026-10-01T00:00:00Z"}` + "\n")
 	bodyBytes := []byte("body")
 	if err := writeStagedFile(txnDir, queryTxnStagedJSON, jsonBytes); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -277,11 +277,11 @@ func TestRecovery_ProjectLevelLoadRecoversWithoutExposingReservedNamespace(t *te
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(queriesDir, "customers", "c1.query.json"),
-		[]byte(`{"id":"c1","title":"C1","type":"SQL"}`+"\n"), 0o644); err != nil {
+		[]byte(`{"id":"c1","title":"C1","type":"SQL","createdAt":"2026-10-01T00:00:00Z"}`+"\n"), 0o644); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	jsonBytes := []byte(`{"id":"q1","title":"Q1","type":"DTQL"}` + "\n")
+	jsonBytes := []byte(`{"id":"q1","title":"Q1","type":"DTQL","createdAt":"2026-10-01T00:00:00Z"}` + "\n")
 	bodyBytes := []byte("recovered body")
 	if err := writeStagedFile(txnDir, queryTxnStagedJSON, jsonBytes); err != nil {
 		t.Fatalf("unexpected error: %v", err)

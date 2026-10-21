@@ -35,7 +35,7 @@ func TestReads_DoNotRequireWriteAccessOnAnUntouchedProject(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(queriesDir, "customers", "c1.query.json"),
-		[]byte(`{"id":"c1","title":"C1","type":"SQL"}`+"\n"), 0o644); err != nil {
+		[]byte(`{"id":"c1","title":"C1","type":"SQL","createdAt":"2026-10-01T00:00:00Z"}`+"\n"), 0o644); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(queriesDir, "customers", "c1.query.sql"),
@@ -99,7 +99,7 @@ func TestWithQueryReadLock_StillCoordinatesOnceProjectHasBeenWrittenTo(t *testin
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	jsonBytes := []byte(`{"id":"q2","title":"Q2","type":"DTQL"}` + "\n")
+	jsonBytes := []byte(`{"id":"q2","title":"Q2","type":"DTQL","createdAt":"2026-10-01T00:00:00Z"}` + "\n")
 	bodyBytes := []byte("recovered")
 	if err := writeStagedFile(txnDir, queryTxnStagedJSON, jsonBytes); err != nil {
 		t.Fatalf("unexpected error: %v", err)

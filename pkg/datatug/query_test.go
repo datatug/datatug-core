@@ -1,6 +1,7 @@
 package datatug
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -220,4 +221,31 @@ func TestQueryResult_Validate(t *testing.T) {
 		v := QueryResult{Created: time.Now(), Driver: "mysql", Target: "t1", Recordsets: []Recordset{{Rows: [][]interface{}{nil}}}}
 		test.IsInvalidRecord(t, "invalid", v)
 	})
+}
+
+func TestQueryCreationMetadataIsRequiredForPersistedRecords(t *testing.T) {
+	for _, value := range []string{"", "not-a-date", "0001-01-01T00:00:00Z", "2026-10-21T12:00:00+01:00"} {
+		if err := (QueryDef{CreatedAt: value}).ValidateCreationMetadata(); err == nil {
+			t.Fatalf("accepted invalid persisted creation %q", value)
+		}
+	}
+	if err := (QueryDef{CreatedAt: "2026-10-21T12:00:00.123Z"}).ValidateCreationMetadata(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestQueryCreationTimeUsesTrustedOperationInstantOrCurrentUTC(t *testing.T) {
+	ctx := context.Background()
+	before := time.Now().UTC()
+	for _, candidate := range []context.Context{ctx, WithQueryCreationTime(ctx, time.Time{})} {
+		observed := QueryCreationTime(candidate)
+		if observed.Before(before) || observed.After(time.Now().UTC()) || observed.Location() != time.UTC {
+			t.Fatalf("invalid current UTC creation time %v", observed)
+		}
+	}
+	at := time.Date(2026, 10, 21, 13, 14, 15, 123, time.FixedZone("server", 3600))
+	got := QueryCreationTime(WithQueryCreationTime(ctx, at))
+	if !got.Equal(at) || got.Location() != time.UTC {
+		t.Fatalf("trusted creation time not preserved in UTC: %v", got)
+	}
 }

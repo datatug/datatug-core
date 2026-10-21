@@ -41,7 +41,7 @@ func TestQueryReads_RefuseASymlinkedTargetFile(t *testing.T) {
 	skipSymlinksOnWindows(t)
 	for _, tc := range []struct{ name, file, secret string }{
 		{"symlinked body (symread)", "q.query.dtql", "AWS_SECRET=abc123"},
-		{"symlinked json (symread)", "q.query.json", `{"title":"secret-json","type":"DTQL"}`},
+		{"symlinked json (symread)", "q.query.json", `{"title":"secret-json","type":"DTQL","createdAt":"2026-10-01T00:00:00Z"}`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			store, queriesDir := newTestQueriesStore(t)
@@ -177,7 +177,7 @@ func TestLegacyQueryReads_CannotLeaveTheQueriesRoot(t *testing.T) {
 	if err := os.MkdirAll(victimDir, 0o755); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(victimDir, "x.query.json"), []byte(`{"title":"SECRET-JSON","type":"SQL"}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(victimDir, "x.query.json"), []byte(`{"title":"SECRET-JSON","type":"SQL","createdAt":"2026-10-01T00:00:00Z"}`), 0o644); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(victimDir, "x.query.sql"), []byte("SECRET-BODY"), 0o644); err != nil {
@@ -186,7 +186,7 @@ func TestLegacyQueryReads_CannotLeaveTheQueriesRoot(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(queriesDir, "customers"), 0o755); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(queriesDir, "customers", "c1.query.json"), []byte(`{"title":"C1","type":"SQL"}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(queriesDir, "customers", "c1.query.json"), []byte(`{"title":"C1","type":"SQL","createdAt":"2026-10-01T00:00:00Z"}`), 0o644); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	ctx := context.Background()

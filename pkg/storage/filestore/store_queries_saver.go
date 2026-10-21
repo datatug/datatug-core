@@ -78,7 +78,7 @@ func (s fsQueriesStore) CreateQuery(ctx context.Context, query datatug.QueryDefW
 		if err != nil {
 			return err
 		}
-		_, err = s.stageAndInstallQueryPair(g, query.FolderPath, query.QueryDef, current)
+		_, err = s.stageAndInstallQueryPair(g, query.FolderPath, query.QueryDef, current, &query.QueryDef)
 		return err
 	})
 	if err != nil {
