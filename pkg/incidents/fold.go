@@ -510,6 +510,16 @@ func (e Event) validatePayload(view bool) error {
 		if strings.TrimSpace(payload.Body) == "" {
 			return fmt.Errorf("note body is required")
 		}
+		if payload.Presentation != nil {
+			if payload.Presentation.Kind != "demo-character" {
+				return fmt.Errorf("note presentation requires demo-character kind")
+			}
+			switch payload.Presentation.CharacterID {
+			case "sarah", "maya", "daniel":
+			default:
+				return fmt.Errorf("note presentation requires known characterId")
+			}
+		}
 	case EventContextFactAdded:
 		if view {
 			var payload ContextFactAddedViewPayload

@@ -238,8 +238,17 @@ type MergedPayload struct {
 	MergeID string      `json:"mergeId"`
 }
 
+// NotePresentation is fictional display metadata, never an actor or authority.
+// Event.Actor and Event.At retain the authenticated author and server time.
+type NotePresentation struct {
+	Kind        string `json:"kind"`
+	CharacterID string `json:"characterId"`
+}
+
 type NoteAddedPayload struct {
 	Body string `json:"body"`
+	// Omitted and null presentation both mean ordinary actual-actor attribution.
+	Presentation *NotePresentation `json:"presentation,omitempty"`
 }
 
 // CompareRunPayload persists only the deterministic key contract. The row
