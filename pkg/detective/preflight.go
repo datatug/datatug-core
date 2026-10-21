@@ -1,5 +1,11 @@
 package detective
 
+import (
+	"github.com/datatug/datatug-core/pkg/investigation"
+	"sort"
+	"strings"
+)
+
 // BindingPreflight describes binding availability, never a Check outcome or
 // source permission. Reasons contain only fixed codes and admitted identities.
 type BindingPreflight struct {
@@ -49,8 +55,18 @@ func PreflightBindings(c Catalog, root string, inputs map[string]InputValue, que
 		}
 	}
 	nodes := 0
-	var visit func(string, map[string]InputValue, int) BindingPreflight
-	visit = func(id string, values map[string]InputValue, depth int) BindingPreflight {
+	memo := map[string]BindingPreflight{}
+	var visit func(string, map[string]InputValue, map[string]bool, int) BindingPreflight
+	visit = func(id string, values map[string]InputValue, unknown map[string]bool, depth int) BindingPreflight {
+		names := make([]string, 0, len(unknown))
+		for name := range unknown {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		key := cacheKey(id, "", values) + "/" + strings.Join(names, ",")
+		if prior, ok := memo[key]; ok {
+			return prior
+		}
 		out := BindingPreflight{State: BindingInputBindable, CheckID: id}
 		nodes++
 		if depth > maxDepth || nodes > maxNodes {
@@ -58,20 +74,20 @@ func PreflightBindings(c Catalog, root string, inputs map[string]InputValue, que
 			return out
 		}
 		check := c.Checks[id]
-		if validateInputs(check.Inputs, values) != nil {
+		if validatePartialInputs(check.Inputs, values, unknown, false) != nil {
 			out.State = BindingMissingInput
 			return out
 		}
-		deferred := false
+		deferred := len(unknown) > 0
 		for _, step := range check.Steps {
-			mapped, err := mapBindings(step.Bindings, values, nil, nil)
+			mapped, pending, err := mapPartialBindings(step.Bindings, values, unknown)
 			if err != nil {
 				out.State = BindingMissingInput
 				out.StepID = step.ID
 				return out
 			}
 			if step.Kind == "check" {
-				child := visit(step.CheckID, mapped, depth+1)
+				child := visit(step.CheckID, mapped, pending, depth+1)
 				if child.State == BindingDeferredRow {
 					deferred = true
 				} else if child.State != BindingInputBindable {
@@ -79,7 +95,7 @@ func PreflightBindings(c Catalog, root string, inputs map[string]InputValue, que
 				}
 				continue
 			}
-			if validateInputs(queryInputs[step.QueryID], mapped) != nil {
+			if validatePartialInputs(queryInputs[step.QueryID], mapped, pending, true) != nil {
 				out.State = BindingMissingInput
 				out.StepID = step.ID
 				return out
@@ -93,23 +109,13 @@ func PreflightBindings(c Catalog, root string, inputs map[string]InputValue, que
 				if validator.Kind != "check" {
 					continue
 				}
-				row := false
-				for _, binding := range validator.Bindings {
-					if binding.FromColumn != "" {
-						row = true
-					}
-				}
-				if row {
-					deferred = true
-					continue
-				}
-				bound, err := mapBindings(validator.Bindings, values, nil, nil)
+				bound, pending, err := mapPartialBindings(validator.Bindings, values, unknown)
 				if err != nil {
 					out.State = BindingMissingInput
 					out.StepID = step.ID
 					return out
 				}
-				child := visit(validator.CheckID, bound, depth+1)
+				child := visit(validator.CheckID, bound, pending, depth+1)
 				if child.State == BindingDeferredRow {
 					deferred = true
 				} else if child.State != BindingInputBindable {
@@ -120,7 +126,70 @@ func PreflightBindings(c Catalog, root string, inputs map[string]InputValue, que
 		if deferred {
 			out.State = BindingDeferredRow
 		}
+		memo[key] = out
 		return out
 	}
-	return visit(root, inputs, 0)
+	return visit(root, inputs, nil, 0)
+}
+
+// Unknown values are names only: no invented row value is passed to the mapper.
+// All independently knowable FromInput bindings still use the real mapper.
+func mapPartialBindings(bindings []Binding, values map[string]InputValue, unknown map[string]bool) (map[string]InputValue, map[string]bool, error) {
+	known := map[string]InputValue{}
+	pending := map[string]bool{}
+	for _, binding := range bindings {
+		if binding.FromColumn != "" || unknown[binding.FromInput] {
+			pending[binding.Input] = true
+			continue
+		}
+		mapped, err := mapBindings([]Binding{binding}, values, nil, nil)
+		if err != nil {
+			return nil, nil, err
+		}
+		known[binding.Input] = mapped[binding.Input]
+	}
+	return known, pending, nil
+}
+
+func validatePartialInputs(schema []Input, values map[string]InputValue, unknown map[string]bool, query bool) error {
+	partial := append([]Input(nil), schema...)
+	for i := range partial {
+		if unknown[partial[i].Name] {
+			partial[i].Required = false
+		}
+	}
+	if !query {
+		return validateInputs(partial, values)
+	}
+	// Match owning hosted parameter admission, which differs from Check inputs:
+	// null is allowed only for optional parameters; every set item is checked.
+	byName := map[string]Input{}
+	for _, in := range partial {
+		byName[in.Name] = in
+		if in.Required {
+			if _, ok := values[in.Name]; !ok {
+				return ErrInvalid
+			}
+		}
+	}
+	for name, value := range values {
+		in, ok := byName[name]
+		if !ok || value.Validate() != nil || (value.Set != nil) != (in.Cardinality == "set") || value.Range != nil {
+			return ErrInvalid
+		}
+		valid := func(item Value) bool {
+			return item.Type == in.Type || item.Type == investigation.ValueTypeNull && !in.Required
+		}
+		if value.Scalar != nil && !valid(*value.Scalar) {
+			return ErrInvalid
+		}
+		if value.Set != nil {
+			for _, item := range value.Set.Values {
+				if !valid(item) {
+					return ErrInvalid
+				}
+			}
+		}
+	}
+	return nil
 }

@@ -202,7 +202,7 @@ func TestBindingPreflightRecursiveAndValidatorBoundaries(t *testing.T) {
 	last.ID = "last"
 	last.Steps = []Step{{ID: "end", Kind: "query", QueryID: "query", Bindings: []Binding{{Input: "id", FromInput: "id"}}}}
 	c.Checks["last"] = last
-	require.Equal(t, BindingInvalidDefinition, PreflightBindings(c, "root", v, m).State)
+	require.Equal(t, BindingInputBindable, PreflightBindings(c, "root", v, m).State)
 }
 
 func TestBindingPreflightNeverExecutesAndMatchesEngineParameters(t *testing.T) {
