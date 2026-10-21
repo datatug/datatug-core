@@ -1,6 +1,7 @@
 package datatug
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -230,5 +231,21 @@ func TestQueryCreationMetadataIsRequiredForPersistedRecords(t *testing.T) {
 	}
 	if err := (QueryDef{CreatedAt: "2026-10-21T12:00:00.123Z"}).ValidateCreationMetadata(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestQueryCreationTimeUsesTrustedOperationInstantOrCurrentUTC(t *testing.T) {
+	ctx := context.Background()
+	before := time.Now().UTC()
+	for _, candidate := range []context.Context{ctx, WithQueryCreationTime(ctx, time.Time{})} {
+		observed := QueryCreationTime(candidate)
+		if observed.Before(before) || observed.After(time.Now().UTC()) || observed.Location() != time.UTC {
+			t.Fatalf("invalid current UTC creation time %v", observed)
+		}
+	}
+	at := time.Date(2026, 10, 21, 13, 14, 15, 123, time.FixedZone("server", 3600))
+	got := QueryCreationTime(WithQueryCreationTime(ctx, at))
+	if !got.Equal(at) || got.Location() != time.UTC {
+		t.Fatalf("trusted creation time not preserved in UTC: %v", got)
 	}
 }

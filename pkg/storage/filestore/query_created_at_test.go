@@ -142,3 +142,13 @@ func TestQueryPersistedReadAndListRejectMissingCreation(t *testing.T) {
 		t.Fatal("list accepted missing mandatory metadata")
 	}
 }
+
+func TestQueryPairWriterRejectsCorruptStoredCreationMetadataBeforeStaging(t *testing.T) {
+	s, _ := newTestQueriesStore(t)
+	q := dtqlQuery("q", "", "SELECT 1")
+	for _, raw := range []string{`{`, `{"createdAt":"not-a-date"}`} {
+		if _, err := s.stageAndInstallQueryPair(queryLockGuard{}, "", q.QueryDef, currentQueryPair{exists: true, jsonBytes: []byte(raw)}); err == nil {
+			t.Fatalf("accepted corrupt previous metadata %s", raw)
+		}
+	}
+}

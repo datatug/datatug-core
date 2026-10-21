@@ -11,6 +11,9 @@ record_file:
     type: map[string]any
     records_dir: '.'
 columns:
+    createdAt:
+        type: string
+        required: true
     id:
         type: string
         required: true

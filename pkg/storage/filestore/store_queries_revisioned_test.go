@@ -389,7 +389,7 @@ func writeIncompleteLegacyQuery(t *testing.T, queriesDir, id string) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(queriesDir, id+".query.json"),
-		[]byte(`{"id":"`+id+`","title":"Legacy","type":"SQL"}`), 0o644); err != nil {
+		[]byte(`{"id":"`+id+`","title":"Legacy","type":"SQL","createdAt":"2026-10-01T00:00:00Z"}`), 0o644); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
