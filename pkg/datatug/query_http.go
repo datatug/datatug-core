@@ -88,7 +88,7 @@ func (v *QueryHTTPRequest) Validate() error {
 		if strings.ContainsAny(h.Value, "\r\n") {
 			return validation.NewErrBadRecordFieldValue(field+".value", "must not contain line breaks")
 		}
-		if reason, found := EmbeddedCredentialReason(h.Value); found {
+		if reason, found := embeddedCredentialReasonWithoutDSN(h.Value); found {
 			return validation.NewErrBadRecordFieldValue(field+".value", reason+"; set credentials for a single run instead of saving them")
 		}
 		if IsCredentialHTTPHeader(h.Name) {
@@ -102,7 +102,7 @@ func (v *QueryHTTPRequest) Validate() error {
 		if len(v.Body) > MaxQueryHTTPBodyBytes {
 			return validation.NewErrBadRecordFieldValue("body", fmt.Sprintf("is over the %d-byte limit", MaxQueryHTTPBodyBytes))
 		}
-		if reason, found := EmbeddedCredentialReason(v.Body); found {
+		if reason, found := embeddedCredentialReasonWithoutDSN(v.Body); found {
 			return validation.NewErrBadRecordFieldValue("body", reason+"; reference a declared query parameter as {name} instead of a literal secret")
 		}
 	}

@@ -127,3 +127,48 @@ func TestQueryDef_HTTPRejectsEmbeddedSecrets(t *testing.T) {
 		t.Error("secret in body must be rejected")
 	}
 }
+
+func TestQueryHTTPRequest_Validate_HeaderAndBodyScreening(t *testing.T) {
+	cases := []struct {
+		name    string
+		method  string
+		header  string
+		body    string
+		wantErr string
+	}{
+		{name: "header value user:pass@host is free text", header: "a:b@c"},
+		{name: "json email in body", method: "POST", body: `{"email":"bob@x.com"}`},
+		{name: "graphql email argument", method: "POST", body: `mutation { login(email:"a@b.c") }`},
+		{name: "json token member refused", method: "POST", body: `{"token":"abc"}`, wantErr: "secret JSON member"},
+		{name: "key=value refresh_token refused", method: "POST", body: `refresh_token=abc`, wantErr: "key/value pair"},
+		{name: "header url password refused", header: "https://u:p@host/x", wantErr: "password in a URL"},
+		{name: "header key=value secret refused", header: "api_key=abc", wantErr: "key/value pair"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := &QueryHTTPRequest{Method: tc.method, Body: tc.body}
+			if tc.header != "" {
+				req.Headers = []HTTPHeaderItem{{Name: "X-Note", Value: tc.header}}
+			}
+			err := req.Validate()
+			if tc.wantErr == "" {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+				t.Fatalf("want error containing %q, got %v", tc.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestEmbeddedCredentialReason_StillScreensDSN(t *testing.T) {
+	if _, found := EmbeddedCredentialReason("user:pass@host"); !found {
+		t.Fatal("text screening must still refuse a DSN password")
+	}
+	if _, found := embeddedCredentialReasonWithoutDSN("user:pass@host"); found {
+		t.Fatal("DSN check must be skipped")
+	}
+}
