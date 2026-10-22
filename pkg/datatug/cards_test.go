@@ -107,7 +107,7 @@ func TestCard_IDAndBrief(t *testing.T) {
 	require.Len(t, brief.Parameters, 1)
 	assert.Equal(t, CardBriefParameter{ID: "customerId", Type: "string", IsRequired: true, Match: c.Parameters[0].Match}, brief.Parameters[0])
 	assert.Equal(t, []CardBrief{brief}, Cards{c}.Briefs())
-	var alias ProjectCardBrief = brief
+	var alias = ProjectCardBrief(brief)
 	assert.Equal(t, brief, alias)
 }
 
@@ -270,4 +270,7 @@ func TestPresentationLinks_VisitTabWidgets(t *testing.T) {
 	}
 	assert.ErrorContains(t, mk(filter("missing")).validatePresentationLinks(), "unresolved selectionId")
 	assert.NoError(t, mk(*sqlWidget("q")).validatePresentationLinks())
+	// An undecodable widget inside tab.widgets is reported with its position.
+	err := mk(BoardWidget{Name: "chart", Data: map[string]any{"unrecognized": true}}).validatePresentationLinks()
+	assert.ErrorContains(t, err, "tab[0]/widget[0]")
 }
