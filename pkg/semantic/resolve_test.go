@@ -297,3 +297,13 @@ func TestResolve_MultipleColumnsMixedOutcomes(t *testing.T) {
 	_, hasFirstName := byColumn["FirstName"]
 	assert.False(t, hasFirstName)
 }
+
+func TestResolve_EmptyPatternValueNeverMatches(t *testing.T) {
+	entities := []*datatug.Entity{{
+		ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "Any"}},
+		Fields: datatug.EntityFields{{ID: "X", Type: "string", NamePatterns: datatug.StringPatterns{
+			{Type: "regexp", Value: ""}, {Type: "exact", Value: ""},
+		}}},
+	}}
+	assert.Empty(t, Resolve(entities, "s", "t", []Column{{Name: "CustomerID"}, {Name: ""}}))
+}

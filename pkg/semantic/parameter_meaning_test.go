@@ -77,9 +77,16 @@ func TestResolveParameterMeaning(t *testing.T) {
 		assert.Equal(t, "namePattern:exact:CustomerID", got.Rule)
 	})
 
-	t.Run("invalid or nil patterns never match", func(t *testing.T) {
+	t.Run("a meta with a blank part has no meaning, and the name is not consulted", func(t *testing.T) {
+		for _, meta := range []*datatug.EntityFieldRef{{Entity: "", Field: "ID"}, {Entity: "Customer", Field: " "}} {
+			_, ok := ResolveParameterMeaning([]*datatug.Entity{customer}, datatug.ParameterDef{ID: "ShipCustomerID", Meta: meta})
+			assert.False(t, ok)
+		}
+	})
+
+	t.Run("invalid, empty or nil patterns never match", func(t *testing.T) {
 		broken := keyedEntity("Customer", "northwind", "Customers", "CustomerID", "string",
-			nil, regexpPattern(`(`), &datatug.StringPattern{Type: "glob", Value: "*"})
+			nil, regexpPattern(`(`), regexpPattern(""), &datatug.StringPattern{Type: "exact"}, &datatug.StringPattern{Type: "glob", Value: "*"})
 		_, ok := ResolveParameterMeaning([]*datatug.Entity{broken}, datatug.ParameterDef{ID: "CustomerID"})
 		assert.False(t, ok)
 	})
