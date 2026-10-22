@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/url"
 	"reflect"
 	"strings"
@@ -309,9 +308,8 @@ func (v *QueryFederation) UnmarshalJSON(data []byte) error {
 	if err := d.Decode(&w); err != nil {
 		return err
 	}
-	if err := d.Decode(new(any)); err != io.EOF {
-		return fmt.Errorf("trailing federation JSON")
-	}
+	// checkOptionalSourceJSON already parsed the complete document, rejecting
+	// trailing values before this typed decode can mutate the receiver.
 	*v = QueryFederation(w)
 	return nil
 }
