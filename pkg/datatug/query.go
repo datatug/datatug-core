@@ -347,6 +347,11 @@ func (v QueryDef) Validate() error {
 			return validation.NewErrBadRecordFieldValue(fmt.Sprintf("parameters[%v].defaultValue", i), reason)
 		}
 	}
+	// The placeholder contract runs after the secret screens above, so a
+	// literal secret is reported as such rather than as a parameter mismatch.
+	if err := v.validateHTTPParameters(); err != nil {
+		return fmt.Errorf("parameters: %w", err)
+	}
 	// Everything else the query pair persists - the IDs, the parameter and
 	// recordset metadata, the tags, the folder - is swept last, so a
 	// structural failure still reports itself rather than a screening
