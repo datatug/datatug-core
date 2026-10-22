@@ -21,7 +21,8 @@ type ParameterMeaning struct {
 }
 
 // ResolveParameterMeaning returns the meaning of parameter: its declared
-// Meta when set (Declared, even when no entity declares that field), else
+// Meta when set (Declared, even when no entity declares that field; a Meta
+// with a blank entity or field gives no meaning and no inference), else
 // the one key field (EntityField.IsKeyField) whose NamePatterns match the
 // parameter's ID without a leading "@" (Inferred). Patterns are matched as
 // semantic.Resolve matches column names.
@@ -34,6 +35,11 @@ type ParameterMeaning struct {
 // Pure: no I/O, no mutation of its inputs.
 func ResolveParameterMeaning(entities []*datatug.Entity, parameter datatug.ParameterDef) (meaning ParameterMeaning, ok bool) {
 	if parameter.Meta != nil {
+		// A declared meta with a blank part is invalid (EntityFieldRef.Validate):
+		// it has no meaning, and the parameter name is not consulted instead.
+		if strings.TrimSpace(parameter.Meta.Entity) == "" || strings.TrimSpace(parameter.Meta.Field) == "" {
+			return ParameterMeaning{}, false
+		}
 		return ParameterMeaning{Ref: *parameter.Meta, Provenance: Declared}, true
 	}
 	name := strings.TrimPrefix(parameter.ID, "@")

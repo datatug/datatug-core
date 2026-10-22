@@ -162,7 +162,9 @@ func pickCandidate(candidates []candidate, columnName string, provenance Provena
 // describing the match. It never panics: an invalid regexp is returned as an
 // error, not compiled with MustCompile.
 func matchPattern(p *datatug.StringPattern, columnName string) (matched bool, rule string, err error) {
-	if p == nil {
+	// An empty value never matches: as a regexp it would match every name
+	// (StringPattern.Validate rejects it; this keeps unvalidated input safe).
+	if p == nil || p.Value == "" {
 		return false, "", nil
 	}
 	switch p.Type {
