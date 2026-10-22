@@ -206,6 +206,10 @@ const storedQueryHint = "a query is stored in git-tracked project files"
 //	relationshipBindings[].to.table    metadata identifier (validateQuerySourceBindings)
 //	relationshipBindings[].pairs[].fromField    metadata identifier (validateQuerySourceBindings)
 //	relationshipBindings[].pairs[].toField    metadata identifier (validateQuerySourceBindings)
+//	http.method                                   closed set (QueryHTTPRequest.Validate)
+//	http.headers[].name                           HTTP token, never a credential header (QueryHTTPRequest.Validate)
+//	http.headers[].value                          credential (QueryHTTPRequest.Validate)
+//	http.body                                     credential (QueryHTTPRequest.Validate)
 //	federation.ovdbBaseUrl                       credential
 //	federation.tables[].name                     identifier
 //	federation.tables[].database                 identifier

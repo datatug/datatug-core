@@ -148,11 +148,14 @@ type QueryDef struct {
 	// CreatedAt is mandatory server-owned RFC3339 UTC persisted creation metadata.
 	CreatedAt string `json:"createdAt" yaml:"createdAt" firestore:"createdAt"`
 	ProjectItem
-	Type       QueryType        `json:"type"` // Possible value: folder, DDL, GraphQL, HTTP, etc.
-	Text       string           `json:"text,omitempty" yaml:"text,omitempty"`
-	Draft      bool             `json:"draft,omitempty" yaml:"draft,omitempty"`
-	Parameters Parameters       `json:"parameters,omitempty" yaml:"parameters,omitempty"`
-	Targets    []QueryDefTarget `json:"targets,omitempty" yaml:"targets,omitempty"`
+	Type QueryType `json:"type"` // Possible value: folder, DDL, GraphQL, HTTP, etc.
+	Text string    `json:"text,omitempty" yaml:"text,omitempty"`
+	// HTTP is the saved request of an HTTP query beyond its URL (Text); nil
+	// for every other query and for an HTTP query that is a plain GET.
+	HTTP       *QueryHTTPRequest `json:"http,omitempty" yaml:"http,omitempty" firestore:"http,omitempty"`
+	Draft      bool              `json:"draft,omitempty" yaml:"draft,omitempty"`
+	Parameters Parameters        `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	Targets    []QueryDefTarget  `json:"targets,omitempty" yaml:"targets,omitempty"`
 	// User might want to now what set of cols is returned even before hitting the RUN button.
 	Recordsets []RecordsetDefinition `json:"recordsets,omitempty" yaml:"recordsets,omitempty"`
 	// Purpose says what question the query answers, in the author's words
@@ -284,16 +287,25 @@ func (v QueryDef) Validate() error {
 	case "":
 		return validation.NewErrRequestIsMissingRequiredField("type")
 	case "folder":
+		if v.HTTP != nil {
+			return validation.NewErrBadRecordFieldValue("http", "is only allowed for HTTP queries")
+		}
 		if v.Text != "" {
 			return validation.NewErrBadRecordFieldValue("text", "should be empty for folders")
 		}
 	case "HTTP":
+		if err := v.HTTP.Validate(); err != nil {
+			return fmt.Errorf("http: %w", err)
+		}
 		for i, target := range v.Targets {
 			if target.Catalog != "" {
 				return validation.NewErrBadRecordFieldValue(fmt.Sprintf("targets[%v]", i), "for HTTP queries catalog should be empty, got: %v"+target.Catalog)
 			}
 		}
 	case "SQL", "GraphQL", "DTQL":
+		if v.HTTP != nil {
+			return validation.NewErrBadRecordFieldValue("http", "is only allowed for HTTP queries")
+		}
 		//if strings.TrimSpace(v.Text) == "" {
 		//	return validation.NewErrRequestIsMissingRequiredField("text")
 		//}

@@ -158,6 +158,7 @@ func representativeQueryDef() datatug.QueryDef {
 		Targets:    []datatug.QueryDefTarget{{Driver: "sqlite3"}},
 		Recordsets: []datatug.RecordsetDefinition{{Type: "recordset"}},
 		Purpose:    "answers a question",
+		HTTP:       &datatug.QueryHTTPRequest{Method: "GET"},
 		Capture:    &datatug.QueryCapture{Environment: "local", Source: "src1"},
 	}
 }

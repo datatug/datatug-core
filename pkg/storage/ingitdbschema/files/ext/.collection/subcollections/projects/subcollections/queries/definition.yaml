@@ -33,6 +33,8 @@ columns:
         required: true
     text:
         type: string
+    http:
+        type: any
     draft:
         type: bool
     parameters:

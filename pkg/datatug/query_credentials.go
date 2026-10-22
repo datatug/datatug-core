@@ -169,9 +169,27 @@ var (
 // use it, and so can any other caller that must keep secrets out of a
 // project.
 func EmbeddedCredentialReason(value string) (reason string, found bool) {
+	return embeddedCredentialReason(value, true)
+}
+
+// embeddedCredentialReasonWithoutDSN is EmbeddedCredentialReason minus the
+// bare "user:password@" check. HTTP header values and request bodies hold
+// free text (emails, GraphQL arguments, "a:b@c") where that pattern gives
+// false positives; URL, key/value, JSON-member and credential-header
+// screening still apply.
+func embeddedCredentialReasonWithoutDSN(value string) (reason string, found bool) {
+	return embeddedCredentialReason(value, false)
+}
+
+func embeddedCredentialReason(value string, checkDSN bool) (reason string, found bool) {
 	for _, check := range [...]func(string) (string, bool){
 		urlCredentialReason,
-		dsnCredentialReason,
+		func(v string) (string, bool) {
+			if !checkDSN {
+				return "", false
+			}
+			return dsnCredentialReason(v)
+		},
 		keyValueCredentialReason,
 		jsonCredentialReason,
 		httpHeaderCredentialReason,
