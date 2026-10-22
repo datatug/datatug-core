@@ -3117,7 +3117,7 @@
       "error": {
         "code": "too-large",
         "parameter": "a",
-        "position": "body"
+        "position": "json-string"
       }
     },
     {
@@ -3191,6 +3191,28 @@
         "code": "too-large",
         "parameter": "a",
         "position": "path"
+      }
+    },
+    {
+      "name": "a URL query over 64 KiB names the query position",
+      "mode": "run",
+      "template": {
+        "url": "https://x.test/r?a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&a={a}&"
+      },
+      "parameters": [
+        {
+          "id": "a",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "values": {
+        "a": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "error": {
+        "code": "too-large",
+        "parameter": "a",
+        "position": "query"
       }
     },
     {
@@ -3446,6 +3468,21 @@
       "type": "number",
       "value": "01",
       "expect": null
+    },
+    {
+      "type": "number",
+      "value": "1e-400",
+      "expect": "0"
+    },
+    {
+      "type": "number",
+      "value": "-1e-400",
+      "expect": "0"
+    },
+    {
+      "type": "number",
+      "value": 1.25e+22,
+      "expect": "12500000000000000000000"
     },
     {
       "type": "number",

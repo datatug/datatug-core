@@ -801,7 +801,8 @@ func (t HTTPRequestTemplate) Substitute(params Parameters, values map[string]any
 	encoded := make([]string, len(spans))
 	for i, s := range spans {
 		key := encodingKey{s.Name, s.Position}
-		if e, ok := cache[key]; ok && s.Position != HTTPPositionHeader {
+		// A cached encoding already passed its position's checks.
+		if e, ok := cache[key]; ok {
 			encoded[i] = e
 			continue
 		}
@@ -859,10 +860,9 @@ func isHeaderControl(r rune) bool {
 	return (r < 0x20 && r != '\t') || r == 0x7f
 }
 
-// spliceField rebuilds one field in a single pass (a field with no spans is
-// returned as is: its size is bounded by the caller's own request limits), replacing its spans (in
-// template order) with their encoded values, and fails once the result would
-// exceed max bytes.
+// spliceField rebuilds one field in a single pass. A field with no spans is
+// returned as is (the caller's own limits bound it). Spans are replaced in
+// template order and the build fails once the result would exceed max bytes.
 func spliceField(text string, spans []httpSpan, encoded []string, field httpField, header, max int, pos HTTPPosition) (string, error) {
 	var b strings.Builder
 	last := 0
@@ -871,7 +871,7 @@ func spliceField(text string, spans []httpSpan, encoded []string, field httpFiel
 			continue
 		}
 		if b.Len()+(s.start-last)+len(encoded[i]) > max {
-			return "", &HTTPTemplateError{Code: HTTPErrTooLarge, Parameter: s.Name, Position: pos,
+			return "", &HTTPTemplateError{Code: HTTPErrTooLarge, Parameter: s.Name, Position: s.Position,
 				Detail: fmt.Sprintf("the substituted value makes it larger than %d bytes", max)}
 		}
 		b.WriteString(text[last:s.start])
