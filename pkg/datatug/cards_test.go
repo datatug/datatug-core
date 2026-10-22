@@ -299,3 +299,53 @@ func TestCard_ValidatesPresentationLinksOfItsWidget(t *testing.T) {
 	card.Widget = filter("missing")
 	assert.ErrorContains(t, card.Validate(), "unresolved selectionId")
 }
+
+func TestSQLWidget_ParameterSource(t *testing.T) {
+	check := func(wire string) error {
+		var w BoardWidget
+		require.NoError(t, json.Unmarshal([]byte(wire), &w))
+		return w.Validate()
+	}
+	assert.NoError(t, check(`{"name":"SQL","data":{"title":"Rows","source":{"parameter":"rows"}}}`))
+	assert.Error(t, check(`{"name":"SQL","data":{"source":{"parameter":""}}}`))
+	assert.Error(t, check(`{"name":"SQL","data":{"source":{}}}`))
+	assert.Error(t, check(`{"name":"SQL","data":{"source":{"parameter":"r","queryId":"q"}}}`), "strict decode")
+	assert.Error(t, check(`{"name":"SQL","data":{"source":{"parameter":"r"},"extra":1}}`), "strict decode")
+	assert.ErrorContains(t, check(`{"name":"SQL","data":{"source":{"parameter":"r"},"sql":{"queryId":"q"}}}`), "mutually exclusive")
+	assert.ErrorContains(t, check(`{"name":"SQL","data":{"source":{"parameter":"r"},"sql":{}}}`), "mutually exclusive")
+
+	// Typed values that carry both are refused too.
+	both := &SQLWidgetDef{Source: &ParameterRowsSource{Parameter: "r"}, SQL: SQLWidgetSettings{QueryID: "q"}}
+	assert.ErrorContains(t, both.Validate(), "mutually exclusive")
+	both = &SQLWidgetDef{Source: &ParameterRowsSource{Parameter: "r"}, SQL: SQLWidgetSettings{Parameters: WidgetParameterBindings{{ID: "a"}}}}
+	assert.Error(t, both.Validate())
+	both = &SQLWidgetDef{Source: &ParameterRowsSource{Parameter: "r"}, SQL: SQLWidgetSettings{PresentationFilter: &PresentationFilter{SelectionID: "s", Column: "c"}}}
+	assert.Error(t, both.Validate())
+
+	// Marshal keeps "sql" out of a parameter-sourced widget and in a query one.
+	sourced, err := json.Marshal(&SQLWidgetDef{Source: &ParameterRowsSource{Parameter: "r"}})
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"source":{"parameter":"r"}}`, string(sourced))
+	queried, err := json.Marshal(SQLWidgetDef{SQL: SQLWidgetSettings{QueryID: "q"}})
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"sql":{"queryId":"q"}}`, string(queried))
+
+	// A card whose tab holds a parameter-sourced grid validates and round-trips,
+	// and presentation-link validation copes with a widget that has no query.
+	card := validCard()
+	card.Parameters = append(card.Parameters, CardParameterDef{ParameterDef: ParameterDef{ID: "rows", Type: "recordset"}})
+	card.Widget = &BoardWidget{Name: "tabs", Data: &TabsWidgetDef{Tabs: []TabWidget{{Title: "T", Widgets: []BoardWidget{
+		{Name: string(QueryTypeSQL), Data: &SQLWidgetDef{Source: &ParameterRowsSource{Parameter: "rows"}}},
+	}}}}}
+	require.NoError(t, card.Validate())
+	data, err := json.Marshal(card)
+	require.NoError(t, err)
+	var decoded Card
+	require.NoError(t, json.Unmarshal(data, &decoded))
+	require.NoError(t, decoded.Validate())
+	assert.NotContains(t, string(data), `"sql"`)
+	assert.Contains(t, string(data), `"source":{"parameter":"rows"}`)
+
+	// Non-object data falls back to the permissive decoder and its error.
+	assert.Error(t, (&BoardWidget{Name: string(QueryTypeSQL), Data: "text"}).Validate())
+}

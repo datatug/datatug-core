@@ -123,7 +123,7 @@ func validatePresentationRoots(roots []presentationRoot) error {
 			case SQLWidgetDef:
 				sql = &typed
 			default:
-				decoded, err := newWidgetDef(&SQLWidgetDef{}, widget.Data)
+				decoded, err := decodeSQLWidgetDef(widget.Data)
 				if err != nil {
 					return fmt.Errorf("%s: %w", path, err)
 				}
@@ -317,7 +317,7 @@ func (v BoardWidget) validateAtDepth(depth int) (err error) {
 		return validation.NewErrRecordIsMissingRequiredField("name")
 	case string(QueryTypeSQL): // Why switching name on a query type? Temporary demo hack?
 		if widget, ok = v.Data.(*SQLWidgetDef); !ok {
-			if widget, err = newWidgetDef(&SQLWidgetDef{}, v.Data); err != nil {
+			if widget, err = decodeSQLWidgetDef(v.Data); err != nil {
 				return err
 			}
 		}
@@ -432,6 +432,42 @@ func (v WidgetBase) Validate(isTitleRequired bool) error {
 type SQLWidgetDef struct {
 	WidgetBase
 	SQL SQLWidgetSettings `json:"sql"`
+	// Source, when set, takes the rows from a card parameter instead of a saved
+	// query. It is exclusive with SQL, which then stays absent in JSON.
+	Source *ParameterRowsSource `json:"source,omitempty"`
+}
+
+// MarshalJSON leaves "sql" out of a widget whose rows come from a parameter.
+func (v SQLWidgetDef) MarshalJSON() ([]byte, error) {
+	out := struct {
+		WidgetBase
+		SQL    *SQLWidgetSettings   `json:"sql,omitempty"`
+		Source *ParameterRowsSource `json:"source,omitempty"`
+	}{WidgetBase: v.WidgetBase, Source: v.Source}
+	if v.Source == nil {
+		out.SQL = &v.SQL
+	}
+	return json.Marshal(out)
+}
+
+// decodeSQLWidgetDef decodes a SQL widget. A widget with a source is a new
+// shape and is decoded strictly, with "sql" refused; the saved-query shape keeps
+// its permissive legacy decoding.
+func decodeSQLWidgetDef(data interface{}) (validatable, error) {
+	raw, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	var keys map[string]json.RawMessage
+	if json.Unmarshal(raw, &keys) == nil {
+		if _, hasSource := keys["source"]; hasSource {
+			if _, hasSQL := keys["sql"]; hasSQL {
+				return nil, validation.NewErrBadRecordFieldValue("source", "sql and source are mutually exclusive")
+			}
+			return newStrictWidgetDef(&SQLWidgetDef{}, data)
+		}
+	}
+	return newWidgetDef(&SQLWidgetDef{}, data)
 }
 
 // SQLWidgetSettings binds a SQL widget to a query in the project's query
@@ -566,6 +602,12 @@ func (v WidgetParameterBinding) Validate() error {
 func (v *SQLWidgetDef) Validate() error {
 	if err := v.WidgetBase.Validate(false); err != nil {
 		return err
+	}
+	if v.Source != nil {
+		if v.SQL.QueryID != "" || len(v.SQL.Parameters) > 0 || v.SQL.PresentationFilter != nil {
+			return validation.NewErrBadRecordFieldValue("source", "sql and source are mutually exclusive")
+		}
+		return v.Source.Validate()
 	}
 	if err := v.SQL.Validate(); err != nil {
 		return err

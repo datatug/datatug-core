@@ -240,6 +240,20 @@ func (v *TextWidgetDef) Validate() error {
 	return validateStringField("markdown", v.Markdown, false, maxTextWidgetMarkdownLength)
 }
 
+// ParameterRowsSource takes a widget's rows from a card parameter instead of a
+// saved query: a record parameter yields one row, a recordset parameter rows.
+type ParameterRowsSource struct {
+	Parameter string `json:"parameter"`
+}
+
+// Validate returns error if not valid.
+func (v ParameterRowsSource) Validate() error {
+	if v.Parameter == "" {
+		return validation.NewErrRecordIsMissingRequiredField("source.parameter")
+	}
+	return nil
+}
+
 // FieldsWidgetSource tells where a fields widget takes its record from:
 // exactly one of a saved query (first row) or a record parameter.
 type FieldsWidgetSource struct {
