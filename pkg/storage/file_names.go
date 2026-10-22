@@ -8,6 +8,7 @@ import (
 const (
 	RepoRootDataTugFileName = ".datatug.yaml"
 	BoardsFolder            = "boards"
+	CardsFolder             = "cards"
 	ProjectSummaryFileName  = "datatug-project.json"
 	DataFolder              = "data"
 	DbsFolder               = "dbs"
@@ -31,6 +32,7 @@ func JsonFileName(id, suffix string) string {
 	switch suffix {
 	case
 		BoardFileSuffix,
+		CardFileSuffix,
 		DbCatalogFileSuffix,
 		DbCatalogObjectFileSuffix,
 		DbCatalogRefsFileSuffix,
@@ -63,6 +65,7 @@ func GetProjItemIDFromFileName(fileName string) (id string, suffix string) {
 
 const (
 	BoardFileSuffix           = "board"
+	CardFileSuffix            = "card"
 	DbCatalogFileSuffix       = "db"
 	DbCatalogObjectFileSuffix = "objects"
 	DbCatalogRefsFileSuffix   = "refs"

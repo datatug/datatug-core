@@ -128,6 +128,11 @@ func (v *Board) validatePresentationLinks() error {
 				return nil
 			}
 			for i, tab := range tabs.Tabs {
+				for j, widget := range tab.Widgets {
+					if err := visit(widget, depth+1, fmt.Sprintf("%s/tab[%d]/widget[%d]", path, i, j)); err != nil {
+						return err
+					}
+				}
 				if tab.Widget.Name == "" && tab.Widget.Data == nil {
 					continue
 				}
@@ -140,6 +145,9 @@ func (v *Board) validatePresentationLinks() error {
 	}
 	for rowIndex, row := range v.Rows {
 		for cardIndex, card := range row.Cards {
+			if card.Widget == nil {
+				continue // a ref card has no inline widget
+			}
 			if err := visit(*card.Widget, 0, fmt.Sprintf("row[%d]/card[%d]", rowIndex, cardIndex)); err != nil {
 				return err
 			}
@@ -237,6 +245,9 @@ type BoardCard struct {
 	Title  string       `json:"title"`
 	Cols   int          `json:"cols,omitempty"`
 	Widget *BoardWidget `json:"widget,omitempty"`
+	// Ref references a project card instead of holding an inline Widget.
+	// Exactly one of Widget or Ref is set.
+	Ref *BoardCardRef `json:"ref,omitempty"`
 }
 
 // Validate returns error if failed
@@ -247,7 +258,15 @@ func (v BoardCard) Validate() error {
 	if v.Cols < 0 {
 		return validation.NewErrBadRecordFieldValue("cols", "should be positive")
 	}
-	if v.Widget == nil {
+	switch {
+	case v.Widget != nil && v.Ref != nil:
+		return validation.NewErrBadRecordFieldValue("ref", "widget and ref are mutually exclusive")
+	case v.Ref != nil:
+		if err := v.Ref.Validate(); err != nil {
+			return fmt.Errorf("invalid card ref with id=%v: %w", v.ID, err)
+		}
+		return nil
+	case v.Widget == nil:
 		return validation.NewErrRecordIsMissingRequiredField("widget")
 	}
 	if err := v.Widget.Validate(); err != nil {
@@ -307,6 +326,22 @@ func (v BoardWidget) validateAtDepth(depth int) (err error) {
 				return err
 			}
 		}
+	case "text":
+		if typed, value := v.Data.(TextWidgetDef); value {
+			widget = &typed
+		} else if widget, ok = v.Data.(*TextWidgetDef); !ok {
+			if widget, err = newStrictWidgetDef(&TextWidgetDef{}, v.Data); err != nil {
+				return err
+			}
+		}
+	case "fields":
+		if typed, value := v.Data.(FieldsWidgetDef); value {
+			widget = &typed
+		} else if widget, ok = v.Data.(*FieldsWidgetDef); !ok {
+			if widget, err = newStrictWidgetDef(&FieldsWidgetDef{}, v.Data); err != nil {
+				return err
+			}
+		}
 	default:
 		return validation.NewErrBadRecordFieldValue("id", "unknown widget id")
 	}
@@ -325,6 +360,12 @@ func (v BoardWidget) validateAtDepth(depth int) (err error) {
 	}
 	if chart, ok := widget.(*ChartWidgetDef); ok && chart == nil {
 		return validation.NewErrBadRecordFieldValue("data", "chart widget definition is null")
+	}
+	if text, ok := widget.(*TextWidgetDef); ok && text == nil {
+		return validation.NewErrBadRecordFieldValue("data", "text widget definition is null")
+	}
+	if fields, ok := widget.(*FieldsWidgetDef); ok && fields == nil {
+		return validation.NewErrBadRecordFieldValue("data", "fields widget definition is null")
 	}
 	if err = widget.Validate(); err != nil {
 		return fmt.Errorf("failed to test widget of type %T: %w", widget, err)
@@ -605,6 +646,9 @@ type TabWidget struct {
 	ID     string      `json:"id,omitempty"`
 	Title  string      `json:"title"`
 	Widget BoardWidget `json:"widget,omitempty"`
+	// Widgets are the tab's widgets, rendered in order; each may carry its
+	// own title. The legacy single Widget still loads.
+	Widgets []BoardWidget `json:"widgets,omitempty"`
 }
 
 // TabsWidgetDef describes set of tab widgets
@@ -632,6 +676,11 @@ func (v TabsWidgetDef) validateAtDepth(depth int) error {
 				return fmt.Errorf("invalid tab at index %v: duplicate id=%q", i, tab.ID)
 			}
 			seenIDs[tab.ID] = true
+		}
+		for j, widget := range tab.Widgets {
+			if err := widget.validateAtDepth(depth + 1); err != nil {
+				return fmt.Errorf("invalid tab at index %v with title=%q: widget at index %v: %w", i, tab.Title, j, err)
+			}
 		}
 		// The wire permits placeholder tabs without a widget. Existing boards
 		// also use titles as display text, not a guaranteed unique identity.

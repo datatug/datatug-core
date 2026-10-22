@@ -13,6 +13,7 @@ func newFsProjectStore(projectID string, projectPath string) fsProjectStore {
 		projectPath:                 projectPath,
 		readmeEncoder:               datatug2md.NewEncoder(),
 		fsBoardsStore:               newFsBoardsStore(projectPath),
+		fsCardsStore:                newFsCardsStore(projectPath),
 		fsDbModelsStore:             newFsDbModelsStore(projectPath),
 		fsQueriesStore:              newFsQueriesStore(projectPath),
 		fsEntitiesStore:             newFsEntitiesStore(projectPath),
@@ -30,6 +31,7 @@ type fsProjectStore struct {
 	projectPath   string
 	readmeEncoder datatug.ReadmeEncoder
 	fsBoardsStore
+	fsCardsStore
 	fsDbModelsStore
 	fsQueriesStore
 	fsEntitiesStore

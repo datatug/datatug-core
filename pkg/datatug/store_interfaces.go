@@ -41,6 +41,7 @@ type ProjectStore interface {
 
 	QueriesStore
 	BoardsStore
+	CardsStore
 	FoldersStore
 	EntitiesStore
 	EnvironmentsStore
@@ -88,6 +89,14 @@ type BoardsStore interface {
 	LoadBoard(ctx context.Context, id string, o ...StoreOption) (*Board, error)
 	SaveBoard(ctx context.Context, board *Board) error
 	DeleteBoard(ctx context.Context, id string) error
+}
+
+// CardsStore reads and writes standalone project cards (`cards/<id>/card.json`).
+type CardsStore interface {
+	LoadCards(ctx context.Context, o ...StoreOption) (Cards, error)
+	LoadCard(ctx context.Context, id string, o ...StoreOption) (*Card, error)
+	SaveCard(ctx context.Context, card *Card) error
+	DeleteCard(ctx context.Context, id string) error
 }
 
 type DbSchemasStore interface {

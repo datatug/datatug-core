@@ -1,0 +1,184 @@
+package filestore
+
+import (
+	"context"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/datatug/datatug-core/pkg/datatug"
+	"github.com/datatug/datatug-core/pkg/storage"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func testCard(id, title string) *datatug.Card {
+	return &datatug.Card{
+		ID:    id,
+		Title: title,
+		Parameters: []datatug.CardParameterDef{{
+			ParameterDef: datatug.ParameterDef{ID: "customerId", Type: "string", IsRequired: true},
+			Match:        []datatug.CardMatchRule{{Column: "CustomerID"}},
+		}},
+		Widget: &datatug.BoardWidget{Name: "text", Data: &datatug.TextWidgetDef{Markdown: "hi"}},
+	}
+}
+
+func newCardsTestStore(t *testing.T) (fsCardsStore, string) {
+	t.Helper()
+	dir := t.TempDir()
+	return newFsCardsStore(dir), filepath.Join(dir, storage.CardsFolder)
+}
+
+func writeCardJSON(t *testing.T, p, content string) {
+	t.Helper()
+	require.NoError(t, os.MkdirAll(filepath.Dir(p), 0o777))
+	require.NoError(t, os.WriteFile(p, []byte(content), 0o644))
+}
+
+func TestFsCardsStore_RoundTrip(t *testing.T) {
+	ctx := context.Background()
+	store, cardsDir := newCardsTestStore(t)
+
+	cards, err := store.LoadCards(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, cards)
+
+	require.NoError(t, store.SaveCard(ctx, testCard("b-card", "B")))
+	require.NoError(t, store.SaveCard(ctx, testCard("a_card", "A")))
+	assert.FileExists(t, filepath.Join(cardsDir, "b-card", "card.json"))
+
+	card, err := store.LoadCard(ctx, "b-card")
+	require.NoError(t, err)
+	assert.Equal(t, "B", card.Title)
+	assert.Equal(t, datatug.CardMatchRule{Column: "CustomerID"}, card.Parameters[0].Match[0])
+
+	cards, err = store.LoadCards(ctx)
+	require.NoError(t, err)
+	require.Len(t, cards, 2)
+	assert.Equal(t, "a_card", cards[0].ID)
+	assert.Equal(t, "b-card", cards[1].ID)
+
+	require.NoError(t, store.DeleteCard(ctx, "b-card"))
+	assert.NoFileExists(t, filepath.Join(cardsDir, "b-card", "card.json"))
+	assert.NoDirExists(t, filepath.Join(cardsDir, "b-card"))
+	_, err = store.LoadCard(ctx, "b-card")
+	assert.ErrorIs(t, err, os.ErrNotExist)
+	require.NoError(t, store.DeleteCard(ctx, "b-card"), "deleting twice is fine")
+}
+
+func TestFsCardsStore_FlatAndFolderLayouts(t *testing.T) {
+	ctx := context.Background()
+	store, cardsDir := newCardsTestStore(t)
+	writeCardJSON(t, filepath.Join(cardsDir, "flat.card.json"), `{"title":"Flat","widget":{"name":"text","data":{"markdown":"x"}}}`)
+	writeCardJSON(t, filepath.Join(cardsDir, "both.card.json"), `{"title":"FlatWins?","widget":{"name":"text","data":{"markdown":"x"}}}`)
+	writeCardJSON(t, filepath.Join(cardsDir, "both", "card.json"), `{"title":"FolderWins","widget":{"name":"text","data":{"markdown":"x"}}}`)
+
+	flat, err := store.LoadCard(ctx, "flat")
+	require.NoError(t, err)
+	assert.Equal(t, "Flat", flat.Title)
+	assert.Equal(t, "flat", flat.ID, "the id comes from the file name")
+
+	both, err := store.LoadCard(ctx, "both")
+	require.NoError(t, err)
+	assert.Equal(t, "FolderWins", both.Title)
+
+	cards, err := store.LoadCards(ctx)
+	require.NoError(t, err)
+	require.Len(t, cards, 2)
+
+	// Saving a flat card writes the folder form and removes the flat file.
+	flat.Widget = &datatug.BoardWidget{Name: "text", Data: &datatug.TextWidgetDef{Markdown: "x"}}
+	require.NoError(t, store.SaveCard(ctx, flat))
+	assert.FileExists(t, filepath.Join(cardsDir, "flat", "card.json"))
+	assert.NoFileExists(t, filepath.Join(cardsDir, "flat.card.json"))
+
+	// Delete removes both forms.
+	require.NoError(t, store.DeleteCard(ctx, "both"))
+	assert.NoFileExists(t, filepath.Join(cardsDir, "both.card.json"))
+	assert.NoFileExists(t, filepath.Join(cardsDir, "both", "card.json"))
+}
+
+func TestFsCardsStore_Rejections(t *testing.T) {
+	ctx := context.Background()
+	store, cardsDir := newCardsTestStore(t)
+
+	for _, id := range []string{"", "../x", "a/b", "a b", "a.b"} {
+		assert.Error(t, store.SaveCard(ctx, testCard(id, "T")), id)
+		_, err := store.LoadCard(ctx, id)
+		assert.Error(t, err, id)
+		assert.Error(t, store.DeleteCard(ctx, id), id)
+	}
+	assert.Error(t, store.SaveCard(ctx, nil))
+	invalid := testCard("ok", "")
+	assert.Error(t, store.SaveCard(ctx, invalid), "invalid card is not saved")
+	assert.NoFileExists(t, filepath.Join(cardsDir, "ok", "card.json"))
+
+	// Unreadable and unknown-key files fail the load with the path.
+	writeCardJSON(t, filepath.Join(cardsDir, "broken", "card.json"), `{not json`)
+	_, err := store.LoadCard(ctx, "broken")
+	assert.ErrorContains(t, err, "broken")
+	_, err = store.LoadCards(ctx)
+	assert.Error(t, err)
+	require.NoError(t, os.RemoveAll(filepath.Join(cardsDir, "broken")))
+
+	writeCardJSON(t, filepath.Join(cardsDir, "extra", "card.json"), `{"title":"T","unknown":1}`)
+	_, err = store.LoadCard(ctx, "extra")
+	assert.Error(t, err)
+}
+
+func TestFsCardsStore_ListIgnoresForeignEntries(t *testing.T) {
+	ctx := context.Background()
+	store, cardsDir := newCardsTestStore(t)
+	require.NoError(t, store.SaveCard(ctx, testCard("keep", "Keep")))
+	require.NoError(t, store.SaveCard(ctx, testCard("keep", "Keep again")), "overwrite")
+	require.NoError(t, os.MkdirAll(filepath.Join(cardsDir, "empty-dir"), 0o777))
+	writeCardJSON(t, filepath.Join(cardsDir, "readme.md"), "x")
+	writeCardJSON(t, filepath.Join(cardsDir, "bad id.card.json"), "{}")
+	writeCardJSON(t, filepath.Join(cardsDir, "bad id", "card.json"), "{}")
+
+	cards, err := store.LoadCards(ctx)
+	require.NoError(t, err)
+	require.Len(t, cards, 1)
+	assert.Equal(t, "Keep again", cards[0].Title)
+}
+
+func TestFsCardsStore_ListErrors(t *testing.T) {
+	dir := t.TempDir()
+	store := newFsCardsStore(dir)
+	// "cards" is a file, not a folder: the directory read fails.
+	require.NoError(t, os.WriteFile(filepath.Join(dir, storage.CardsFolder), []byte("x"), 0o644))
+	_, err := store.LoadCards(context.Background())
+	assert.Error(t, err)
+}
+
+func TestFsCardsStore_ListSkipsVanishedCard(t *testing.T) {
+	ctx := context.Background()
+	store, cardsDir := newCardsTestStore(t)
+	// A dangling symlink is listed by the directory scan but cannot be read.
+	require.NoError(t, os.MkdirAll(cardsDir, 0o777))
+	require.NoError(t, os.Symlink(filepath.Join(cardsDir, "nowhere"), filepath.Join(cardsDir, "ghost.card.json")))
+	cards, err := store.LoadCards(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, cards)
+}
+
+func TestFsCardsStore_DeleteAndSaveFaults(t *testing.T) {
+	ctx := context.Background()
+	store, cardsDir := newCardsTestStore(t)
+	// A folder where the card file should be makes Remove refuse.
+	require.NoError(t, os.MkdirAll(filepath.Join(cardsDir, "x", "card.json"), 0o777))
+	assert.Error(t, store.DeleteCard(ctx, "x"))
+	assert.Error(t, store.SaveCard(ctx, testCard("x", "T")))
+
+	// A folder at the flat path makes the post-save flat cleanup fail.
+	require.NoError(t, os.MkdirAll(filepath.Join(cardsDir, "y.card.json"), 0o777))
+	assert.Error(t, store.SaveCard(ctx, testCard("y", "T")))
+}
+
+func TestFsProjectStore_HasCards(t *testing.T) {
+	dir := t.TempDir()
+	var store datatug.CardsStore = newFsProjectStore("p", dir)
+	require.NoError(t, store.SaveCard(context.Background(), testCard("c", "C")))
+	assert.FileExists(t, filepath.Join(dir, "cards", "c", "card.json"))
+}
