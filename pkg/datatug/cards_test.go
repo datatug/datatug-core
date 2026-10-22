@@ -349,3 +349,44 @@ func TestSQLWidget_ParameterSource(t *testing.T) {
 	// Non-object data falls back to the permissive decoder and its error.
 	assert.Error(t, (&BoardWidget{Name: string(QueryTypeSQL), Data: "text"}).Validate())
 }
+
+func TestTabWidget_WidgetAndWidgetsAreExclusive(t *testing.T) {
+	both := BoardWidget{Name: "tabs", Data: &TabsWidgetDef{Tabs: []TabWidget{{
+		Title: "T", Widget: *sqlWidget("q"), Widgets: []BoardWidget{{Name: "text", Data: &TextWidgetDef{Markdown: "x"}}},
+	}}}}
+	assert.ErrorContains(t, both.Validate(), "either widget or widgets")
+	var wire BoardWidget
+	require.NoError(t, json.Unmarshal([]byte(`{"name":"tabs","data":{"tabs":[{"title":"T","widget":{"name":"text","data":{"markdown":"x"}},"widgets":[{"name":"text","data":{"markdown":"y"}}]}]}}`), &wire))
+	assert.Error(t, wire.Validate())
+}
+
+func TestCard_RowsSourcesMustBeDeclaredRowParameters(t *testing.T) {
+	build := func(types map[string]string, wire string) error {
+		card := validCard()
+		card.Parameters = nil
+		for id, typ := range types {
+			card.Parameters = append(card.Parameters, CardParameterDef{ParameterDef: ParameterDef{ID: id, Type: typ}})
+		}
+		var w BoardWidget
+		require.NoError(t, json.Unmarshal([]byte(wire), &w))
+		card.Widget = &w
+		return card.Validate()
+	}
+	grid := `{"name":"SQL","data":{"source":{"parameter":"rows"}}}`
+	fields := `{"name":"fields","data":{"source":{"parameter":"row"}}}`
+	query := `{"name":"fields","data":{"source":{"queryId":"q"}}}`
+	tabs := func(inner string) string {
+		return `{"name":"tabs","data":{"tabs":[{"title":"A","widgets":[` + inner + `]},{"title":"B","widget":` + fields + `}]}}`
+	}
+	ok := map[string]string{"rows": "recordset", "row": "record"}
+	assert.NoError(t, build(ok, grid))
+	assert.NoError(t, build(ok, fields))
+	assert.NoError(t, build(ok, query), "a query source names no parameter")
+	assert.NoError(t, build(ok, tabs(grid)))
+	assert.NoError(t, build(map[string]string{"rows": "recordset"}, grid), "a recordset feeds a grid")
+	assert.NoError(t, build(map[string]string{"row": "recordset"}, fields), "a recordset also feeds fields")
+	assert.ErrorContains(t, build(map[string]string{"row": "record"}, grid), `"rows"`)
+	assert.ErrorContains(t, build(map[string]string{"rows": "string", "row": "record"}, grid), "declared record or recordset")
+	assert.Error(t, build(map[string]string{"rows": "recordset"}, tabs(grid)), "the legacy tab widget is checked too")
+	assert.Error(t, build(map[string]string{"rows": "recordset", "row": "record"}, tabs(`{"name":"SQL","data":{"source":{"parameter":"nope"}}}`)))
+}

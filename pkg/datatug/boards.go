@@ -752,6 +752,9 @@ func (v TabsWidgetDef) validateAtDepth(depth int) error {
 			}
 			seenIDs[tab.ID] = true
 		}
+		if len(tab.Widgets) > 0 && (tab.Widget.Name != "" || tab.Widget.Data != nil) {
+			return fmt.Errorf("invalid tab at index %v with title=%q: a tab holds either widget or widgets, not both", i, tab.Title)
+		}
 		for j, widget := range tab.Widgets {
 			if err := widget.validateAtDepth(depth + 1); err != nil {
 				return fmt.Errorf("invalid tab at index %v with title=%q: widget at index %v: %w", i, tab.Title, j, err)

@@ -164,6 +164,17 @@ func (v *Card) Validate() error {
 	if err := v.Widget.Validate(); err != nil {
 		return fmt.Errorf("invalid card widget with id=%v: %w", v.ID, err)
 	}
+	rows := map[string]bool{}
+	for _, p := range v.Parameters {
+		if p.Type == "record" || p.Type == "recordset" {
+			rows[p.ID] = true
+		}
+	}
+	for _, id := range parameterRowSources(*v.Widget) {
+		if !rows[id] {
+			return validation.NewErrBadRecordFieldValue("widget", fmt.Sprintf("rows source %q must be a declared record or recordset parameter", id))
+		}
+	}
 	if err := validatePresentationRoots([]presentationRoot{{widget: *v.Widget, path: "widget"}}); err != nil {
 		return validation.NewErrBadRecordFieldValue("widget", err.Error())
 	}
@@ -308,4 +319,28 @@ func (v *FieldsWidgetDef) Validate() error {
 		}
 	}
 	return nil
+}
+
+// parameterRowSources lists every card parameter a validated widget graph takes
+// its rows from (source.parameter of SQL and fields widgets, tabs included).
+func parameterRowSources(widget BoardWidget) []string {
+	raw, _ := json.Marshal(widget.Data) // the widget already validated, so it marshals
+	var data struct {
+		Source *ParameterRowsSource `json:"source"`
+		Tabs   []TabWidget          `json:"tabs"`
+	}
+	_ = json.Unmarshal(raw, &data) // the widget already decoded; a mismatch means no sources
+	var ids []string
+	if data.Source != nil && data.Source.Parameter != "" && (widget.Name == string(QueryTypeSQL) || widget.Name == "fields") {
+		ids = append(ids, data.Source.Parameter)
+	}
+	if widget.Name == "tabs" {
+		for _, tab := range data.Tabs {
+			ids = append(ids, parameterRowSources(tab.Widget)...)
+			for _, inner := range tab.Widgets {
+				ids = append(ids, parameterRowSources(inner)...)
+			}
+		}
+	}
+	return ids
 }
