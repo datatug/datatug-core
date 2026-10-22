@@ -450,6 +450,10 @@ var queryStorageFieldDecisions = map[string]string{
 	"capture.bindings[].parameterId": "identifier (QueryCapture.Validate)",
 	"capture.bindings[].origin":      "closed set (QueryCapture.Validate)",
 	"connectionId":                   "identifier (QueryDef.Validate)",
+	"http.method":                    "closed set (QueryHTTPRequest.Validate)",
+	"http.headers[].name":            "token (QueryHTTPRequest.Validate)",
+	"http.headers[].value":           "credential (QueryHTTPRequest.Validate)",
+	"http.body":                      "credential (QueryHTTPRequest.Validate)",
 }
 
 // TestQueryDefStorageScreen_CoversEveryPersistedStringField is what makes
