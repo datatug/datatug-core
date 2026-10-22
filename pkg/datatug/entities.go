@@ -44,6 +44,10 @@ type Entity struct {
 	ListOfTags
 	Fields EntityFields `json:"fields,omitempty" firestore:"fields,omitempty"`
 	Tables TableKeys    `json:"tables,omitempty" firestore:"tables,omitempty"`
+	// Display lists, in order, the IDs of this entity's own fields that let a
+	// person recognise a record - the columns a parameter lookup picker shows
+	// beside the key (backstage parameter-lookup REQ:display-columns).
+	Display []string `json:"display,omitempty" firestore:"display,omitempty"`
 }
 
 // Validate returns error if not valid
@@ -57,8 +61,34 @@ func (v Entity) Validate() error {
 	if err := v.Tables.Validate(); err != nil {
 		return validation.NewErrBadRecordFieldValue("tables", err.Error())
 	}
+	if err := v.validateDisplay(); err != nil {
+		return err
+	}
 	if err := v.ListOfTags.Validate(); err != nil {
 		return err
+	}
+	return nil
+}
+
+// validateDisplay requires every Display entry to name a distinct field of
+// this entity.
+func (v Entity) validateDisplay() error {
+	seen := make(map[string]struct{}, len(v.Display))
+	for i, id := range v.Display {
+		if _, ok := seen[id]; ok {
+			return validation.NewErrBadRecordFieldValue("display", fmt.Sprintf("display[%v]: duplicate field %q", i, id))
+		}
+		seen[id] = struct{}{}
+		found := false
+		for _, f := range v.Fields {
+			if f != nil && f.ID == id {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return validation.NewErrBadRecordFieldValue("display", fmt.Sprintf("display[%v]: unknown field %q", i, id))
+		}
 	}
 	return nil
 }

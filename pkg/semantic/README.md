@@ -121,3 +121,64 @@ applicable, notYet := semantic.Applicable([]*datatug.QueryDef{query}, available)
 // applicable[0].Chain     == []string{"CustomerId → Customer.ID (declared) → parameter customerId"}
 // notYet                  == nil (this query had everything it needed)
 ```
+
+## LookupSources
+
+Given a parameter that means an entity field, returns the collections
+its value can be picked from, per the `parameter-lookup` feature
+(`datatug/backstage` `spec/features/parameter-lookup`, REQ:lookup-source-resolution):
+every *declared* mapping of that field (never a `NamePatterns` inference) whose
+collection's primary key is exactly that one column, with a key kind
+(`ColumnKeyKind`: integer or text affinity) the parameter's type can hold
+(`ParameterAcceptsKey`). Each source carries its display columns
+(`DisplayColumns`): the entity's `display` field list when it yields any column
+in that collection, otherwise up to three inferred ones (other mapped fields,
+then the schema's first text columns), labelled `Inferred`.
+
+```go
+customer := &datatug.Entity{
+	ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "Customer"}},
+	Display:     []string{"CompanyName"},
+	Fields: datatug.EntityFields{
+		{ID: "ID", Type: "string", Mappings: datatug.PhysicalRefs{{Source: "northwind", Collection: "Customers", Column: "CustomerID"}}},
+		{ID: "CompanyName", Type: "string", Mappings: datatug.PhysicalRefs{{Source: "northwind", Collection: "Customers", Column: "CompanyName"}}},
+	},
+}
+schema := map[semantic.SchemaKey]semantic.TableSchema{
+	{Source: "northwind", Collection: "Customers"}: {
+		PrimaryKey: &datatug.UniqueKey{Name: "PK_Customers", Columns: []string{"CustomerID"}},
+		Columns:    []semantic.Column{{Name: "CustomerID", Type: "nchar(5)"}, {Name: "CompanyName", Type: "nvarchar(40)"}},
+	},
+}
+param := datatug.ParameterDef{ID: "CustomerID", Type: "string", Meta: &datatug.EntityFieldRef{Entity: "Customer", Field: "ID"}}
+
+sources := semantic.LookupSources([]*datatug.Entity{customer}, schema, param, "")
+// sources == []semantic.LookupSource{{
+//   Source: "northwind", Collection: "Customers", KeyColumn: "CustomerID", KeyKind: semantic.KeyText,
+//   Display: []semantic.DisplayColumn{{Column: "CompanyName", Field: "CompanyName", Label: "CompanyName", Provenance: semantic.Declared}},
+//   DisplayProvenance: semantic.Declared,
+//   Meaning: semantic.ParameterMeaning{Ref: datatug.EntityFieldRef{Entity: "Customer", Field: "ID"}, Provenance: semantic.Declared},
+// }}
+```
+
+### ResolveParameterMeaning
+
+The field a parameter means (REQ:inferred-parameter-meaning): its declared
+`Meta` when set; otherwise the one *key field* (`isKeyField: true`) whose
+`NamePatterns` match the parameter's name without `@`, labelled `Inferred` with
+the matching pattern in `Rule`. Patterns match as in `Resolve`. When key fields
+of more than one entity field match, the name is ambiguous and there is no
+meaning (so no lookup), never a guess. `LookupSources` calls it, and each
+source's `Meaning` says which way the meaning was found.
+
+```go
+customer.Fields[0].IsKeyField = true
+customer.Fields[0].NamePatterns = datatug.StringPatterns{{Type: "regexp", Value: `\w+CustomerID`, CaseSensitive: true}}
+meaning, ok := semantic.ResolveParameterMeaning([]*datatug.Entity{customer}, datatug.ParameterDef{ID: "@ShipCustomerID", Type: "string"})
+// ok == true
+// meaning == semantic.ParameterMeaning{Ref: {Entity: "Customer", Field: "ID"}, Provenance: semantic.Inferred, Rule: `namePattern:regexp:\w+CustomerID`}
+```
+
+It only says *where* to pick from; building and running the bounded filter
+query is the runtime's job (the browser SQLite worker for a public fixture, or
+`POST /datatug/semantic/lookup` on a server, under its access policy).

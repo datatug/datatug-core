@@ -31,12 +31,15 @@ type SchemaKey struct {
 }
 
 // TableSchema is the subset of a scanned table/view's metadata RelatedLookups
-// needs: its primary key, and its foreign-key graph in both directions
-// (datatug.ForeignKeys/datatug.ReferencedBys, as scanned by the DB driver).
+// and LookupSources need: its primary key, its foreign-key graph in both
+// directions (datatug.ForeignKeys/datatug.ReferencedBys, as scanned by the DB
+// driver) and, optionally, its columns in schema order with their declared
+// types (LookupSources uses them for the key's kind and the display columns).
 type TableSchema struct {
 	PrimaryKey   *datatug.UniqueKey
 	ForeignKeys  datatug.ForeignKeys
 	ReferencedBy datatug.ReferencedBys
+	Columns      []Column
 }
 
 // LookupKind identifies how a Lookup was derived.

@@ -51,6 +51,22 @@ func TestEntity_Validate(t *testing.T) {
 		}
 		assert.NoError(t, v.Validate())
 	})
+	t.Run("display", func(t *testing.T) {
+		fields := EntityFields{
+			{ID: "ID", Type: "string", NamePatterns: StringPatterns{}},
+			{ID: "CompanyName", Type: "string", NamePatterns: StringPatterns{}},
+		}
+		valid := Entity{ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "Customer"}}, Fields: fields, Display: []string{"CompanyName", "ID"}}
+		assert.NoError(t, valid.Validate())
+		unknown := valid
+		unknown.Display = []string{"City"}
+		assert.ErrorContains(t, unknown.Validate(), `display[0]: unknown field "City"`)
+		duplicate := valid
+		duplicate.Display = []string{"CompanyName", "CompanyName"}
+		assert.ErrorContains(t, duplicate.Validate(), `display[1]: duplicate field "CompanyName"`)
+		withNil := Entity{Fields: EntityFields{nil, fields[1]}, Display: []string{"CompanyName"}}
+		assert.NoError(t, withNil.validateDisplay())
+	})
 	t.Run("invalid_tags", func(t *testing.T) {
 		v := Entity{
 			ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "e1"}},
