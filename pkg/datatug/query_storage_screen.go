@@ -196,6 +196,16 @@ const storedQueryHint = "a query is stored in git-tracked project files"
 //	capture.collection                            identifier (QueryCapture.Validate)
 //	capture.bindings[].parameterId                identifier (QueryCapture.Validate)
 //	capture.bindings[].origin                     closed set (QueryCapture.Validate)
+//	federation.expectedServerIdentity.baseUrl    credential (validateQuerySourceBindings)
+//	federation.expectedServerIdentity.serverId    credential (validateQuerySourceBindings)
+//	relationshipBindings[].id    metadata identifier (validateQuerySourceBindings)
+//	relationshipBindings[].version    credential (validateQuerySourceBindings)
+//	relationshipBindings[].from.schema    metadata identifier (validateQuerySourceBindings)
+//	relationshipBindings[].from.table    metadata identifier (validateQuerySourceBindings)
+//	relationshipBindings[].to.schema    metadata identifier (validateQuerySourceBindings)
+//	relationshipBindings[].to.table    metadata identifier (validateQuerySourceBindings)
+//	relationshipBindings[].pairs[].fromField    metadata identifier (validateQuerySourceBindings)
+//	relationshipBindings[].pairs[].toField    metadata identifier (validateQuerySourceBindings)
 //	federation.ovdbBaseUrl                       credential
 //	federation.tables[].name                     identifier
 //	federation.tables[].database                 identifier
@@ -226,6 +236,7 @@ func screenQueryDefForStorage(v QueryDef) error {
 	s.parameters(v.Parameters)
 	s.recordsets(v.Recordsets)
 	s.federation(v.Federation)
+	s.relationshipBindings(v.RelationshipBindings)
 	return s.err
 }
 
@@ -234,6 +245,10 @@ func (s *queryStorageScreen) federation(f *QueryFederation) {
 		return
 	}
 	s.prose("federation.ovdbBaseUrl", f.OVDBBaseURL)
+	if f.ExpectedServerIdentity != nil {
+		s.prose("federation.expectedServerIdentity.baseUrl", f.ExpectedServerIdentity.BaseURL)
+		s.prose("federation.expectedServerIdentity.serverId", f.ExpectedServerIdentity.ServerID)
+	}
 	for i, table := range f.Tables {
 		at := fmt.Sprintf("federation.tables[%d]", i)
 		s.identifier(at+".name", table.Name)

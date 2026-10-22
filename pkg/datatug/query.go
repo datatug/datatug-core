@@ -169,13 +169,15 @@ type QueryDef struct {
 	SemanticModel *QuerySemanticModel `json:"semanticModel,omitempty" yaml:"semanticModel,omitempty"`
 	// Federation contains client-side source routing and optional per-row HTTP
 	// lookups. It is project metadata, never a place for credentials.
-	Federation *QueryFederation `json:"federation,omitempty" yaml:"federation,omitempty"`
+	Federation           *QueryFederation          `json:"federation,omitempty" yaml:"federation,omitempty"`
+	RelationshipBindings QueryRelationshipBindings `json:"relationshipBindings,omitempty" yaml:"relationshipBindings,omitempty"`
 }
 
 type QueryFederation struct {
-	OVDBBaseURL string                 `json:"ovdbBaseUrl,omitempty" yaml:"ovdbBaseUrl,omitempty"`
-	Tables      []QueryFederationTable `json:"tables,omitempty" yaml:"tables,omitempty"`
-	Lookups     []QueryHTTPLookup      `json:"lookups,omitempty" yaml:"lookups,omitempty"`
+	ExpectedServerIdentity *QueryExpectedServerIdentity `json:"expectedServerIdentity,omitempty" yaml:"expectedServerIdentity,omitempty"`
+	OVDBBaseURL            string                       `json:"ovdbBaseUrl,omitempty" yaml:"ovdbBaseUrl,omitempty"`
+	Tables                 []QueryFederationTable       `json:"tables,omitempty" yaml:"tables,omitempty"`
+	Lookups                []QueryHTTPLookup            `json:"lookups,omitempty" yaml:"lookups,omitempty"`
 }
 
 type QueryFederationTable struct {
@@ -269,6 +271,9 @@ func (v QueryDef) Validate() error {
 		if err := v.Comparison.validateAgainst(v.Parameters, v.Recordsets); err != nil {
 			return fmt.Errorf("comparison: %w", err)
 		}
+	}
+	if err := validateQuerySourceBindings(v); err != nil {
+		return err
 	}
 	if v.Capture != nil {
 		if err := v.Capture.validateCaptureAgainst(v.Parameters); err != nil {

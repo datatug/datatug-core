@@ -321,6 +321,17 @@ func TestQueryDefStorageScreen_RefusesMalformedJSONSchema(t *testing.T) {
 // means screenQueryDefForStorage screens it itself; any other value names
 // the check that already owned the field.
 var queryStorageFieldDecisions = map[string]string{
+	"federation.expectedServerIdentity.baseUrl":  "credential (validateQuerySourceBindings)",
+	"federation.expectedServerIdentity.serverId": "credential (validateQuerySourceBindings)",
+	"relationshipBindings[].id":                  "metadata identifier (validateQuerySourceBindings)",
+	"relationshipBindings[].version":             "credential (validateQuerySourceBindings)",
+	"relationshipBindings[].from.schema":         "metadata identifier (validateQuerySourceBindings)",
+	"relationshipBindings[].from.table":          "metadata identifier (validateQuerySourceBindings)",
+	"relationshipBindings[].to.schema":           "metadata identifier (validateQuerySourceBindings)",
+	"relationshipBindings[].to.table":            "metadata identifier (validateQuerySourceBindings)",
+	"relationshipBindings[].pairs[].fromField":   "metadata identifier (validateQuerySourceBindings)",
+	"relationshipBindings[].pairs[].toField":     "metadata identifier (validateQuerySourceBindings)",
+
 	"comparison.kind":                         "screened (QueryComparison.Validate)",
 	"comparison.primaryInput":                 "screened (QueryComparison.Validate)",
 	"comparison.controlInput":                 "screened (QueryComparison.Validate)",
