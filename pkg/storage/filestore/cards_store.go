@@ -3,6 +3,7 @@ package filestore
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"sort"
@@ -67,6 +68,9 @@ func (s fsCardsStore) loadOneCard(id string) (*datatug.Card, error) {
 			return nil, fmt.Errorf("failed to load card[%s] from %s: %w", id, filePath, err)
 		}
 		if card != nil {
+			if card.ID != "" && card.ID != id {
+				return nil, fmt.Errorf("card[%s] at %s declares id %q", id, filePath, card.ID)
+			}
 			card.SetID(id)
 			return card, nil
 		}
@@ -128,8 +132,13 @@ func (s fsCardsStore) LoadCards(_ context.Context, o ...datatug.StoreOption) (da
 	cards := make(datatug.Cards, 0, len(ids))
 	for _, id := range ids {
 		card, err := s.loadOneCard(id)
+		if err == nil && card != nil {
+			err = card.Validate()
+		}
 		if err != nil {
-			return nil, err
+			// One bad card must not hide the others: the list holds the valid ones.
+			log.Printf("filestore: skipping invalid card[%s]: %v", id, err)
+			continue
 		}
 		if card != nil {
 			cards = append(cards, card)

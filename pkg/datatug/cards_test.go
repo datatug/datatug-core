@@ -31,7 +31,7 @@ func validCard() *Card {
 	}
 }
 
-func TestCardMatchRule_Validate(t *testing.T) {
+func TestCardMatchRule_IsWellFormed(t *testing.T) {
 	for name, tc := range map[string]struct {
 		rule CardMatchRule
 		ok   bool
@@ -46,22 +46,37 @@ func TestCardMatchRule_Validate(t *testing.T) {
 		"entity+field+table":  {CardMatchRule{Entity: "E", Field: "F", Table: "T"}, false},
 		"table only":          {CardMatchRule{Table: "T"}, false},
 	} {
-		t.Run(name, func(t *testing.T) {
-			err := tc.rule.Validate()
-			if tc.ok {
-				assert.NoError(t, err)
-			} else {
-				assert.Error(t, err)
-			}
-		})
+		t.Run(name, func(t *testing.T) { assert.Equal(t, tc.ok, tc.rule.IsWellFormed()) })
 	}
+}
+
+// A card the web saved with malformed match rules (admitted on purpose by the
+// TypeScript validator, ignored when matching) is never refused by Go.
+func TestCard_MalformedMatchRulesAreAdmitted(t *testing.T) {
+	card := validCard()
+	card.Parameters[0].Match = []CardMatchRule{{}, {Table: "Orders"}, {Entity: "E"}, {Column: "C", Field: "F"}}
+	require.NoError(t, card.Validate())
+	data, err := json.Marshal(card)
+	require.NoError(t, err)
+	var decoded Card
+	require.NoError(t, json.Unmarshal(data, &decoded))
+	require.NoError(t, decoded.Validate())
+
+	card.Parameters[0].Match = make([]CardMatchRule, MaxCardMatchRules)
+	require.NoError(t, card.Validate())
+	card.Parameters[0].Match = make([]CardMatchRule, MaxCardMatchRules+1)
+	assert.ErrorContains(t, card.Validate(), "match")
 }
 
 func TestCardParameterDef_Validate(t *testing.T) {
 	assert.NoError(t, CardParameterDef{ParameterDef: ParameterDef{ID: "a", Type: "string"}}.Validate())
 	assert.Error(t, CardParameterDef{}.Validate())
-	err := CardParameterDef{ParameterDef: ParameterDef{ID: "a", Type: "string"}, Match: []CardMatchRule{{}}}.Validate()
-	assert.ErrorContains(t, err, "match rule at index 0")
+	lookup := CardParameterDef{ParameterDef: ParameterDef{ID: "a", Type: "string", Lookup: &ParameterLookup{DB: "d", SQL: "select 1"}}}
+	assert.ErrorContains(t, lookup.Validate(), "lookup")
+	for _, kind := range []string{"record", "recordset"} {
+		assert.ErrorContains(t, CardParameterDef{ParameterDef: ParameterDef{ID: "a", Type: kind, DefaultValue: "x"}}.Validate(), "defaultValue")
+		assert.NoError(t, CardParameterDef{ParameterDef: ParameterDef{ID: "a", Type: kind}}.Validate())
+	}
 }
 
 func TestBoardCardRef_Validate(t *testing.T) {
@@ -273,4 +288,33 @@ func TestPresentationLinks_VisitTabWidgets(t *testing.T) {
 	// An undecodable widget inside tab.widgets is reported with its position.
 	err := mk(BoardWidget{Name: "chart", Data: map[string]any{"unrecognized": true}}).validatePresentationLinks()
 	assert.ErrorContains(t, err, "tab[0]/widget[0]")
+}
+
+func TestTabWidget_MarshalJSONOmitsAbsentLegacyWidget(t *testing.T) {
+	typed := &TabsWidgetDef{Tabs: []TabWidget{
+		{ID: "new", Title: "New", Widgets: []BoardWidget{{Name: "text", Data: &TextWidgetDef{Markdown: "x"}}}},
+		{Title: "Placeholder"},
+		{Title: "Legacy", Widget: *sqlWidget("q")},
+	}}
+	data, err := json.Marshal(typed)
+	require.NoError(t, err)
+	assert.NotContains(t, string(data), `"name":""`)
+	assert.Contains(t, string(data), `"widgets":[{"name":"text"`)
+	assert.Contains(t, string(data), `"widget":{"name":"SQL"`)
+	var decoded TabsWidgetDef
+	require.NoError(t, json.Unmarshal(data, &decoded))
+	require.NoError(t, decoded.Validate())
+	assert.Equal(t, "", decoded.Tabs[0].Widget.Name)
+	require.Len(t, decoded.Tabs[0].Widgets, 1)
+	assert.Equal(t, "Legacy", decoded.Tabs[2].Title)
+	assert.Equal(t, "SQL", decoded.Tabs[2].Widget.Name)
+}
+
+func TestCard_ValidatesPresentationLinksOfItsWidget(t *testing.T) {
+	filter := func(selection string) *BoardWidget {
+		return &BoardWidget{Name: string(QueryTypeSQL), Data: &SQLWidgetDef{SQL: SQLWidgetSettings{QueryID: "q", PresentationFilter: &PresentationFilter{SelectionID: selection, Column: "c"}}}}
+	}
+	card := validCard()
+	card.Widget = filter("missing")
+	assert.ErrorContains(t, card.Validate(), "unresolved selectionId")
 }

@@ -64,6 +64,28 @@ type presentationLink struct {
 // Widget.Validate checks a widget's own shape. Only the complete Board can
 // resolve a presentation filter against a chart in another card or tab.
 func (v *Board) validatePresentationLinks() error {
+	var roots []presentationRoot
+	for rowIndex, row := range v.Rows {
+		for cardIndex, card := range row.Cards {
+			if card.Widget == nil {
+				continue // a ref card has no inline widget
+			}
+			roots = append(roots, presentationRoot{widget: *card.Widget, path: fmt.Sprintf("row[%d]/card[%d]", rowIndex, cardIndex)})
+		}
+	}
+	return validatePresentationRoots(roots)
+}
+
+// presentationRoot is the top widget of one card and the path that names it.
+type presentationRoot struct {
+	widget BoardWidget
+	path   string
+}
+
+// validatePresentationRoots resolves every presentation filter against the
+// charts produced anywhere in the given roots: all cards of a board, or the
+// one widget of a project card.
+func validatePresentationRoots(roots []presentationRoot) error {
 	producers := make(map[string]string)
 	var filters []presentationLink
 	var visit func(BoardWidget, int, string) error
@@ -143,14 +165,9 @@ func (v *Board) validatePresentationLinks() error {
 		}
 		return nil
 	}
-	for rowIndex, row := range v.Rows {
-		for cardIndex, card := range row.Cards {
-			if card.Widget == nil {
-				continue // a ref card has no inline widget
-			}
-			if err := visit(*card.Widget, 0, fmt.Sprintf("row[%d]/card[%d]", rowIndex, cardIndex)); err != nil {
-				return err
-			}
+	for _, root := range roots {
+		if err := visit(root.widget, 0, root.path); err != nil {
+			return err
 		}
 	}
 	for _, filter := range filters {
@@ -649,6 +666,22 @@ type TabWidget struct {
 	// Widgets are the tab's widgets, rendered in order; each may carry its
 	// own title. The legacy single Widget still loads.
 	Widgets []BoardWidget `json:"widgets,omitempty"`
+}
+
+// MarshalJSON leaves out the legacy single widget of a tab that has none, so a
+// tab that holds only Widgets does not marshal as "widget":{"name":""}.
+func (v TabWidget) MarshalJSON() ([]byte, error) {
+	type plain struct {
+		ID      string        `json:"id,omitempty"`
+		Title   string        `json:"title"`
+		Widget  *BoardWidget  `json:"widget,omitempty"`
+		Widgets []BoardWidget `json:"widgets,omitempty"`
+	}
+	out := plain{ID: v.ID, Title: v.Title, Widgets: v.Widgets}
+	if v.Widget.Name != "" || v.Widget.Data != nil {
+		out.Widget = &v.Widget
+	}
+	return json.Marshal(out)
 }
 
 // TabsWidgetDef describes set of tab widgets

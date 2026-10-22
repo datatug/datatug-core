@@ -34,23 +34,23 @@ type CardMatchRule struct {
 	Column string `json:"column,omitempty"`
 }
 
-// Validate returns error if the rule is not exactly one of the three shapes.
-func (v CardMatchRule) Validate() error {
-	entity := v.Entity != "" || v.Field != ""
+// IsWellFormed tells whether the rule is exactly one of the three shapes.
+// A malformed rule is not an error: it is admitted, never saved wrongly, and
+// matching ignores it (spec REQ input-matching), as in the TypeScript validator.
+func (v CardMatchRule) IsWellFormed() bool {
 	switch {
-	case entity:
-		if v.Entity == "" || v.Field == "" || v.Table != "" || v.Column != "" {
-			return validation.NewErrBadRecordFieldValue("match", "entity rule requires entity and field only")
-		}
+	case v.Entity != "" || v.Field != "":
+		return v.Entity != "" && v.Field != "" && v.Table == "" && v.Column == ""
 	case v.Table != "":
-		if v.Column == "" {
-			return validation.NewErrBadRecordFieldValue("match", "table rule requires table and column")
-		}
-	case v.Column == "":
-		return validation.NewErrBadRecordFieldValue("match", "rule is empty: use entity+field, table+column or column")
+		return v.Column != ""
+	default:
+		return v.Column != ""
 	}
-	return nil
 }
+
+// MaxCardMatchRules bounds the match rules of one card parameter, as the
+// TypeScript validator does.
+const MaxCardMatchRules = 64
 
 // CardParameterDef is a card parameter: the existing parameter definition plus
 // optional match rules.
@@ -64,10 +64,17 @@ func (v CardParameterDef) Validate() error {
 	if err := v.ParameterDef.Validate(); err != nil {
 		return err
 	}
-	for i, rule := range v.Match {
-		if err := rule.Validate(); err != nil {
-			return fmt.Errorf("invalid match rule at index %v: %w", i, err)
+	if v.Lookup != nil {
+		return validation.NewErrBadRecordFieldValue("lookup", "not allowed on a card parameter")
+	}
+	switch v.Type {
+	case "record", "recordset":
+		if v.DefaultValue != nil {
+			return validation.NewErrBadRecordFieldValue("defaultValue", "not allowed on a "+v.Type+" parameter")
 		}
+	}
+	if len(v.Match) > MaxCardMatchRules {
+		return validation.NewErrBadRecordFieldValue("match", fmt.Sprintf("more than %v rules", MaxCardMatchRules))
 	}
 	return nil
 }
@@ -165,6 +172,9 @@ func (v *Card) Validate() error {
 	}
 	if err := v.Widget.Validate(); err != nil {
 		return fmt.Errorf("invalid card widget with id=%v: %w", v.ID, err)
+	}
+	if err := validatePresentationRoots([]presentationRoot{{widget: *v.Widget, path: "widget"}}); err != nil {
+		return validation.NewErrBadRecordFieldValue("widget", err.Error())
 	}
 	return nil
 }

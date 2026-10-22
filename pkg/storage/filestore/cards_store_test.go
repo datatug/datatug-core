@@ -118,13 +118,35 @@ func TestFsCardsStore_Rejections(t *testing.T) {
 	writeCardJSON(t, filepath.Join(cardsDir, "broken", "card.json"), `{not json`)
 	_, err := store.LoadCard(ctx, "broken")
 	assert.ErrorContains(t, err, "broken")
-	_, err = store.LoadCards(ctx)
-	assert.Error(t, err)
+	// One bad card does not hide the others.
+	require.NoError(t, store.SaveCard(ctx, testCard("good", "Good")))
+	cards, err := store.LoadCards(ctx)
+	require.NoError(t, err)
+	require.Len(t, cards, 1)
+	assert.Equal(t, "good", cards[0].ID)
 	require.NoError(t, os.RemoveAll(filepath.Join(cardsDir, "broken")))
 
 	writeCardJSON(t, filepath.Join(cardsDir, "extra", "card.json"), `{"title":"T","unknown":1}`)
 	_, err = store.LoadCard(ctx, "extra")
 	assert.Error(t, err)
+}
+
+func TestFsCardsStore_IDMismatchAndInvalidCardsAreRefusedOrSkipped(t *testing.T) {
+	ctx := context.Background()
+	store, cardsDir := newCardsTestStore(t)
+	writeCardJSON(t, filepath.Join(cardsDir, "mine", "card.json"), `{"id":"other","title":"T","widget":{"name":"text","data":{"markdown":"x"}}}`)
+	_, err := store.LoadCard(ctx, "mine")
+	assert.ErrorContains(t, err, `declares id "other"`)
+	writeCardJSON(t, filepath.Join(cardsDir, "same", "card.json"), `{"id":"same","title":"T","widget":{"name":"text","data":{"markdown":"x"}}}`)
+	card, err := store.LoadCard(ctx, "same")
+	require.NoError(t, err)
+	assert.Equal(t, "same", card.ID)
+	// A card that parses but does not validate is left out of the list.
+	writeCardJSON(t, filepath.Join(cardsDir, "untitled", "card.json"), `{"title":"","widget":{"name":"text"}}`)
+	cards, err := store.LoadCards(ctx)
+	require.NoError(t, err)
+	require.Len(t, cards, 1)
+	assert.Equal(t, "same", cards[0].ID)
 }
 
 func TestFsCardsStore_ListIgnoresForeignEntries(t *testing.T) {
