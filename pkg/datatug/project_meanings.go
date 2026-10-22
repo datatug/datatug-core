@@ -564,7 +564,9 @@ func MeaningBoardSourceFromBoard(b Board) (MeaningBoardSource, error) {
 			if err = json.Unmarshal(raw, &d); err != nil {
 				return err
 			}
-			add(d.SQL.QueryID)
+			if d.Source == nil {
+				add(d.SQL.QueryID)
+			}
 		case "chart":
 			var d ChartWidgetDef
 			if err = json.Unmarshal(raw, &d); err != nil {

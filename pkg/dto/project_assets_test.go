@@ -45,3 +45,16 @@ func TestProjectAssetMutationConditionsAndRevision(t *testing.T) {
 	_, err = ProjectAssetRevision("board", make(chan int))
 	require.Error(t, err)
 }
+
+func TestSaveCardRequestAndRevision(t *testing.T) {
+	condition := AssetWriteCondition{ProjectRef: ProjectRef{StoreID: "firestore", ProjectID: "p"}, Environment: "demo", OperationID: "op", IfNoneMatch: true}
+	card := datatug.Card{ID: "c", Title: "Card", Widget: &datatug.BoardWidget{Name: "text", Data: &datatug.TextWidgetDef{Markdown: "x"}}}
+	require.NoError(t, (SaveCardRequest{AssetWriteCondition: condition, Card: card}).Validate())
+	invalid := condition
+	invalid.Environment = ""
+	require.Error(t, (SaveCardRequest{AssetWriteCondition: invalid, Card: card}).Validate())
+	require.Error(t, (SaveCardRequest{AssetWriteCondition: condition}).Validate())
+	revision, err := ProjectAssetRevision("card", card)
+	require.NoError(t, err)
+	require.Contains(t, revision, "card1-")
+}

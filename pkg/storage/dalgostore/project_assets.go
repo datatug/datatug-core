@@ -105,6 +105,11 @@ func encodeAsset(value any) ([]byte, error) {
 			return nil, ErrAssetInvalid
 		}
 		err = v.Validate()
+	case *datatug.Card:
+		if v == nil {
+			return nil, ErrAssetInvalid
+		}
+		err = v.Validate()
 	default:
 		return nil, ErrAssetInvalid
 	}
@@ -140,6 +145,8 @@ func decodeAsset(body []byte, value any, id string) error {
 	case *datatug.Board:
 		actual = v.ID
 	case *datatug.Entity:
+		actual = v.ID
+	case *datatug.Card:
 		actual = v.ID
 	}
 	if actual != id {
@@ -195,6 +202,9 @@ func (s *ProjectStore) saveAsset(ctx context.Context, kind, id string, value any
 			}
 			if kind == "boards" {
 				return new(datatug.Board)
+			}
+			if kind == "cards" {
+				return new(datatug.Card)
 			}
 			return new(datatug.Entity)
 		})
@@ -282,6 +292,33 @@ func (s *ProjectStore) LoadBoards(ctx context.Context, _ ...datatug.StoreOption)
 	out := make(datatug.Boards, len(values))
 	for i, v := range values {
 		out[i] = v.(*datatug.Board)
+	}
+	return out, nil
+}
+func (s *ProjectStore) LoadCard(ctx context.Context, id string, _ ...datatug.StoreOption) (*datatug.Card, error) {
+	value := new(datatug.Card)
+	if err := s.loadAsset(ctx, "cards", id, value); err != nil {
+		return nil, err
+	}
+	return value, nil
+}
+func (s *ProjectStore) SaveCard(ctx context.Context, value *datatug.Card) error {
+	if value == nil {
+		return ErrAssetInvalid
+	}
+	return s.saveAsset(ctx, "cards", value.ID, value)
+}
+func (s *ProjectStore) DeleteCard(ctx context.Context, id string) error {
+	return s.deleteAsset(ctx, "cards", id)
+}
+func (s *ProjectStore) LoadCards(ctx context.Context, _ ...datatug.StoreOption) (datatug.Cards, error) {
+	values, err := s.listAssets(ctx, "cards", func() any { return new(datatug.Card) })
+	if err != nil {
+		return nil, err
+	}
+	out := make(datatug.Cards, len(values))
+	for i, v := range values {
+		out[i] = v.(*datatug.Card)
 	}
 	return out, nil
 }

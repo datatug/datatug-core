@@ -59,8 +59,8 @@ func queryLockOpenFlags() int {
 }
 
 var (
-	mkdirTxnDir = os.Mkdir
-	txnDirLstat = os.Lstat
+	mkdirTxnDir    = os.Mkdir
+	txnDirLstat    = os.Lstat
 	tryLockContext = func(fl *flock.Flock, ctx context.Context, retryDelay time.Duration) (bool, error) {
 		return fl.TryLockContext(ctx, retryDelay)
 	}

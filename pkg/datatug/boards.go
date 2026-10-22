@@ -64,6 +64,28 @@ type presentationLink struct {
 // Widget.Validate checks a widget's own shape. Only the complete Board can
 // resolve a presentation filter against a chart in another card or tab.
 func (v *Board) validatePresentationLinks() error {
+	var roots []presentationRoot
+	for rowIndex, row := range v.Rows {
+		for cardIndex, card := range row.Cards {
+			if card.Widget == nil {
+				continue // a ref card has no inline widget
+			}
+			roots = append(roots, presentationRoot{widget: *card.Widget, path: fmt.Sprintf("row[%d]/card[%d]", rowIndex, cardIndex)})
+		}
+	}
+	return validatePresentationRoots(roots)
+}
+
+// presentationRoot is the top widget of one card and the path that names it.
+type presentationRoot struct {
+	widget BoardWidget
+	path   string
+}
+
+// validatePresentationRoots resolves every presentation filter against the
+// charts produced anywhere in the given roots: all cards of a board, or the
+// one widget of a project card.
+func validatePresentationRoots(roots []presentationRoot) error {
 	producers := make(map[string]string)
 	var filters []presentationLink
 	var visit func(BoardWidget, int, string) error
@@ -101,7 +123,7 @@ func (v *Board) validatePresentationLinks() error {
 			case SQLWidgetDef:
 				sql = &typed
 			default:
-				decoded, err := newWidgetDef(&SQLWidgetDef{}, widget.Data)
+				decoded, err := decodeSQLWidgetDef(widget.Data)
 				if err != nil {
 					return fmt.Errorf("%s: %w", path, err)
 				}
@@ -128,6 +150,11 @@ func (v *Board) validatePresentationLinks() error {
 				return nil
 			}
 			for i, tab := range tabs.Tabs {
+				for j, widget := range tab.Widgets {
+					if err := visit(widget, depth+1, fmt.Sprintf("%s/tab[%d]/widget[%d]", path, i, j)); err != nil {
+						return err
+					}
+				}
 				if tab.Widget.Name == "" && tab.Widget.Data == nil {
 					continue
 				}
@@ -138,11 +165,9 @@ func (v *Board) validatePresentationLinks() error {
 		}
 		return nil
 	}
-	for rowIndex, row := range v.Rows {
-		for cardIndex, card := range row.Cards {
-			if err := visit(*card.Widget, 0, fmt.Sprintf("row[%d]/card[%d]", rowIndex, cardIndex)); err != nil {
-				return err
-			}
+	for _, root := range roots {
+		if err := visit(root.widget, 0, root.path); err != nil {
+			return err
 		}
 	}
 	for _, filter := range filters {
@@ -237,6 +262,9 @@ type BoardCard struct {
 	Title  string       `json:"title"`
 	Cols   int          `json:"cols,omitempty"`
 	Widget *BoardWidget `json:"widget,omitempty"`
+	// Ref references a project card instead of holding an inline Widget.
+	// Exactly one of Widget or Ref is set.
+	Ref *BoardCardRef `json:"ref,omitempty"`
 }
 
 // Validate returns error if failed
@@ -247,7 +275,15 @@ func (v BoardCard) Validate() error {
 	if v.Cols < 0 {
 		return validation.NewErrBadRecordFieldValue("cols", "should be positive")
 	}
-	if v.Widget == nil {
+	switch {
+	case v.Widget != nil && v.Ref != nil:
+		return validation.NewErrBadRecordFieldValue("ref", "widget and ref are mutually exclusive")
+	case v.Ref != nil:
+		if err := v.Ref.Validate(); err != nil {
+			return fmt.Errorf("invalid card ref with id=%v: %w", v.ID, err)
+		}
+		return nil
+	case v.Widget == nil:
 		return validation.NewErrRecordIsMissingRequiredField("widget")
 	}
 	if err := v.Widget.Validate(); err != nil {
@@ -281,7 +317,7 @@ func (v BoardWidget) validateAtDepth(depth int) (err error) {
 		return validation.NewErrRecordIsMissingRequiredField("name")
 	case string(QueryTypeSQL): // Why switching name on a query type? Temporary demo hack?
 		if widget, ok = v.Data.(*SQLWidgetDef); !ok {
-			if widget, err = newWidgetDef(&SQLWidgetDef{}, v.Data); err != nil {
+			if widget, err = decodeSQLWidgetDef(v.Data); err != nil {
 				return err
 			}
 		}
@@ -307,6 +343,22 @@ func (v BoardWidget) validateAtDepth(depth int) (err error) {
 				return err
 			}
 		}
+	case "text":
+		if typed, value := v.Data.(TextWidgetDef); value {
+			widget = &typed
+		} else if widget, ok = v.Data.(*TextWidgetDef); !ok {
+			if widget, err = newStrictWidgetDef(&TextWidgetDef{}, v.Data); err != nil {
+				return err
+			}
+		}
+	case "fields":
+		if typed, value := v.Data.(FieldsWidgetDef); value {
+			widget = &typed
+		} else if widget, ok = v.Data.(*FieldsWidgetDef); !ok {
+			if widget, err = newStrictWidgetDef(&FieldsWidgetDef{}, v.Data); err != nil {
+				return err
+			}
+		}
 	default:
 		return validation.NewErrBadRecordFieldValue("id", "unknown widget id")
 	}
@@ -325,6 +377,12 @@ func (v BoardWidget) validateAtDepth(depth int) (err error) {
 	}
 	if chart, ok := widget.(*ChartWidgetDef); ok && chart == nil {
 		return validation.NewErrBadRecordFieldValue("data", "chart widget definition is null")
+	}
+	if text, ok := widget.(*TextWidgetDef); ok && text == nil {
+		return validation.NewErrBadRecordFieldValue("data", "text widget definition is null")
+	}
+	if fields, ok := widget.(*FieldsWidgetDef); ok && fields == nil {
+		return validation.NewErrBadRecordFieldValue("data", "fields widget definition is null")
 	}
 	if err = widget.Validate(); err != nil {
 		return fmt.Errorf("failed to test widget of type %T: %w", widget, err)
@@ -374,6 +432,42 @@ func (v WidgetBase) Validate(isTitleRequired bool) error {
 type SQLWidgetDef struct {
 	WidgetBase
 	SQL SQLWidgetSettings `json:"sql"`
+	// Source, when set, takes the rows from a card parameter instead of a saved
+	// query. It is exclusive with SQL, which then stays absent in JSON.
+	Source *ParameterRowsSource `json:"source,omitempty"`
+}
+
+// MarshalJSON leaves "sql" out of a widget whose rows come from a parameter.
+func (v SQLWidgetDef) MarshalJSON() ([]byte, error) {
+	out := struct {
+		WidgetBase
+		SQL    *SQLWidgetSettings   `json:"sql,omitempty"`
+		Source *ParameterRowsSource `json:"source,omitempty"`
+	}{WidgetBase: v.WidgetBase, Source: v.Source}
+	if v.Source == nil {
+		out.SQL = &v.SQL
+	}
+	return json.Marshal(out)
+}
+
+// decodeSQLWidgetDef decodes a SQL widget. A widget with a source is a new
+// shape and is decoded strictly, with "sql" refused; the saved-query shape keeps
+// its permissive legacy decoding.
+func decodeSQLWidgetDef(data interface{}) (validatable, error) {
+	raw, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	var keys map[string]json.RawMessage
+	if json.Unmarshal(raw, &keys) == nil {
+		if _, hasSource := keys["source"]; hasSource {
+			if _, hasSQL := keys["sql"]; hasSQL {
+				return nil, validation.NewErrBadRecordFieldValue("source", "sql and source are mutually exclusive")
+			}
+			return newStrictWidgetDef(&SQLWidgetDef{}, data)
+		}
+	}
+	return newWidgetDef(&SQLWidgetDef{}, data)
 }
 
 // SQLWidgetSettings binds a SQL widget to a query in the project's query
@@ -509,6 +603,12 @@ func (v *SQLWidgetDef) Validate() error {
 	if err := v.WidgetBase.Validate(false); err != nil {
 		return err
 	}
+	if v.Source != nil {
+		if v.SQL.QueryID != "" || len(v.SQL.Parameters) > 0 || v.SQL.PresentationFilter != nil {
+			return validation.NewErrBadRecordFieldValue("source", "sql and source are mutually exclusive")
+		}
+		return v.Source.Validate()
+	}
 	if err := v.SQL.Validate(); err != nil {
 		return err
 	}
@@ -605,6 +705,25 @@ type TabWidget struct {
 	ID     string      `json:"id,omitempty"`
 	Title  string      `json:"title"`
 	Widget BoardWidget `json:"widget,omitempty"`
+	// Widgets are the tab's widgets, rendered in order; each may carry its
+	// own title. The legacy single Widget still loads.
+	Widgets []BoardWidget `json:"widgets,omitempty"`
+}
+
+// MarshalJSON leaves out the legacy single widget of a tab that has none, so a
+// tab that holds only Widgets does not marshal as "widget":{"name":""}.
+func (v TabWidget) MarshalJSON() ([]byte, error) {
+	type plain struct {
+		ID      string        `json:"id,omitempty"`
+		Title   string        `json:"title"`
+		Widget  *BoardWidget  `json:"widget,omitempty"`
+		Widgets []BoardWidget `json:"widgets,omitempty"`
+	}
+	out := plain{ID: v.ID, Title: v.Title, Widgets: v.Widgets}
+	if v.Widget.Name != "" || v.Widget.Data != nil {
+		out.Widget = &v.Widget
+	}
+	return json.Marshal(out)
 }
 
 // TabsWidgetDef describes set of tab widgets
@@ -632,6 +751,14 @@ func (v TabsWidgetDef) validateAtDepth(depth int) error {
 				return fmt.Errorf("invalid tab at index %v: duplicate id=%q", i, tab.ID)
 			}
 			seenIDs[tab.ID] = true
+		}
+		if len(tab.Widgets) > 0 && (tab.Widget.Name != "" || tab.Widget.Data != nil) {
+			return fmt.Errorf("invalid tab at index %v with title=%q: a tab holds either widget or widgets, not both", i, tab.Title)
+		}
+		for j, widget := range tab.Widgets {
+			if err := widget.validateAtDepth(depth + 1); err != nil {
+				return fmt.Errorf("invalid tab at index %v with title=%q: widget at index %v: %w", i, tab.Title, j, err)
+			}
 		}
 		// The wire permits placeholder tabs without a widget. Existing boards
 		// also use titles as display text, not a guaranteed unique identity.

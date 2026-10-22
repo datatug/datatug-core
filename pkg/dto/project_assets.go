@@ -51,6 +51,25 @@ func (v SaveEntityRequest) Validate() error {
 	return v.Entity.Validate()
 }
 
+// SaveCardRequest saves one standalone project card.
+type SaveCardRequest struct {
+	AssetWriteCondition
+	Card datatug.Card `json:"card"`
+}
+
+func (v SaveCardRequest) Validate() error {
+	if err := v.AssetWriteCondition.Validate(); err != nil {
+		return err
+	}
+	return v.Card.Validate()
+}
+
+type SaveCardResponse struct {
+	Card     datatug.Card `json:"card"`
+	Revision string       `json:"revision"`
+	Receipt  string       `json:"receipt"`
+}
+
 type SaveBoardResponse struct {
 	Board    datatug.Board `json:"board"`
 	Revision string        `json:"revision"`
@@ -65,7 +84,7 @@ type SaveEntityResponse struct {
 // ProjectAssetRevision qualifies a content digest by its owning wire type.
 // Callers validate the actual asset before deriving its revision.
 func ProjectAssetRevision(kind string, asset any) (string, error) {
-	if kind != "board" && kind != "entity" {
+	if kind != "board" && kind != "entity" && kind != "card" {
 		return "", ErrUnsupportedCapability
 	}
 	encoded, err := json.Marshal(asset)
