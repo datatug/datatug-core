@@ -12,11 +12,17 @@ import (
 
 // ParameterDef defines input parameter for a board, widget, etc.
 type ParameterDef struct {
-	ID           string           `json:"id"`
-	Type         string           `json:"type"`
-	Title        string           `json:"title,omitempty"`
-	DefaultValue interface{}      `json:"defaultValue,omitempty"`
-	IsRequired   bool             `json:"isRequired,omitempty"`
+	ID           string      `json:"id"`
+	Type         string      `json:"type"`
+	Title        string      `json:"title,omitempty"`
+	DefaultValue interface{} `json:"defaultValue,omitempty"`
+	IsRequired   bool        `json:"isRequired,omitempty"`
+	// IsCredential marks an HTTP query parameter used only in credential
+	// headers (IsCredentialHTTPHeader): it is required, has no default, takes
+	// a value typed for each run and is never recorded in run history.
+	// Credential headers are never saved, so its placeholder lives only in the
+	// session copy of the request (see query_http_template.go).
+	IsCredential bool             `json:"isCredential,omitempty"`
 	IsMultiValue bool             `json:"isMultiValue,omitempty"`
 	MaxLength    int              `json:"maxLength,omitempty"`
 	MinLength    int              `json:"minLength,omitempty"`
