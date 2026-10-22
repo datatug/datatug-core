@@ -17,14 +17,16 @@ import (
 // evidenceRefColumn contains typed artifact references resolved under current ACL,
 // never a URL or protected cached row. Missing spans must remain unavailable.
 type TimelineChartSpec struct {
-	LaneColumn        string `json:"laneColumn"`
-	EventColumn       string `json:"eventColumn"`
-	SequenceColumn    string `json:"sequenceColumn"`
-	TimeColumn        string `json:"timeColumn"`
-	ClockDomainColumn string `json:"clockDomainColumn"`
-	PrecisionColumn   string `json:"precisionColumn"`
-	StatusColumn      string `json:"statusColumn"`
-	EvidenceRefColumn string `json:"evidenceRefColumn"`
+	TimeMode          string `json:"timeMode,omitempty" yaml:"timeMode,omitempty"`
+	AnchorColumn      string `json:"anchorColumn,omitempty" yaml:"anchorColumn,omitempty"`
+	LaneColumn        string `json:"laneColumn" yaml:"laneColumn"`
+	EventColumn       string `json:"eventColumn" yaml:"eventColumn"`
+	SequenceColumn    string `json:"sequenceColumn" yaml:"sequenceColumn"`
+	TimeColumn        string `json:"timeColumn" yaml:"timeColumn"`
+	ClockDomainColumn string `json:"clockDomainColumn" yaml:"clockDomainColumn"`
+	PrecisionColumn   string `json:"precisionColumn" yaml:"precisionColumn"`
+	StatusColumn      string `json:"statusColumn" yaml:"statusColumn"`
+	EvidenceRefColumn string `json:"evidenceRefColumn" yaml:"evidenceRefColumn"`
 }
 
 // HeatmapChartSpec maps long-form rows to a categorical matrix. The held status
@@ -51,7 +53,18 @@ func distinctEvidenceColumns(columns ...string) error {
 	return nil
 }
 func (s TimelineChartSpec) Validate() error {
-	return distinctEvidenceColumns(s.LaneColumn, s.EventColumn, s.SequenceColumn, s.TimeColumn, s.ClockDomainColumn, s.PrecisionColumn, s.StatusColumn, s.EvidenceRefColumn)
+	columns := []string{s.LaneColumn, s.EventColumn, s.SequenceColumn, s.TimeColumn, s.ClockDomainColumn, s.PrecisionColumn, s.StatusColumn, s.EvidenceRefColumn}
+	switch s.TimeMode {
+	case "", "absolute":
+		if s.AnchorColumn != "" {
+			return fmt.Errorf("anchorColumn requires elapsed timeMode")
+		}
+	case "elapsed":
+		columns = append(columns, s.AnchorColumn)
+	default:
+		return fmt.Errorf("unsupported timeline timeMode")
+	}
+	return distinctEvidenceColumns(columns...)
 }
 func (s HeatmapChartSpec) Validate() error {
 	return distinctEvidenceColumns(s.RowColumn, s.ColumnColumn, s.StatusColumn, s.EvidenceRefColumn)

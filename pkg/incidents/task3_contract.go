@@ -758,6 +758,10 @@ func cloneArtifactRefs(refs []ArtifactRef) []ArtifactRef {
 }
 
 func cloneArtifactRef(ref ArtifactRef) ArtifactRef {
+	if ref.SourceOperation != nil {
+		value := *ref.SourceOperation
+		ref.SourceOperation = &value
+	}
 	if ref.CheckRun != nil {
 		copied := *ref.CheckRun
 		ref.CheckRun = &copied

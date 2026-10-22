@@ -91,32 +91,34 @@ const (
 type RefKind string
 
 const (
-	RefCheckRun   RefKind = "check-run"
-	RefExecution  RefKind = "execution"
-	RefSnapshot   RefKind = "snapshot"
-	RefAnnotation RefKind = "annotation"
-	RefCheck      RefKind = "check"
-	RefCompare    RefKind = "compare"
-	RefQuery      RefKind = "query"
-	RefBoard      RefKind = "board"
-	RefFact       RefKind = "fact"
-	RefHypothesis RefKind = "hypothesis"
-	RefEvent      RefKind = "event"
-	RefIncident   RefKind = "incident"
-	RefProject    RefKind = "project"
+	RefSourceOperation RefKind = "source-operation"
+	RefCheckRun        RefKind = "check-run"
+	RefExecution       RefKind = "execution"
+	RefSnapshot        RefKind = "snapshot"
+	RefAnnotation      RefKind = "annotation"
+	RefCheck           RefKind = "check"
+	RefCompare         RefKind = "compare"
+	RefQuery           RefKind = "query"
+	RefBoard           RefKind = "board"
+	RefFact            RefKind = "fact"
+	RefHypothesis      RefKind = "hypothesis"
+	RefEvent           RefKind = "event"
+	RefIncident        RefKind = "incident"
+	RefProject         RefKind = "project"
 )
 
 // ArtifactRef uses structured identities for cross-store artifacts. ID is
 // reserved for incident-local hypotheses and events.
 type ArtifactRef struct {
-	Kind       RefKind             `json:"kind"`
-	ID         string              `json:"id,omitempty"`
-	Incident   *IncidentRef        `json:"incident,omitempty"`
-	Project    *ProjectRef         `json:"project,omitempty"`
-	Execution  *ExecutionRef       `json:"execution,omitempty"`
-	Artifact   *ProjectArtifactRef `json:"artifact,omitempty"`
-	Comparison *ComparisonRef      `json:"comparison,omitempty"`
-	CheckRun   *CheckRunRef        `json:"checkRun,omitempty"`
+	SourceOperation *SourceOperationRef `json:"sourceOperation,omitempty"`
+	Kind            RefKind             `json:"kind"`
+	ID              string              `json:"id,omitempty"`
+	Incident        *IncidentRef        `json:"incident,omitempty"`
+	Project         *ProjectRef         `json:"project,omitempty"`
+	Execution       *ExecutionRef       `json:"execution,omitempty"`
+	Artifact        *ProjectArtifactRef `json:"artifact,omitempty"`
+	Comparison      *ComparisonRef      `json:"comparison,omitempty"`
+	CheckRun        *CheckRunRef        `json:"checkRun,omitempty"`
 }
 
 type ExecutionRef struct {
@@ -307,4 +309,25 @@ type Incident struct {
 	NoteEntries         []Note               `json:"noteEntries,omitempty"`
 	Notes               []string             `json:"notes,omitempty"`
 	LastSeq             uint64               `json:"lastSeq"`
+}
+
+// SourceOperationRef identifies an immutable native receipt, not permission to
+// read it or a claim of recovery. The owning host verifies both independently.
+type SourceOperationRef struct {
+	StoreID        string                `json:"storeId"`
+	SpaceID        string                `json:"spaceID"`
+	ProjectID      string                `json:"projectId"`
+	SourceID       string                `json:"sourceId"`
+	ReceiptActorID string                `json:"receiptActorId"`
+	OperationID    string                `json:"operationId"`
+	RequestSHA256  string                `json:"requestSHA256"`
+	Result         SourceOperationResult `json:"result"`
+}
+
+// SourceOperationResult is the receipt's immutable resulting pointer, not the
+// current source pointer. No environment authority is implied by this value.
+type SourceOperationResult struct {
+	Generation string `json:"generation"`
+	Revision   int    `json:"revision"`
+	SHA256     string `json:"sha256"`
 }

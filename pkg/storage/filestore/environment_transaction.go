@@ -17,7 +17,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -163,8 +162,7 @@ func environmentPrivateDir(p string) error {
 	if e != nil {
 		return e
 	}
-	st, ok := s.Sys().(*syscall.Stat_t)
-	if !ok || st.Uid != uint32(os.Getuid()) || s.Mode().Perm() != 0700 || !s.IsDir() {
+	if !environmentOwnedByCurrentUser(s) || s.Mode().Perm() != 0700 || !s.IsDir() {
 		return ErrEnvironmentRecoveryRequired
 	}
 	return nil
@@ -174,8 +172,7 @@ func readEnvironmentPrivateFile(p string) ([]byte, error) {
 	if e != nil {
 		return nil, e
 	}
-	owner, ok := st.Sys().(*syscall.Stat_t)
-	if !ok || owner.Uid != uint32(os.Getuid()) || !st.Mode().IsRegular() || st.Mode().Perm() != 0600 || st.Size() > 8<<20 {
+	if !environmentOwnedByCurrentUser(st) || !st.Mode().IsRegular() || st.Mode().Perm() != 0600 || st.Size() > 8<<20 {
 		return nil, ErrEnvironmentRecoveryRequired
 	}
 	return environmentOS.ReadFile(p)
@@ -245,8 +242,7 @@ func environmentNamespace(root, stateRoot string) (string, error) {
 		if e != nil || st.Mode().Perm() != 0600 || st.Mode()&os.ModeSymlink != 0 {
 			return "", ErrEnvironmentRecoveryRequired
 		}
-		owner, ok := st.Sys().(*syscall.Stat_t)
-		if !ok || owner.Uid != uint32(os.Getuid()) {
+		if !environmentOwnedByCurrentUser(st) {
 			return "", ErrEnvironmentRecoveryRequired
 		}
 		if e = environmentPrivateDir(locator.Directory); e != nil {
