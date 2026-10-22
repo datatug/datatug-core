@@ -3,6 +3,8 @@ package datatug
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -181,7 +183,40 @@ type QueryFederation struct {
 	OVDBBaseURL            string                       `json:"ovdbBaseUrl,omitempty" yaml:"ovdbBaseUrl,omitempty"`
 	Tables                 []QueryFederationTable       `json:"tables,omitempty" yaml:"tables,omitempty"`
 	Lookups                []QueryHTTPLookup            `json:"lookups,omitempty" yaml:"lookups,omitempty"`
+	// IngitdbSources names databases a client reads straight from their public
+	// Git host (inGitDB published views), each described by an OVDB descriptor
+	// at a public HTTPS URL. Metadata only: no credential, no execution grant.
+	IngitdbSources []QueryIngitdbSource `json:"ingitdbSources,omitempty" yaml:"ingitdbSources,omitempty"`
 }
+
+// QueryIngitdbSource maps a federation database name to the OVDB descriptor
+// (an ovdb-manifest/draft-1 with storage.engine ingitdb) that says where its
+// inGitDB data lives.
+type QueryIngitdbSource struct {
+	Database   string `json:"database" yaml:"database"`
+	Descriptor string `json:"descriptor" yaml:"descriptor"`
+}
+
+// Validate requires a simple database name and a public HTTPS descriptor URL
+// with no credentials, port, query or fragment.
+func (v QueryIngitdbSource) Validate() error {
+	return v.validateAt("")
+}
+
+// validateAt names a refused field with prefix, e.g. "federation.ingitdbSources[0].".
+func (v QueryIngitdbSource) validateAt(prefix string) error {
+	if !ingitdbSourceDatabase.MatchString(v.Database) {
+		return validation.NewErrBadRecordFieldValue(prefix+"database", "must be a simple name of letters, digits, '_' or '-'")
+	}
+	u, err := url.Parse(v.Descriptor)
+	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.Port() != "" ||
+		u.RawQuery != "" || u.ForceQuery || u.Fragment != "" {
+		return validation.NewErrBadRecordFieldValue(prefix+"descriptor", "must be a public https URL without credentials, port, query or fragment")
+	}
+	return nil
+}
+
+var ingitdbSourceDatabase = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 
 type QueryFederationTable struct {
 	Name     string   `json:"name" yaml:"name"`
@@ -340,6 +375,16 @@ func (v QueryDef) Validate() error {
 					return validation.NewErrBadRecordFieldValue(fmt.Sprintf("federation.lookups[%d].fields[%d]", i, j), "source and target are required")
 				}
 			}
+		}
+		seen := make(map[string]bool, len(v.Federation.IngitdbSources))
+		for i, source := range v.Federation.IngitdbSources {
+			if err := source.validateAt(fmt.Sprintf("federation.ingitdbSources[%d].", i)); err != nil {
+				return err
+			}
+			if seen[source.Database] {
+				return validation.NewErrBadRecordFieldValue(fmt.Sprintf("federation.ingitdbSources[%d].database", i), "is listed twice")
+			}
+			seen[source.Database] = true
 		}
 	}
 	for i, p := range v.Parameters {
