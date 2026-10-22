@@ -31,25 +31,6 @@ func validCard() *Card {
 	}
 }
 
-func TestCardMatchRule_IsWellFormed(t *testing.T) {
-	for name, tc := range map[string]struct {
-		rule CardMatchRule
-		ok   bool
-	}{
-		"entity+field":        {CardMatchRule{Entity: "E", Field: "F"}, true},
-		"table+column":        {CardMatchRule{Table: "T", Column: "C"}, true},
-		"column":              {CardMatchRule{Column: "C"}, true},
-		"empty":               {CardMatchRule{}, false},
-		"entity only":         {CardMatchRule{Entity: "E"}, false},
-		"field only":          {CardMatchRule{Field: "F"}, false},
-		"entity+field+column": {CardMatchRule{Entity: "E", Field: "F", Column: "C"}, false},
-		"entity+field+table":  {CardMatchRule{Entity: "E", Field: "F", Table: "T"}, false},
-		"table only":          {CardMatchRule{Table: "T"}, false},
-	} {
-		t.Run(name, func(t *testing.T) { assert.Equal(t, tc.ok, tc.rule.IsWellFormed()) })
-	}
-}
-
 // A card the web saved with malformed match rules (admitted on purpose by the
 // TypeScript validator, ignored when matching) is never refused by Go.
 func TestCard_MalformedMatchRulesAreAdmitted(t *testing.T) {

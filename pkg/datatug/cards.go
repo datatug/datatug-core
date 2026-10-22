@@ -34,19 +34,10 @@ type CardMatchRule struct {
 	Column string `json:"column,omitempty"`
 }
 
-// IsWellFormed tells whether the rule is exactly one of the three shapes.
-// A malformed rule is not an error: it is admitted, never saved wrongly, and
-// matching ignores it (spec REQ input-matching), as in the TypeScript validator.
-func (v CardMatchRule) IsWellFormed() bool {
-	switch {
-	case v.Entity != "" || v.Field != "":
-		return v.Entity != "" && v.Field != "" && v.Table == "" && v.Column == ""
-	case v.Table != "":
-		return v.Column != ""
-	default:
-		return v.Column != ""
-	}
-}
+// A malformed match rule (neither entity+field, table+column nor column) is not
+// an error: the TypeScript validator admits it on purpose and cell matching,
+// which is client-side, ignores it. Go therefore checks match rules only
+// structurally, by decoding them, and caps their number.
 
 // MaxCardMatchRules bounds the match rules of one card parameter, as the
 // TypeScript validator does.

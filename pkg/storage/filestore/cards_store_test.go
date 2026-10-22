@@ -204,3 +204,20 @@ func TestFsProjectStore_HasCards(t *testing.T) {
 	require.NoError(t, store.SaveCard(context.Background(), testCard("c", "C")))
 	assert.FileExists(t, filepath.Join(dir, "cards", "c", "card.json"))
 }
+
+func TestFsCardsStore_ListPropagatesIOFailuresButSkipsBadContent(t *testing.T) {
+	ctx := context.Background()
+	store, cardsDir := newCardsTestStore(t)
+	require.NoError(t, store.SaveCard(ctx, testCard("good", "Good")))
+	writeCardJSON(t, filepath.Join(cardsDir, "broken", "card.json"), `{not json`)
+	cards, err := store.LoadCards(ctx)
+	require.NoError(t, err)
+	require.Len(t, cards, 1)
+
+	// A card file that cannot be read (here: a folder in its place) is an I/O
+	// failure, not a bad card: the list fails instead of serving a partial result.
+	require.NoError(t, os.MkdirAll(filepath.Join(cardsDir, "unreadable", "card.json"), 0o777))
+	_, err = store.LoadCards(ctx)
+	require.Error(t, err)
+	assert.NotErrorIs(t, err, errInvalidCardContent)
+}

@@ -2,6 +2,8 @@ package filestore
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -46,13 +48,21 @@ func checkCardID(id string) error {
 	return nil
 }
 
+// errInvalidCardContent marks a card file that was read but is not a valid card:
+// listings skip it, while I/O failures propagate.
+var errInvalidCardContent = errors.New("invalid card content")
+
 func readCardFile(filePath string) (*datatug.Card, error) {
-	card := new(datatug.Card)
-	if err := readJSONFile(filePath, true, card); err != nil {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
 		}
 		return nil, err
+	}
+	card := new(datatug.Card)
+	if err = json.Unmarshal(data, card); err != nil {
+		return nil, fmt.Errorf("%w: %v", errInvalidCardContent, err)
 	}
 	return card, nil
 }
@@ -69,7 +79,7 @@ func (s fsCardsStore) loadOneCard(id string) (*datatug.Card, error) {
 		}
 		if card != nil {
 			if card.ID != "" && card.ID != id {
-				return nil, fmt.Errorf("card[%s] at %s declares id %q", id, filePath, card.ID)
+				return nil, fmt.Errorf("%w: card[%s] at %s declares id %q", errInvalidCardContent, id, filePath, card.ID)
 			}
 			card.SetID(id)
 			return card, nil
@@ -133,12 +143,17 @@ func (s fsCardsStore) LoadCards(_ context.Context, o ...datatug.StoreOption) (da
 	for _, id := range ids {
 		card, err := s.loadOneCard(id)
 		if err == nil && card != nil {
-			err = card.Validate()
+			if err = card.Validate(); err != nil {
+				err = fmt.Errorf("%w: %v", errInvalidCardContent, err)
+			}
 		}
-		if err != nil {
+		if errors.Is(err, errInvalidCardContent) {
 			// One bad card must not hide the others: the list holds the valid ones.
 			log.Printf("filestore: skipping invalid card[%s]: %v", id, err)
 			continue
+		}
+		if err != nil {
+			return nil, err // an I/O failure is not a bad card
 		}
 		if card != nil {
 			cards = append(cards, card)
