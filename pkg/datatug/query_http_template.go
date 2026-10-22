@@ -41,7 +41,9 @@ var httpPlaceholderPrefixRe = regexp.MustCompile(`^\{([a-zA-Z0-9_]+)\}`)
 
 var (
 	httpParamIDRe = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
-	httpSchemeRe  = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.\-]*$`)
+	httpSchemeRe  = regexp.MustCompile(`^[hH][tT][tT][pP][sS]?$`)
+	// httpHostRe is a non-empty host name or IP literal with an optional port.
+	httpHostRe = regexp.MustCompile(`^(?:\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9._~%-]+)(?::[0-9]{1,5})?$`)
 )
 
 // HTTPPosition names where a placeholder sits in an HTTP request template.
@@ -61,11 +63,14 @@ const (
 	HTTPPositionHeaderName  HTTPPosition = "header-name"
 	HTTPPositionHeader      HTTPPosition = "header"
 	HTTPPositionContentType HTTPPosition = "content-type"
-	HTTPPositionBody        HTTPPosition = "body"
-	HTTPPositionJSONString  HTTPPosition = "json-string"
-	HTTPPositionJSONValue   HTTPPosition = "json-value"
-	HTTPPositionJSONKey     HTTPPosition = "json-key"
-	HTTPPositionJSONOther   HTTPPosition = "json-other"
+	// HTTPPositionReservedHeader is the value of a header the transport owns
+	// or that routes the request (Host, Content-Length, Forwarded, ...).
+	HTTPPositionReservedHeader HTTPPosition = "reserved-header"
+	HTTPPositionBody           HTTPPosition = "body"
+	HTTPPositionJSONString     HTTPPosition = "json-string"
+	HTTPPositionJSONValue      HTTPPosition = "json-value"
+	HTTPPositionJSONKey        HTTPPosition = "json-key"
+	HTTPPositionJSONOther      HTTPPosition = "json-other"
 )
 
 // HTTPTemplateErrorCode classifies an HTTPTemplateError; the codes are shared
@@ -89,6 +94,8 @@ const (
 	HTTPErrInvalidValue       HTTPTemplateErrorCode = "invalid-value"
 	HTTPErrDotSegment         HTTPTemplateErrorCode = "dot-segment"
 	HTTPErrHeaderLineBreak    HTTPTemplateErrorCode = "header-line-break"
+	HTTPErrContentType        HTTPTemplateErrorCode = "duplicate-content-type"
+	HTTPErrTooLarge           HTTPTemplateErrorCode = "too-large"
 )
 
 // HTTPTemplateError is why a template cannot be saved or run. It never holds
@@ -115,6 +122,32 @@ func (e *HTTPTemplateError) Error() string {
 	}
 	b.WriteString(": " + e.Detail)
 	return b.String()
+}
+
+// Size caps of a substituted request: the body shares the saved-body limit,
+// and the URL and each header value are capped so a large value repeated by
+// many placeholders cannot exhaust memory.
+const (
+	MaxHTTPTemplateURLBytes    = 64 * 1024
+	MaxHTTPTemplateHeaderBytes = 64 * 1024
+)
+
+// reservedHTTPHeaders are headers whose value cannot hold a placeholder: the
+// transport owns them or they route the request.
+var reservedHTTPHeaders = map[string]bool{
+	"host": true, "content-length": true, "transfer-encoding": true, "connection": true,
+	"keep-alive": true, "upgrade": true, "te": true, "trailer": true, "forwarded": true,
+	"proxy-connection": true, "expect": true,
+}
+
+func isReservedHTTPHeader(name string) bool {
+	n := strings.ToLower(asciiTrim(name))
+	return reservedHTTPHeaders[n] || strings.HasPrefix(n, "proxy-") || strings.HasPrefix(n, "x-forwarded-")
+}
+
+// asciiTrim trims ASCII whitespace only, so Go and JavaScript agree.
+func asciiTrim(s string) string {
+	return strings.Trim(s, " \t\r\n")
 }
 
 // HTTPParameterTypes are the parameter types an HTTP query may declare.
@@ -219,7 +252,7 @@ func (t HTTPRequestTemplate) spans() ([]httpSpan, error) {
 	if name := firstPlaceholder(t.Method); name != "" {
 		return nil, forbidden(name, HTTPPositionMethod, "", "the method cannot hold a placeholder")
 	}
-	spans, err := urlSpans(strings.TrimSpace(t.URL))
+	spans, err := urlSpans(asciiTrim(t.URL))
 	if err != nil {
 		return nil, err
 	}
@@ -230,8 +263,11 @@ func (t HTTPRequestTemplate) spans() ([]httpSpan, error) {
 		credential := IsCredentialHTTPHeader(h.Name)
 		for _, m := range placeholderMatches(h.Value) {
 			name := h.Value[m[2]:m[3]]
-			if strings.EqualFold(strings.TrimSpace(h.Name), "content-type") {
+			if isContentTypeHeader(h.Name) {
 				return nil, forbidden(name, HTTPPositionContentType, h.Name, "the Content-Type header decides how the body is encoded, so it cannot hold a placeholder")
+			}
+			if isReservedHTTPHeader(h.Name) {
+				return nil, forbidden(name, HTTPPositionReservedHeader, h.Name, "this header routes the request or belongs to the transport, so it cannot hold a placeholder")
 			}
 			spans = append(spans, httpSpan{
 				HTTPPlaceholder: HTTPPlaceholder{Name: name, Position: HTTPPositionHeader, Header: h.Name, Credential: credential},
@@ -240,13 +276,23 @@ func (t HTTPRequestTemplate) spans() ([]httpSpan, error) {
 		}
 	}
 	if name := firstPlaceholder(t.Body); name != "" {
-		method := strings.ToUpper(t.Method)
+		method := t.Method
 		if method == "" {
 			method = "GET"
 		}
 		if !HTTPMethodAllowsBody(method) {
 			return nil, &HTTPTemplateError{Code: HTTPErrBodyNotAllowed, Parameter: name, Position: HTTPPositionBody,
 				Detail: method + " requests have no body, so the body cannot hold a placeholder"}
+		}
+		contentTypes := 0
+		for _, h := range t.Headers {
+			if isContentTypeHeader(h.Name) {
+				contentTypes++
+			}
+		}
+		if contentTypes > 1 {
+			return nil, &HTTPTemplateError{Code: HTTPErrContentType, Parameter: name, Position: HTTPPositionBody,
+				Detail: "a body with placeholders needs exactly one Content-Type header, which decides how values are encoded"}
 		}
 		var bodySpans []httpSpan
 		switch httpBodyMode(t.Headers) {
@@ -291,7 +337,13 @@ func urlSpans(u string) ([]httpSpan, error) {
 		}
 	}
 	if schemeEnd < 0 || !httpSchemeRe.MatchString(rest[:schemeEnd]) {
-		return nil, &HTTPTemplateError{Code: HTTPErrInvalidURL, Detail: "a URL with placeholders must be absolute, such as https://host/path"}
+		return nil, &HTTPTemplateError{Code: HTTPErrInvalidURL, Detail: "a URL with placeholders must be an absolute http or https URL, such as https://host/path"}
+	}
+	// Browsers (WHATWG URL) read a backslash as a slash and drop tabs and
+	// line breaks, so such a URL could resolve to another host than the one
+	// checked here.
+	if strings.IndexFunc(u, func(r rune) bool { return r == '\\' || r <= ' ' || r == 0x7f }) >= 0 {
+		return nil, &HTTPTemplateError{Code: HTTPErrInvalidURL, Detail: "a URL with placeholders cannot contain spaces, control characters or backslashes"}
 	}
 	offset := schemeEnd + 3
 	afterScheme := rest[offset:]
@@ -307,6 +359,9 @@ func urlSpans(u string) ([]httpSpan, error) {
 	}
 	if name := firstPlaceholder(authority); name != "" {
 		return nil, forbidden(name, HTTPPositionHost, "", "the URL host and port cannot hold a placeholder: a saved query is pinned to its origin")
+	}
+	if !httpHostRe.MatchString(authority) {
+		return nil, &HTTPTemplateError{Code: HTTPErrInvalidURL, Detail: "a URL with placeholders must name its host"}
 	}
 	offset += len(afterScheme) - len(pathAndQuery)
 	path, query := pathAndQuery, ""
@@ -356,11 +411,11 @@ const (
 // Content-Type header only: there is no sniffing of the body.
 func httpBodyMode(headers []HTTPHeaderItem) httpBody {
 	for _, h := range headers {
-		if !strings.EqualFold(strings.TrimSpace(h.Name), "content-type") {
+		if !isContentTypeHeader(h.Name) {
 			continue
 		}
 		media, _, _ := strings.Cut(h.Value, ";")
-		media = strings.ToLower(strings.TrimSpace(media))
+		media = strings.ToLower(asciiTrim(media))
 		switch {
 		case media == "application/json" || strings.HasSuffix(media, "+json"):
 			return httpBodyJSON
@@ -370,6 +425,10 @@ func httpBodyMode(headers []HTTPHeaderItem) httpBody {
 		return httpBodyText
 	}
 	return httpBodyText
+}
+
+func isContentTypeHeader(name string) bool {
+	return strings.ToLower(asciiTrim(name)) == "content-type"
 }
 
 // maxJSONTemplateDepth bounds nesting so a hostile body cannot exhaust the stack.
@@ -600,11 +659,14 @@ func ValidateHTTPParameterDefs(params Parameters) error {
 			}
 		}
 		if p.IsCredential {
-			if !p.IsRequired || p.DefaultValue != nil {
+			if !p.IsRequired || p.DefaultValue != nil || p.Meta != nil {
 				return &HTTPTemplateError{Code: HTTPErrCredential, Parameter: p.ID,
-					Detail: "a credential parameter must be required, with no default: its value is typed for each run"}
+					Detail: "a credential parameter must be required, with no default and no meta: its value is typed for each run"}
 			}
 			continue
+		}
+		if p.DefaultValue == "" {
+			return bad("a default value cannot be empty")
 		}
 		if p.DefaultValue != nil {
 			if err := p.Validate(); err != nil {
@@ -725,10 +787,9 @@ func (t HTTPRequestTemplate) Substitute(params Parameters, values map[string]any
 		}
 		rendered[s.Name] = text
 	}
-	// Encode in template order so the first offending placeholder is named,
-	// then replace from the end so earlier offsets stay valid. A path value
-	// of exactly . or .. is the only way a segment can become a dot segment,
-	// since PathEscape keeps '.' and escapes '/'.
+	// Encode in template order so the first offending placeholder is named.
+	// A path value of exactly . or .. is the only way a segment can become a
+	// dot segment, since PathEscape keeps '.' and escapes '/'.
 	encoded := make([]string, len(spans))
 	for i, s := range spans {
 		value := rendered[s.Name]
@@ -742,9 +803,9 @@ func (t HTTPRequestTemplate) Substitute(params Parameters, values map[string]any
 		case HTTPPositionQuery:
 			encoded[i] = url.QueryEscape(value)
 		case HTTPPositionHeader:
-			if strings.ContainsAny(value, "\r\n\x00") {
+			if strings.IndexFunc(value, isHeaderControl) >= 0 {
 				return t, &HTTPTemplateError{Code: HTTPErrHeaderLineBreak, Parameter: s.Name, Position: s.Position, Header: s.Header,
-					Detail: "a header value cannot contain a line break or NUL"}
+					Detail: "a header value cannot contain a line break, NUL or other control character"}
 			}
 			encoded[i] = value
 		case HTTPPositionJSONString:
@@ -759,25 +820,58 @@ func (t HTTPRequestTemplate) Substitute(params Parameters, values map[string]any
 			encoded[i] = value
 		}
 	}
-	out := HTTPRequestTemplate{Method: t.Method, URL: strings.TrimSpace(t.URL), Body: t.Body}
+	out := HTTPRequestTemplate{Method: t.Method}
+	if out.URL, err = spliceField(asciiTrim(t.URL), spans, encoded, httpFieldURL, 0, MaxHTTPTemplateURLBytes, HTTPPositionPath); err != nil {
+		return t, err
+	}
+	if out.Body, err = spliceField(t.Body, spans, encoded, httpFieldBody, 0, MaxQueryHTTPBodyBytes, HTTPPositionBody); err != nil {
+		return t, err
+	}
 	if t.Headers != nil {
 		out.Headers = make([]HTTPHeaderItem, len(t.Headers))
-		copy(out.Headers, t.Headers)
-	}
-	for i := len(spans) - 1; i >= 0; i-- {
-		s := spans[i]
-		switch s.field {
-		case httpFieldURL:
-			out.URL = out.URL[:s.start] + encoded[i] + out.URL[s.end:]
-		case httpFieldHeader:
-			h := out.Headers[s.header]
-			h.Value = h.Value[:s.start] + encoded[i] + h.Value[s.end:]
-			out.Headers[s.header] = h
-		default:
-			out.Body = out.Body[:s.start] + encoded[i] + out.Body[s.end:]
+		for i, h := range t.Headers {
+			out.Headers[i] = h
+			if out.Headers[i].Value, err = spliceField(h.Value, spans, encoded, httpFieldHeader, i, MaxHTTPTemplateHeaderBytes, HTTPPositionHeader); err != nil {
+				return t, err
+			}
 		}
 	}
 	return out, nil
+}
+
+// isHeaderControl reports a character a header value cannot carry: any
+// ASCII control character except horizontal tab (as Go's net/http).
+func isHeaderControl(r rune) bool {
+	return (r < 0x20 && r != '\t') || r == 0x7f
+}
+
+// spliceField rebuilds one field in a single pass, replacing its spans (in
+// template order) with their encoded values, and fails once the result would
+// exceed max bytes.
+func spliceField(text string, spans []httpSpan, encoded []string, field httpField, header, max int, pos HTTPPosition) (string, error) {
+	var b strings.Builder
+	last := 0
+	for i, s := range spans {
+		if s.field != field || s.header != header {
+			continue
+		}
+		if b.Len()+(s.start-last)+len(encoded[i]) > max {
+			return "", &HTTPTemplateError{Code: HTTPErrTooLarge, Parameter: s.Name, Position: pos,
+				Detail: fmt.Sprintf("the substituted value makes it larger than %d bytes", max)}
+		}
+		b.WriteString(text[last:s.start])
+		b.WriteString(encoded[i])
+		last = s.end
+	}
+	if last == 0 {
+		return text, nil
+	}
+	if b.Len()+len(text)-last > max {
+		return "", &HTTPTemplateError{Code: HTTPErrTooLarge, Position: pos,
+			Detail: fmt.Sprintf("the substituted value makes it larger than %d bytes", max)}
+	}
+	b.WriteString(text[last:])
+	return b.String(), nil
 }
 
 func isMissingHTTPValue(v any) bool {
@@ -918,7 +1012,15 @@ func (v QueryDef) HTTPTemplate() HTTPRequestTemplate {
 // that declares parameters. A query with no declared parameters is a legacy
 // literal request and keeps running as stored (REQ:legacy-literal-braces).
 func (v QueryDef) validateHTTPParameters() error {
-	if v.Type != QueryTypeHTTP || len(v.Parameters) == 0 {
+	if v.Type != QueryTypeHTTP {
+		for _, p := range v.Parameters {
+			if p.IsCredential {
+				return &HTTPTemplateError{Code: HTTPErrInvalidDeclaration, Parameter: p.ID, Detail: "only HTTP query parameters can be credentials"}
+			}
+		}
+		return nil
+	}
+	if len(v.Parameters) == 0 {
 		return nil
 	}
 	return v.HTTPTemplate().ValidateParameters(v.Parameters)

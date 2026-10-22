@@ -219,6 +219,32 @@ func TestHTTPTemplatePlaceholdersAndHelpers(t *testing.T) {
 	}
 }
 
+func TestHTTPTemplateLiteralTailTooLarge(t *testing.T) {
+	tmpl := HTTPRequestTemplate{Method: "POST", URL: "https://x.test/", Body: "{a}" + strings.Repeat("y", MaxQueryHTTPBodyBytes-100)}
+	_, err := tmpl.Substitute(Parameters{{ID: "a", Type: "string", IsRequired: true}}, map[string]any{"a": strings.Repeat("x", 200)})
+	var te *HTTPTemplateError
+	if !errors.As(err, &te) || te.Code != HTTPErrTooLarge || te.Position != HTTPPositionBody || te.Parameter != "" {
+		t.Fatalf("expected too-large, got %v", err)
+	}
+}
+
+func TestQueryDefValidateCredentialOnlyForHTTP(t *testing.T) {
+	q := QueryDef{
+		ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "q", Title: "Q"}},
+		Type:        "SQL",
+		Text:        "select 1 where a = @a",
+		Parameters:  Parameters{{ID: "a", Type: "string", IsCredential: true}},
+	}
+	var te *HTTPTemplateError
+	if err := q.Validate(); !errors.As(err, &te) || te.Code != HTTPErrInvalidDeclaration {
+		t.Fatalf("expected invalid-declaration, got %v", err)
+	}
+	q.Parameters[0].IsCredential = false
+	if err := q.Validate(); err != nil {
+		t.Fatalf("plain SQL parameter: %v", err)
+	}
+}
+
 func TestQueryDefValidateHTTPParameters(t *testing.T) {
 	base := func() QueryDef {
 		return QueryDef{

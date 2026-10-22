@@ -1632,8 +1632,8 @@
       }
     },
     {
-      "name": "only the first Content-Type decides the body mode",
-      "mode": "run",
+      "name": "two Content-Type headers with a body placeholder are refused",
+      "mode": "save",
       "template": {
         "method": "POST",
         "url": "https://x.test/",
@@ -1643,7 +1643,7 @@
             "value": "text/plain"
           },
           {
-            "name": "Content-Type",
+            "name": "content-type",
             "value": "application/json"
           }
         ],
@@ -1656,22 +1656,10 @@
           "isRequired": true
         }
       ],
-      "values": {
-        "v": "a b"
-      },
-      "expect": {
-        "url": "https://x.test/",
-        "headers": [
-          {
-            "name": "Content-Type",
-            "value": "text/plain"
-          },
-          {
-            "name": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": "a b"
+      "error": {
+        "code": "duplicate-content-type",
+        "parameter": "v",
+        "position": "body"
       }
     },
     {
@@ -2552,6 +2540,619 @@
         "code": "forbidden-position",
         "parameter": "k",
         "position": "query-name"
+      }
+    },
+    {
+      "name": "origin-pin bypass attempt 1 is refused",
+      "mode": "save",
+      "template": {
+        "url": "https:///{p}"
+      },
+      "parameters": [
+        {
+          "id": "p",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "error": {
+        "code": "invalid-url"
+      }
+    },
+    {
+      "name": "origin-pin bypass attempt 2 is refused",
+      "mode": "save",
+      "template": {
+        "url": "https://@/{p}"
+      },
+      "parameters": [
+        {
+          "id": "p",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "error": {
+        "code": "invalid-url"
+      }
+    },
+    {
+      "name": "origin-pin bypass attempt 3 is refused",
+      "mode": "save",
+      "template": {
+        "url": "https://:80/{p}"
+      },
+      "parameters": [
+        {
+          "id": "p",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "error": {
+        "code": "invalid-url"
+      }
+    },
+    {
+      "name": "origin-pin bypass attempt 4 is refused",
+      "mode": "save",
+      "template": {
+        "url": "file:///{p}"
+      },
+      "parameters": [
+        {
+          "id": "p",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "error": {
+        "code": "invalid-url"
+      }
+    },
+    {
+      "name": "origin-pin bypass attempt 5 is refused",
+      "mode": "save",
+      "template": {
+        "url": "gopher://x.test/{p}"
+      },
+      "parameters": [
+        {
+          "id": "p",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "error": {
+        "code": "invalid-url"
+      }
+    },
+    {
+      "name": "origin-pin bypass attempt 6 is refused",
+      "mode": "save",
+      "template": {
+        "url": "https://x.test\\/{p}"
+      },
+      "parameters": [
+        {
+          "id": "p",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "error": {
+        "code": "invalid-url"
+      }
+    },
+    {
+      "name": "origin-pin bypass attempt 7 is refused",
+      "mode": "save",
+      "template": {
+        "url": "https://x.test/a b/{p}"
+      },
+      "parameters": [
+        {
+          "id": "p",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "error": {
+        "code": "invalid-url"
+      }
+    },
+    {
+      "name": "origin-pin bypass attempt 8 is refused",
+      "mode": "save",
+      "template": {
+        "url": "https://x.te\tst/{p}"
+      },
+      "parameters": [
+        {
+          "id": "p",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "error": {
+        "code": "invalid-url"
+      }
+    },
+    {
+      "name": "origin-pin bypass attempt 9 is refused",
+      "mode": "save",
+      "template": {
+        "url": "https://x.test/{p}"
+      },
+      "parameters": [
+        {
+          "id": "p",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "error": {
+        "code": "invalid-url"
+      }
+    },
+    {
+      "name": "scheme and host letters may be upper case",
+      "mode": "run",
+      "template": {
+        "url": "HTTPS://X.test:8443/{p}"
+      },
+      "parameters": [
+        {
+          "id": "p",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "values": {
+        "p": "a"
+      },
+      "expect": {
+        "url": "HTTPS://X.test:8443/a"
+      }
+    },
+    {
+      "name": "an IPv6 literal host is accepted",
+      "mode": "run",
+      "template": {
+        "url": "https://[2001:db8::1]/{p}"
+      },
+      "parameters": [
+        {
+          "id": "p",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "values": {
+        "p": "a"
+      },
+      "expect": {
+        "url": "https://[2001:db8::1]/a"
+      }
+    },
+    {
+      "name": "a Host header cannot hold a placeholder",
+      "mode": "save",
+      "template": {
+        "url": "https://x.test/",
+        "headers": [
+          {
+            "name": "Host",
+            "value": "{h}"
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "id": "h",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "error": {
+        "code": "forbidden-position",
+        "parameter": "h",
+        "position": "reserved-header",
+        "header": "Host"
+      }
+    },
+    {
+      "name": "a Content-Length header cannot hold a placeholder",
+      "mode": "save",
+      "template": {
+        "url": "https://x.test/",
+        "headers": [
+          {
+            "name": "Content-Length",
+            "value": "{h}"
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "id": "h",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "error": {
+        "code": "forbidden-position",
+        "parameter": "h",
+        "position": "reserved-header",
+        "header": "Content-Length"
+      }
+    },
+    {
+      "name": "a Transfer-Encoding header cannot hold a placeholder",
+      "mode": "save",
+      "template": {
+        "url": "https://x.test/",
+        "headers": [
+          {
+            "name": "Transfer-Encoding",
+            "value": "{h}"
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "id": "h",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "error": {
+        "code": "forbidden-position",
+        "parameter": "h",
+        "position": "reserved-header",
+        "header": "Transfer-Encoding"
+      }
+    },
+    {
+      "name": "a Connection header cannot hold a placeholder",
+      "mode": "save",
+      "template": {
+        "url": "https://x.test/",
+        "headers": [
+          {
+            "name": "Connection",
+            "value": "{h}"
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "id": "h",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "error": {
+        "code": "forbidden-position",
+        "parameter": "h",
+        "position": "reserved-header",
+        "header": "Connection"
+      }
+    },
+    {
+      "name": "a Forwarded header cannot hold a placeholder",
+      "mode": "save",
+      "template": {
+        "url": "https://x.test/",
+        "headers": [
+          {
+            "name": "Forwarded",
+            "value": "{h}"
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "id": "h",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "error": {
+        "code": "forbidden-position",
+        "parameter": "h",
+        "position": "reserved-header",
+        "header": "Forwarded"
+      }
+    },
+    {
+      "name": "a X-Forwarded-For header cannot hold a placeholder",
+      "mode": "save",
+      "template": {
+        "url": "https://x.test/",
+        "headers": [
+          {
+            "name": "X-Forwarded-For",
+            "value": "{h}"
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "id": "h",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "error": {
+        "code": "forbidden-position",
+        "parameter": "h",
+        "position": "reserved-header",
+        "header": "X-Forwarded-For"
+      }
+    },
+    {
+      "name": "a Proxy-Authorization header cannot hold a placeholder",
+      "mode": "save",
+      "template": {
+        "url": "https://x.test/",
+        "headers": [
+          {
+            "name": "Proxy-Authorization",
+            "value": "{h}"
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "id": "h",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "error": {
+        "code": "forbidden-position",
+        "parameter": "h",
+        "position": "reserved-header",
+        "header": "Proxy-Authorization"
+      }
+    },
+    {
+      "name": "header control characters other than tab are refused",
+      "mode": "run",
+      "template": {
+        "url": "https://x.test/",
+        "headers": [
+          {
+            "name": "X-Ref",
+            "value": "{v}"
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "id": "v",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "values": {
+        "v": "a\u000bb"
+      },
+      "error": {
+        "code": "header-line-break",
+        "parameter": "v",
+        "position": "header",
+        "header": "X-Ref"
+      }
+    },
+    {
+      "name": "header DEL is refused",
+      "mode": "run",
+      "template": {
+        "url": "https://x.test/",
+        "headers": [
+          {
+            "name": "X-Ref",
+            "value": "{v}"
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "id": "v",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "values": {
+        "v": "a"
+      },
+      "error": {
+        "code": "header-line-break",
+        "parameter": "v",
+        "position": "header",
+        "header": "X-Ref"
+      }
+    },
+    {
+      "name": "a tab in a header value is allowed",
+      "mode": "run",
+      "template": {
+        "url": "https://x.test/",
+        "headers": [
+          {
+            "name": "X-Ref",
+            "value": "{v}"
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "id": "v",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "values": {
+        "v": "a\tb"
+      },
+      "expect": {
+        "url": "https://x.test/",
+        "headers": [
+          {
+            "name": "X-Ref",
+            "value": "a\tb"
+          }
+        ]
+      }
+    },
+    {
+      "name": "a body over 256 KiB after substitution is refused",
+      "mode": "run",
+      "verifies": "AC:body-limit-after-substitution",
+      "template": {
+        "method": "POST",
+        "url": "https://x.test/",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "text/plain"
+          }
+        ],
+        "body": "{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}"
+      },
+      "parameters": [
+        {
+          "id": "a",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "values": {
+        "a": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "error": {
+        "code": "too-large",
+        "parameter": "a",
+        "position": "body"
+      }
+    },
+    {
+      "name": "a URL over 64 KiB after substitution is refused",
+      "mode": "run",
+      "template": {
+        "url": "https://x.test/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/{a}/"
+      },
+      "parameters": [
+        {
+          "id": "a",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "values": {
+        "a": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "error": {
+        "code": "too-large",
+        "parameter": "a",
+        "position": "path"
+      }
+    },
+    {
+      "name": "a header over 64 KiB after substitution is refused",
+      "mode": "run",
+      "template": {
+        "url": "https://x.test/",
+        "headers": [
+          {
+            "name": "X-A",
+            "value": "{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}{a}"
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "id": "a",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "values": {
+        "a": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "error": {
+        "code": "too-large",
+        "parameter": "a",
+        "position": "header"
+      }
+    },
+    {
+      "name": "a credential parameter cannot carry meta",
+      "mode": "save",
+      "template": {
+        "url": "https://x.test/",
+        "headers": [
+          {
+            "name": "Authorization",
+            "value": "Bearer {token}"
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "id": "token",
+          "type": "string",
+          "isRequired": true,
+          "isCredential": true,
+          "meta": {
+            "entity": "User",
+            "field": "token"
+          }
+        }
+      ],
+      "error": {
+        "code": "credential-parameter",
+        "parameter": "token"
+      }
+    },
+    {
+      "name": "an empty default is refused",
+      "mode": "save",
+      "template": {
+        "url": "https://x.test/r/{a}"
+      },
+      "parameters": [
+        {
+          "id": "a",
+          "type": "string",
+          "defaultValue": ""
+        }
+      ],
+      "error": {
+        "code": "invalid-declaration",
+        "parameter": "a"
+      }
+    },
+    {
+      "name": "the method must be upper case to carry a body",
+      "mode": "save",
+      "template": {
+        "method": "post",
+        "url": "https://x.test/",
+        "body": "{p}"
+      },
+      "parameters": [
+        {
+          "id": "p",
+          "type": "string",
+          "isRequired": true
+        }
+      ],
+      "error": {
+        "code": "body-not-allowed",
+        "parameter": "p"
       }
     }
   ],
