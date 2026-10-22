@@ -77,12 +77,19 @@ func (v *QueryComparisonProjection) UnmarshalJSON(data []byte) error {
 	return nil
 }
 func (v *TimelineChartSpec) UnmarshalJSON(data []byte) error {
+	// Capture field presence before closed-schema admission, then reuse that
+	// map for mode checks instead of reparsing already admitted JSON.
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+
 	type wire TimelineChartSpec
 	var decoded wire
 	if err := decodeClosedMapping(data, &decoded); err != nil {
 		return err
 	}
-	if err := validateTimelineModeWire(data, TimelineChartSpec(decoded)); err != nil {
+	if err := validateTimelineModeWire(fields, TimelineChartSpec(decoded)); err != nil {
 		return err
 	}
 	*v = TimelineChartSpec(decoded)
@@ -121,11 +128,7 @@ func (v *TimelineChartSpec) UnmarshalYAML(node *yaml.Node) error {
 	return v.UnmarshalJSON(data)
 }
 
-func validateTimelineModeWire(data []byte, value TimelineChartSpec) error {
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(data, &fields); err != nil {
-		return err
-	}
+func validateTimelineModeWire(fields map[string]json.RawMessage, value TimelineChartSpec) error {
 	if _, present := fields["timeMode"]; present && value.TimeMode == "" {
 		return fmt.Errorf("empty timeline timeMode")
 	}
