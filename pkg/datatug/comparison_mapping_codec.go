@@ -158,6 +158,9 @@ func checkQueryComparisonJSON(data []byte, schema reflect.Type) error {
 			return fmt.Errorf("comparison must be canonical and nonnull")
 		}
 	}
+	if err := checkOptionalSourceJSON(data, "relationshipBindings"); err != nil {
+		return err
+	}
 	return jsonstrict.CheckNoDuplicateKeysForSchema(data, schema)
 }
 func (v *QueryDef) UnmarshalJSON(data []byte) error {
@@ -203,7 +206,7 @@ func checkQueryComparisonYAML(node *yaml.Node) error {
 			return fmt.Errorf("comparison must be canonical and nonnull")
 		}
 	}
-	return nil
+	return checkOptionalSourceMembers(fields, "relationshipBindings")
 }
 
 func decodeKnownQueryYAML(node *yaml.Node, target any) error {
