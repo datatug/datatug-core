@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 type httpVectorError struct {
@@ -289,5 +290,20 @@ func TestQueryDefValidateHTTPParameters(t *testing.T) {
 	data, _ := json.Marshal(credential.Parameters[1])
 	if !strings.Contains(string(data), `"isCredential":true`) {
 		t.Fatalf("isCredential not serialised: %s", data)
+	}
+}
+
+func TestHTTPTemplateLargeValueManySpansIsCheap(t *testing.T) {
+	tmpl := HTTPRequestTemplate{Method: "POST", URL: "https://x.test/",
+		Headers: []HTTPHeaderItem{{Name: "Content-Type", Value: "application/json"}},
+		Body:    `["` + strings.Repeat("{a}", 40000) + `"]`}
+	start := time.Now()
+	_, err := tmpl.Substitute(Parameters{{ID: "a", Type: "string", IsRequired: true}}, map[string]any{"a": strings.Repeat("x", 100000)})
+	var te *HTTPTemplateError
+	if !errors.As(err, &te) || te.Code != HTTPErrTooLarge {
+		t.Fatalf("expected too-large, got %v", err)
+	}
+	if d := time.Since(start); d > 2*time.Second {
+		t.Fatalf("took %v", d)
 	}
 }

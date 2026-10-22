@@ -43,7 +43,7 @@ var (
 	httpParamIDRe = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
 	httpSchemeRe  = regexp.MustCompile(`^[hH][tT][tT][pP][sS]?$`)
 	// httpHostRe is a non-empty host name or IP literal with an optional port.
-	httpHostRe = regexp.MustCompile(`^(?:\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9._~%-]+)(?::[0-9]{1,5})?$`)
+	httpHostRe = regexp.MustCompile(`^(?:\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9][A-Za-z0-9._~-]*)(?::[0-9]{1,5})?$`)
 )
 
 // HTTPPosition names where a placeholder sits in an HTTP request template.
@@ -137,7 +137,8 @@ const (
 var reservedHTTPHeaders = map[string]bool{
 	"host": true, "content-length": true, "transfer-encoding": true, "connection": true,
 	"keep-alive": true, "upgrade": true, "te": true, "trailer": true, "forwarded": true,
-	"proxy-connection": true, "expect": true,
+	"proxy-connection": true, "expect": true, "via": true, "x-real-ip": true,
+	"x-original-url": true, "x-rewrite-url": true, "x-host": true,
 }
 
 func isReservedHTTPHeader(name string) bool {
@@ -282,7 +283,7 @@ func (t HTTPRequestTemplate) spans() ([]httpSpan, error) {
 		}
 		if !HTTPMethodAllowsBody(method) {
 			return nil, &HTTPTemplateError{Code: HTTPErrBodyNotAllowed, Parameter: name, Position: HTTPPositionBody,
-				Detail: method + " requests have no body, so the body cannot hold a placeholder"}
+				Detail: "only POST, PUT, PATCH and DELETE requests carry a body, so the body cannot hold a placeholder"}
 		}
 		contentTypes := 0
 		for _, h := range t.Headers {
@@ -790,8 +791,20 @@ func (t HTTPRequestTemplate) Substitute(params Parameters, values map[string]any
 	// Encode in template order so the first offending placeholder is named.
 	// A path value of exactly . or .. is the only way a segment can become a
 	// dot segment, since PathEscape keeps '.' and escapes '/'.
+	// Each (parameter, position) pair is encoded once, so a large value used
+	// by many placeholders costs one copy until spliceField caps the output.
+	type encodingKey struct {
+		name string
+		pos  HTTPPosition
+	}
+	cache := make(map[encodingKey]string, len(rendered))
 	encoded := make([]string, len(spans))
 	for i, s := range spans {
+		key := encodingKey{s.Name, s.Position}
+		if e, ok := cache[key]; ok && s.Position != HTTPPositionHeader {
+			encoded[i] = e
+			continue
+		}
 		value := rendered[s.Name]
 		switch s.Position {
 		case HTTPPositionPath:
@@ -819,6 +832,7 @@ func (t HTTPRequestTemplate) Substitute(params Parameters, values map[string]any
 		default: // HTTPPositionJSONValue: a rendered integer, number, boolean or bit is a JSON literal.
 			encoded[i] = value
 		}
+		cache[key] = encoded[i]
 	}
 	out := HTTPRequestTemplate{Method: t.Method}
 	if out.URL, err = spliceField(asciiTrim(t.URL), spans, encoded, httpFieldURL, 0, MaxHTTPTemplateURLBytes, HTTPPositionPath); err != nil {
@@ -845,7 +859,8 @@ func isHeaderControl(r rune) bool {
 	return (r < 0x20 && r != '\t') || r == 0x7f
 }
 
-// spliceField rebuilds one field in a single pass, replacing its spans (in
+// spliceField rebuilds one field in a single pass (a field with no spans is
+// returned as is: its size is bounded by the caller's own request limits), replacing its spans (in
 // template order) with their encoded values, and fails once the result would
 // exceed max bytes.
 func spliceField(text string, spans []httpSpan, encoded []string, field httpField, header, max int, pos HTTPPosition) (string, error) {
