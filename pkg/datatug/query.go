@@ -164,10 +164,12 @@ type QueryDef struct {
 	// ConnectionID names a project connection declaration. It is an identifier,
 	// never a URL, driver string, credential, or execution grant.
 	ConnectionID string `json:"connectionId,omitempty" yaml:"connectionId,omitempty"`
+	// Comparison declares result roles, not physical lineage or execution authority.
+	Comparison    *QueryComparison    `json:"comparison,omitempty" yaml:"comparison,omitempty"`
+	SemanticModel *QuerySemanticModel `json:"semanticModel,omitempty" yaml:"semanticModel,omitempty"`
 	// Federation contains client-side source routing and optional per-row HTTP
 	// lookups. It is project metadata, never a place for credentials.
-	SemanticModel *QuerySemanticModel `json:"semanticModel,omitempty" yaml:"semanticModel,omitempty"`
-	Federation    *QueryFederation    `json:"federation,omitempty" yaml:"federation,omitempty"`
+	Federation *QueryFederation `json:"federation,omitempty" yaml:"federation,omitempty"`
 }
 
 type QueryFederation struct {
@@ -261,6 +263,11 @@ func (v QueryDef) Validate() error {
 	if v.SemanticModel != nil {
 		if err := v.SemanticModel.Validate(); err != nil {
 			return fmt.Errorf("semanticModel: %w", err)
+		}
+	}
+	if v.Comparison != nil {
+		if err := v.Comparison.validateAgainst(v.Parameters, v.Recordsets); err != nil {
+			return fmt.Errorf("comparison: %w", err)
 		}
 	}
 	if v.Capture != nil {

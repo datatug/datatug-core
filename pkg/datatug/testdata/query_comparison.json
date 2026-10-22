@@ -1,0 +1,81 @@
+{
+  "id": "pair",
+  "title": "Observed comparison",
+  "type": "SQL",
+  "text": "SELECT observations",
+  "parameters": [
+    {
+      "id": "primary_id",
+      "type": "integer",
+      "isRequired": true
+    },
+    {
+      "id": "control_id",
+      "type": "integer",
+      "isRequired": true
+    }
+  ],
+  "recordsets": [
+    {
+      "columns": [
+        {
+          "name": "membre",
+          "type": "integer"
+        },
+        {
+          "name": "観測",
+          "type": "string"
+        },
+        {
+          "name": "lane_alias",
+          "type": "string"
+        },
+        {
+          "name": "event_alias",
+          "type": "string"
+        },
+        {
+          "name": "seq_alias",
+          "type": "integer"
+        },
+        {
+          "name": "observed_at",
+          "type": "string"
+        },
+        {
+          "name": "clock_alias",
+          "type": "string"
+        },
+        {
+          "name": "precision_alias",
+          "type": "integer"
+        },
+        {
+          "name": "status_alias",
+          "type": "string"
+        },
+        {
+          "name": "anchor_alias",
+          "type": "integer"
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "kind": "pair",
+    "primaryInput": "primary_id",
+    "controlInput": "control_id",
+    "projection": {
+      "memberColumn": "membre",
+      "observationColumn": "観測",
+      "laneColumn": "lane_alias",
+      "eventColumn": "event_alias",
+      "sequenceColumn": "seq_alias",
+      "timeColumn": "observed_at",
+      "clockDomainColumn": "clock_alias",
+      "precisionColumn": "precision_alias",
+      "statusColumn": "status_alias",
+      "anchorColumn": "anchor_alias"
+    }
+  }
+}

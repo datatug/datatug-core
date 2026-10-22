@@ -1,0 +1,12 @@
+{
+  "laneColumn": "lane_alias",
+  "eventColumn": "event_alias",
+  "sequenceColumn": "seq_alias",
+  "timeColumn": "observed_at",
+  "clockDomainColumn": "clock_alias",
+  "precisionColumn": "precision_alias",
+  "statusColumn": "status_alias",
+  "anchorColumn": "anchor_alias",
+  "evidenceRefColumn": "evidence_ref",
+  "timeMode": "elapsed"
+}
