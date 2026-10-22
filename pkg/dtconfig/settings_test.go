@@ -467,4 +467,3 @@ func TestSaveSettings_Branches(t *testing.T) {
 		assert.NotContains(t, buf.String(), "client:")
 	})
 }
-
