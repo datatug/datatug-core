@@ -1,7 +1,6 @@
 package semantic
 
 import (
-	"sort"
 	"strings"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
@@ -53,6 +52,10 @@ type LookupSource struct {
 	// Inferred when it was guessed (the picker must say so). It is Declared
 	// for an empty Display, since nothing was guessed.
 	DisplayProvenance Provenance
+	// Meaning is the parameter meaning the source was resolved through: the
+	// parameter's declared Meta, or a key field inferred from its name
+	// (ResolveParameterMeaning). The picker must label an Inferred meaning.
+	Meaning ParameterMeaning
 }
 
 // ColumnKeyKind classifies a declared column type by SQLite-style affinity:
@@ -88,13 +91,14 @@ func ParameterAcceptsKey(parameterType string, kind KeyKind) bool {
 // LookupSources returns the collections the value of parameter can be picked
 // from (backstage parameter-lookup REQ:lookup-source-resolution): every
 // declared mapping (EntityField.Mappings, never a NamePatterns inference) of
-// the field parameter.Meta names, whose collection's schema in
+// the field the parameter means (ResolveParameterMeaning: its declared Meta,
+// else the one key field whose NamePatterns match its name), whose collection's schema in
 // schemaByCollection has a primary key of exactly one column equal to the
 // mapped column, with a key kind (ColumnKeyKind of that column's type in
 // TableSchema.Columns, or of the entity field's type when the schema lists no
 // columns) that parameter's type can hold (ParameterAcceptsKey).
 //
-// A parameter with no Meta, a multi-value parameter, and a parameter of type
+// A parameter with no meaning, a multi-value parameter, and a parameter of type
 // "record" or "recordset" have no lookup sources. A collection whose schema
 // is unknown is not a source.
 //
@@ -103,16 +107,20 @@ func ParameterAcceptsKey(parameterType string, kind KeyKind) bool {
 //
 // Pure: no I/O, no mutation of its inputs.
 func LookupSources(entities []*datatug.Entity, schemaByCollection map[SchemaKey]TableSchema, parameter datatug.ParameterDef, hostSource string) []LookupSource {
-	if parameter.Meta == nil || parameter.IsMultiValue {
+	if parameter.IsMultiValue {
+		return nil
+	}
+	meaning, ok := ResolveParameterMeaning(entities, parameter)
+	if !ok {
 		return nil
 	}
 	var sources []LookupSource
 	for _, e := range entities {
-		if e == nil || e.ID != parameter.Meta.Entity {
+		if e == nil || e.ID != meaning.Ref.Entity {
 			continue
 		}
 		for _, f := range e.Fields {
-			if f == nil || f.ID != parameter.Meta.Field {
+			if f == nil || f.ID != meaning.Ref.Field {
 				continue
 			}
 			for _, ref := range f.Mappings {
@@ -127,21 +135,12 @@ func LookupSources(entities []*datatug.Entity, schemaByCollection map[SchemaKey]
 				display, provenance := DisplayColumns(e, schema, ref)
 				sources = append(sources, LookupSource{
 					Source: ref.Source, Collection: ref.Collection, KeyColumn: ref.Column, KeyKind: kind,
-					Display: display, DisplayProvenance: provenance,
+					Display: display, DisplayProvenance: provenance, Meaning: meaning,
 				})
 			}
 		}
 	}
-	sort.SliceStable(sources, func(i, j int) bool {
-		hi, hj := sources[i].Source == hostSource, sources[j].Source == hostSource
-		if hi != hj {
-			return hi
-		}
-		if sources[i].Source != sources[j].Source {
-			return sources[i].Source < sources[j].Source
-		}
-		return sources[i].Collection < sources[j].Collection
-	})
+	sortSources(sources, hostSource)
 	return sources
 }
 

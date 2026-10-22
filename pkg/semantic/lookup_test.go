@@ -80,6 +80,7 @@ func TestLookupSources_DeclaredSingleColumnPrimaryKey(t *testing.T) {
 			{Column: "City", Field: "City", Label: "City", Provenance: Declared},
 		},
 		DisplayProvenance: Declared,
+		Meaning:           ParameterMeaning{Ref: datatug.EntityFieldRef{Entity: "Customer", Field: "ID"}, Provenance: Declared},
 	}}, sources, "chinook has no schema, so it is not a source")
 }
 
