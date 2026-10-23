@@ -124,6 +124,8 @@ func (c ResolutionCriterion) Validate() error {
 // latest attempts/configuration for every affected input. Core validates the
 // immutable contract and wall-clock freshness; it does not fetch source records.
 type ResolutionProof struct {
+	// ResolutionEpoch binds proof to the current reopening epoch (zero for legacy streams).
+	ResolutionEpoch uint64 `json:"resolutionEpoch,omitempty"`
 	// DefinitionDigest must come from the actual retained run definition, using
 	// sessioncontext.CanonicalDetectiveDefinition, under current host admission.
 	DefinitionDigest string          `json:"definitionDigest,omitempty"`
@@ -255,7 +257,7 @@ func (p *Incident) applyResolutionEvent(event Event) error {
 		if p.ResolutionCriterion == nil {
 			return fmt.Errorf("verified resolution requires a criterion")
 		}
-		if err := ValidateResolutionProof(*p.ResolutionCriterion, r.Proof, event.At); err != nil {
+		if err := ValidateIncidentResolutionProof(*p, r.Proof, event.At); err != nil {
 			return err
 		}
 		p.Resolution = &r

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/datatug/datatug-core/pkg/investigation"
@@ -25,8 +26,11 @@ func (a Actor) Validate() error {
 }
 
 func (i Incident) Validate() error {
+	if err := i.validateResolutionEpoch(); err != nil {
+		return err
+	}
 	if i.Resolution != nil && i.ResolutionCriterion != nil {
-		if err := ValidateResolutionProof(*i.ResolutionCriterion, i.Resolution.Proof, i.Resolution.Proof.EvaluatedAt); err != nil {
+		if err := ValidateIncidentResolutionProof(i, i.Resolution.Proof, i.Resolution.Proof.EvaluatedAt); err != nil {
 			return err
 		}
 	}
@@ -140,6 +144,8 @@ type ViewPolicy struct {
 // always contains canonical facts; only this read model may contain redaction
 // markers.
 type IncidentView struct {
+	ResolutionEpoch     uint64                    `json:"resolutionEpoch,omitempty"`
+	ReopenedAt          *time.Time                `json:"reopenedAt,omitempty"`
 	ResolutionCriterion *ResolutionCriterion      `json:"resolutionCriterion,omitempty"`
 	Resolution          *ResolvedPayload          `json:"resolution,omitempty"`
 	Ref                 IncidentRef               `json:"ref"`
@@ -162,6 +168,7 @@ type IncidentView struct {
 func (i IncidentView) Validate() error {
 	storedShape := Incident{
 		ResolutionCriterion: i.ResolutionCriterion, Resolution: i.Resolution,
+		ResolutionEpoch: i.ResolutionEpoch, ReopenedAt: i.ReopenedAt,
 		Ref: i.Ref, UID: i.UID, Title: i.Title, Description: i.Description, Status: i.Status,
 		Outcome: i.Outcome, MergedInto: i.MergedInto, Projects: i.Projects,
 		Participants: i.Participants, AssetRefs: i.AssetRefs, Notes: i.Notes, LastSeq: i.LastSeq,
@@ -194,6 +201,7 @@ func ApplyIncidentView(stored Incident, policy ViewPolicy) IncidentView {
 		ContextRejections: filterContextRejections(stored.ContextRejections, policy),
 		AssetRefs:         filterAssetRefs(stored, policy), Notes: filterNotes(stored, policy),
 		ResolutionCriterion: visibleCriterion(stored, policy), Resolution: visibleResolution(stored, policy),
+		ResolutionEpoch: stored.ResolutionEpoch, ReopenedAt: cloneReopenedAt(stored.ReopenedAt),
 		LastSeq: stored.LastSeq,
 	}
 }

@@ -145,6 +145,7 @@ type EventType string
 const (
 	EventIncidentCriterionSet EventType = "incident.criterion-set"
 	EventIncidentResolved     EventType = "incident.resolved"
+	EventIncidentReopened     EventType = "incident.reopened"
 	EventIncidentCreated      EventType = "incident.created"
 	EventIncidentStatus       EventType = "incident.status"
 	EventIncidentOutcome      EventType = "incident.outcome"
@@ -228,7 +229,9 @@ type CreatedPayload struct {
 }
 
 type StatusPayload struct {
-	Status Status `json:"status"`
+	// Zero preserves historical monotonic events; one uses the Work lifecycle.
+	LifecycleVersion int    `json:"lifecycleVersion,omitempty"`
+	Status           Status `json:"status"`
 }
 
 type OutcomePayload struct {
@@ -288,6 +291,9 @@ type CanonicalContext = investigation.Context
 
 // Incident is the deterministic current or historical projection.
 type Incident struct {
+	ResolutionEpoch     uint64               `json:"resolutionEpoch,omitempty"`
+	ReopenedAt          *time.Time           `json:"reopenedAt,omitempty"`
+	ReopenEventID       string               `json:"reopenEventId,omitempty"`
 	ResolutionCriterion *ResolutionCriterion `json:"resolutionCriterion,omitempty"`
 	Resolution          *ResolvedPayload     `json:"resolution,omitempty"`
 	CriterionEventID    string               `json:"criterionEventId,omitempty"`

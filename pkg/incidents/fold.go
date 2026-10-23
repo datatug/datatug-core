@@ -302,6 +302,10 @@ func (p *Incident) apply(event Event) error {
 		}
 		p.CanonicalContext = payload.CanonicalContext
 		p.Status = StatusOpen
+	case EventIncidentReopened:
+		if err := p.applyReopenEvent(event); err != nil {
+			return err
+		}
 	case EventIncidentCriterionSet, EventIncidentResolved:
 		if err := p.applyResolutionEvent(event); err != nil {
 			return err
@@ -311,7 +315,11 @@ func (p *Incident) apply(event Event) error {
 		if p.ResolutionCriterion != nil && p.ResolutionCriterion.Enforcement == "required" && p.Resolution == nil && statusRank(payload.Status) >= statusRank(StatusResolved) {
 			return fmt.Errorf("required resolution criterion requires verified incident.resolved")
 		}
-		if statusRank(payload.Status) < statusRank(p.Status) {
+		if payload.LifecycleVersion == 1 {
+			if !CanTransitionIncidentStatus(p.Status, payload.Status) {
+				return fmt.Errorf("illegal incident status transition from %s to %s", p.Status, payload.Status)
+			}
+		} else if statusRank(payload.Status) < statusRank(p.Status) {
 			return fmt.Errorf("status cannot move backward from %s to %s", p.Status, payload.Status)
 		}
 		if (payload.Status == StatusWatching || payload.Status == StatusClosed) && p.Outcome == "" {
@@ -414,6 +422,12 @@ func decodePayload(data json.RawMessage, dst any) error {
 
 func (e Event) validatePayload(view bool) error {
 	switch e.Type {
+	case EventIncidentReopened:
+		var payload ReopenedPayload
+		if err := decodePayload(e.Payload, &payload); err != nil {
+			return err
+		}
+		return payload.Validate()
 	case EventIncidentCriterionSet:
 		var payload ResolutionCriterion
 		if err := decodePayload(e.Payload, &payload); err != nil {
@@ -485,7 +499,7 @@ func (e Event) validatePayload(view bool) error {
 		if err := decodePayload(e.Payload, &payload); err != nil {
 			return err
 		}
-		if !validStatus(payload.Status) {
+		if (payload.LifecycleVersion != 0 && payload.LifecycleVersion != 1) || !validStatus(payload.Status) {
 			return fmt.Errorf("invalid status %q", payload.Status)
 		}
 	case EventIncidentOutcome:
