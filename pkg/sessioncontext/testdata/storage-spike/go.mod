@@ -3,11 +3,11 @@ module github.com/datatug/datatug-core/pkg/sessioncontext/testdata/storage-spike
 go 1.27.0
 
 require (
-	github.com/dal-go/dalgo v0.95.1
+	github.com/dal-go/dalgo v0.95.2
 	github.com/dal-go/record v0.1.5
 	github.com/datatug/datatug-core v0.57.1
-	github.com/openvaultdb/openvaultdb-go v0.25.6
-	modernc.org/sqlite v1.60.1
+	github.com/openvaultdb/openvaultdb-go v0.26.0
+	modernc.org/sqlite v1.61.0
 )
 
 require (
