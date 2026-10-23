@@ -173,6 +173,7 @@ func (s *ProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOption
 		return nil, err
 	}
 	project := datatug.NewProjectWithStore(s.projectID, s)
+	project.Coordination = file.Coordination
 	project.ProjectItem = file.ProjectItem
 	project.Created = file.Created
 	project.Repository = file.Repository
@@ -217,6 +218,7 @@ func (s *ProjectStore) SaveProject(ctx context.Context, p *datatug.Project) erro
 	}
 	file := datatug.ProjectFile{
 		EnvironmentOrder: p.EnvironmentOrder,
+		Coordination:     p.Coordination,
 		ProjectItem: datatug.ProjectItem{
 			ProjItemBrief: datatug.ProjItemBrief{ID: p.ID, Title: p.Title},
 			Access:        p.Access,
@@ -237,8 +239,12 @@ func (s *ProjectStore) SaveProject(ctx context.Context, p *datatug.Project) erro
 			return err
 		}
 		if err == nil {
-			if _, err = decodeProjectMetadata(fields); err != nil {
-				return err
+			existing, decodeErr := decodeProjectMetadata(fields)
+			if decodeErr != nil {
+				return decodeErr
+			}
+			if file.Coordination == nil {
+				file.Coordination = existing.Coordination
 			}
 		}
 		if p.DataModels != nil {
