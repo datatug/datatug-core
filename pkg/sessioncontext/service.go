@@ -214,6 +214,7 @@ func settlePendingRun(session *Session) error {
 
 // Service requires a live authorization boundary. It never executes source queries on reads.
 type Service struct {
+	work            *WorkBinding
 	repo            Repository
 	authorize       Authorizer
 	now             func() time.Time
@@ -227,6 +228,9 @@ func NewService(repo Repository, authorize Authorizer) (*Service, error) {
 	return &Service{repo: repo, authorize: authorize, now: func() time.Time { return time.Now().UTC() }}, nil
 }
 func (s *Service) allow(ctx context.Context, p Principal, action, id string, scope *Scope) error {
+	if s.work != nil && (!workAction(action) || id != "" && id != s.work.SessionID || p.DatabaseID != s.work.DatabaseID || p.ProjectID != s.work.ProjectID) {
+		return ErrForbidden
+	}
 	if identity, ok := s.repo.(interface{ DatabaseID() string }); ok && identity.DatabaseID() != p.DatabaseID {
 		return ErrForbidden
 	}
@@ -244,7 +248,7 @@ func (s *Service) session(ctx context.Context, r Reader, p Principal, id, action
 	if err != nil {
 		return v, err
 	}
-	if v.ID != id || v.Owner != p.Actor || v.DatabaseID != p.DatabaseID || v.ProjectID != p.ProjectID {
+	if v.ID != id || !s.ownsSession(p, v) || v.DatabaseID != p.DatabaseID || v.ProjectID != p.ProjectID {
 		return Session{}, ErrForbidden
 	}
 	if version != v.Version || v.SchemaVersion != 1 {
@@ -428,6 +432,9 @@ func (s *Service) ListSessions(ctx context.Context, p Principal, cursor string, 
 			if v.Owner != p.Actor {
 				return v.ID, false, ErrForbidden
 			}
+			if v.WorkItemID != "" {
+				return v.ID, false, nil
+			}
 			if v.DatabaseID != p.DatabaseID || v.ProjectID != p.ProjectID {
 				return v.ID, false, nil
 			}
@@ -463,7 +470,7 @@ func (s *Service) ListEntryRevisions(ctx context.Context, p Principal, sessionID
 		if _, e = s.bag(ctx, r, p, v, entry.BagID, "listEntryRevisions"); e != nil {
 			return e
 		}
-		out, e = listPage(ctx, r, Revisions, p.Actor, cursor, limit, func(revision EntryRevision) (string, bool, error) {
+		out, e = listPage(ctx, r, Revisions, s.indexOwner(p), cursor, limit, func(revision EntryRevision) (string, bool, error) {
 			if revision.EntryID != entryID {
 				return revision.ID, false, nil
 			}
@@ -779,10 +786,10 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 					}
 					revision := EntryRevision{ID: revisionID, EntryID: legacyEntryIDs[i], BagID: bag.ID, Subject: source.Subject, Value: source.Value, CreatedAt: createdAt, Provenance: "legacy-import", LegacySourceID: legacyManifest.SourceID, SourceDigest: legacyManifest.SourceDigest}
 					entry := Entry{ID: legacyEntryIDs[i], SessionID: v.ID, BagID: bag.ID, Alias: source.Alias, Subject: source.Subject, CurrentRevisionID: revisionID, Version: 1}
-					if e = tx.Save(ctx, Revisions, revision.ID, revision, 0, p.Actor, v.ID); e != nil {
+					if e = tx.Save(ctx, Revisions, revision.ID, revision, 0, s.indexOwner(p), v.ID); e != nil {
 						return e
 					}
-					if e = tx.Save(ctx, Entries, entry.ID, entry, 0, p.Actor, v.ID); e != nil {
+					if e = tx.Save(ctx, Entries, entry.ID, entry, 0, s.indexOwner(p), v.ID); e != nil {
 						return e
 					}
 					bag.EntryIDs = append(bag.EntryIDs, entry.ID)
@@ -790,17 +797,17 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 				for i, source := range c.LegacyImport.Messages {
 					historicalAt := source.CreatedAt
 					message := Message{ID: legacyMessageIDs[i], SessionID: v.ID, Role: source.Role, Text: source.Text, CreatedAt: now, Provenance: "legacy-import", LegacySourceID: legacyManifest.SourceID, SourceDigest: legacyManifest.SourceDigest, HistoricalAt: historicalAt, SourceScope: legacyManifest.Scope}
-					if e = tx.Save(ctx, Messages, message.ID, message, 0, p.Actor, v.ID); e != nil {
+					if e = tx.Save(ctx, Messages, message.ID, message, 0, s.indexOwner(p), v.ID); e != nil {
 						return e
 					}
 				}
-				if e = tx.Save(ctx, Bags, bag.ID, bag, 0, p.Actor, v.ID); e != nil {
+				if e = tx.Save(ctx, Bags, bag.ID, bag, 0, s.indexOwner(p), v.ID); e != nil {
 					return e
 				}
-				if e = tx.Save(ctx, ContextSets, contextSet.ID, contextSet, 0, p.Actor, v.ID); e != nil {
+				if e = tx.Save(ctx, ContextSets, contextSet.ID, contextSet, 0, s.indexOwner(p), v.ID); e != nil {
 					return e
 				}
-				if e = tx.Save(ctx, LegacyImports, legacyManifest.ID, legacyManifest, 0, p.Actor, v.ID); e != nil {
+				if e = tx.Save(ctx, LegacyImports, legacyManifest.ID, legacyManifest, 0, s.indexOwner(p), v.ID); e != nil {
 					return e
 				}
 				if _, e = s.loadSnapshot(ctx, tx, p, v, c.Action); errors.Is(e, errSnapshotLimit) {
@@ -822,13 +829,13 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 				}
 				return e
 			}
-			v = Session{SchemaVersion: 1, ID: c.SessionID, DatabaseID: p.DatabaseID, ProjectID: p.ProjectID, Owner: p.Actor, Title: c.Title, State: "active", Version: 1, DefaultBagID: c.BagID, ContextSetID: "cs_" + key, BagIDs: []string{c.BagID}, CreatedAt: now, UpdatedAt: now}
+			v = Session{WorkItemID: s.workItemID(), SchemaVersion: 1, ID: c.SessionID, DatabaseID: p.DatabaseID, ProjectID: p.ProjectID, Owner: s.indexOwner(p), Title: c.Title, State: "active", Version: 1, DefaultBagID: c.BagID, ContextSetID: "cs_" + key, BagIDs: []string{c.BagID}, CreatedAt: now, UpdatedAt: now}
 			b := Bag{ID: c.BagID, SessionID: v.ID, Title: "Context Bag", Scope: *c.Scope, Version: 1, EntryIDs: []string{}}
 			set := AppliedContextSet{ID: v.ContextSetID, SessionID: v.ID, Enabled: true, Slots: []AppliedSlot{}, CreatedAt: now}
-			if e := tx.Save(ctx, Bags, b.ID, b, 0, p.Actor, v.ID); e != nil {
+			if e := tx.Save(ctx, Bags, b.ID, b, 0, s.indexOwner(p), v.ID); e != nil {
 				return e
 			}
-			if e := tx.Save(ctx, ContextSets, set.ID, set, 0, p.Actor, v.ID); e != nil {
+			if e := tx.Save(ctx, ContextSets, set.ID, set, 0, s.indexOwner(p), v.ID); e != nil {
 				return e
 			}
 			resource = b.ID
@@ -851,7 +858,7 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 					return ErrInvalid
 				}
 				b := Bag{ID: c.BagID, SessionID: v.ID, Title: c.Title, Scope: *c.Scope, Version: 1, EntryIDs: []string{}}
-				if e = tx.Save(ctx, Bags, b.ID, b, 0, p.Actor, v.ID); e != nil {
+				if e = tx.Save(ctx, Bags, b.ID, b, 0, s.indexOwner(p), v.ID); e != nil {
 					return e
 				}
 				v.BagIDs = append(v.BagIDs, b.ID)
@@ -877,7 +884,7 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 				}
 				b.Title = c.Title
 				b.Version++
-				if e = tx.Save(ctx, Bags, b.ID, b, c.ExpectedBagVersion, p.Actor, v.ID); e != nil {
+				if e = tx.Save(ctx, Bags, b.ID, b, c.ExpectedBagVersion, s.indexOwner(p), v.ID); e != nil {
 					return e
 				}
 				resource = b.ID
@@ -928,14 +935,14 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 					}
 				}
 				rev := EntryRevision{ID: c.RevisionID, EntryID: entry.ID, BagID: b.ID, ParentRevisionID: entry.CurrentRevisionID, Subject: *c.Subject, Value: *c.Value, CreatedAt: now}
-				if e = tx.Save(ctx, Revisions, rev.ID, rev, 0, p.Actor, v.ID); e != nil {
+				if e = tx.Save(ctx, Revisions, rev.ID, rev, 0, s.indexOwner(p), v.ID); e != nil {
 					return e
 				}
 				entry.Alias = c.Alias
 				entry.Subject = *c.Subject
 				entry.CurrentRevisionID = rev.ID
 				entry.Version = actual + 1
-				if e = tx.Save(ctx, Entries, entry.ID, entry, actual, p.Actor, v.ID); e != nil {
+				if e = tx.Save(ctx, Entries, entry.ID, entry, actual, s.indexOwner(p), v.ID); e != nil {
 					return e
 				}
 				if !contains(b.EntryIDs, entry.ID) {
@@ -945,7 +952,7 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 					b.EntryIDs = append(b.EntryIDs, entry.ID)
 				}
 				b.Version++
-				if e = tx.Save(ctx, Bags, b.ID, b, c.ExpectedBagVersion, p.Actor, v.ID); e != nil {
+				if e = tx.Save(ctx, Bags, b.ID, b, c.ExpectedBagVersion, s.indexOwner(p), v.ID); e != nil {
 					return e
 				}
 				resource = entry.ID
@@ -998,7 +1005,7 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 					b.EntryIDs = []string{}
 					b.Version++
 					b.ClearVersion = b.Version
-					if e = tx.Save(ctx, Bags, b.ID, b, c.ExpectedBagVersion, p.Actor, v.ID); e != nil {
+					if e = tx.Save(ctx, Bags, b.ID, b, c.ExpectedBagVersion, s.indexOwner(p), v.ID); e != nil {
 						return e
 					}
 					if slot.BagID == b.ID {
@@ -1009,7 +1016,7 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 						set.Slots[at] = slot
 						set.ID = "cs_" + key
 						set.CreatedAt = now
-						if e = tx.Save(ctx, ContextSets, set.ID, set, 0, p.Actor, v.ID); e != nil {
+						if e = tx.Save(ctx, ContextSets, set.ID, set, 0, s.indexOwner(p), v.ID); e != nil {
 							return e
 						}
 						v.ContextSetID = set.ID
@@ -1024,7 +1031,7 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 					}
 					set.ID = "cs_" + key
 					set.CreatedAt = now
-					if e = tx.Save(ctx, ContextSets, set.ID, set, 0, p.Actor, v.ID); e != nil {
+					if e = tx.Save(ctx, ContextSets, set.ID, set, 0, s.indexOwner(p), v.ID); e != nil {
 						return e
 					}
 					v.ContextSetID = set.ID
@@ -1113,16 +1120,16 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 					authority = "server"
 				}
 				run := Run{ID: c.RunID, SessionID: v.ID, InputSnapshotID: input.ID, Kind: c.Kind, DefinitionID: c.DefinitionID, DefinitionRevision: c.DefinitionRevision, ExecutionAuthority: authority, State: "accepted", Version: 1, CreatedAt: now}
-				if e = tx.Save(ctx, Inputs, input.ID, input, 0, p.Actor, v.ID); e != nil {
+				if e = tx.Save(ctx, Inputs, input.ID, input, 0, s.indexOwner(p), v.ID); e != nil {
 					return e
 				}
-				if e = tx.Save(ctx, Runs, run.ID, run, 0, p.Actor, v.ID); e != nil {
+				if e = tx.Save(ctx, Runs, run.ID, run, 0, s.indexOwner(p), v.ID); e != nil {
 					return e
 				}
 				v.PendingRunCount++
 				if c.Kind == "chat" {
 					m := Message{ID: run.ID, SessionID: v.ID, InputSnapshotID: input.ID, Role: "user", Text: c.Text, CreatedAt: now}
-					if e = tx.Save(ctx, Messages, m.ID, m, 0, p.Actor, v.ID); e != nil {
+					if e = tx.Save(ctx, Messages, m.ID, m, 0, s.indexOwner(p), v.ID); e != nil {
 						return e
 					}
 				}
@@ -1162,7 +1169,7 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 				run.ErrorCode = c.ErrorCode
 				run.Version++
 				run.CompletedAt = &now
-				if e = tx.Save(ctx, Runs, run.ID, run, version, p.Actor, v.ID); e != nil {
+				if e = tx.Save(ctx, Runs, run.ID, run, version, s.indexOwner(p), v.ID); e != nil {
 					return e
 				}
 				if e = settlePendingRun(&v); e != nil {
@@ -1173,7 +1180,7 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 						return ErrInvalid
 					}
 					h := EvidenceHandoff{ID: run.ID, SessionID: v.ID, RunID: run.ID, InputSnapshotID: run.InputSnapshotID, CaseID: c.CaseID, DetectiveRunID: c.DetectiveRunID, State: "pending"}
-					if e = tx.Save(ctx, Outbox, h.ID, h, 0, p.Actor, v.ID); e != nil {
+					if e = tx.Save(ctx, Outbox, h.ID, h, 0, s.indexOwner(p), v.ID); e != nil {
 						return e
 					}
 				}
@@ -1219,7 +1226,7 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 				} else {
 					run.OutcomeOrigin = "client-observed"
 				}
-				if e = tx.Save(ctx, Runs, run.ID, run, version, p.Actor, v.ID); e != nil {
+				if e = tx.Save(ctx, Runs, run.ID, run, version, s.indexOwner(p), v.ID); e != nil {
 					return e
 				}
 				resource = run.ID
@@ -1254,7 +1261,7 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 				run.ErrorCode = c.ErrorCode
 				run.Version++
 				run.CompletedAt = &now
-				if e = tx.Save(ctx, Runs, run.ID, run, version, p.Actor, v.ID); e != nil {
+				if e = tx.Save(ctx, Runs, run.ID, run, version, s.indexOwner(p), v.ID); e != nil {
 					return e
 				}
 				if e = settlePendingRun(&v); e != nil {
@@ -1307,7 +1314,7 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 				run.ErrorCode = c.ErrorCode
 				run.Version++
 				run.CompletedAt = &now
-				if e = tx.Save(ctx, Runs, run.ID, run, version, p.Actor, v.ID); e != nil {
+				if e = tx.Save(ctx, Runs, run.ID, run, version, s.indexOwner(p), v.ID); e != nil {
 					return e
 				}
 				if e = settlePendingRun(&v); e != nil {
@@ -1315,7 +1322,7 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 				}
 				if c.Kind == "chat" && c.Text != "" {
 					assistant := Message{ID: assistantMessageID(run.ID), SessionID: v.ID, InputSnapshotID: run.InputSnapshotID, Role: "assistant", Text: c.Text, CreatedAt: now}
-					if e = tx.Save(ctx, Messages, assistant.ID, assistant, 0, p.Actor, v.ID); e != nil {
+					if e = tx.Save(ctx, Messages, assistant.ID, assistant, 0, s.indexOwner(p), v.ID); e != nil {
 						return e
 					}
 				}
@@ -1339,7 +1346,7 @@ func (s *Service) Execute(ctx context.Context, p Principal, c Command) (CommandR
 			if c.Action == "createSession" || legacy {
 				expected = 0
 			}
-			if e := tx.Save(ctx, Sessions, v.ID, v, expected, p.Actor, v.ID); e != nil {
+			if e := tx.Save(ctx, Sessions, v.ID, v, expected, s.indexOwner(p), v.ID); e != nil {
 				return e
 			}
 		}

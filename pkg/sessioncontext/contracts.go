@@ -25,6 +25,8 @@ type Scope struct {
 	IdentityDomain string `json:"identityDomain"`
 }
 type Session struct {
+	// WorkItemID is immutable and can only be set by a trusted Work-bound service.
+	WorkItemID      string    `json:"workItemId,omitempty"`
 	SchemaVersion   int       `json:"schemaVersion"`
 	ID              string    `json:"id"`
 	DatabaseID      string    `json:"databaseId"`
@@ -90,17 +92,25 @@ type Entry struct {
 	CurrentRevisionID string  `json:"currentRevisionId"`
 	Version           int64   `json:"version"`
 }
+type ContextSource struct {
+	SessionID  string `json:"sessionId"`
+	BagID      string `json:"bagId"`
+	EntryID    string `json:"entryId"`
+	RevisionID string `json:"revisionId"`
+}
+
 type EntryRevision struct {
-	ID               string        `json:"id"`
-	EntryID          string        `json:"entryId"`
-	BagID            string        `json:"bagId"`
-	ParentRevisionID string        `json:"parentRevisionId,omitempty"`
-	Subject          Subject       `json:"subject"`
-	Value            ValueEnvelope `json:"value"`
-	CreatedAt        time.Time     `json:"createdAt"`
-	Provenance       string        `json:"provenance,omitempty"`
-	LegacySourceID   string        `json:"legacySourceId,omitempty"`
-	SourceDigest     string        `json:"sourceDigest,omitempty"`
+	Source           *ContextSource `json:"source,omitempty"`
+	ID               string         `json:"id"`
+	EntryID          string         `json:"entryId"`
+	BagID            string         `json:"bagId"`
+	ParentRevisionID string         `json:"parentRevisionId,omitempty"`
+	Subject          Subject        `json:"subject"`
+	Value            ValueEnvelope  `json:"value"`
+	CreatedAt        time.Time      `json:"createdAt"`
+	Provenance       string         `json:"provenance,omitempty"`
+	LegacySourceID   string         `json:"legacySourceId,omitempty"`
+	SourceDigest     string         `json:"sourceDigest,omitempty"`
 }
 type EntryRef struct {
 	EntryID    string `json:"entryId"`
