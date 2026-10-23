@@ -167,7 +167,7 @@ func (s *session) read(ctx context.Context, path, hash string) ([]byte, error) {
 				return nil, e
 			}
 			if response.StatusCode != http.StatusOK {
-				response.Body.Close()
+				_ = response.Body.Close()
 				return nil, fmt.Errorf("retained GitHub file unavailable (HTTP %d)", response.StatusCode)
 			}
 			stream = response.Body
@@ -175,7 +175,7 @@ func (s *session) read(ctx context.Context, path, hash string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		defer stream.Close()
+		defer func() { _ = stream.Close() }()
 		body, err = io.ReadAll(io.LimitReader(stream, remaining+1))
 		if err != nil {
 			return nil, err

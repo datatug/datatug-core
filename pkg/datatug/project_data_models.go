@@ -76,7 +76,7 @@ func (d *ProjectDataModels) Validate() error {
 			return errors.New("invalid or duplicate data model reference alias")
 		}
 		ids[r.ID] = true
-		if err := r.DataModelReference.Validate(); err != nil {
+		if err := r.Validate(); err != nil {
 			return err
 		}
 	}

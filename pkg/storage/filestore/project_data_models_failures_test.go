@@ -25,7 +25,7 @@ func TestProjectDataModelsMetadataFilesystemFailures(t *testing.T) {
 		p := filepath.Join(dir, storage.ProjectSummaryFileName)
 		require.NoError(t, os.WriteFile(p, []byte(`{}`), 0600))
 		require.NoError(t, os.Chmod(p, 0))
-		defer os.Chmod(p, 0600)
+		defer func() { _ = os.Chmod(p, 0600) }()
 		_, _, err := newFsProjectStore("p", dir).preflightProjectDataModels(nil)
 		require.Error(t, err)
 	})
@@ -36,7 +36,7 @@ func TestProjectDataModelsMetadataFilesystemFailures(t *testing.T) {
 	t.Run("project directory cannot be created", func(t *testing.T) {
 		parent := t.TempDir()
 		require.NoError(t, os.Chmod(parent, 0500))
-		defer os.Chmod(parent, 0700)
+		defer func() { _ = os.Chmod(parent, 0700) }()
 		s := newFsProjectStore("p", filepath.Join(parent, "new"))
 		err := s.saveProjectUnlocked(context.Background(), modelProject())
 		require.ErrorContains(t, err, "failed to create datatug folder")

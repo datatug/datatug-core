@@ -64,7 +64,7 @@ func TestDataModelsGenericDALGOExplicitRefusalPreservesState(t *testing.T) {
 				require.True(t, ok)
 				require.NoError(t, setter.Set(ctx, record.NewRecordWithData(key, &seed)))
 				var before json.RawMessage
-				require.NoError(t, db.DB.Get(ctx, record.NewRecordWithData(key, &before)))
+				require.NoError(t, db.Get(ctx, record.NewRecordWithData(key, &before)))
 				p.DataModels = incoming
 				p.Title = "must not persist"
 				err = store.SaveProject(ctx, p)
@@ -72,7 +72,7 @@ func TestDataModelsGenericDALGOExplicitRefusalPreservesState(t *testing.T) {
 				require.Zero(t, db.sets)
 				require.Greater(t, db.gets, 0, "existing state must be read inside write transaction")
 				var after json.RawMessage
-				require.NoError(t, db.DB.Get(ctx, record.NewRecordWithData(key, &after)))
+				require.NoError(t, db.Get(ctx, record.NewRecordWithData(key, &after)))
 				require.Equal(t, string(before), string(after))
 				_, err = store.LoadProjectFile(ctx)
 				require.Error(t, err)

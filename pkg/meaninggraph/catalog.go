@@ -290,7 +290,8 @@ func (s *session) load(ctx context.Context, row revisionRow) (*loadedModel, erro
 	}
 	id, _ := text(receipt, "registry_id")
 	repo, _ := text(receipt, "repository")
-	if receipt["format"] != "meaninggraph-revision/draft-1" || receipt["kind"] != "model" || receipt["id"] != row.ID || address != row.Address || receipt["commit"] != row.Commit || !registryID.MatchString(id) || !repositoryPattern.MatchString(repo) || strings.ToLower(repo) != publisher(row.Address) {
+	canonicalRepo := publisher(row.Address)
+	if receipt["format"] != "meaninggraph-revision/draft-1" || receipt["kind"] != "model" || receipt["id"] != row.ID || address != row.Address || receipt["commit"] != row.Commit || !registryID.MatchString(id) || !repositoryPattern.MatchString(repo) || strings.ToLower(repo) != canonicalRepo {
 		return nil, errors.New("retained model receipt identity mismatch")
 	}
 	registrationRaw, sourceRef, err := s.evidence(ctx, receipt["source_record"])
@@ -384,7 +385,7 @@ func (s *session) load(ctx context.Context, row revisionRow) (*loadedModel, erro
 	// Every receipt maintainer was checked as a string above, so this
 	// comparison cannot enter numeric normalization or return its error.
 	attribution, _ := equal(maintainers, registration["maintainers"])
-	if !same || !aliasName.MatchString(alias) || strings.Split(row.Address, "/")[5] != alias || registration["format"] != "modelspec-registry/draft-1" || registration["commit"] != row.Commit || sourceAddress != row.Address || strings.ToLower(sourceRepo) != strings.ToLower(repo) || registration["source_file"] != hcl || registration["json_file"] != jsonPath || original["modelspec"] != receipt["format_identifier"] || moduleID == "" || moduleVersion == "" || (module["name"] != nil && module["name"] != alias) || !attribution || licence == "" || licence != sourceLicence {
+	if !same || !aliasName.MatchString(alias) || strings.Split(row.Address, "/")[5] != alias || registration["format"] != "modelspec-registry/draft-1" || registration["commit"] != row.Commit || sourceAddress != row.Address || strings.ToLower(sourceRepo) != canonicalRepo || registration["source_file"] != hcl || registration["json_file"] != jsonPath || original["modelspec"] != receipt["format_identifier"] || moduleID == "" || moduleVersion == "" || (module["name"] != nil && module["name"] != alias) || !attribution || licence == "" || licence != sourceLicence {
 		return nil, errors.New("archived source/module/attribution identity mismatch")
 	}
 	logical, err := obj(receipt["logical_digest"])

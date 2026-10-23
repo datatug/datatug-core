@@ -35,7 +35,7 @@ func openFixtureRoot(root string) (int, error) {
 			continue
 		}
 		next, e := unix.Openat(fd, part, unix.O_RDONLY|unix.O_DIRECTORY|unix.O_NOFOLLOW|unix.O_CLOEXEC, 0)
-		unix.Close(fd)
+		_ = unix.Close(fd)
 		if e != nil {
 			return -1, e
 		}
@@ -55,7 +55,7 @@ func openFixtureFile(root, path string) (io.ReadCloser, error) {
 			flags |= unix.O_DIRECTORY
 		}
 		next, e := unix.Openat(fd, part, flags, 0)
-		unix.Close(fd)
+		_ = unix.Close(fd)
 		if e != nil {
 			return nil, e
 		}
@@ -67,11 +67,11 @@ func openFixtureFile(root, path string) (io.ReadCloser, error) {
 func regularFixtureFile(file *os.File) (io.ReadCloser, error) {
 	st, err := file.Stat()
 	if err != nil {
-		file.Close()
+		_ = file.Close()
 		return nil, err
 	}
 	if !st.Mode().IsRegular() {
-		file.Close()
+		_ = file.Close()
 		return nil, errors.New("retained fixture must be a regular file")
 	}
 	return file, nil

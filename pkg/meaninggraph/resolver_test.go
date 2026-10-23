@@ -280,7 +280,7 @@ func TestResolverRejectsMissingPinsHashesAndIdentityWithoutLatestFallback(t *tes
 	}
 }
 func TestResolverDefinitionMatchesOriginalJSONWithoutFloatRounding(t *testing.T) {
-	f, c := newFixture(t)
+	f, _ := newFixture(t)
 	receipt := f.receipt(t, f.rootID)
 	def := getObject(t, f.root, "definitions/"+f.rootID+".json")
 	field := def["ast"].(map[string]any)["records"].(map[string]any)["Root"].(map[string]any)["fields"].(map[string]any)["id"].(map[string]any)
@@ -289,7 +289,7 @@ func TestResolverDefinitionMatchesOriginalJSONWithoutFloatRounding(t *testing.T)
 	receipt["definition"].(map[string]any)["sha256"] = digest(raw)
 	f.writeReceipt(t, f.rootID, receipt)
 	f.catalog["models"].([]any)[0].(map[string]any)["definition"] = receipt["definition"]
-	c = f.flush(t)
+	c := f.flush(t)
 	r, err := NewResolver(c)
 	require.NoError(t, err)
 	_, err = r.Resolve(context.Background(), f.ref)

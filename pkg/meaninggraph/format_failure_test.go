@@ -273,3 +273,34 @@ func TestResolverRawRetainedDocumentFailures(t *testing.T) {
 		})
 	}
 }
+
+func TestResolverRegistrationRepositoryCaseSemantics(t *testing.T) {
+	for _, tc := range []struct {
+		name, repository string
+		accepted         bool
+	}{
+		{"ASCII case", "HTTPS://GITHUB.COM/EXAMPLE/A", true},
+		{"long s must not fold to ASCII s", "httpſ://github.com/example/a", false},
+		{"different publisher", "https://github.com/example/other", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f, c := newFixture(t)
+			v := f.receipt(t, f.rootID)
+			entry := v["source_record"].(map[string]any)
+			registration := getObject(t, f.root, entry["artifactPath"].(string))
+			registration["repository"] = tc.repository
+			body, err := json.Marshal(registration)
+			require.NoError(t, err)
+			replaceArchiveEvidence(t, f, entry, body)
+			f.writeReceipt(t, f.rootID, v)
+			r, err := NewResolver(c)
+			require.NoError(t, err)
+			_, err = r.Resolve(context.Background(), f.ref)
+			if tc.accepted {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, "source/module/attribution identity mismatch")
+			}
+		})
+	}
+}
