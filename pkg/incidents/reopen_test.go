@@ -52,12 +52,13 @@ func TestReopenRetainsHistoryAndRequiresFreshResolutionEpoch(t *testing.T) {
 	fresh.ResolutionEpoch = 1
 	fresh.Run.RunID = "new-passing-run"
 	fresh.EvaluatedAt = reopenAt.Add(time.Second)
-	resolved := eventWithPayload(t, ref, 5, reopenAt.Add(2*time.Second), EventIncidentResolved, ResolvedPayload{HumanNote: "Fresh evidence confirms recovery", Proof: fresh})
+	resolved := eventWithPayload(t, ref, 5, reopenAt.Add(2*time.Second), EventIncidentResolved, ResolvedPayload{LifecycleVersion: 1, HumanNote: "Fresh evidence confirms recovery", Proof: fresh})
 	resolved.Refs = append([]ArtifactRef{{Kind: RefCheckRun, CheckRun: &fresh.Run}}, fresh.ObservationRefs...)
 	resolved.Refs = append(resolved.Refs, fresh.RecoveryRefs...)
 	final, err := Fold(append(events, resolved), nil)
 	require.NoError(t, err)
 	require.Equal(t, StatusResolved, final.Status)
+	require.Equal(t, OutcomeResolved, final.Outcome)
 	require.Equal(t, "new-passing-run", final.Resolution.Proof.Run.RunID)
 	require.NoError(t, final.Validate())
 	view := ApplyIncidentView(final, ViewPolicy{})
@@ -179,4 +180,47 @@ func TestVersionedIncidentStatusAllowsReviewedActiveTransitions(t *testing.T) {
 	evidence = append(evidence, eventWithPayload(t, evidence[0].Incident, 3, wall, EventIncidentStatus, StatusPayload{Status: StatusMitigating, LifecycleVersion: 1}), eventWithPayload(t, evidence[0].Incident, 4, wall.Add(time.Second), EventIncidentStatus, StatusPayload{Status: StatusRecovering, LifecycleVersion: 1}))
 	_, err = Fold(append(evidence, eventWithPayload(t, evidence[0].Incident, 5, wall.Add(2*time.Second), EventIncidentStatus, StatusPayload{Status: StatusResolved, LifecycleVersion: 1})), nil)
 	require.ErrorContains(t, err, "required resolution criterion")
+}
+
+func TestVerifiedResolutionAllowsClosureWithoutSyntheticOutcomeEvent(t *testing.T) {
+	events, _, at := reopenFixture(t)
+	legacy, err := Fold(events, nil)
+	require.NoError(t, err)
+	require.Empty(t, legacy.Outcome)
+	payload := validatedPayload[ResolvedPayload](events[2].Payload)
+	payload.LifecycleVersion = 1
+	events[2].Payload = mustJSON(t, payload)
+	current, err := Fold(events, nil)
+	require.NoError(t, err)
+	require.Equal(t, OutcomeResolved, current.Outcome)
+	for _, status := range []Status{StatusWatching, StatusClosed} {
+		events = append(events, eventWithPayload(t, events[0].Incident, uint64(len(events)+1), at.Add(time.Duration(len(events))*time.Second), EventIncidentStatus, StatusPayload{Status: status, LifecycleVersion: 1}))
+	}
+	closed, err := Fold(events, nil)
+	require.NoError(t, err)
+	require.Equal(t, StatusClosed, closed.Status)
+	require.Equal(t, OutcomeResolved, closed.Outcome)
+	require.Equal(t, current.Resolution, closed.Resolution)
+}
+
+func TestResolutionLifecycleVersionValidation(t *testing.T) {
+	_, proof, at := reopenFixture(t)
+	for _, version := range []int{-1, 2} {
+		require.Error(t, (ResolvedPayload{LifecycleVersion: version, HumanNote: "Resolution", Proof: proof}).Validate(at))
+	}
+}
+
+func TestWorkIncidentAssociationIsTrustedProjectionOnly(t *testing.T) {
+	events, _, _ := reopenFixture(t)
+	item, err := Fold(events, nil)
+	require.NoError(t, err)
+	require.Empty(t, item.WorkItemID)
+	item.WorkItemID = "w_canonical"
+	require.Equal(t, item.WorkItemID, ApplyIncidentView(item, ViewPolicy{}).WorkItemID)
+	require.NoError(t, ApplyIncidentView(item, ViewPolicy{}).Validate())
+	item.WorkItemID = "invalid/association"
+	require.Error(t, item.Validate())
+	// Generic event clients cannot establish canonical metadata associations.
+	events[0].Payload = append(events[0].Payload[:len(events[0].Payload)-1], []byte(`,"workItemId":"forged"}`)...)
+	require.Error(t, events[0].Validate())
 }

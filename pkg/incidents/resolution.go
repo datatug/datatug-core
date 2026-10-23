@@ -219,11 +219,17 @@ func validateDefinitionDigest(digest string) error {
 
 // ResolvedPayload commits the human note and proof in the same event.
 type ResolvedPayload struct {
-	HumanNote string          `json:"humanNote"`
-	Proof     ResolutionProof `json:"proof"`
+	// LifecycleVersion 1 records the resolved outcome with verified evidence.
+	// Version 0 retains historical streams with a separate outcome event.
+	LifecycleVersion int             `json:"lifecycleVersion,omitempty"`
+	HumanNote        string          `json:"humanNote"`
+	Proof            ResolutionProof `json:"proof"`
 }
 
 func (p ResolvedPayload) Validate(at time.Time) error {
+	if p.LifecycleVersion < 0 || p.LifecycleVersion > 1 {
+		return fmt.Errorf("unsupported resolution lifecycle version")
+	}
 	if strings.TrimSpace(p.HumanNote) == "" {
 		return fmt.Errorf("resolution humanNote is required")
 	}
@@ -263,6 +269,9 @@ func (p *Incident) applyResolutionEvent(event Event) error {
 		p.Resolution = &r
 		p.ResolutionEventID = event.ID
 		p.Status = StatusResolved
+		if r.LifecycleVersion == 1 {
+			p.Outcome = OutcomeResolved
+		}
 		p.NoteEntries = append(p.NoteEntries, Note{EventID: event.ID, Body: r.HumanNote})
 		p.Notes = append(p.Notes, r.HumanNote)
 	}

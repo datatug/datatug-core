@@ -26,6 +26,9 @@ func (a Actor) Validate() error {
 }
 
 func (i Incident) Validate() error {
+	if i.WorkItemID != "" && !validSegment(i.WorkItemID) {
+		return fmt.Errorf("invalid workItemId")
+	}
 	if err := i.validateResolutionEpoch(); err != nil {
 		return err
 	}
@@ -144,6 +147,7 @@ type ViewPolicy struct {
 // always contains canonical facts; only this read model may contain redaction
 // markers.
 type IncidentView struct {
+	WorkItemID          string                    `json:"workItemId,omitempty"`
 	ResolutionEpoch     uint64                    `json:"resolutionEpoch,omitempty"`
 	ReopenedAt          *time.Time                `json:"reopenedAt,omitempty"`
 	ResolutionCriterion *ResolutionCriterion      `json:"resolutionCriterion,omitempty"`
@@ -167,6 +171,7 @@ type IncidentView struct {
 
 func (i IncidentView) Validate() error {
 	storedShape := Incident{
+		WorkItemID:          i.WorkItemID,
 		ResolutionCriterion: i.ResolutionCriterion, Resolution: i.Resolution,
 		ResolutionEpoch: i.ResolutionEpoch, ReopenedAt: i.ReopenedAt,
 		Ref: i.Ref, UID: i.UID, Title: i.Title, Description: i.Description, Status: i.Status,
@@ -192,7 +197,8 @@ func (i Incident) validateWithoutContext() error {
 
 func ApplyIncidentView(stored Incident, policy ViewPolicy) IncidentView {
 	return IncidentView{
-		Ref: stored.Ref, UID: stored.UID, Title: stored.Title, Description: stored.Description,
+		WorkItemID: stored.WorkItemID,
+		Ref:        stored.Ref, UID: stored.UID, Title: stored.Title, Description: stored.Description,
 		Status: stored.Status, Outcome: stored.Outcome, MergedInto: cloneIncidentRef(stored.MergedInto),
 		Projects:          append([]ProjectRef(nil), stored.Projects...),
 		Participants:      append([]Participant(nil), stored.Participants...),

@@ -291,6 +291,8 @@ type CanonicalContext = investigation.Context
 
 // Incident is the deterministic current or historical projection.
 type Incident struct {
+	// WorkItemID is supplied only by the trusted canonical metadata projection.
+	WorkItemID          string               `json:"workItemId,omitempty"`
 	ResolutionEpoch     uint64               `json:"resolutionEpoch,omitempty"`
 	ReopenedAt          *time.Time           `json:"reopenedAt,omitempty"`
 	ReopenEventID       string               `json:"reopenEventId,omitempty"`
