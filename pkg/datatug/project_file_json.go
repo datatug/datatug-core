@@ -23,7 +23,7 @@ func (v *ProjectFile) UnmarshalJSON(body []byte) error {
 	_ = json.Unmarshal(body, &fields)
 	for key := range fields {
 		switch strings.ToLower(key) {
-		case "id", "title", "folder", "tags", "userids", "access", "created", "repository", "environmentorder", "datamodels":
+		case "id", "title", "folder", "tags", "userids", "access", "created", "repository", "environmentorder", "datamodels", "coordination":
 			delete(fields, key)
 		}
 	}

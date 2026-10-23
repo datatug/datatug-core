@@ -267,6 +267,15 @@ func (p *Project) UnmarshalJSON(body []byte) error {
 // MergePreservedMetadata validates existing recognized metadata even when an
 // explicit replacement was submitted: an unsupported version is never downgraded.
 func (p *ProjectFile) MergePreservedMetadata(existing ProjectFile) error {
+	if err := existing.Coordination.Validate(); err != nil {
+		return err
+	}
+	if err := p.Coordination.Validate(); err != nil {
+		return err
+	}
+	if p.Coordination == nil {
+		p.Coordination = existing.Coordination
+	}
 	if err := existing.DataModels.Validate(); err != nil {
 		return err
 	}
