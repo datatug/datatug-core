@@ -29,7 +29,8 @@ func NewProjectWithStore(id string, store ProjectStore) (p *Project) {
 
 // Project holds info about a project
 type Project struct {
-	EnvironmentOrder []string `json:"environmentOrder,omitempty" firestore:"environmentOrder,omitempty"`
+	Coordination     *WatchCoordination `json:"coordination,omitempty" firestore:"coordination,omitempty"`
+	EnvironmentOrder []string           `json:"environmentOrder,omitempty" firestore:"environmentOrder,omitempty"`
 	ProjectItem
 	store    ProjectStore
 	Created  *ProjectCreated `json:"created,omitempty" firestore:"created,omitempty"`
@@ -96,6 +97,9 @@ func (p *Project) AddProjDbServer(ctx context.Context, dbServer *ProjDbServer) (
 
 // Validate returns error if not valid
 func (p *Project) Validate() error {
+	if err := p.Coordination.Validate(); err != nil {
+		return err
+	}
 	if err := p.DataModels.Validate(); err != nil {
 		return err
 	}
@@ -213,6 +217,7 @@ func (v *ProjectRepository) Validate() error {
 
 // ProjectFile defines what to storage to project file
 type ProjectFile struct {
+	Coordination     *WatchCoordination `json:"coordination,omitempty" firestore:"coordination,omitempty"`
 	DataModels       *ProjectDataModels `json:"dataModels,omitempty" firestore:"dataModels,omitempty"`
 	jsonMetadata     map[string]json.RawMessage
 	EnvironmentOrder []string        `json:"environmentOrder,omitempty" firestore:"environmentOrder,omitempty"`
@@ -226,6 +231,9 @@ type ProjectFile struct {
 
 // Validate returns error if not valid
 func (v ProjectFile) Validate() error {
+	if err := v.Coordination.Validate(); err != nil {
+		return err
+	}
 	if err := v.DataModels.Validate(); err != nil {
 		return err
 	}

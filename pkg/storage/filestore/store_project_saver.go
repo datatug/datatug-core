@@ -150,6 +150,9 @@ func (s fsProjectStore) putProjectFile(projFile datatug.ProjectFile) error {
 	if projFile.DataModels == nil {
 		projFile.DataModels = existingFile.DataModels
 	}
+	if projFile.Coordination == nil {
+		projFile.Coordination = existingFile.Coordination
+	}
 	if err := projFile.Validate(); err != nil {
 		return fmt.Errorf("invalid project file: %w", err)
 	}
@@ -205,6 +208,7 @@ func (s fsProjectStore) saveProjectFile(project *datatug.Project) error {
 	// datatug.ProjectBrief.Validate().
 	projFile := datatug.ProjectFile{
 		DataModels:       project.DataModels,
+		Coordination:     project.Coordination,
 		EnvironmentOrder: project.EnvironmentOrder,
 		ProjectItem: datatug.ProjectItem{
 			ProjItemBrief: datatug.ProjItemBrief{
