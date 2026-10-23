@@ -25,6 +25,11 @@ func (s fsProjectStore) saveProjectUnlocked(ctx context.Context, project *datatu
 	if err = project.Validate(); err != nil {
 		return fmt.Errorf("project validation failed: %w", err)
 	}
+	// Inspect existing recognized metadata while the project write lock is held,
+	// before mkdir, README or any parallel project component can change state.
+	if _, _, err = s.preflightProjectDataModels(project.DataModels); err != nil {
+		return err
+	}
 	//log.Println("GetProjectStore is valid")
 	if err = os.MkdirAll(s.projectPath, 0777); err != nil {
 		return fmt.Errorf("failed to create datatug folder: %w", err)
@@ -112,22 +117,48 @@ func (s fsProjectStore) saveProjectUnlocked(ctx context.Context, project *datatu
 	return nil
 }
 
+func (s fsProjectStore) preflightProjectDataModels(incoming *datatug.ProjectDataModels) (datatug.ProjectFile, []byte, error) {
+	var existing datatug.ProjectFile
+	name := path.Join(s.projectPath, storage.ProjectSummaryFileName)
+	if st, err := os.Lstat(name); err == nil && !st.Mode().IsRegular() {
+		return existing, nil, fmt.Errorf("%w: project metadata is not a regular file", ErrEnvironmentRecoveryRequired)
+	} else if err != nil && !os.IsNotExist(err) {
+		return existing, nil, err
+	}
+	body, err := os.ReadFile(name)
+	if err != nil && !os.IsNotExist(err) {
+		return existing, nil, err
+	}
+	if len(body) > 0 {
+		if err = json.Unmarshal(body, &existing); err != nil {
+			return existing, nil, err
+		}
+	}
+	candidate := datatug.ProjectFile{DataModels: incoming}
+	if err = candidate.MergePreservedMetadata(existing); err != nil {
+		return existing, nil, err
+	}
+	return existing, body, nil
+}
 func (s fsProjectStore) putProjectFile(projFile datatug.ProjectFile) error {
+	existingFile, existing, err := s.preflightProjectDataModels(projFile.DataModels)
+	if err != nil {
+		return err
+	}
+	// Opaque members are merged below as RawMessages, preserving the
+	// existing writer path and exact numeric tokens.
+	if projFile.DataModels == nil {
+		projFile.DataModels = existingFile.DataModels
+	}
 	if err := projFile.Validate(); err != nil {
 		return fmt.Errorf("invalid project file: %w", err)
 	}
-	if st, err := os.Lstat(path.Join(s.projectPath, storage.ProjectSummaryFileName)); err == nil && st.Mode()&os.ModeSymlink != 0 {
-		return fmt.Errorf("%w: %s is a symlink", ErrEnvironmentRecoveryRequired, storage.ProjectSummaryFileName)
-	}
-	existing, readErr := os.ReadFile(path.Join(s.projectPath, storage.ProjectSummaryFileName))
-	if readErr != nil && !os.IsNotExist(readErr) {
-		return readErr
-	}
+	// Reuse the exact bytes validated by preflight rather than reopening the
+	// summary between validation and merge. This retains the existing raw
+	// opaque-member merge and avoids a second filesystem/JSON read.
 	fields := map[string]json.RawMessage{}
 	if len(existing) > 0 {
-		if err := json.Unmarshal(existing, &fields); err != nil {
-			return err
-		}
+		_ = json.Unmarshal(existing, &fields)
 	}
 	body, err := json.Marshal(projFile)
 	if err != nil {
@@ -173,6 +204,7 @@ func (s fsProjectStore) saveProjectFile(project *datatug.Project) error {
 	// nothing else - and left a brief that fails its own
 	// datatug.ProjectBrief.Validate().
 	projFile := datatug.ProjectFile{
+		DataModels:       project.DataModels,
 		EnvironmentOrder: project.EnvironmentOrder,
 		ProjectItem: datatug.ProjectItem{
 			ProjItemBrief: datatug.ProjItemBrief{
@@ -275,6 +307,9 @@ func (s fsProjectStore) saveProjectFile(project *datatug.Project) error {
 //}
 
 func (s fsProjectStore) SaveProject(ctx context.Context, p *datatug.Project) error {
+	if err := p.DataModels.Validate(); err != nil {
+		return err
+	}
 	if err := p.Validate(); err != nil {
 		return fmt.Errorf("project validation failed: %w", err)
 	}

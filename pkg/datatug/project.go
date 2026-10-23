@@ -40,7 +40,8 @@ type Project struct {
 	// Use GetEnvironments to get the latest
 	Environments Environments `json:"environments,omitempty" firestore:"environments,omitempty"`
 
-	DbModels DbModels `json:"dbModels,omitempty" firestore:"dbModels,omitempty"`
+	DbModels   DbModels           `json:"dbModels,omitempty" firestore:"dbModels,omitempty"`
+	DataModels *ProjectDataModels `json:"dataModels,omitempty" firestore:"dataModels,omitempty"`
 
 	DbDrivers ProjDbDrivers `json:"dbDrivers,omitempty" firestore:"dbDrivers,omitempty"`
 
@@ -95,6 +96,9 @@ func (p *Project) AddProjDbServer(ctx context.Context, dbServer *ProjDbServer) (
 
 // Validate returns error if not valid
 func (p *Project) Validate() error {
+	if err := p.DataModels.Validate(); err != nil {
+		return err
+	}
 	switch p.Access {
 	case "private", "protected", "public":
 	case "":
@@ -209,6 +213,7 @@ func (v *ProjectRepository) Validate() error {
 
 // ProjectFile defines what to storage to project file
 type ProjectFile struct {
+	DataModels       *ProjectDataModels `json:"dataModels,omitempty" firestore:"dataModels,omitempty"`
 	jsonMetadata     map[string]json.RawMessage
 	EnvironmentOrder []string        `json:"environmentOrder,omitempty" firestore:"environmentOrder,omitempty"`
 	Created          *ProjectCreated `json:"created,omitempty" firestore:"created,omitempty"`
@@ -221,6 +226,9 @@ type ProjectFile struct {
 
 // Validate returns error if not valid
 func (v ProjectFile) Validate() error {
+	if err := v.DataModels.Validate(); err != nil {
+		return err
+	}
 	// Do not check GetID or title as they can be nil for project
 	//if err := v.ValidateWithOptions(); err != nil {
 	//	return err
