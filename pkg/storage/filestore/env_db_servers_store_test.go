@@ -81,3 +81,23 @@ func TestFsEnvServerStore(t *testing.T) {
 		assert.Len(t, servers, 1)
 	})
 }
+
+// Two servers recorded without a host (their connection URLs stay in environment variables) are saved to
+// two files, one per driver, and both come back.
+func TestFsEnvServerStore_DriverOnlyServersDoNotCollide(t *testing.T) {
+	projectPath := t.TempDir()
+	store := newFsEnvDbServersStore(projectPath)
+	ctx := context.Background()
+	mysqlServer := &datatug.EnvDbServer{ServerRef: datatug.ServerRef{Driver: "mysql"}, Catalogs: []string{"shop"}}
+	oracleServer := &datatug.EnvDbServer{ServerRef: datatug.ServerRef{Driver: "oracle"}, Catalogs: []string{"hr"}}
+	assert.NoError(t, store.SaveEnvDbServer(ctx, "local", mysqlServer))
+	assert.NoError(t, store.SaveEnvDbServer(ctx, "local", oracleServer))
+
+	servers, err := store.LoadEnvDbServers(ctx, "local")
+	assert.NoError(t, err)
+	assert.Len(t, servers, 2)
+	loaded, err := store.LoadEnvDbServer(ctx, "local", "oracle")
+	assert.NoError(t, err)
+	assert.Equal(t, "oracle", loaded.Driver)
+	assert.Equal(t, []string{"hr"}, loaded.Catalogs)
+}

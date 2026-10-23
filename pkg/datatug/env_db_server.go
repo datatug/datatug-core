@@ -17,10 +17,17 @@ func (v EnvDbServers) Validate() error {
 	if v == nil {
 		return nil
 	}
+	ids := make(map[string]int, len(v))
 	for i, item := range v {
 		if err := item.Validate(); err != nil {
 			return fmt.Errorf("invalid env db server at index %v: %w", i, err)
 		}
+		// Two servers with one ID would be saved to one file, and one of them lost.
+		id := item.GetID()
+		if prev, taken := ids[id]; taken {
+			return validation.NewErrBadRecordFieldValue("dbServers", fmt.Sprintf("duplicate server ID at indexes %v & %v: %v", prev, i, id))
+		}
+		ids[id] = i
 	}
 	return nil
 }
@@ -41,14 +48,26 @@ type EnvDbServer struct {
 	Catalogs []string `json:"catalogs,omitempty"`
 }
 
+// GetID is "host:port" for a server recorded by its host, and the driver for one recorded
+// without a host (a server whose connection URL stays in an environment variable), so that two
+// such servers of different drivers in one environment have different IDs.
 func (v *EnvDbServer) GetID() string {
+	if v.Host == "" {
+		return v.Driver
+	}
 	return fmt.Sprintf("%s:%d", v.Host, v.Port)
 }
 
+// SetID is the reverse of GetID: an ID without a colon is a driver, any other is
+// "host:port" (a port that is not a number is 0).
 func (v *EnvDbServer) SetID(id string) {
-	vals := strings.Split(id, ":")
-	v.Host = vals[0]
-	v.Port, _ = strconv.Atoi(vals[1])
+	host, port, hasPort := strings.Cut(id, ":")
+	if !hasPort {
+		v.Driver, v.Host, v.Port = id, "", 0
+		return
+	}
+	v.Host = host
+	v.Port, _ = strconv.Atoi(port)
 }
 
 // Validate returns error if no valid

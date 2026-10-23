@@ -71,17 +71,17 @@ func (v ServerRef) GetID() string {
 // URL-based sources that take a path (or nothing) instead.
 var hostlessDrivers = []string{"sqlite3", "ingitdb", "openvaultdb", "https-json"}
 
-// Drivers that require a host.
-var hostRequiredDrivers = []string{"sqlserver", "mysql", "oracle"}
-
-// Drivers for which host and port are both optional.
-var hostOptionalDrivers = []string{"postgres"}
+// Drivers for which host and port are both optional: a database server that a
+// project may record by its host, or by its driver alone when the connection URL
+// stays in an environment variable named by a connection descriptor (DataTug
+// keeps the host, the port and the credentials of such a server out of the
+// project).
+var hostOptionalDrivers = []string{"sqlserver", "mysql", "oracle", "postgres"}
 
 // acceptedDrivers lists every driver ServerRef.Validate accepts.
 func acceptedDrivers() string {
 	var all []string
 	all = append(all, hostlessDrivers...)
-	all = append(all, hostRequiredDrivers...)
 	all = append(all, hostOptionalDrivers...)
 	return strings.Join(all, ", ")
 }
@@ -113,10 +113,6 @@ func (v ServerRef) Validate() error {
 			return validation.NewErrBadRecordFieldValue("port", "cannot be used with "+v.Driver+", got: "+strconv.Itoa(v.Port))
 		}
 		return nil // no host/port required or allowed (sqlite3: fixes #307)
-	case isDriverIn(v.Driver, hostRequiredDrivers):
-		if v.Host == "" {
-			return validation.NewErrRecordIsMissingRequiredField("host")
-		}
 	case isDriverIn(v.Driver, hostOptionalDrivers):
 		// host and port are optional: the client library supplies defaults
 	default:

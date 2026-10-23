@@ -68,8 +68,8 @@ func TestServerReference_Validate(t *testing.T) {
 	t.Run("unknown_driver", func(t *testing.T) {
 		assert.Error(t, ServerRef{Driver: "unknown", Host: "localhost"}.Validate())
 	})
-	t.Run("missing_host", func(t *testing.T) {
-		assert.Error(t, ServerRef{Driver: "mysql"}.Validate())
+	t.Run("no_host_for_a_server_whose_url_is_in_an_environment_variable", func(t *testing.T) {
+		assert.NoError(t, ServerRef{Driver: "mysql"}.Validate())
 	})
 	t.Run("negative_port", func(t *testing.T) {
 		assert.Error(t, ServerRef{Driver: "mysql", Host: "localhost", Port: -1}.Validate())
@@ -205,10 +205,10 @@ func TestServerRef_Validate_Drivers(t *testing.T) {
 		{"https-json with host", ServerRef{Driver: "https-json", Host: "h"}, "cannot be used with https-json"},
 		{"https-json with port", ServerRef{Driver: "https-json", Port: 1}, "cannot be used with https-json"},
 		{"sqlite3 with host", ServerRef{Driver: "sqlite3", Host: "h"}, "cannot be used with sqlite3"},
-		{"sqlserver without host", ServerRef{Driver: "sqlserver"}, "host"},
+		{"sqlserver without host", ServerRef{Driver: "sqlserver"}, ""},
 		{"sqlserver with host", ServerRef{Driver: "sqlserver", Host: "h"}, ""},
-		{"mysql without host", ServerRef{Driver: "mysql"}, "host"},
-		{"oracle without host", ServerRef{Driver: "oracle"}, "host"},
+		{"mysql without host", ServerRef{Driver: "mysql"}, ""},
+		{"oracle without host", ServerRef{Driver: "oracle"}, ""},
 		{"oracle with host", ServerRef{Driver: "oracle", Host: "h", Port: 1521}, ""},
 		{"unknown", ServerRef{Driver: "mongo", Host: "h"}, "unexpected value: mongo"},
 	} {
