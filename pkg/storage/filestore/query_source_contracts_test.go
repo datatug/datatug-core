@@ -15,10 +15,10 @@ import (
 )
 
 // This is the complete, unfiltered demo-project-1 tree from Demo commit
-// 18eaee2f7c485949b313ed6c1b0e156ad2008927, exported with git archive.
+// 9277f638803d6b1fcf4b1380bd5b727747605288, exported with git archive.
 func sourceContractDemo(t *testing.T) string {
 	t.Helper()
-	file, err := os.Open("testdata/demo-project-1-18eaee2.tar.gz")
+	file, err := os.Open("testdata/demo-project-1-9277f63.tar.gz")
 	require.NoError(t, err)
 	defer func() { require.NoError(t, file.Close()) }()
 	gz, err := gzip.NewReader(file)
@@ -50,7 +50,7 @@ func sourceContractDemo(t *testing.T) string {
 			t.Fatalf("unexpected archive entry %s", header.Name)
 		}
 	}
-	require.Equal(t, 723, files, "complete source fixture must remain unfiltered")
+	require.Equal(t, 750, files, "complete source fixture must remain unfiltered")
 	return filepath.Join(root, "demo-project-1")
 }
 
@@ -159,11 +159,10 @@ func TestExistingSourceMetadataExactDefaultsPersist(t *testing.T) {
 }
 
 // readDemoQueryBody reads the body of the demo query at base ("<dir>/<id>"):
-// the TugQL text or structured form, or - until the demo project switches
-// (removed in TugQL cutover step 9) - the legacy pre-cutover body.
+// the TugQL text or structured form.
 func readDemoQueryBody(t *testing.T, base string) []byte {
 	t.Helper()
-	for _, ext := range []string{"tugql", tugqlStructuredBodyExt, legacyDTQLBodyExtension} {
+	for _, ext := range []string{"tugql", tugqlStructuredBodyExt} {
 		if body, err := os.ReadFile(base + ".query." + ext); err == nil {
 			return body
 		}

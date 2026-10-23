@@ -29,7 +29,6 @@ func readQueryTextSidecar(dirPath string, query *datatug.QueryDef, budget *query
 	if query.Type == "" {
 		return "", nil
 	}
-	normalizeLegacyQueryType(query)
 	body, err := readQueryBody(dirPath, query.ID, query.Type, func(filePath string) ([]byte, bool, error) {
 		return readRegularFileBudgeted(filePath, maxQueryFileSize, budget)
 	})

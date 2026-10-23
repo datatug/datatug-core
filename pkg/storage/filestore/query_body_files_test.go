@@ -2,10 +2,8 @@ package filestore
 
 import (
 	"context"
-	"errors"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
@@ -34,9 +32,7 @@ func bodyFilePresent(dir, name string) bool {
 	return err == nil
 }
 
-// The body file's name, never its content, decides the representation, and
-// the pre-cutover type and body name still load (removed in TugQL cutover
-// step 9) - as TugQL.
+// The body file's name, never its content, decides the representation.
 func TestQueryBodyFiles_ReadRepresentationFollowsFileName(t *testing.T) {
 	const body = "from:\n  name: Invoice\n"
 	cases := []struct {
@@ -45,10 +41,6 @@ func TestQueryBodyFiles_ReadRepresentationFollowsFileName(t *testing.T) {
 	}{
 		{"text", "TugQL", "q.query.tugql", false},
 		{"structured", "TugQL", "q.query.tugql.yaml", true},
-		{"legacy body, canonical type", "TugQL", "q.query." + legacyDTQLBodyExtension, true},
-		{"legacy body, legacy type", string(legacyDTQLQueryType), "q.query." + legacyDTQLBodyExtension, true},
-		{"text body, legacy type", string(legacyDTQLQueryType), "q.query.tugql", false},
-		{"structured body, legacy type", string(legacyDTQLQueryType), "q.query.tugql.yaml", true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -86,10 +78,8 @@ func TestQueryBodyFiles_ReadRepresentationFollowsFileName(t *testing.T) {
 func TestQueryBodyFiles_BothFilesPresentIsAnError(t *testing.T) {
 	pairs := [][2]string{
 		{"q.query.tugql", "q.query.tugql.yaml"},
-		{"q.query.tugql", "q.query." + legacyDTQLBodyExtension},
-		{"q.query.tugql.yaml", "q.query." + legacyDTQLBodyExtension},
 	}
-	for _, declared := range []string{"TugQL", string(legacyDTQLQueryType)} {
+	for _, declared := range []string{"TugQL"} {
 		for _, pair := range pairs {
 			t.Run(declared+" "+pair[0]+" + "+pair[1], func(t *testing.T) {
 				store, queriesDir := newTestQueriesStore(t)
@@ -118,64 +108,6 @@ func TestQueryBodyFiles_ReadFailureOfACandidateIsAnError(t *testing.T) {
 	}
 	if _, err := store.LoadQuery(context.Background(), "q"); err == nil {
 		t.Fatal("expected an error")
-	}
-}
-
-// Any save of a legacy query writes the new forms. The legacy body file is
-// removed by the same transaction (the store always removes the previous
-// body when the new body has another name).
-func TestQueryBodyFiles_SaveRewritesLegacyToNewForms(t *testing.T) {
-	const legacyBody = "q.query." + legacyDTQLBodyExtension
-	type saver func(t *testing.T, store fsQueriesStore, stored *datatug.StoredQuery)
-	savers := map[string]saver{
-		"PutQuery": func(t *testing.T, store fsQueriesStore, stored *datatug.StoredQuery) {
-			q := stored.Query
-			q.Text = "from:\n  name: Customer\n"
-			if _, err := store.PutQuery(context.Background(), &q, datatug.QueryWriteCondition{IfMatch: stored.Revision}); err != nil {
-				t.Fatal(err)
-			}
-		},
-		"UpdateQuery": func(t *testing.T, store fsQueriesStore, stored *datatug.StoredQuery) {
-			q := stored.Query.QueryDef
-			q.Text = "from:\n  name: Customer\n"
-			if _, err := store.UpdateQuery(context.Background(), q); err != nil {
-				t.Fatal(err)
-			}
-		},
-		"CreateQuery": func(t *testing.T, store fsQueriesStore, stored *datatug.StoredQuery) {
-			q := stored.Query
-			q.Text = "from:\n  name: Customer\n"
-			if _, err := store.CreateQuery(context.Background(), q); err != nil {
-				t.Fatal(err)
-			}
-		},
-	}
-	for name, save := range savers {
-		for _, declared := range []string{"TugQL", string(legacyDTQLQueryType)} {
-			t.Run(name+" "+declared, func(t *testing.T) {
-				store, queriesDir := newTestQueriesStore(t)
-				writeQueryFiles(t, queriesDir, declared, map[string]string{legacyBody: "from:\n  name: Invoice\n"})
-				stored, err := store.LoadQueryRevision(context.Background(), "q")
-				if err != nil {
-					t.Fatal(err)
-				}
-				save(t, store, stored)
-				if !bodyFilePresent(queriesDir, "q.query.tugql.yaml") || bodyFilePresent(queriesDir, legacyBody) || bodyFilePresent(queriesDir, "q.query.tugql") {
-					t.Fatalf("save did not rewrite to the structured form")
-				}
-				meta, err := os.ReadFile(filepath.Join(queriesDir, "q.query.json"))
-				if err != nil {
-					t.Fatal(err)
-				}
-				if got := string(meta); !strings.Contains(got, `"type": "TugQL"`) || strings.Contains(got, "structuredBody") || strings.Contains(got, "text") {
-					t.Fatalf("unexpected metadata: %s", got)
-				}
-				again, err := store.LoadQuery(context.Background(), "q")
-				if err != nil || again.Type != datatug.QueryTypeTugQL || !again.StructuredBody || again.Text != "from:\n  name: Customer\n" {
-					t.Fatalf("reload: %+v %v", again, err)
-				}
-			})
-		}
 	}
 }
 
@@ -228,7 +160,7 @@ func TestQueryBodyFiles_StructuredBodyIsTugQLOnly(t *testing.T) {
 }
 
 func TestCheckQueryBodyFileName_AcceptsEveryBodyForm(t *testing.T) {
-	for _, name := range []string{"q.query.tugql", "q.query.tugql.yaml", "q.query." + legacyDTQLBodyExtension, "q.query.sql"} {
+	for _, name := range []string{"q.query.tugql", "q.query.tugql.yaml", "q.query.sql"} {
 		if err := checkQueryBodyFileName("q", name); err != nil {
 			t.Errorf("%s: %v", name, err)
 		}
@@ -240,19 +172,14 @@ func TestCheckQueryBodyFileName_AcceptsEveryBodyForm(t *testing.T) {
 	}
 }
 
-// A pre-cutover query without a body still loads as TugQL, and its
-// incomplete-record report carries the same type.
-func TestQueryBodyFiles_LegacyTypeWithoutBodyLoadsAsTugQL(t *testing.T) {
+// The pre-cutover "DTQL" type is gone (TugQL cutover step 9): a sidecar that
+// still declares it, with its old structured body, is not loaded as TugQL.
+func TestQueryBodyFiles_PreCutoverTypeIsNotLoaded(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
-	writeQueryFiles(t, queriesDir, string(legacyDTQLQueryType), nil)
+	writeQueryFiles(t, queriesDir, "DTQL", map[string]string{"q.query.dtql": "from:\n  name: Invoice\n"})
 	q, err := store.LoadQuery(context.Background(), "q")
-	if err != nil || q.Type != datatug.QueryTypeTugQL || q.Text != "" || q.StructuredBody {
-		t.Fatalf("LoadQuery: %+v %v", q, err)
-	}
-	_, err = store.LoadQueryRevision(context.Background(), "q")
-	var incomplete *datatug.IncompleteQueryRecordError
-	if !errors.As(err, &incomplete) || incomplete.Query.Type != datatug.QueryTypeTugQL {
-		t.Fatalf("LoadQueryRevision: %v", err)
+	if err == nil && q.Type == datatug.QueryTypeTugQL {
+		t.Fatalf("LoadQuery loaded a pre-cutover query as TugQL: %+v", q)
 	}
 }
 
@@ -260,7 +187,7 @@ func TestQueryBodyFiles_LegacyTypeWithoutBodyLoadsAsTugQL(t *testing.T) {
 func TestQueryBodyFiles_WritingTheLegacyTypeIsRefused(t *testing.T) {
 	store, _ := newTestQueriesStore(t)
 	q := tugqlQuery("q", "", "text")
-	q.Type = legacyDTQLQueryType
+	q.Type = datatug.QueryType("DTQL")
 	if _, err := store.PutQuery(context.Background(), &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err == nil {
 		t.Fatal("expected an error")
 	}

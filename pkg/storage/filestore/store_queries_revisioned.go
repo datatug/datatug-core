@@ -59,7 +59,6 @@ func (s fsQueriesStore) LoadQueryRevision(ctx context.Context, id string, o ...d
 			return fmt.Errorf("failed to parse query metadata for %s: %w", id, err)
 		}
 		qd.ID = itemID
-		normalizeLegacyQueryType(&qd)
 		if !current.complete {
 			// qd.Text stays "" - no body sidecar exists to read it from.
 			return &datatug.IncompleteQueryRecordError{
