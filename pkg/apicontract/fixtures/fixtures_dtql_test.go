@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/dal-go/dalgo/dtql"
+	"github.com/dal-go/dalgo/tugql"
 )
 
 // TestFixtures_DTQLFieldsParse proves every fixture's "dtql" field, wherever
@@ -50,7 +50,7 @@ func TestFixtures_DTQLFieldsParse(t *testing.T) {
 			if text == "" {
 				continue
 			}
-			if _, err := dtql.Deserialize([]byte(text)); err != nil {
+			if _, err := tugql.Deserialize([]byte(text)); err != nil {
 				t.Errorf("%s: \"dtql\" field does not parse as DTQL: %v\ngot:\n%s", e.Name, err, text)
 				continue
 			}
