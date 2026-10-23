@@ -52,7 +52,7 @@ func TestIsKnownQueryType(t *testing.T) {
 		{"SQL", QueryTypeSQL, true},
 		{"HTTP", QueryTypeHTTP, true},
 		{"StructuredSQL", QueryTypeStructuredSQL, true},
-		{"DTQL", QueryTypeDTQL, true},
+		{"TugQL", QueryTypeTugQL, true},
 		{"Empty", "", false},
 		{"Unknown", "Unknown", false},
 	}
@@ -132,9 +132,19 @@ func TestQueryDef_Validate(t *testing.T) {
 		queryDef := newQueryDef("SQL", "select * from users")
 		test.IsValidRecord(t, "sql", queryDef)
 	})
-	t.Run("must_pass_dtql", func(t *testing.T) {
-		queryDef := newQueryDef(QueryTypeDTQL, "")
-		test.IsValidRecord(t, "dtql", queryDef)
+	t.Run("must_pass_tugql", func(t *testing.T) {
+		queryDef := newQueryDef(QueryTypeTugQL, "")
+		test.IsValidRecord(t, "tugql", queryDef)
+	})
+	t.Run("structured_tugql_body", func(t *testing.T) {
+		queryDef := newQueryDef(QueryTypeTugQL, "from:\n  name: Invoice\n")
+		queryDef.StructuredBody = true
+		test.IsValidRecord(t, "structured", queryDef)
+	})
+	t.Run("structured_body_of_other_type", func(t *testing.T) {
+		queryDef := newQueryDef("SQL", "select 1")
+		queryDef.StructuredBody = true
+		test.IsInvalidRecord(t, "structured_sql", queryDef)
 	})
 	t.Run("must_return_error", func(t *testing.T) {
 		test.IsInvalidRecord(t, "empty_record", QueryDef{})

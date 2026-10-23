@@ -17,7 +17,7 @@ import (
 // reader/writer, including the exact two-file layout the Git adapter must
 // reproduce. DALgo project-store is a later conformance target.
 func TestSaveQueryEnvelopeCurrentLayout(t *testing.T) {
-	const wire = `{"storage":"local","project":"demo","operationId":"save-1","ifNoneMatch":true,"query":{"folderPath":"~","id":"customer","title":"Customers","type":"DTQL","text":"SELECT CustomerId FROM Customer","federation":{"ovdbBaseUrl":"https://demodb.dev/ovdb","tables":[{"database":"chinook","name":"Customer","fields":["CustomerId"]}]}}}`
+	const wire = `{"storage":"local","project":"demo","operationId":"save-1","ifNoneMatch":true,"query":{"folderPath":"~","id":"customer","title":"Customers","type":"TugQL","text":"SELECT CustomerId FROM Customer","federation":{"ovdbBaseUrl":"https://demodb.dev/ovdb","tables":[{"database":"chinook","name":"Customer","fields":["CustomerId"]}]}}}`
 	var request dto.SaveQueryRequest
 	require.NoError(t, json.Unmarshal([]byte(wire), &request))
 	require.NoError(t, request.Validate())
@@ -33,7 +33,7 @@ func TestSaveQueryEnvelopeCurrentLayout(t *testing.T) {
 	require.NoError(t, err)
 	require.NotContains(t, string(metadata), request.Query.Text)
 	require.Contains(t, string(metadata), `"ovdbBaseUrl"`)
-	contained, err := os.ReadFile(filepath.Join(projectDir, "queries", "customer.query.dtql"))
+	contained, err := os.ReadFile(filepath.Join(projectDir, "queries", "customer.query.tugql"))
 	require.NoError(t, err)
 	require.Equal(t, request.Query.Text, string(contained))
 	loaded, err := store.LoadQueryRevision(ctx, "customer")

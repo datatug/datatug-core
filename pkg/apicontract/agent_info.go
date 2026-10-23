@@ -25,7 +25,7 @@ func (r AgentProjectRef) Validate() error {
 
 // AgentCapabilities reports what the session may do - never what it did;
 // Result.Provenance.ExecutionProfile reports the actual executor used for a
-// given run, "even a privileged principal running protected DTQL still
+// given run, "even a privileged principal running protected TugQL still
 // receives protected provenance".
 type AgentCapabilities struct {
 	ProtectedQueries bool `json:"protectedQueries"`

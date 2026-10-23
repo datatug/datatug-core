@@ -31,7 +31,7 @@ func (e BindingOriginEntry) Validate() error {
 	return nil
 }
 
-// ExecutionRequest is POST exec/run_query's request body. "For ad-hoc DTQL,
+// ExecutionRequest is POST exec/run_query's request body. "For ad-hoc TugQL,
 // source is required. For saved queries, source obeys target resolution...
 // Unknown parameters and type mismatches are rejected. The server never
 // silently binds from stored browser context." api-contract.md
@@ -43,7 +43,7 @@ type ExecutionRequest struct {
 	SecurityContextID      string                     `json:"securityContextId"`
 	Source                 string                     `json:"source,omitempty"`
 	QueryID                string                     `json:"queryId,omitempty"`
-	DTQL                   string                     `json:"dtql,omitempty"`
+	TugQL                  string                     `json:"tugql,omitempty"`
 	Parameters             map[string]TypedValueOrSet `json:"parameters"`
 	BindingOrigins         []BindingOriginEntry       `json:"bindingOrigins"`
 	Mode                   string                     `json:"mode"` // live | snapshot
@@ -108,8 +108,8 @@ const (
 )
 
 // Validate enforces: Project/Environment/SecurityContextID required; exactly
-// one of QueryID/DTQL ("exactly one required"); DTQL set requires Source
-// ("For ad-hoc DTQL, source is required"); every Parameters value is itself
+// one of QueryID/TugQL ("exactly one required"); TugQL set requires Source
+// ("For ad-hoc TugQL, source is required"); every Parameters value is itself
 // valid; BindingOrigins is checked for exactly the submitted Parameters keys
 // - no more, no fewer - and each entry is itself valid; Mode is one of the
 // closed set, snapshot Mode requires a SnapshotID; Limit, when present, is
@@ -130,12 +130,12 @@ func (r ExecutionRequest) Validate() error {
 		return err
 	}
 	hasQueryID := r.QueryID != ""
-	hasDTQL := r.DTQL != ""
-	if hasQueryID == hasDTQL {
-		return &ValidationError{Field: "queryId/dtql", Message: "exactly one of queryId or dtql is required"}
+	hasTugQL := r.TugQL != ""
+	if hasQueryID == hasTugQL {
+		return &ValidationError{Field: "queryId/tugql", Message: "exactly one of queryId or tugql is required"}
 	}
-	if hasDTQL && r.Source == "" {
-		return &ValidationError{Field: "source", Message: "is required for ad-hoc dtql"}
+	if hasTugQL && r.Source == "" {
+		return &ValidationError{Field: "source", Message: "is required for ad-hoc tugql"}
 	}
 	for key, value := range r.Parameters {
 		if err := requireCanonicalString("parameters", key); err != nil {
@@ -144,8 +144,8 @@ func (r ExecutionRequest) Validate() error {
 		if err := value.Validate(); err != nil {
 			return &ValidationError{Field: "parameters", Message: fmt.Sprintf("%s: %s", key, err)}
 		}
-		if hasDTQL && value.IsSet() {
-			return &ValidationError{Field: "parameters", Message: fmt.Sprintf("%s: set values are not accepted for ad-hoc dtql", key)}
+		if hasTugQL && value.IsSet() {
+			return &ValidationError{Field: "parameters", Message: fmt.Sprintf("%s: set values are not accepted for ad-hoc tugql", key)}
 		}
 	}
 	submitted := make(map[string]bool, len(r.BindingOrigins))

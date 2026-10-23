@@ -40,7 +40,7 @@ func queryDefWithEveryPersistedField() QueryDef {
 				ListOfTags: ListOfTags{Tags: []string{"team:finance", "revenue"}},
 			},
 		},
-		Type:         QueryTypeDTQL,
+		Type:         QueryTypeTugQL,
 		ConnectionID: "chinook-sqlite",
 		Text:         "from: Invoice\n",
 		Purpose:      "Which customers reset their password last week, and did any invoice go unpaid?",

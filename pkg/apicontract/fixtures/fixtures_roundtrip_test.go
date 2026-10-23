@@ -98,7 +98,7 @@ func TestExecutionEvidenceFixturesDescribeOneCoherentRun(t *testing.T) {
 	partition := seriesRequest.Partition
 	if partition.EvidenceStoreID != record.Ref.StoreID || partition.SourceScope != record.Scope || partition.Source != record.Provenance.Source ||
 		partition.PolicyFingerprint != record.PolicyFingerprint || partition.QueryID != record.QueryID || partition.QueryRevision != record.QueryRevision ||
-		partition.DTQLHash != record.DTQLHash || !reflect.DeepEqual(partition.BindingsApplied, record.BindingsApplied) {
+		partition.TugQLHash != record.TugQLHash || !reflect.DeepEqual(partition.BindingsApplied, record.BindingsApplied) {
 		t.Fatalf("series partition %#v does not match record identity %#v", partition, record)
 	}
 	if len(series.Points) == 0 || series.Points[0].Execution != record.Ref {

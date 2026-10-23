@@ -171,18 +171,18 @@ func writeKinds() []writeKind {
 			}},
 		{name: "query", file: "queries/q1.query.json", extraFolders: []string{"queries/.dt-query-txn"},
 			write: func(root string) error {
-				_, err := newFsQueriesStore(root).CreateQuery(ctx, dtqlQuery("q1", "", "from:\n  name: Invoice\n"))
+				_, err := newFsQueriesStore(root).CreateQuery(ctx, tugqlQuery("q1", "", "from:\n  name: Invoice\n"))
 				return err
 			},
 			remove: func(root string) error { return newFsQueriesStore(root).DeleteQuery(ctx, "q1") }},
 		{name: "query in a folder", file: "queries/sub/q1.query.json",
 			write: func(root string) error {
-				_, err := newFsQueriesStore(root).CreateQuery(ctx, dtqlQuery("q1", "sub", "from:\n  name: Invoice\n"))
+				_, err := newFsQueriesStore(root).CreateQuery(ctx, tugqlQuery("q1", "sub", "from:\n  name: Invoice\n"))
 				return err
 			}},
-		{name: "query body", file: "queries/sub/q1.query.dtql",
+		{name: "query body", file: "queries/sub/q1.query.tugql",
 			write: func(root string) error {
-				_, err := newFsQueriesStore(root).CreateQuery(ctx, dtqlQuery("q1", "sub", "from:\n  name: Invoice\n"))
+				_, err := newFsQueriesStore(root).CreateQuery(ctx, tugqlQuery("q1", "sub", "from:\n  name: Invoice\n"))
 				return err
 			}},
 		{name: "query folder README", file: "queries/sub/README.md", leavesAlone: true,

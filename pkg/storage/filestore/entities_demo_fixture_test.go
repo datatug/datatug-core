@@ -26,7 +26,7 @@ const demoProjectsRepoPath = "/home/ai/projects/datatug/datatug-demo-projects"
 // declared in datatug-demo-projects PR #9 are present, the demo's board1
 // board and chinook DB model load with their content, every environment
 // loads and "local" resolves its "chinook-local" database catalog by id,
-// and all 5 of the demo's queries (DTQL customer-invoices, SQL
+// and all 5 of the demo's queries (TugQL customer-invoices, SQL
 // customer-purchases-by-genre/invoice-lines, HTTP country-facts/
 // currency-rate) load through Project.Queries with their text bodies - S44
 // found LoadProject never populated Project.Queries at all, so
@@ -138,7 +138,7 @@ func TestFsEntitiesStore_DemoProject1Fixture(t *testing.T) {
 
 	customerInvoices := findQuery(project.Queries, "customer-invoices")
 	require.NotNil(t, customerInvoices, "customer-invoices not found")
-	assert.Equal(t, datatug.QueryTypeDTQL, customerInvoices.Type)
+	assert.Equal(t, datatug.QueryTypeTugQL, customerInvoices.Type)
 	assert.Contains(t, customerInvoices.Text, "from:\n  name: Invoice")
 
 	customerPurchases := findQuery(project.Queries, "customer-purchases-by-genre")

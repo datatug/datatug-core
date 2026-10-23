@@ -48,7 +48,7 @@ func (s fsQueriesStore) stageAndInstallQueryPair(g queryLockGuard, folderPath st
 	if err != nil {
 		return "", err
 	}
-	bodyFileName, err := queryBodyFileName(query.ID, query.Type)
+	bodyFileName, err := queryBodyFileName(query.ID, query.Type, query.StructuredBody)
 	if err != nil {
 		return "", err
 	}
@@ -105,7 +105,7 @@ func (s fsQueriesStore) stageAndInstallQueryPair(g queryLockGuard, folderPath st
 	for _, result := range accepted {
 		result.CreatedAt = query.CreatedAt
 	}
-	return computeQueryRevision(jsonBytes, queryBodyFileExt(query.Type), bodyBytes), nil
+	return computeQueryRevision(jsonBytes, queryBodyFileExt(query.Type, query.StructuredBody), bodyBytes), nil
 }
 
 // deleteQueryPairIfExists removes id's pair (its JSON metadata, and its

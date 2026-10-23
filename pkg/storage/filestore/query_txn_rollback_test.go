@@ -47,11 +47,11 @@ func failQueryTargetStep(t *testing.T, op, name string) (restore func()) {
 	return restore
 }
 
-// seedQ writes query "q" (title t0, DTQL text T0) next to "other".
+// seedQ writes query "q" (title t0, TugQL text T0) next to "other".
 func seedQ(t *testing.T) (fsProjectStore, string, datatug.QueryRevision) {
 	t.Helper()
 	ps, queriesDir := newPreflightProject(t)
-	q := dtqlQuery("q", "", "T0")
+	q := tugqlQuery("q", "", "T0")
 	q.Title = "t0"
 	stored, err := ps.PutQuery(context.Background(), &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 	if err != nil {
@@ -62,7 +62,7 @@ func seedQ(t *testing.T) (fsProjectStore, string, datatug.QueryRevision) {
 
 func putQ(title, text string, typ datatug.QueryType) func(fsProjectStore, datatug.QueryRevision) error {
 	return func(ps fsProjectStore, rev datatug.QueryRevision) error {
-		q := dtqlQuery("q", "", text)
+		q := tugqlQuery("q", "", text)
 		q.Title, q.Type = title, typ
 		_, err := ps.PutQuery(context.Background(), &q, datatug.QueryWriteCondition{IfMatch: rev})
 		return err
@@ -74,17 +74,17 @@ func TestWriter_RollsBackWhenItsFirstInstallStepFails(t *testing.T) {
 		name, op, target string
 		write            func(fsProjectStore, datatug.QueryRevision) error
 	}{
-		{"PutQuery, body rename", "rename", "q.query.dtql", putQ("t1", "T1", datatug.QueryTypeDTQL)},
-		{"SaveQuery, body rename", "rename", "q.query.dtql", func(ps fsProjectStore, _ datatug.QueryRevision) error {
-			q := dtqlQuery("q", "", "T1")
+		{"PutQuery, body rename", "rename", "q.query.tugql", putQ("t1", "T1", datatug.QueryTypeTugQL)},
+		{"SaveQuery, body rename", "rename", "q.query.tugql", func(ps fsProjectStore, _ datatug.QueryRevision) error {
+			q := tugqlQuery("q", "", "T1")
 			q.Title = "t1"
 			return ps.SaveQuery(context.Background(), &q)
 		}},
-		{"type change, stale body removal", "remove", "q.query.dtql", putQ("t1", "SELECT 1", datatug.QueryTypeSQL)},
-		{"DeleteQuery, body removal", "remove", "q.query.dtql", func(ps fsProjectStore, _ datatug.QueryRevision) error {
+		{"type change, stale body removal", "remove", "q.query.tugql", putQ("t1", "SELECT 1", datatug.QueryTypeSQL)},
+		{"DeleteQuery, body removal", "remove", "q.query.tugql", func(ps fsProjectStore, _ datatug.QueryRevision) error {
 			return ps.DeleteQuery(context.Background(), "q")
 		}},
-		{"DeleteQueryRevision, body removal", "remove", "q.query.dtql", func(ps fsProjectStore, rev datatug.QueryRevision) error {
+		{"DeleteQueryRevision, body removal", "remove", "q.query.tugql", func(ps fsProjectStore, rev datatug.QueryRevision) error {
 			return ps.DeleteQueryRevision(context.Background(), "q", rev)
 		}},
 	} {
@@ -103,7 +103,7 @@ func TestWriter_RollsBackWhenItsFirstInstallStepFails(t *testing.T) {
 			if err != nil {
 				t.Fatalf("expected the old pair intact, got: %v", err)
 			}
-			if got.Revision != rev || got.Query.Title != "t0" || got.Query.Text != "T0" || got.Query.Type != datatug.QueryTypeDTQL {
+			if got.Revision != rev || got.Query.Title != "t0" || got.Query.Text != "T0" || got.Query.Type != datatug.QueryTypeTugQL {
 				t.Errorf("expected the old pair t0/T0 at %s, got %q/%q (%s) at %s", rev, got.Query.Title, got.Query.Text, got.Query.Type, got.Revision)
 			}
 			assertStoreUsableAfterRefusal(t, ps, queriesDir)
@@ -117,8 +117,8 @@ func TestWriter_NeverRollsBackOnceTheInstallChangedSomething(t *testing.T) {
 		write            func(fsProjectStore, datatug.QueryRevision) error
 		check            func(t *testing.T, ps fsProjectStore)
 	}{
-		{"PutQuery, metadata rename after the body", "rename", "q.query.json", putQ("t1", "T1", datatug.QueryTypeDTQL),
-			func(t *testing.T, ps fsProjectStore) { requireQ(t, ps, "t1", "T1", datatug.QueryTypeDTQL) }},
+		{"PutQuery, metadata rename after the body", "rename", "q.query.json", putQ("t1", "T1", datatug.QueryTypeTugQL),
+			func(t *testing.T, ps fsProjectStore) { requireQ(t, ps, "t1", "T1", datatug.QueryTypeTugQL) }},
 		{"type change, body rename after the stale removal", "rename", "q.query.sql", putQ("t1", "SELECT 1", datatug.QueryTypeSQL),
 			func(t *testing.T, ps fsProjectStore) { requireQ(t, ps, "t1", "SELECT 1", datatug.QueryTypeSQL) }},
 		{"DeleteQuery, metadata removal after the body", "remove", "q.query.json", func(ps fsProjectStore, _ datatug.QueryRevision) error {
@@ -179,10 +179,10 @@ func TestQueryTxnUntouched_JudgesFromWhatIsOnDisk(t *testing.T) {
 		ID: "q", Operation: queryTxnOpPut,
 		JSONFileName: "q.query.json", JSONHash: hashBytes(payload),
 		BodyFileName: "q.query.sql", BodyHash: hashBytes(payload),
-		HadPrevious: true, PrevBodyFileName: "q.query.dtql",
+		HadPrevious: true, PrevBodyFileName: "q.query.tugql",
 	}
 	p := plantTxn(t, put, payload, payload)
-	stale := filepath.Join(p.queriesDir, "q.query.dtql")
+	stale := filepath.Join(p.queriesDir, "q.query.tugql")
 	writeFile0600(t, stale, []byte("old"))
 	if !queryTxnUntouched(p.queriesDir, p.txnDir, put) {
 		t.Error("put: expected untouched with both staged files and the stale body present")
@@ -201,14 +201,14 @@ func TestQueryTxnUntouched_JudgesFromWhatIsOnDisk(t *testing.T) {
 		t.Error("put: expected touched once the staged body has left the transaction directory")
 	}
 
-	del := queryTxnJournal{ID: "d", Operation: queryTxnOpDelete, JSONFileName: "d.query.json", BodyFileName: "d.query.dtql"}
+	del := queryTxnJournal{ID: "d", Operation: queryTxnOpDelete, JSONFileName: "d.query.json", BodyFileName: "d.query.tugql"}
 	d := plantTxn(t, del, nil, nil)
 	writeFile0600(t, filepath.Join(d.queriesDir, "d.query.json"), []byte("{}"))
-	writeFile0600(t, filepath.Join(d.queriesDir, "d.query.dtql"), []byte("b"))
+	writeFile0600(t, filepath.Join(d.queriesDir, "d.query.tugql"), []byte("b"))
 	if !queryTxnUntouched(d.queriesDir, d.txnDir, del) {
 		t.Error("delete: expected untouched with both files present")
 	}
-	if err := os.Remove(filepath.Join(d.queriesDir, "d.query.dtql")); err != nil {
+	if err := os.Remove(filepath.Join(d.queriesDir, "d.query.tugql")); err != nil {
 		t.Fatal(err)
 	}
 	if queryTxnUntouched(d.queriesDir, d.txnDir, del) {

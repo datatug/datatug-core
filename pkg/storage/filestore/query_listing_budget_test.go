@@ -27,7 +27,7 @@ func newBudgetTestProject(t *testing.T, budget int64, queries map[string]string)
 	ps := newFsProjectStore("p", projectDir)
 	for fullID, body := range queries {
 		folder, id := splitQueryFullID(fullID)
-		q := dtqlQuery(id, folder, body)
+		q := tugqlQuery(id, folder, body)
 		if _, err := ps.PutQuery(context.Background(), &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 			t.Fatalf("unexpected error creating %s: %v", fullID, err)
 		}

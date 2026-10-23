@@ -84,10 +84,10 @@ func TestFirstWriteRace_ReadersNeverSeeATornPair(t *testing.T) {
 		}
 		for k := 0; k < pairs; k++ {
 			id := fmt.Sprintf("q%04d", k)
-			if err := os.WriteFile(filepath.Join(queriesDir, id+".query.json"), []byte(`{"title":"OLD","type":"DTQL","createdAt":"2026-10-01T00:00:00Z"}`), 0o644); err != nil {
+			if err := os.WriteFile(filepath.Join(queriesDir, id+".query.json"), []byte(`{"title":"OLD","type":"TugQL","createdAt":"2026-10-01T00:00:00Z"}`), 0o644); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if err := os.WriteFile(filepath.Join(queriesDir, id+".query.dtql"), []byte("OLD"), 0o644); err != nil {
+			if err := os.WriteFile(filepath.Join(queriesDir, id+".query.tugql"), []byte("OLD"), 0o644); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 		}
@@ -103,7 +103,7 @@ func TestFirstWriteRace_ReadersNeverSeeATornPair(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			time.Sleep(delay)
-			q := dtqlQuery(last, "", "NEW")
+			q := tugqlQuery(last, "", "NEW")
 			q.Title = "NEW"
 			saveErr = store.SaveQuery(ctx, &q)
 		}()
@@ -142,7 +142,7 @@ func TestPutQuery_ResolvesTheLocationAgainUnderTheLock(t *testing.T) {
 	skipSymlinksOnWindows(t)
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
-	seed := dtqlQuery("seed", "", "S")
+	seed := tugqlQuery("seed", "", "S")
 	if _, err := store.PutQuery(ctx, &seed, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatalf("unexpected error seeding: %v", err)
 	}
@@ -159,7 +159,7 @@ func TestPutQuery_ResolvesTheLocationAgainUnderTheLock(t *testing.T) {
 	<-held
 	putDone := make(chan error, 1)
 	go func() {
-		q := dtqlQuery("q", "f", "B")
+		q := tugqlQuery("q", "f", "B")
 		_, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 		putDone <- err
 	}()

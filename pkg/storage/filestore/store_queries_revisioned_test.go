@@ -18,13 +18,13 @@ func newTestQueriesStore(t *testing.T) (fsQueriesStore, string) {
 	return newFsQueriesStore(projectDir), filepath.Join(projectDir, storage.QueriesFolder)
 }
 
-func dtqlQuery(id, folderPath, text string) datatug.QueryDefWithFolderPath {
+func tugqlQuery(id, folderPath, text string) datatug.QueryDefWithFolderPath {
 	return datatug.QueryDefWithFolderPath{
 		FolderPath: folderPath,
 		QueryDef: datatug.QueryDef{
 			CreatedAt:   "2026-10-01T00:00:00Z",
 			ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: id, Title: "Title " + id}},
-			Type:        datatug.QueryTypeDTQL,
+			Type:        datatug.QueryTypeTugQL,
 			Text:        text,
 		},
 	}
@@ -35,7 +35,7 @@ func dtqlQuery(id, folderPath, text string) datatug.QueryDefWithFolderPath {
 func TestPutQuery_CreateSucceeds(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q1", "", "from:\n  name: Invoice\n")
+	q := tugqlQuery("q1", "", "from:\n  name: Invoice\n")
 
 	stored, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 	if err != nil {
@@ -47,14 +47,14 @@ func TestPutQuery_CreateSucceeds(t *testing.T) {
 	if !fileExists(t, filepath.Join(queriesDir, "q1.query.json")) {
 		t.Error("expected q1.query.json to exist")
 	}
-	if !fileExists(t, filepath.Join(queriesDir, "q1.query.dtql")) {
-		t.Error("expected q1.query.dtql to exist")
+	if !fileExists(t, filepath.Join(queriesDir, "q1.query.tugql")) {
+		t.Error("expected q1.query.tugql to exist")
 	}
 }
 
 func TestPutQuery_PreservesConnectionID(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
-	query := dtqlQuery("q1", "", "SELECT 1")
+	query := tugqlQuery("q1", "", "SELECT 1")
 	query.Type = datatug.QueryTypeSQL
 	query.ConnectionID = "chinook-sqlite"
 	if _, err := store.PutQuery(context.Background(), &query, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
@@ -104,21 +104,21 @@ func TestPutQuery_AcceptsGraphQL(t *testing.T) {
 func TestPutQuery_CreateOverExistingConflicts(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q1", "", "original")
+	q := tugqlQuery("q1", "", "original")
 	if _, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatalf("unexpected error creating: %v", err)
 	}
-	before, err := os.ReadFile(filepath.Join(queriesDir, "q1.query.dtql"))
+	before, err := os.ReadFile(filepath.Join(queriesDir, "q1.query.tugql"))
 	if err != nil {
 		t.Fatalf("unexpected error reading body: %v", err)
 	}
 
-	q2 := dtqlQuery("q1", "", "different content")
+	q2 := tugqlQuery("q1", "", "different content")
 	_, err = store.PutQuery(ctx, &q2, datatug.QueryWriteCondition{IfNoneMatch: true})
 	if !datatug.IsQueryRevisionConflict(err) {
 		t.Fatalf("expected a QueryRevisionConflictError, got %T: %v", err, err)
 	}
-	after, err := os.ReadFile(filepath.Join(queriesDir, "q1.query.dtql"))
+	after, err := os.ReadFile(filepath.Join(queriesDir, "q1.query.tugql"))
 	if err != nil {
 		t.Fatalf("unexpected error reading body: %v", err)
 	}
@@ -132,13 +132,13 @@ func TestPutQuery_CreateOverExistingConflicts(t *testing.T) {
 func TestPutQuery_UpdateWithCurrentRevisionSucceeds(t *testing.T) {
 	store, _ := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q1", "", "original")
+	q := tugqlQuery("q1", "", "original")
 	stored, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 	if err != nil {
 		t.Fatalf("unexpected error creating: %v", err)
 	}
 
-	updated := dtqlQuery("q1", "", "updated")
+	updated := tugqlQuery("q1", "", "updated")
 	stored2, err := store.PutQuery(ctx, &updated, datatug.QueryWriteCondition{IfMatch: stored.Revision})
 	if err != nil {
 		t.Fatalf("unexpected error updating: %v", err)
@@ -162,18 +162,18 @@ func TestPutQuery_UpdateWithCurrentRevisionSucceeds(t *testing.T) {
 func TestPutQuery_UpdateWithStaleRevisionConflicts(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q1", "", "original")
+	q := tugqlQuery("q1", "", "original")
 	if _, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatalf("unexpected error creating: %v", err)
 	}
 
-	updated := dtqlQuery("q1", "", "updated")
+	updated := tugqlQuery("q1", "", "updated")
 	_, err := store.PutQuery(ctx, &updated, datatug.QueryWriteCondition{IfMatch: "not-the-real-revision"})
 	var conflict *datatug.QueryRevisionConflictError
 	if !errors.As(err, &conflict) {
 		t.Fatalf("expected a QueryRevisionConflictError, got %T: %v", err, err)
 	}
-	body, readErr := os.ReadFile(filepath.Join(queriesDir, "q1.query.dtql"))
+	body, readErr := os.ReadFile(filepath.Join(queriesDir, "q1.query.tugql"))
 	if readErr != nil {
 		t.Fatalf("unexpected error reading body: %v", readErr)
 	}
@@ -185,7 +185,7 @@ func TestPutQuery_UpdateWithStaleRevisionConflicts(t *testing.T) {
 func TestPutQuery_UpdateMissingRecordConflicts(t *testing.T) {
 	store, _ := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("does-not-exist", "", "text")
+	q := tugqlQuery("does-not-exist", "", "text")
 	_, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfMatch: "any-revision"})
 	if !datatug.IsQueryRevisionConflict(err) {
 		t.Fatalf("expected a QueryRevisionConflictError, got %T: %v", err, err)
@@ -203,7 +203,7 @@ func TestPutQuery_UpdateMissingRecordConflicts(t *testing.T) {
 func TestPutQuery_HandEditedFileInvalidatesAStaleRevision(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q1", "", "original")
+	q := tugqlQuery("q1", "", "original")
 	stored, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 	if err != nil {
 		t.Fatalf("unexpected error creating: %v", err)
@@ -229,7 +229,7 @@ func TestPutQuery_HandEditedFileInvalidatesAStaleRevision(t *testing.T) {
 		t.Fatal("expected the hand edit to produce a new revision")
 	}
 
-	updated := dtqlQuery("q1", "", "updated-by-a-writer-that-never-saw-the-hand-edit")
+	updated := tugqlQuery("q1", "", "updated-by-a-writer-that-never-saw-the-hand-edit")
 	_, err = store.PutQuery(ctx, &updated, datatug.QueryWriteCondition{IfMatch: stored.Revision})
 	if !datatug.IsQueryRevisionConflict(err) {
 		t.Fatalf("expected the pre-edit revision to be stale and refused, got %T: %v", err, err)
@@ -260,15 +260,15 @@ func TestPutQuery_TypeChangeRemovesOldSidecar(t *testing.T) {
 		t.Fatal("expected q1.query.sql to exist")
 	}
 
-	dtqlUpdate := dtqlQuery("q1", "", "from:\n  name: Invoice\n")
-	if _, err := store.PutQuery(ctx, &dtqlUpdate, datatug.QueryWriteCondition{IfMatch: stored.Revision}); err != nil {
+	tugqlUpdate := tugqlQuery("q1", "", "from:\n  name: Invoice\n")
+	if _, err := store.PutQuery(ctx, &tugqlUpdate, datatug.QueryWriteCondition{IfMatch: stored.Revision}); err != nil {
 		t.Fatalf("unexpected error updating: %v", err)
 	}
 	if fileExists(t, filepath.Join(queriesDir, "q1.query.sql")) {
 		t.Error("expected the stale .sql sidecar to be removed on a type change")
 	}
-	if !fileExists(t, filepath.Join(queriesDir, "q1.query.dtql")) {
-		t.Error("expected the new .dtql sidecar to exist")
+	if !fileExists(t, filepath.Join(queriesDir, "q1.query.tugql")) {
+		t.Error("expected the new .tugql sidecar to exist")
 	}
 }
 
@@ -277,7 +277,7 @@ func TestPutQuery_TypeChangeRemovesOldSidecar(t *testing.T) {
 func TestDeleteQueryRevision_MatchingRevisionRemovesBothFiles(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q1", "", "text")
+	q := tugqlQuery("q1", "", "text")
 	stored, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 	if err != nil {
 		t.Fatalf("unexpected error creating: %v", err)
@@ -289,15 +289,15 @@ func TestDeleteQueryRevision_MatchingRevisionRemovesBothFiles(t *testing.T) {
 	if fileExists(t, filepath.Join(queriesDir, "q1.query.json")) {
 		t.Error("expected q1.query.json to be removed")
 	}
-	if fileExists(t, filepath.Join(queriesDir, "q1.query.dtql")) {
-		t.Error("expected q1.query.dtql to be removed")
+	if fileExists(t, filepath.Join(queriesDir, "q1.query.tugql")) {
+		t.Error("expected q1.query.tugql to be removed")
 	}
 }
 
 func TestDeleteQueryRevision_StaleRevisionConflicts(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q1", "", "text")
+	q := tugqlQuery("q1", "", "text")
 	if _, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatalf("unexpected error creating: %v", err)
 	}
@@ -309,8 +309,8 @@ func TestDeleteQueryRevision_StaleRevisionConflicts(t *testing.T) {
 	if !fileExists(t, filepath.Join(queriesDir, "q1.query.json")) {
 		t.Error("expected q1.query.json to remain after a rejected delete")
 	}
-	if !fileExists(t, filepath.Join(queriesDir, "q1.query.dtql")) {
-		t.Error("expected q1.query.dtql to remain after a rejected delete")
+	if !fileExists(t, filepath.Join(queriesDir, "q1.query.tugql")) {
+		t.Error("expected q1.query.tugql to remain after a rejected delete")
 	}
 }
 
@@ -344,7 +344,7 @@ func TestLoadQueryRevision_IncompleteJSONOnlyRecordRejected(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(queriesDir, "q1.query.json"),
-		[]byte(`{"id":"q1","title":"Q1","type":"DTQL"}`), 0o644); err != nil {
+		[]byte(`{"id":"q1","title":"Q1","type":"TugQL"}`), 0o644); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -361,7 +361,7 @@ func TestLoadQueryRevision_IncompleteJSONOnlyRecordRejected(t *testing.T) {
 	if incomplete.Revision == "" {
 		t.Fatal("expected the incomplete record error to carry a non-empty revision")
 	}
-	if incomplete.Query.ID != "q1" || incomplete.Query.Type != datatug.QueryTypeDTQL {
+	if incomplete.Query.ID != "q1" || incomplete.Query.Type != datatug.QueryTypeTugQL {
 		t.Fatalf("expected the incomplete record error to carry the partial record, got: %+v", incomplete.Query)
 	}
 	if incomplete.Query.Text != "" {
@@ -522,7 +522,7 @@ func TestPutQuery_RejectsCredentialsBeforeStaging(t *testing.T) {
 
 func TestPutQuery_RejectsInvalidLocationBeforeStaging(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
-	q := dtqlQuery("q1", "../escape", "text")
+	q := tugqlQuery("q1", "../escape", "text")
 	_, err := store.PutQuery(context.Background(), &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 	if !datatug.IsInvalidQueryLocation(err) {
 		t.Fatalf("expected an InvalidQueryLocationError, got %T: %v", err, err)
@@ -537,7 +537,7 @@ func TestPutQuery_RejectsInvalidLocationBeforeStaging(t *testing.T) {
 
 func TestPutQuery_InvalidConditionRejectedBeforeStaging(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
-	q := dtqlQuery("q1", "", "text")
+	q := tugqlQuery("q1", "", "text")
 	_, err := store.PutQuery(context.Background(), &q, datatug.QueryWriteCondition{})
 	if err == nil {
 		t.Fatal("expected an error for an invalid condition")
@@ -552,7 +552,7 @@ func TestPutQuery_CancelledContextBeforeIOWritesNothing(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	q := dtqlQuery("q1", "", "text")
+	q := tugqlQuery("q1", "", "text")
 	_, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context.Canceled, got %T: %v", err, err)

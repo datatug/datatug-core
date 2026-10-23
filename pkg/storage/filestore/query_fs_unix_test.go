@@ -76,11 +76,11 @@ func within(t *testing.T, d time.Duration, fn func() error) error {
 func TestQueryReads_RefuseAFIFOBodyWithoutHoldingTheLock(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q", "", "B0")
+	q := tugqlQuery("q", "", "B0")
 	if _, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatalf("unexpected error creating: %v", err)
 	}
-	body := filepath.Join(queriesDir, "q.query.dtql")
+	body := filepath.Join(queriesDir, "q.query.tugql")
 	if err := os.Remove(body); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -94,7 +94,7 @@ func TestQueryReads_RefuseAFIFOBodyWithoutHoldingTheLock(t *testing.T) {
 			t.Errorf("%s: expected a FIFO body to be refused, got: %v", reader, err)
 		}
 	}
-	other := dtqlQuery("other", "", "O")
+	other := tugqlQuery("other", "", "O")
 	c2, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	if _, err := store.PutQuery(c2, &other, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
@@ -205,7 +205,7 @@ func TestTxnArtifacts_FIFOStagedFileIsRefusedWithoutBlocking(t *testing.T) {
 	p := plantTxn(t, queryTxnJournal{
 		ID: "x", Operation: queryTxnOpPut,
 		JSONFileName: "x.query.json", JSONHash: hashBytes(payload),
-		BodyFileName: "x.query.dtql", BodyHash: hashBytes(payload),
+		BodyFileName: "x.query.tugql", BodyHash: hashBytes(payload),
 	}, payload, nil)
 	mkfifo(t, filepath.Join(p.txnDir, queryTxnStagedBody))
 	err := within(t, 5*time.Second, func() error {
@@ -215,7 +215,7 @@ func TestTxnArtifacts_FIFOStagedFileIsRefusedWithoutBlocking(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "not a regular file") {
 		t.Fatalf("expected a FIFO staged file to be refused, got: %v", err)
 	}
-	if _, err := os.Lstat(filepath.Join(p.queriesDir, "x.query.dtql")); err == nil {
+	if _, err := os.Lstat(filepath.Join(p.queriesDir, "x.query.tugql")); err == nil {
 		t.Error("expected nothing installed from a FIFO staged file")
 	}
 }

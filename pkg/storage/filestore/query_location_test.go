@@ -235,7 +235,7 @@ func TestQueryIDs_WithInvisibleCharacters_RefusedForWritesButStillReadable(t *te
 	store, queriesDir := newTestQueriesStore(t)
 	const alias = "rev\u200cenue"
 
-	q := dtqlQuery(alias, "", "BODY")
+	q := tugqlQuery(alias, "", "BODY")
 	_, putErr := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 	requireInvisibleRefusal(t, "PutQuery", putErr)
 	requireInvisibleRefusal(t, "SaveQuery", store.SaveQuery(ctx, &q))
@@ -244,7 +244,7 @@ func TestQueryIDs_WithInvisibleCharacters_RefusedForWritesButStillReadable(t *te
 	_, updateErr := store.UpdateQuery(ctx, q.QueryDef)
 	requireInvisibleRefusal(t, "UpdateQuery", updateErr)
 
-	inFolder := dtqlQuery("revenue", "re\u200cf", "BODY")
+	inFolder := tugqlQuery("revenue", "re\u200cf", "BODY")
 	_, folderErr := store.PutQuery(ctx, &inFolder, datatug.QueryWriteCondition{IfNoneMatch: true})
 	requireInvisibleRefusal(t, "PutQuery into an invisible folder", folderErr)
 
@@ -257,11 +257,11 @@ func TestQueryIDs_WithInvisibleCharacters_RefusedForWritesButStillReadable(t *te
 	if err := os.MkdirAll(queriesDir, 0o755); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	meta := []byte(`{"id":"` + alias + `","title":"Legacy","type":"DTQL","createdAt":"2026-10-01T00:00:00Z"}` + "\n")
+	meta := []byte(`{"id":"` + alias + `","title":"Legacy","type":"TugQL","createdAt":"2026-10-01T00:00:00Z"}` + "\n")
 	if err := os.WriteFile(filepath.Join(queriesDir, alias+".query.json"), meta, 0o644); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(queriesDir, alias+".query.dtql"), []byte("LEGACY"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(queriesDir, alias+".query.tugql"), []byte("LEGACY"), 0o644); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	got, err := store.LoadQuery(ctx, alias)

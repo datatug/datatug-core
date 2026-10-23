@@ -138,7 +138,7 @@ func validateDraftWithExpectations(d Draft, snapshot Snapshot, sources []Source,
 			}
 		}
 	case KindQuery:
-		if d.Query == nil || !detective.ValidQueryRef(d.Query.ID) || strings.TrimSpace(d.Query.Title) == "" || len(d.Query.Title) > 256 || strings.TrimSpace(d.Query.Text) == "" || len(d.Query.Text) > maxText || !oneOf(d.Query.Type, "SQL", "TugQL", "DTQL", "StructuredSQL", "HTTP") || len(d.Query.ConnectionID) > 128 || len(d.Query.Inputs) > 64 {
+		if d.Query == nil || !detective.ValidQueryRef(d.Query.ID) || strings.TrimSpace(d.Query.Title) == "" || len(d.Query.Title) > 256 || strings.TrimSpace(d.Query.Text) == "" || len(d.Query.Text) > maxText || !oneOf(d.Query.Type, "SQL", "TugQL", "StructuredSQL", "HTTP") || len(d.Query.ConnectionID) > 128 || len(d.Query.Inputs) > 64 {
 			return ErrInvalid
 		}
 		if previous, found := resource(snapshot.Queries, d.Query.ID); found && previous.Revision != d.Query.ExpectedRevision {

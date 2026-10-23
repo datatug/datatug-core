@@ -38,17 +38,17 @@ func TestSimulatedLockedTargets_AreRefusedBeforeTheCommit(t *testing.T) {
 		name, target string
 		write        func(fsProjectStore, datatug.QueryRevision) error
 	}{
-		{"locked body, put", "q.query.dtql", putQ("t1", "T1", datatug.QueryTypeDTQL)},
-		{"locked metadata, put", "q.query.json", putQ("t1", "T1", datatug.QueryTypeDTQL)},
-		{"locked stale body, type change", "q.query.dtql", putQ("t1", "SELECT 1", datatug.QueryTypeSQL)},
+		{"locked body, put", "q.query.tugql", putQ("t1", "T1", datatug.QueryTypeTugQL)},
+		{"locked metadata, put", "q.query.json", putQ("t1", "T1", datatug.QueryTypeTugQL)},
+		{"locked stale body, type change", "q.query.tugql", putQ("t1", "SELECT 1", datatug.QueryTypeSQL)},
 		{"locked metadata, DeleteQuery", "q.query.json", func(ps fsProjectStore, _ datatug.QueryRevision) error {
 			return ps.DeleteQuery(context.Background(), "q")
 		}},
-		{"locked body, DeleteQueryRevision", "q.query.dtql", func(ps fsProjectStore, rev datatug.QueryRevision) error {
+		{"locked body, DeleteQueryRevision", "q.query.tugql", func(ps fsProjectStore, rev datatug.QueryRevision) error {
 			return ps.DeleteQueryRevision(context.Background(), "q", rev)
 		}},
-		{"locked queries folder", "", putQ("t1", "T1", datatug.QueryTypeDTQL)},
-		{"locked transaction directory", reservedQueryTxnDirName, putQ("t1", "T1", datatug.QueryTypeDTQL)},
+		{"locked queries folder", "", putQ("t1", "T1", datatug.QueryTypeTugQL)},
+		{"locked transaction directory", reservedQueryTxnDirName, putQ("t1", "T1", datatug.QueryTypeTugQL)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ps, queriesDir, rev := seedQ(t)

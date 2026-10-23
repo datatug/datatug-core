@@ -12,7 +12,7 @@ import (
 func validQueryForWrite() datatug.QueryDef {
 	return datatug.QueryDef{
 		ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "q1", Title: "Q1"}},
-		Type:        datatug.QueryTypeDTQL,
+		Type:        datatug.QueryTypeTugQL,
 		Text:        "from:\n  name: Invoice\n",
 	}
 }
@@ -133,7 +133,7 @@ func TestQueryBodyFileName(t *testing.T) {
 		typ      datatug.QueryType
 		expected string
 	}{
-		{"q1", datatug.QueryTypeDTQL, "q1.query.dtql"},
+		{"q1", datatug.QueryTypeTugQL, "q1.query.tugql"},
 		{"q1", datatug.QueryTypeSQL, "q1.query.sql"},
 		{"customer-invoices", datatug.QueryTypeHTTP, "customer-invoices.query.http"},
 		{"q1", "GraphQL", "q1.query.graphql"},
@@ -142,7 +142,7 @@ func TestQueryBodyFileName(t *testing.T) {
 		{"q1", "my_type-2", "q1.query.my_type-2"},
 	}
 	for _, c := range cases {
-		got, err := queryBodyFileName(c.id, c.typ)
+		got, err := queryBodyFileName(c.id, c.typ, false)
 		if err != nil {
 			t.Errorf("queryBodyFileName(%q, %q): unexpected error: %v", c.id, c.typ, err)
 			continue
@@ -166,7 +166,7 @@ func TestQueryBodyFileName_RefusesATypeThatCannotNameAFile(t *testing.T) {
 		"", "/../../victim/secret.txt", "../x", "a/b", `a\b`, "a.b", "sql server", "x\x00", "tab\t",
 		"café", datatug.QueryType(strings.Repeat("a", maxQueryTypeFileExtensionLength+1)),
 	} {
-		if name, err := queryBodyFileName("q1", typ); err == nil {
+		if name, err := queryBodyFileName("q1", typ, false); err == nil {
 			t.Errorf("expected type %q to be refused, got name %q", typ, name)
 		}
 	}
@@ -176,11 +176,11 @@ func TestCheckQueryBodyFileName_RefusesNamesNotDerivedFromTheID(t *testing.T) {
 	for _, name := range []string{
 		"",
 		"q1.query.json.",
-		"q2.query.dtql",         // another query's body
-		"q1.query.DTQL",         // not the lowercase derived name
-		"q1.query.",             // no type
-		"q1.query.d.tql",        // a dot in the type
-		"q1.query.dtql/../../x", // a path
+		"q2.query.tugql",         // another query's body
+		"q1.query.TugQL",         // not the lowercase derived name
+		"q1.query.",              // no type
+		"q1.query.d.tql",         // a dot in the type
+		"q1.query.tugql/../../x", // a path
 		"../../victim/dot_zshrc",
 		"/etc/passwd",
 		"q1.sql",

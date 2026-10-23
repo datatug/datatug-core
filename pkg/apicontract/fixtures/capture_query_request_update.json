@@ -9,7 +9,7 @@
     "title": "Customer invoices by billing country",
     "purpose": "Which of this customer's invoices were billed to a given country?",
     "source": "chinook",
-    "dtql": "from:\n  name: Invoice\ncolumns:\n  - field: InvoiceId\n  - field: BillingCountry\n  - field: Total\nwhere:\n  and:\n    - op: ==\n      left:\n        field: CustomerId\n      right:\n        param: Customer.ID\n    - op: ==\n      left:\n        field: BillingCountry\n      right:\n        param: Country\n",
+    "tugql": "from:\n  name: Invoice\ncolumns:\n  - field: InvoiceId\n  - field: BillingCountry\n  - field: Total\nwhere:\n  and:\n    - op: ==\n      left:\n        field: CustomerId\n      right:\n        param: Customer.ID\n    - op: ==\n      left:\n        field: BillingCountry\n      right:\n        param: Country\n",
     "parameters": [
       {
         "id": "Customer.ID",

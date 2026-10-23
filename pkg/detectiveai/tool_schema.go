@@ -138,7 +138,7 @@ func buildProposalToolSchema() json.RawMessage {
 		"extractedValue": objectSchema(toolSchema{"value": refSchema("inputValue"), "provenance": arraySchema(refSchema("provenance"), 1, 32)}, "value", "provenance"),
 		"context":        context, "input": input, "binding": binding, "scenarioBinding": scenarioBinding, "validator": validator,
 		"query": objectSchema(toolSchema{
-			"id": textSchema(512), "title": textSchema(256), "type": enumSchema("SQL", "TugQL", "DTQL", "StructuredSQL", "HTTP"),
+			"id": textSchema(512), "title": textSchema(256), "type": enumSchema("SQL", "TugQL", "StructuredSQL", "HTTP"),
 			"text": textSchema(maxText), "connectionId": textSchema(128),
 			"inputs": arraySchema(refSchema("input"), 0, 64), "expectedRevision": toolSchema{"type": "string", "maxLength": 256},
 		}, "id", "title", "type", "text"),

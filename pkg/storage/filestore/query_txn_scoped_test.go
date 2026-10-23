@@ -49,13 +49,13 @@ func txnDirEntries(t *testing.T, queriesDir string) string {
 func TestStuckWrite_RefusesOnlyTheNamedQuery(t *testing.T) {
 	ctx := context.Background()
 	ps, queriesDir, rev := seedQ(t)
-	sub := dtqlQuery("x", "sub", "SUB")
+	sub := tugqlQuery("x", "sub", "SUB")
 	if _, err := ps.PutQuery(ctx, &sub, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// The body installs, then the metadata rename fails: half installed.
 	restore := failQueryTargetStep(t, "rename", "q.query.json")
-	requireStuck(t, "the writer", putQ("t1", "T1", datatug.QueryTypeDTQL)(ps, rev))
+	requireStuck(t, "the writer", putQ("t1", "T1", datatug.QueryTypeTugQL)(ps, rev))
 
 	fresh := newFsProjectStore("p", filepath.Dir(queriesDir))
 	for name, store := range map[string]fsProjectStore{"same store": ps, "fresh store": fresh} {
@@ -69,7 +69,7 @@ func TestStuckWrite_RefusesOnlyTheNamedQuery(t *testing.T) {
 			if folder, err := store.LoadQueries(ctx, "sub"); err != nil || len(folder.Items) != 1 {
 				t.Errorf("LoadQueries(sub): %v", err)
 			}
-			third := dtqlQuery("third", "", "THIRD")
+			third := tugqlQuery("third", "", "THIRD")
 			if _, err := store.PutQuery(ctx, &third, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 				t.Errorf("PutQuery(third): %v", err)
 			}
@@ -86,8 +86,8 @@ func TestStuckWrite_RefusesOnlyTheNamedQuery(t *testing.T) {
 			requireStuck(t, "LoadQuery(q)", err)
 			_, err = store.LoadQuery(ctx, "Q")
 			requireStuck(t, "LoadQuery(Q), another spelling", err)
-			requireStuck(t, "PutQuery(q)", putQ("t2", "T2", datatug.QueryTypeDTQL)(store, rev))
-			again := dtqlQuery("q", "", "T3")
+			requireStuck(t, "PutQuery(q)", putQ("t2", "T2", datatug.QueryTypeTugQL)(store, rev))
+			again := tugqlQuery("q", "", "T3")
 			requireStuck(t, "SaveQuery(q)", store.SaveQuery(ctx, &again))
 			requireStuck(t, "DeleteQuery(q)", store.DeleteQuery(ctx, "q"))
 			requireStuck(t, "DeleteQueryRevision(q)", store.DeleteQueryRevision(ctx, "q", rev))
@@ -101,7 +101,7 @@ func TestStuckWrite_RefusesOnlyTheNamedQuery(t *testing.T) {
 
 	// The user fixes the entry; the next access completes the write.
 	restore()
-	requireQ(t, ps, "t1", "T1", datatug.QueryTypeDTQL)
+	requireQ(t, ps, "t1", "T1", datatug.QueryTypeTugQL)
 	if _, err := ps.LoadQueries(ctx, ""); err != nil {
 		t.Errorf("LoadQueries after the fix: %v", err)
 	}
@@ -120,7 +120,7 @@ func TestStuckWrite_CommittedBeforeACrash_BlocksOnlyItsQuery(t *testing.T) {
 	ctx := context.Background()
 	_, queriesDir := newPreflightProject(t)
 	txnDir := filepath.Join(queriesDir, reservedQueryTxnDirName)
-	n := dtqlQuery("n", "", "NEW")
+	n := tugqlQuery("n", "", "NEW")
 	jsonBytes, err := queryJSONBytes(n.QueryDef)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -133,24 +133,24 @@ func TestStuckWrite_CommittedBeforeACrash_BlocksOnlyItsQuery(t *testing.T) {
 	j := queryTxnJournal{
 		ID: "n", Operation: queryTxnOpPut,
 		JSONFileName: "n.query.json", JSONHash: hashBytes(jsonBytes),
-		BodyFileName: "n.query.dtql", BodyHash: hashBytes([]byte(n.Text)),
+		BodyFileName: "n.query.tugql", BodyHash: hashBytes([]byte(n.Text)),
 	}
 	if err := commitQueryTransaction(queriesDir, txnDir, j); err != nil {
 		t.Fatalf("unexpected error committing: %v", err)
 	}
-	restore := failQueryTargetStep(t, "rename", "n.query.dtql")
+	restore := failQueryTargetStep(t, "rename", "n.query.tugql")
 
 	fresh := newFsProjectStore("p", filepath.Dir(queriesDir))
 	if q, err := fresh.LoadQuery(ctx, "other"); err != nil || q.Text != "OTHER" {
 		t.Errorf("LoadQuery(other): %v", err)
 	}
-	third := dtqlQuery("third", "", "THIRD")
+	third := tugqlQuery("third", "", "THIRD")
 	if err := fresh.SaveQuery(ctx, &third); err != nil {
 		t.Errorf("SaveQuery(third): %v", err)
 	}
 	_, err = fresh.LoadQueryRevision(ctx, "n")
 	requireStuck(t, "LoadQueryRevision(n)", err)
-	competing := dtqlQuery("n", "", "COMPETING")
+	competing := tugqlQuery("n", "", "COMPETING")
 	_, err = fresh.PutQuery(ctx, &competing, datatug.QueryWriteCondition{IfNoneMatch: true})
 	requireStuck(t, "PutQuery(n)", err)
 	if !fileExistsAt(filepath.Join(txnDir, queryTxnJournalFile)) {
@@ -170,7 +170,7 @@ func TestStuckWrites_WhenEverySlotIsHeld_RefuseWritesButNotReads(t *testing.T) {
 	revs := map[string]datatug.QueryRevision{}
 	for i := 0; i < queryTxnSlotCount; i++ {
 		id := fmt.Sprintf("q%d", i)
-		q := dtqlQuery(id, "", "V0")
+		q := tugqlQuery(id, "", "V0")
 		stored, err := ps.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 		if err != nil {
 			t.Fatalf("unexpected error seeding %s: %v", id, err)
@@ -187,12 +187,12 @@ func TestStuckWrites_WhenEverySlotIsHeld_RefuseWritesButNotReads(t *testing.T) {
 		return orig(oldPath, newPath)
 	}
 	for id, rev := range revs {
-		q := dtqlQuery(id, "", "V1")
+		q := tugqlQuery(id, "", "V1")
 		q.Title = "V1" // the metadata changes too, so it is replaced after the body
 		_, err := ps.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfMatch: rev})
 		requireStuck(t, "PutQuery("+id+")", err)
 	}
-	extra := dtqlQuery("extra", "", "E")
+	extra := tugqlQuery("extra", "", "E")
 	_, err := ps.PutQuery(ctx, &extra, datatug.QueryWriteCondition{IfNoneMatch: true})
 	if err == nil || !strings.Contains(err.Error(), "slots") {
 		t.Errorf("expected a write refused while every slot is held, got: %v", err)

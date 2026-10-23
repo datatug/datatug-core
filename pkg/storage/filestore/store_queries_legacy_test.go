@@ -17,7 +17,7 @@ import (
 
 func TestSaveQuery_HonorsFolderPath(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
-	q := dtqlQuery("q1", "customers/invoices", "from:\n  name: Invoice\n")
+	q := tugqlQuery("q1", "customers/invoices", "from:\n  name: Invoice\n")
 	if err := store.SaveQuery(context.Background(), &q); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -32,11 +32,11 @@ func TestSaveQuery_HonorsFolderPath(t *testing.T) {
 func TestSaveQuery_IsUnconditionalUpsert(t *testing.T) {
 	store, _ := newTestQueriesStore(t)
 	ctx := context.Background()
-	first := dtqlQuery("q1", "", "first")
+	first := tugqlQuery("q1", "", "first")
 	if err := store.SaveQuery(ctx, &first); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	second := dtqlQuery("q1", "", "second")
+	second := tugqlQuery("q1", "", "second")
 	if err := store.SaveQuery(ctx, &second); err != nil {
 		t.Fatalf("unexpected error overwriting: %v", err)
 	}
@@ -87,27 +87,27 @@ func TestUpdateQuery_TypeChangeRemovesStaleSidecar(t *testing.T) {
 		t.Fatal("expected q1.query.sql to exist")
 	}
 
-	dtql := datatug.QueryDef{
+	tugql := datatug.QueryDef{
 		ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "q1", Title: "Q1"}},
-		Type:        datatug.QueryTypeDTQL,
+		Type:        datatug.QueryTypeTugQL,
 		Text:        "from:\n  name: Invoice\n",
 	}
-	if _, err := store.UpdateQuery(ctx, dtql); err != nil {
+	if _, err := store.UpdateQuery(ctx, tugql); err != nil {
 		t.Fatalf("unexpected error updating: %v", err)
 	}
 	if fileExists(t, filepath.Join(queriesDir, "q1.query.sql")) {
 		t.Error("expected the stale .sql sidecar to be removed on a type change")
 	}
-	if !fileExists(t, filepath.Join(queriesDir, "q1.query.dtql")) {
-		t.Error("expected the new .dtql sidecar to exist")
+	if !fileExists(t, filepath.Join(queriesDir, "q1.query.tugql")) {
+		t.Error("expected the new .tugql sidecar to exist")
 	}
 }
 
-func TestReadQueryTextSidecar_FallbackBetweenTugQLAndDTQL(t *testing.T) {
+func TestReadQueryTextSidecar_FallbackBetweenTugQLAndTugQL(t *testing.T) {
 	dir := t.TempDir()
 
-	// 1. TugQL query loading from legacy .query.dtql
-	if err := os.WriteFile(filepath.Join(dir, "q1.query.dtql"), []byte("from:\n  name: Invoice\n"), 0600); err != nil {
+	// 1. TugQL query loading from legacy .query.tugql
+	if err := os.WriteFile(filepath.Join(dir, "q1.query.tugql"), []byte("from:\n  name: Invoice\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	tugqlQuery := &datatug.QueryDef{
@@ -119,23 +119,23 @@ func TestReadQueryTextSidecar_FallbackBetweenTugQLAndDTQL(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if got != "from:\n  name: Invoice\n" {
-		t.Errorf("expected TugQL query to fall back to .query.dtql, got %q", got)
+		t.Errorf("expected TugQL query to fall back to .query.tugql, got %q", got)
 	}
 
-	// 2. DTQL query loading from canonical .query.tugql
+	// 2. TugQL query loading from canonical .query.tugql
 	if err := os.WriteFile(filepath.Join(dir, "q2.query.tugql"), []byte("from:\n  name: Order\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	legacyQuery := &datatug.QueryDef{
 		ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "q2"}},
-		Type:        datatug.QueryTypeDTQL,
+		Type:        datatug.QueryTypeTugQL,
 	}
 	got2, err := readQueryTextSidecar(dir, legacyQuery, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if got2 != "from:\n  name: Order\n" {
-		t.Errorf("expected DTQL query to fall back to .query.tugql, got %q", got2)
+		t.Errorf("expected TugQL query to fall back to .query.tugql, got %q", got2)
 	}
 
 	// 3. TugQL query with neither sidecar present
@@ -170,7 +170,7 @@ func TestUpdateQuery_HonorsFolderEmbeddedInID(t *testing.T) {
 func TestDeleteQuery_RemovesBodySidecarToo(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q1", "", "text")
+	q := tugqlQuery("q1", "", "text")
 	if err := store.SaveQuery(ctx, &q); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -180,8 +180,8 @@ func TestDeleteQuery_RemovesBodySidecarToo(t *testing.T) {
 	if fileExists(t, filepath.Join(queriesDir, "q1.query.json")) {
 		t.Error("expected q1.query.json to be removed")
 	}
-	if fileExists(t, filepath.Join(queriesDir, "q1.query.dtql")) {
-		t.Error("expected the body sidecar q1.query.dtql to also be removed")
+	if fileExists(t, filepath.Join(queriesDir, "q1.query.tugql")) {
+		t.Error("expected the body sidecar q1.query.tugql to also be removed")
 	}
 }
 
@@ -202,14 +202,14 @@ func TestDeleteQuery_RejectsUnsafeLocation(t *testing.T) {
 
 func TestCreateQuery_RoutesThroughPairTransaction(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
-	q := dtqlQuery("q1", "folder1", "from:\n  name: Invoice\n")
+	q := tugqlQuery("q1", "folder1", "from:\n  name: Invoice\n")
 	if _, err := store.CreateQuery(context.Background(), q); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !fileExists(t, filepath.Join(queriesDir, "folder1", "q1.query.json")) {
 		t.Error("expected q1.query.json to exist under folder1")
 	}
-	if !fileExists(t, filepath.Join(queriesDir, "folder1", "q1.query.dtql")) {
-		t.Error("expected q1.query.dtql to exist under folder1")
+	if !fileExists(t, filepath.Join(queriesDir, "folder1", "q1.query.tugql")) {
+		t.Error("expected q1.query.tugql to exist under folder1")
 	}
 }

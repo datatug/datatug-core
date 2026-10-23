@@ -32,13 +32,13 @@ func seedStuckMix(t *testing.T, folder, id string) (fsProjectStore, string) {
 	t.Helper()
 	ctx := context.Background()
 	ps, queriesDir := newPreflightProject(t)
-	seed := dtqlQuery(id, folder, "T0")
+	seed := tugqlQuery(id, folder, "T0")
 	seed.Title = "t0"
 	if _, err := ps.PutQuery(ctx, &seed, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatalf("unexpected error seeding %s/%s: %v", folder, id, err)
 	}
 	failQueryTargetStep(t, "rename", id+".query.json")
-	update := dtqlQuery(id, folder, "T1")
+	update := tugqlQuery(id, folder, "T1")
 	update.Title = "t1"
 	requireStuck(t, "the wedging write", ps.SaveQuery(ctx, &update))
 	requireMixOnDisk(t, filepath.Join(queriesDir, filepath.FromSlash(folder)), id)
@@ -49,7 +49,7 @@ func seedStuckMix(t *testing.T, folder, id string) (fsProjectStore, string) {
 // is half installed, so a read that served it would serve a mix.
 func requireMixOnDisk(t *testing.T, dir, id string) {
 	t.Helper()
-	body, err := os.ReadFile(filepath.Join(dir, id+".query.dtql"))
+	body, err := os.ReadFile(filepath.Join(dir, id+".query.tugql"))
 	if err != nil || string(body) != "T1" {
 		t.Fatalf("expected the new body installed, got %q (err %v)", body, err)
 	}
@@ -146,7 +146,7 @@ func TestStuckWrite_WhenItsFolderMovesOutFromUnderIt_RefusesEverything(t *testin
 			// closed for every query, exactly as it did before slots existed.
 			_, err := fresh.LoadQuery(ctx, "other")
 			requireStuck(t, "LoadQuery(other), an unrelated query", err)
-			third := dtqlQuery("third", "", "THIRD")
+			third := tugqlQuery("third", "", "THIRD")
 			_, err = fresh.PutQuery(ctx, &third, datatug.QueryWriteCondition{IfNoneMatch: true})
 			requireStuck(t, "PutQuery(third), an unrelated write", err)
 		})
@@ -213,7 +213,7 @@ func TestStuckWrite_ProvedToHaveInstalledNothing_StaysScoped(t *testing.T) {
 	ctx := context.Background()
 	_, queriesDir := newPreflightProject(t)
 	txnDir := filepath.Join(queriesDir, reservedQueryTxnDirName)
-	n := dtqlQuery("revenue", "", "NEW")
+	n := tugqlQuery("revenue", "", "NEW")
 	n.Title = "t0"
 	jsonBytes, err := queryJSONBytes(n.QueryDef)
 	if err != nil {
@@ -227,13 +227,13 @@ func TestStuckWrite_ProvedToHaveInstalledNothing_StaysScoped(t *testing.T) {
 	j := queryTxnJournal{
 		ID: "revenue", Operation: queryTxnOpPut,
 		JSONFileName: "revenue.query.json", JSONHash: hashBytes(jsonBytes),
-		BodyFileName: "revenue.query.dtql", BodyHash: hashBytes([]byte(n.Text)),
+		BodyFileName: "revenue.query.tugql", BodyHash: hashBytes([]byte(n.Text)),
 	}
 	if err := commitQueryTransaction(queriesDir, txnDir, j); err != nil {
 		t.Fatalf("unexpected error committing: %v", err)
 	}
 	// The first install step fails, so nothing of the pair is on disk.
-	failQueryTargetStep(t, "rename", "revenue.query.dtql")
+	failQueryTargetStep(t, "rename", "revenue.query.tugql")
 
 	fresh := newFsProjectStore("p", filepath.Dir(queriesDir))
 	if q, err := fresh.LoadQuery(ctx, "other"); err != nil || q.Text != "OTHER" {

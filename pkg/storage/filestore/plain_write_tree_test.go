@@ -41,6 +41,8 @@ func TestSaveOfASmallProjectWritesTheSameTreeAsBefore(t *testing.T) {
 	saveSmallProject(t, root)
 	// Creation metadata is intentionally new; keep the historic byte snapshot
 	// for all other metadata, paths and sidecars.
+	// The hash was re-pinned once by the TugQL cutover: the small project's
+	// query type value and body file name changed from the pre-cutover forms.
 	for _, name := range []string{"queries/q1.query.json", "queries/sub/q1.query.json"} {
 		p := filepath.Join(root, name)
 		raw, err := os.ReadFile(p)
@@ -58,7 +60,7 @@ func TestSaveOfASmallProjectWritesTheSameTreeAsBefore(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	const want = "79614d1b9964f1097678c4e7752d755ca0dd5694831ee5e58fc04995b9d4418b"
+	const want = "56e797d6714514c7686f41a634a6bb1c6adde10c599a57f6817ab2cece921943"
 	if got := treeHash(t, root); got != want {
 		t.Fatalf("tree hash = %s, want %s", got, want)
 	}

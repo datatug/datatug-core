@@ -17,7 +17,7 @@ func TestSaveQueriesTree_RefusesASubFolderIDThatIsNotOneSegment(t *testing.T) {
 	for _, id := range []string{"", ".", ".."} {
 		t.Run(id, func(t *testing.T) {
 			store, queriesDir := newTestQueriesStore(t)
-			item := dtqlQuery("q", "", "BODY").QueryDef
+			item := tugqlQuery("q", "", "BODY").QueryDef
 			sub := &datatug.QueriesFolder{Items: datatug.QueryDefs{&item}}
 			sub.ID = id
 			tree := &datatug.QueriesFolder{Folders: datatug.QueryFolders{sub}}
@@ -41,7 +41,7 @@ func TestSaveQueriesTree_RefusesASubFolderIDThatIsNotOneSegment(t *testing.T) {
 func TestLoadQueriesTree_SkipsTheReservedNamespaceAtAnyDepth(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q", "sub", "BODY")
+	q := tugqlQuery("q", "sub", "BODY")
 	if _, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -49,7 +49,7 @@ func TestLoadQueriesTree_SkipsTheReservedNamespaceAtAnyDepth(t *testing.T) {
 	if err := os.Mkdir(nested, 0o755); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	for name, content := range map[string]string{"hidden.query.json": `{"title":"h","type":"DTQL"}`, "hidden.query.dtql": "H"} {
+	for name, content := range map[string]string{"hidden.query.json": `{"title":"h","type":"TugQL"}`, "hidden.query.tugql": "H"} {
 		if err := os.WriteFile(filepath.Join(nested, name), []byte(content), 0o644); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
