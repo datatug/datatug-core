@@ -33,7 +33,7 @@ func (v *WatchCoordination) Validate() error {
 	if ip := net.ParseIP(u.Hostname()); ip != nil {
 		loopback = ip.IsLoopback()
 	}
-	if u.Scheme != "https" && !(u.Scheme == "http" && loopback) {
+	if u.Scheme != "https" && (u.Scheme != "http" || !loopback) {
 		return errors.New("coordination endpoint requires HTTPS, or HTTP on loopback")
 	}
 	return nil
