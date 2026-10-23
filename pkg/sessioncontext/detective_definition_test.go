@@ -112,7 +112,7 @@ func TestCanonicalDetectiveDefinitionRejectsUnboundedAndInexactSnapshots(t *test
 			v.Queries[0].DefinitionJSON = json.RawMessage(`{"id":"z","folderPath":"folder","title":"Z","type":"folder"}`)
 		},
 		"unsupported-spelling": func(v *DetectiveCheckDefinitionPin) {
-			v.Queries[0].DefinitionJSON = json.RawMessage(`{"id":"z","folderPath":"folder","title":"Z","type":"TugQL"}`)
+			v.Queries[0].DefinitionJSON = json.RawMessage(`{"id":"z","folderPath":"folder","title":"Z","type":"tugql"}`)
 		},
 		"secret": func(v *DetectiveCheckDefinitionPin) {
 			v.Queries[0].DefinitionJSON = json.RawMessage(`{"id":"z","folderPath":"folder","title":"Z","type":"SQL","text":"postgres://alice:private_password@host/db"}`)

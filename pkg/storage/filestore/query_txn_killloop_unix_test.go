@@ -45,7 +45,7 @@ func TestKillLoopWriterProcess(t *testing.T) {
 	}
 	for i := 0; ; i++ {
 		stamp := fmt.Sprintf("%d-%d", os.Getpid(), i)
-		q := dtqlQuery("q", "", "B"+stamp+strings.Repeat("x", rng.Intn(200_000)))
+		q := tugqlQuery("q", "", "B"+stamp+strings.Repeat("x", rng.Intn(200_000)))
 		q.Title = "T" + stamp
 		if i%3 == 1 {
 			q.Type = datatug.QueryTypeSQL
@@ -88,7 +88,7 @@ func TestQueryTxn_KillLoopLeavesEveryStateFineOrRecoverable(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	projectDir := t.TempDir()
-	seed := dtqlQuery("q", "", "B0")
+	seed := tugqlQuery("q", "", "B0")
 	seed.Title = "T0"
 	if _, err := newFsQueriesStore(projectDir).PutQuery(context.Background(), &seed, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatalf("unexpected error seeding: %v", err)
@@ -151,7 +151,7 @@ func checkKillLoopState(t *testing.T, projectDir string, kill int) {
 	ctx := context.Background()
 	fresh := newFsQueriesStore(projectDir)
 	queriesDir := filepath.Join(projectDir, "queries")
-	next := dtqlQuery("q", "", "Bcheck")
+	next := tugqlQuery("q", "", "Bcheck")
 	next.Title = "Tcheck"
 
 	cur, err := fresh.LoadQueryRevision(ctx, "q")
@@ -172,7 +172,7 @@ func checkKillLoopState(t *testing.T, projectDir string, kill int) {
 		if title != stamp {
 			t.Fatalf("kill %d: TORN pair - title %q, body starts %q", kill, cur.Query.Title, stamp)
 		}
-		bodyName, err := queryBodyFileName("q", cur.Query.Type)
+		bodyName, err := queryBodyFileName("q", cur.Query.Type, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

@@ -20,9 +20,9 @@ func TestStickyFolder_AnotherUsersTarget_IsRefusedBeforeTheCommit(t *testing.T) 
 	}
 	t.Cleanup(func() { _ = os.Chmod(queriesDir, 0o755) })
 	withFileOwnership(t, func(info os.FileInfo) bool {
-		return info.Name() != "q.query.dtql" && info.Name() != "queries"
+		return info.Name() != "q.query.tugql" && info.Name() != "queries"
 	})
-	requireRefusedWrite(t, putQ("t1", "T1", "DTQL")(ps, rev), "sticky folder")
+	requireRefusedWrite(t, putQ("t1", "T1", "TugQL")(ps, rev), "sticky folder")
 	if fileExistsAt(filepath.Join(queriesDir, reservedQueryTxnDirName, queryTxnJournalFile)) {
 		t.Error("expected nothing committed")
 	}

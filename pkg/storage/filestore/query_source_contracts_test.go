@@ -73,8 +73,7 @@ func TestExistingSourceMetadataActualQueriesRevisionedPersistence(t *testing.T) 
 			require.NoError(t, err)
 			var expected datatug.QueryDef
 			require.NoError(t, json.Unmarshal(metadata, &expected))
-			body, err := os.ReadFile(filepath.Join(path, "queries", id+".query.dtql"))
-			require.NoError(t, err)
+			body := readDemoQueryBody(t, filepath.Join(path, "queries", id))
 			expected.Text = string(body)
 			require.Equal(t, expected.Federation, loaded.Query.Federation)
 			require.Equal(t, expected.RelationshipBindings, loaded.Query.RelationshipBindings)
@@ -157,4 +156,18 @@ func TestExistingSourceMetadataExactDefaultsPersist(t *testing.T) {
 			require.Equal(t, json.Number(value), loaded.Query.Parameters[0].DefaultValue)
 		})
 	}
+}
+
+// readDemoQueryBody reads the body of the demo query at base ("<dir>/<id>"):
+// the TugQL text or structured form, or - until the demo project switches
+// (removed in TugQL cutover step 9) - the legacy pre-cutover body.
+func readDemoQueryBody(t *testing.T, base string) []byte {
+	t.Helper()
+	for _, ext := range []string{"tugql", tugqlStructuredBodyExt, legacyDTQLBodyExtension} {
+		if body, err := os.ReadFile(base + ".query." + ext); err == nil {
+			return body
+		}
+	}
+	t.Fatalf("no body file for %s", base)
+	return nil
 }

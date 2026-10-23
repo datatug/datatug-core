@@ -194,8 +194,8 @@ func TestExecutionRecord_ValidateIdentityHashesTimestampsAndCounts(t *testing.T)
 		"bad ref":                func(r *ExecutionRecord) { r.Ref.ExecutionID = "bad/id" },
 		"ref project mismatch":   func(r *ExecutionRecord) { r.Ref.ProjectID = "other" },
 		"neither query identity": func(r *ExecutionRecord) { r.QueryID, r.QueryRevision = "", "" },
-		"both query identities":  func(r *ExecutionRecord) { r.DTQLHash = testFingerprint },
-		"revision without query": func(r *ExecutionRecord) { r.QueryID, r.DTQLHash = "", testFingerprint },
+		"both query identities":  func(r *ExecutionRecord) { r.TugQLHash = testFingerprint },
+		"revision without query": func(r *ExecutionRecord) { r.QueryID, r.TugQLHash = "", testFingerprint },
 		"bad policy hash":        func(r *ExecutionRecord) { r.PolicyFingerprint = "ABC" },
 		"bad result hash":        func(r *ExecutionRecord) { r.ResultFingerprint = "nope" },
 		"bad executedAt":         func(r *ExecutionRecord) { r.ExecutedAt = "yesterday" },
@@ -212,7 +212,7 @@ func TestExecutionRecord_ValidateIdentityHashesTimestampsAndCounts(t *testing.T)
 		})
 	}
 	adhoc := validExecutionRecord()
-	adhoc.QueryID, adhoc.QueryRevision, adhoc.DTQLHash, adhoc.Provenance.QueryID = "", "", testFingerprint, ""
+	adhoc.QueryID, adhoc.QueryRevision, adhoc.TugQLHash, adhoc.Provenance.QueryID = "", "", testFingerprint, ""
 	if err := adhoc.Validate(); err != nil {
 		t.Fatalf("valid ad-hoc record rejected: %v", err)
 	}

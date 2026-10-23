@@ -46,15 +46,15 @@ func TestPutQuery_RefusesUnixEntriesAtTheNewBodyNameAndStaysUsable(t *testing.T)
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ps, queriesDir := newPreflightProject(t)
-			tc.plant(t, filepath.Join(queriesDir, "new.query.dtql"))
-			q := dtqlQuery("new", "", "NEW")
+			tc.plant(t, filepath.Join(queriesDir, "new.query.tugql"))
+			q := tugqlQuery("new", "", "NEW")
 			err := within(t, 5*time.Second, func() error {
 				_, err := ps.PutQuery(context.Background(), &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 				return err
 			})
 			requireRefusedWrite(t, err, tc.want)
 			if tc.name != "unreadable file" { // a permission failure is not a location refusal
-				requireTypedQueryLocation(t, tc.name, err, "new.query.dtql")
+				requireTypedQueryLocation(t, tc.name, err, "new.query.tugql")
 			}
 			assertStoreUsableAfterRefusal(t, ps, queriesDir)
 		})
@@ -72,14 +72,14 @@ func TestPutQuery_RefusesASymlinkFromAGitCloneAndStaysUsable(t *testing.T) {
 	initGitRepo(t, origin)
 	writePreflightProjectFile(t, origin)
 	for name, content := range map[string]string{
-		"queries/other.query.json": `{"title":"o","type":"DTQL","createdAt":"2026-10-01T00:00:00Z"}`,
-		"queries/other.query.dtql": "OTHER",
+		"queries/other.query.json":  `{"title":"o","type":"TugQL","createdAt":"2026-10-01T00:00:00Z"}`,
+		"queries/other.query.tugql": "OTHER",
 	} {
 		if err := os.WriteFile(filepath.Join(origin, name), []byte(content), 0o644); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	}
-	if err := os.Symlink("/nonexistent/elsewhere", filepath.Join(origin, "queries", "report.query.dtql")); err != nil {
+	if err := os.Symlink("/nonexistent/elsewhere", filepath.Join(origin, "queries", "report.query.tugql")); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	runGit(t, origin, "add", "-A")
@@ -87,7 +87,7 @@ func TestPutQuery_RefusesASymlinkFromAGitCloneAndStaysUsable(t *testing.T) {
 	runGit(t, parent, "clone", "-q", "origin", "clone")
 	clone := filepath.Join(parent, "clone")
 	queriesDir := filepath.Join(clone, "queries")
-	if info, err := os.Lstat(filepath.Join(queriesDir, "report.query.dtql")); err != nil || info.Mode()&os.ModeSymlink == 0 {
+	if info, err := os.Lstat(filepath.Join(queriesDir, "report.query.tugql")); err != nil || info.Mode()&os.ModeSymlink == 0 {
 		t.Skipf("git did not check the symlink out as a symlink here (%v)", err)
 	}
 
@@ -96,7 +96,7 @@ func TestPutQuery_RefusesASymlinkFromAGitCloneAndStaysUsable(t *testing.T) {
 	if _, err := ps.LoadQueries(ctx, ""); err != nil {
 		t.Fatalf("unexpected error reading the fresh clone: %v", err)
 	}
-	report := dtqlQuery("report", "", "REPORT")
+	report := tugqlQuery("report", "", "REPORT")
 	_, err := ps.PutQuery(ctx, &report, datatug.QueryWriteCondition{IfNoneMatch: true})
 	requireRefusedWrite(t, err, "symlink")
 	assertStoreUsableAfterRefusal(t, ps, queriesDir)
@@ -110,7 +110,7 @@ func TestQueryWrites_RefuseAFolderThatDoesNotAcceptNewFilesAndStayUsable(t *test
 	skipIfRoot(t)
 	ps, queriesDir := newPreflightProject(t)
 	ctx := context.Background()
-	inRO := dtqlQuery("inro", "ro", "IN RO")
+	inRO := tugqlQuery("inro", "ro", "IN RO")
 	if _, err := ps.PutQuery(ctx, &inRO, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatalf("unexpected error creating: %v", err)
 	}
@@ -120,7 +120,7 @@ func TestQueryWrites_RefuseAFolderThatDoesNotAcceptNewFilesAndStayUsable(t *test
 	}
 	t.Cleanup(func() { _ = os.Chmod(roDir, 0o755) })
 
-	second := dtqlQuery("second", "ro", "SECOND")
+	second := tugqlQuery("second", "ro", "SECOND")
 	_, err := ps.PutQuery(ctx, &second, datatug.QueryWriteCondition{IfNoneMatch: true})
 	requireRefusedWrite(t, err, "does not accept new files")
 	assertStoreUsableAfterRefusal(t, ps, queriesDir)

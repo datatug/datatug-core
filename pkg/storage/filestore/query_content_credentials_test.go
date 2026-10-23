@@ -62,7 +62,7 @@ func TestEverySavePath_RefusesACredentialInTheTitleOrTheText(t *testing.T) {
 		{"title with Password=", "title", "Server=h;Password=" + credentialProbe, datatug.QueryTypeSQL, "SELECT 1"},
 		{"SQL dblink password", "text", "t", datatug.QueryTypeSQL, "SELECT * FROM dblink('host=h user=u password=" + credentialProbe + "', 'select 1') AS t(x int)"},
 		{"SQL comment URL", "text", "t", datatug.QueryTypeSQL, "-- postgres://u:" + credentialProbe + "@h/db\nSELECT 1"},
-		{"DTQL comment URL", "text", "t", datatug.QueryTypeDTQL, "from:\n  name: Invoice\n# postgres://u:" + credentialProbe + "@h/db"},
+		{"TugQL comment URL", "text", "t", datatug.QueryTypeTugQL, "from:\n  name: Invoice\n# postgres://u:" + credentialProbe + "@h/db"},
 		{"GraphQL header", "text", "t", "GraphQL", "# Authorization: Bearer " + credentialProbe + "\n{ a }"},
 		{"HTTP URL password", "text", "t", datatug.QueryTypeHTTP, "https://u:" + credentialProbe + "@h/x"},
 	}
@@ -184,7 +184,7 @@ func TestDemoProject1Queries_ResaveOnEverySavePath(t *testing.T) {
 // semantic parameter. Every save path must accept it as it stands.
 func capturedQueryForSave() datatug.QueryDef {
 	var q datatug.QueryDef
-	q.ID, q.Title, q.Type, q.Text = "c", "Customer invoices", datatug.QueryTypeDTQL, "from: Invoice\n"
+	q.ID, q.Title, q.Type, q.Text = "c", "Customer invoices", datatug.QueryTypeTugQL, "from: Invoice\n"
 	q.Purpose = "Which invoices does this customer have, and did any go unpaid?"
 	q.Parameters = datatug.Parameters{{ID: "CustomerId", Type: "integer", IsRequired: true}}
 	q.Capture = &datatug.QueryCapture{

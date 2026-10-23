@@ -3,7 +3,7 @@
   "environment": "local",
   "securityContextId": "sc-abc123",
   "source": "chinook-local",
-  "dtql": "from:\n  name: Customer\ncolumns:\n  - field: CustomerId\n  - field: FirstName\n  - field: LastName\n  - field: Email\nwhere:\n  op: ==\n  left:\n    field: CustomerId\n  right:\n    param: Customer.ID\n",
+  "tugql": "from:\n  name: Customer\ncolumns:\n  - field: CustomerId\n  - field: FirstName\n  - field: LastName\n  - field: Email\nwhere:\n  op: ==\n  left:\n    field: CustomerId\n  right:\n    param: Customer.ID\n",
   "parameters": {
     "Customer.ID": {
       "type": "integer",

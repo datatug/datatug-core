@@ -334,7 +334,7 @@ func TestLeftoverStagedFile_DoesNotBlockLaterWrites(t *testing.T) {
 		t.Fatalf("expected a refused exclusive create to leave the existing file alone, got %q (err %v)", b, err)
 	}
 
-	q := dtqlQuery("q1", "", "text")
+	q := tugqlQuery("q1", "", "text")
 	if _, err := store.PutQuery(context.Background(), &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatalf("expected the next write to succeed after recovery sweeps the uncommitted leftover, got: %v", err)
 	}
@@ -382,11 +382,11 @@ func TestRemoveIfExists_PropagatesNonNotExistError(t *testing.T) {
 func TestCompleteQueryTransaction_RejectsCorruptJournalWithoutTouchingFiles(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q1", "", "original")
+	q := tugqlQuery("q1", "", "original")
 	if _, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatalf("unexpected error creating: %v", err)
 	}
-	before, err := os.ReadFile(filepath.Join(queriesDir, "q1.query.dtql"))
+	before, err := os.ReadFile(filepath.Join(queriesDir, "q1.query.tugql"))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -402,7 +402,7 @@ func TestCompleteQueryTransaction_RejectsCorruptJournalWithoutTouchingFiles(t *t
 	if err := completeQueryTransaction(queriesDir, txnDir); err == nil {
 		t.Fatal("expected an error for a corrupt journal")
 	}
-	after, err := os.ReadFile(filepath.Join(queriesDir, "q1.query.dtql"))
+	after, err := os.ReadFile(filepath.Join(queriesDir, "q1.query.tugql"))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -12,14 +12,12 @@
 //   - "<id>.query.<ext>" - the query body, written only when Text is non-empty,
 //     where <ext> is strings.ToLower(string(QueryDef.Type)).
 //
-// This holds for every query type, including DTQL: a DTQL query's body sits
-// in "<id>.query.dtql" beside its "<id>.query.json" sidecar, following the
-// same convention as "<id>.query.sql" and "<id>.query.http" rather than the
-// standalone "<id>.dtql.yaml" name floated in early planning notes - no
-// special-casing was needed since pkg/storage/filestore already derives the
-// extension generically from QueryDef.Type. The body itself is expected to be
-// the YAML produced by DALgo's dtql package (see REQ:dtql-query-type in
-// datatug/datatug's core-investigation-loop feature); the ".dtql" suffix
-// labels the query type, not the serialization format, matching how ".sql"
-// and ".http" already behave.
+// A TugQL query has one persisted type, "TugQL", and two body representations
+// told apart by the body file's name alone (never by sniffing the content):
+// TugQL text in "<id>.query.tugql", or - when QueryDef.StructuredBody is set -
+// the structured YAML document produced by DALgo's tugql package in
+// "<id>.query.tugql.yaml". Having both files for one query is an error.
+// Projects written before the TugQL cutover are still read by the file
+// store's legacy block (removed in TugQL cutover step 9); a save always writes
+// the new forms.
 package datatug

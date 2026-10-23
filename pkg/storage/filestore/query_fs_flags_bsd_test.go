@@ -28,7 +28,7 @@ func setFileFlags(t *testing.T, p string, flags int) {
 
 func TestLockedTargets_AreRefusedBeforeTheCommit(t *testing.T) {
 	saveQ := func(ps fsProjectStore, _ datatug.QueryRevision) error {
-		q := dtqlQuery("q", "", "T1")
+		q := tugqlQuery("q", "", "T1")
 		return ps.SaveQuery(context.Background(), &q)
 	}
 	for _, tc := range []struct {
@@ -36,14 +36,14 @@ func TestLockedTargets_AreRefusedBeforeTheCommit(t *testing.T) {
 		flags        int
 		write        func(fsProjectStore, datatug.QueryRevision) error
 	}{
-		{"uchg body, PutQuery", "q.query.dtql", bsdUserImmutable, putQ("t1", "T1", datatug.QueryTypeDTQL)},
-		{"uchg metadata, PutQuery", "q.query.json", bsdUserImmutable, putQ("t1", "T1", datatug.QueryTypeDTQL)},
+		{"uchg body, PutQuery", "q.query.tugql", bsdUserImmutable, putQ("t1", "T1", datatug.QueryTypeTugQL)},
+		{"uchg metadata, PutQuery", "q.query.json", bsdUserImmutable, putQ("t1", "T1", datatug.QueryTypeTugQL)},
 		{"uappnd metadata, SaveQuery", "q.query.json", bsdUserAppend, saveQ},
-		{"uchg stale body, type change", "q.query.dtql", bsdUserImmutable, putQ("t1", "SELECT 1", datatug.QueryTypeSQL)},
+		{"uchg stale body, type change", "q.query.tugql", bsdUserImmutable, putQ("t1", "SELECT 1", datatug.QueryTypeSQL)},
 		{"uchg metadata, DeleteQuery", "q.query.json", bsdUserImmutable, func(ps fsProjectStore, _ datatug.QueryRevision) error {
 			return ps.DeleteQuery(context.Background(), "q")
 		}},
-		{"uchg body, DeleteQueryRevision", "q.query.dtql", bsdUserImmutable, func(ps fsProjectStore, rev datatug.QueryRevision) error {
+		{"uchg body, DeleteQueryRevision", "q.query.tugql", bsdUserImmutable, func(ps fsProjectStore, rev datatug.QueryRevision) error {
 			return ps.DeleteQueryRevision(context.Background(), "q", rev)
 		}},
 	} {
@@ -72,7 +72,7 @@ func TestAppendOnlyFolders_AreRefusedBeforeTheCommit(t *testing.T) {
 				dir = filepath.Join(queriesDir, reservedQueryTxnDirName)
 			}
 			setFileFlags(t, dir, bsdUserAppend)
-			requireRefusedWrite(t, putQ("t1", "T1", datatug.QueryTypeDTQL)(ps, rev), "is locked")
+			requireRefusedWrite(t, putQ("t1", "T1", datatug.QueryTypeTugQL)(ps, rev), "is locked")
 			if got := txnDirEntries(t, queriesDir); got != ".gitignore lock" {
 				t.Errorf("expected nothing staged or committed, got %q", got)
 			}
@@ -82,7 +82,7 @@ func TestAppendOnlyFolders_AreRefusedBeforeTheCommit(t *testing.T) {
 			if err := syscall.Chflags(dir, 0); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if err := putQ("t1", "T1", datatug.QueryTypeDTQL)(ps, rev); err != nil {
+			if err := putQ("t1", "T1", datatug.QueryTypeTugQL)(ps, rev); err != nil {
 				t.Errorf("expected the write to succeed once the folder is unlocked, got: %v", err)
 			}
 		})
@@ -96,7 +96,7 @@ func TestTargetLockedAfterTheCommit_BlocksOnlyItsQuery(t *testing.T) {
 	ctx := context.Background()
 	_, queriesDir, _ := seedQ(t)
 	txnDir := filepath.Join(queriesDir, reservedQueryTxnDirName)
-	update := dtqlQuery("q", "", "T1")
+	update := tugqlQuery("q", "", "T1")
 	update.Title = "t1"
 	jsonBytes, err := queryJSONBytes(update.QueryDef)
 	if err != nil {
@@ -110,8 +110,8 @@ func TestTargetLockedAfterTheCommit_BlocksOnlyItsQuery(t *testing.T) {
 	j := queryTxnJournal{
 		ID: "q", Operation: queryTxnOpPut,
 		JSONFileName: "q.query.json", JSONHash: hashBytes(jsonBytes),
-		BodyFileName: "q.query.dtql", BodyHash: hashBytes([]byte("T1")),
-		HadPrevious: true, PrevBodyFileName: "q.query.dtql",
+		BodyFileName: "q.query.tugql", BodyHash: hashBytes([]byte("T1")),
+		HadPrevious: true, PrevBodyFileName: "q.query.tugql",
 	}
 	if err := commitQueryTransaction(queriesDir, txnDir, j); err != nil {
 		t.Fatalf("unexpected error committing: %v", err)
@@ -126,13 +126,13 @@ func TestTargetLockedAfterTheCommit_BlocksOnlyItsQuery(t *testing.T) {
 	if q, err := fresh.LoadQuery(ctx, "other"); err != nil || q.Text != "OTHER" {
 		t.Errorf("LoadQuery(other): %v", err)
 	}
-	if b, _ := os.ReadFile(filepath.Join(queriesDir, "q.query.dtql")); string(b) != "T0" {
+	if b, _ := os.ReadFile(filepath.Join(queriesDir, "q.query.tugql")); string(b) != "T0" {
 		t.Errorf("expected recovery to touch nothing before its checks pass, got body %q", b)
 	}
 	if err := syscall.Chflags(metadata, 0); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	requireQ(t, fresh, "t1", "T1", datatug.QueryTypeDTQL)
+	requireQ(t, fresh, "t1", "T1", datatug.QueryTypeTugQL)
 }
 
 func TestComputeBSDNoReplaceFlags(t *testing.T) {

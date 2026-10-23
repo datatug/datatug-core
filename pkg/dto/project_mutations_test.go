@@ -16,7 +16,7 @@ func demoSaveQuery() SaveQueryRequest {
 			FolderPath: "~",
 			QueryDef: datatug.QueryDef{
 				ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "customer", Title: "Customers"}},
-				Type:        datatug.QueryTypeDTQL, Text: "SELECT CustomerId, FirstName FROM Customer",
+				Type:        datatug.QueryTypeTugQL, Text: "SELECT CustomerId, FirstName FROM Customer",
 				Federation: &datatug.QueryFederation{OVDBBaseURL: "https://demodb.dev/ovdb", Tables: []datatug.QueryFederationTable{{Database: "chinook", Name: "Customer", Fields: []string{"CustomerId", "FirstName"}}}},
 			},
 		},

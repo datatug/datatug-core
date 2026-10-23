@@ -84,7 +84,7 @@ func TestReads_DoNotRequireWriteAccessOnAnUntouchedProject(t *testing.T) {
 func TestWithQueryReadLock_StillCoordinatesOnceProjectHasBeenWrittenTo(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q1", "", "text")
+	q := tugqlQuery("q1", "", "text")
 	if _, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -99,7 +99,7 @@ func TestWithQueryReadLock_StillCoordinatesOnceProjectHasBeenWrittenTo(t *testin
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	jsonBytes := []byte(`{"id":"q2","title":"Q2","type":"DTQL","createdAt":"2026-10-01T00:00:00Z"}` + "\n")
+	jsonBytes := []byte(`{"id":"q2","title":"Q2","type":"TugQL","createdAt":"2026-10-01T00:00:00Z"}` + "\n")
 	bodyBytes := []byte("recovered")
 	if err := writeStagedFile(txnDir, queryTxnStagedJSON, jsonBytes); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -110,7 +110,7 @@ func TestWithQueryReadLock_StillCoordinatesOnceProjectHasBeenWrittenTo(t *testin
 	writeTestJournal(t, txnDir, queryTxnJournal{
 		FolderPath: "", ID: "q2", Operation: queryTxnOpPut,
 		JSONFileName: "q2.query.json", JSONHash: hashBytes(jsonBytes),
-		BodyFileName: "q2.query.dtql", BodyHash: hashBytes(bodyBytes),
+		BodyFileName: "q2.query.tugql", BodyHash: hashBytes(bodyBytes),
 	})
 
 	loaded, err := store.LoadQuery(ctx, "q2")

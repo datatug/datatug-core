@@ -127,11 +127,11 @@ func TestRecovery_RefusesJournalFileNamesNotDerivedFromTheID(t *testing.T) {
 		return queryTxnJournal{
 			ID: "x", Operation: queryTxnOpPut,
 			JSONFileName: "x.query.json", JSONHash: hashBytes(payload),
-			BodyFileName: "x.query.dtql", BodyHash: hashBytes(payload),
+			BodyFileName: "x.query.tugql", BodyHash: hashBytes(payload),
 		}
 	}
 	deleteJournal := func() queryTxnJournal {
-		return queryTxnJournal{ID: "x", Operation: queryTxnOpDelete, JSONFileName: "x.query.json", BodyFileName: "x.query.dtql"}
+		return queryTxnJournal{ID: "x", Operation: queryTxnOpDelete, JSONFileName: "x.query.json", BodyFileName: "x.query.tugql"}
 	}
 	cases := []struct {
 		name string
@@ -185,7 +185,7 @@ func TestRecovery_RefusesJournalFileNamesNotDerivedFromTheID(t *testing.T) {
 		}},
 		{name: "put bodyFileName is not the lowercase derived name", victimInQueries: true, journal: func(_, _ string) queryTxnJournal {
 			j := putJournal()
-			j.BodyFileName = "x.query.DTQL"
+			j.BodyFileName = "x.query.TugQL"
 			return j
 		}},
 		{name: "put hash is not a SHA-256 digest", journal: func(_, _ string) queryTxnJournal {
@@ -235,7 +235,7 @@ func TestRecovery_RefusesJournalFileNamesNotDerivedFromTheID(t *testing.T) {
 			ctx := context.Background()
 			_, loadErr := store.LoadQueries(ctx, "")
 			_, loadOneErr := store.LoadQuery(ctx, "whatever")
-			putQ := dtqlQuery("n", "", "N")
+			putQ := tugqlQuery("n", "", "N")
 			_, putErr := store.PutQuery(ctx, &putQ, datatug.QueryWriteCondition{IfNoneMatch: true})
 
 			for what, err := range map[string]error{"LoadQueries": loadErr, "LoadQuery": loadOneErr, "PutQuery": putErr} {
@@ -270,7 +270,7 @@ func TestRecovery_RefusesJournalFolderThroughASymlink(t *testing.T) {
 			p := plantTxn(t, queryTxnJournal{
 				FolderPath: tc.folderPath, ID: "x", Operation: queryTxnOpPut,
 				JSONFileName: "x.query.json", JSONHash: hashBytes(payload),
-				BodyFileName: "x.query.dtql", BodyHash: hashBytes(payload),
+				BodyFileName: "x.query.tugql", BodyHash: hashBytes(payload),
 			}, payload, payload)
 			outside := t.TempDir()
 			if tc.realParent != "" {
@@ -306,7 +306,7 @@ func TestQueryStore_RefusesASymlinkedQueriesRoot(t *testing.T) {
 	}
 	store := newFsQueriesStore(projectDir)
 	ctx := context.Background()
-	q := dtqlQuery("q1", "", "text")
+	q := tugqlQuery("q1", "", "text")
 	if _, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true}); !datatug.IsInvalidQueryLocation(err) {
 		t.Errorf("PutQuery: expected InvalidQueryLocationError, got %v", err)
 	}
@@ -361,7 +361,7 @@ func TestQueryStore_RefusesAQueryTypeThatCannotNameAFile(t *testing.T) {
 	if err := store.DeleteQuery(ctx, "t"); err == nil {
 		t.Error("DeleteQuery: expected an error")
 	}
-	replacement := dtqlQuery("t", "", "new")
+	replacement := tugqlQuery("t", "", "new")
 	if err := store.SaveQuery(ctx, &replacement); err == nil {
 		t.Error("SaveQuery over the planted record: expected an error")
 	}
@@ -402,7 +402,7 @@ func TestQueryTxnJournal_Validate(t *testing.T) {
 	h := hashBytes([]byte("x"))
 	valid := []queryTxnJournal{
 		{ID: "q", Operation: queryTxnOpPut, JSONFileName: "q.query.json", JSONHash: h, BodyFileName: "q.query.sql", BodyHash: h},
-		{FolderPath: "a/b", ID: "q", Operation: queryTxnOpPut, JSONFileName: "q.query.json", JSONHash: h, BodyFileName: "q.query.sql", BodyHash: h, HadPrevious: true, PrevBodyFileName: "q.query.dtql"},
+		{FolderPath: "a/b", ID: "q", Operation: queryTxnOpPut, JSONFileName: "q.query.json", JSONHash: h, BodyFileName: "q.query.sql", BodyHash: h, HadPrevious: true, PrevBodyFileName: "q.query.tugql"},
 		{ID: "q", Operation: queryTxnOpPut, JSONFileName: "q.query.json", JSONHash: h, BodyFileName: "q.query.sql", BodyHash: h, HadPrevious: true},
 		{ID: "q", Operation: queryTxnOpDelete, JSONFileName: "q.query.json", BodyFileName: "q.query.sql"},
 		{ID: "q", Operation: queryTxnOpDelete, JSONFileName: "q.query.json"}, // an incomplete record has no body
@@ -487,7 +487,7 @@ func TestTxnArtifacts_OwnedByAnotherUserAreRefused(t *testing.T) {
 	p := plantTxn(t, queryTxnJournal{
 		ID: "x", Operation: queryTxnOpPut,
 		JSONFileName: "x.query.json", JSONHash: hashBytes(payload),
-		BodyFileName: "x.query.dtql", BodyHash: hashBytes(payload),
+		BodyFileName: "x.query.tugql", BodyHash: hashBytes(payload),
 	}, payload, payload)
 	for _, foreign := range []string{queryTxnJournalFile, queryTxnStagedBody, queryTxnStagedJSON} {
 		t.Run(foreign, func(t *testing.T) {

@@ -18,7 +18,7 @@ import (
 func TestQueryLock_BlocksConcurrentAccessAndSeesCompleteResultAfterRelease(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q1", "", "original")
+	q := tugqlQuery("q1", "", "original")
 	if _, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatalf("unexpected error creating: %v", err)
 	}
@@ -80,7 +80,7 @@ func TestQueryLock_BlocksConcurrentAccessAndSeesCompleteResultAfterRelease(t *te
 func TestQueryLock_BlocksConcurrentProjectLevelRecursiveLoad(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q1", "", "original")
+	q := tugqlQuery("q1", "", "original")
 	if _, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatalf("unexpected error creating: %v", err)
 	}
@@ -151,7 +151,7 @@ func TestQueryLock_CancellationWhileWaitingBehindAHeldLock(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
-	q := dtqlQuery("q1", "", "text")
+	q := tugqlQuery("q1", "", "text")
 	start := time.Now()
 	_, err = store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 	elapsed := time.Since(start)
@@ -189,7 +189,7 @@ func TestLoadSaveQueriesTree_NoRecursiveLockDeadlock(t *testing.T) {
 					{
 						ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "b"}},
 						Items: datatug.QueryDefs{
-							{ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "b-query", Title: "B"}}, Type: datatug.QueryTypeDTQL, Text: "from:\n  name: Invoice\n"},
+							{ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{ID: "b-query", Title: "B"}}, Type: datatug.QueryTypeTugQL, Text: "from:\n  name: Invoice\n"},
 						},
 					},
 				},
@@ -228,7 +228,7 @@ func TestLoadSaveQueriesTree_NoRecursiveLockDeadlock(t *testing.T) {
 func TestPutQuery_ConcurrentStaleWriterLosesToOneWinner(t *testing.T) {
 	store, _ := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q1", "", "original")
+	q := tugqlQuery("q1", "", "original")
 	stored, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 	if err != nil {
 		t.Fatalf("unexpected error creating: %v", err)
@@ -239,7 +239,7 @@ func TestPutQuery_ConcurrentStaleWriterLosesToOneWinner(t *testing.T) {
 	for i := 0; i < attempts; i++ {
 		i := i
 		go func() {
-			updated := dtqlQuery("q1", "", "updated-by-writer")
+			updated := tugqlQuery("q1", "", "updated-by-writer")
 			_, err := store.PutQuery(ctx, &updated, datatug.QueryWriteCondition{IfMatch: stored.Revision})
 			_ = i
 			results <- err

@@ -32,7 +32,7 @@ func TestRecovery_SweepsUncommittedLeftovers(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			store, queriesDir := newTestQueriesStore(t)
 			ctx := context.Background()
-			q := dtqlQuery("q", "", "B0")
+			q := tugqlQuery("q", "", "B0")
 			created, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 			if err != nil {
 				t.Fatalf("unexpected error creating: %v", err)
@@ -55,11 +55,11 @@ func TestRecovery_SweepsUncommittedLeftovers(t *testing.T) {
 					t.Errorf("expected the uncommitted leftover %s to be swept", name)
 				}
 			}
-			updated := dtqlQuery("q", "", "B1")
+			updated := tugqlQuery("q", "", "B1")
 			if _, err := fresh.PutQuery(ctx, &updated, datatug.QueryWriteCondition{IfMatch: cur.Revision}); err != nil {
 				t.Errorf("PutQuery after the crash: %v", err)
 			}
-			other := dtqlQuery("other", "", "O")
+			other := tugqlQuery("other", "", "O")
 			if err := fresh.SaveQuery(ctx, &other); err != nil {
 				t.Errorf("SaveQuery after the crash: %v", err)
 			}
@@ -96,7 +96,7 @@ func TestRecovery_RefusesAnUntrustworthyLeftoverAndTouchesNothing(t *testing.T) 
 	}
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q", "", "B0")
+	q := tugqlQuery("q", "", "B0")
 	if _, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatalf("unexpected error creating: %v", err)
 	}
@@ -207,7 +207,7 @@ func TestStageAndInstall_DiscardsStagedFilesWhenTheJournalCannotBeWritten(t *tes
 	// A committed journal already present makes writeJournal fail after
 	// both files are staged (it never replaces a committed journal).
 	writeFile0600(t, filepath.Join(txnDir, queryTxnJournalFile), []byte("{}"))
-	q := dtqlQuery("q", "", "B")
+	q := tugqlQuery("q", "", "B")
 	if _, err := store.stageAndInstallQueryPair(queryLockGuard{txnDir: txnDir}, "", q.QueryDef, currentQueryPair{}); err == nil {
 		t.Fatal("expected the journal write to fail")
 	}
@@ -227,7 +227,7 @@ func TestStageAndInstall_DiscardsStagedFilesWhenTheJournalCannotBeWritten(t *tes
 func TestQueryWrites_RefuseAFileOverTheSizeCap(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
-	big := dtqlQuery("big", "", strings.Repeat("x", maxQueryFileSize+1))
+	big := tugqlQuery("big", "", strings.Repeat("x", maxQueryFileSize+1))
 
 	if _, err := store.PutQuery(ctx, &big, datatug.QueryWriteCondition{IfNoneMatch: true}); err == nil {
 		t.Fatal("PutQuery: expected a body over the cap to be refused")
