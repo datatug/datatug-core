@@ -272,6 +272,11 @@ func (s *queryStorageScreen) federation(f *QueryFederation) {
 			s.metadataIdentifier(fmt.Sprintf("%s.fields[%d].target", at, j), field.Target)
 		}
 	}
+	for i, source := range f.IngitdbSources {
+		at := fmt.Sprintf("federation.ingitdbSources[%d]", i)
+		s.identifier(at+".database", source.Database)
+		s.prose(at+".descriptor", source.Descriptor)
+	}
 }
 
 // queryStorageScreen collects the first refusal so a walk of every field
