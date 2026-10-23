@@ -8,6 +8,9 @@ import (
 type projectFileJSON ProjectFile
 
 func (v *ProjectFile) UnmarshalJSON(body []byte) error {
+	if err := validateProjectDataModelsJSON(body); err != nil {
+		return err
+	}
 	if err := validateProjectEnvironmentOrderJSON(body); err != nil {
 		return err
 	}
@@ -20,7 +23,7 @@ func (v *ProjectFile) UnmarshalJSON(body []byte) error {
 	_ = json.Unmarshal(body, &fields)
 	for key := range fields {
 		switch strings.ToLower(key) {
-		case "id", "title", "folder", "tags", "userids", "access", "created", "repository", "environmentorder":
+		case "id", "title", "folder", "tags", "userids", "access", "created", "repository", "environmentorder", "datamodels":
 			delete(fields, key)
 		}
 	}

@@ -29,8 +29,10 @@ package dalgostore
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/dal-go/dalgo/dal"
 	"github.com/dal-go/record"
@@ -51,6 +53,27 @@ const (
 // does not implement yet, and by SaveProject/LoadProject when the caller
 // asks for more than the project record (see the package doc comment).
 var ErrNotImplemented = errors.New("dalgostore: not implemented")
+
+// The generic DALGO contract does not guarantee lossless JSON metadata through
+// provider serialization. Reference-bearing records require a verified adapter.
+var ErrDataModelsUnsupported = errors.New("dalgostore: exact dataModels metadata persistence is unsupported")
+
+func decodeProjectMetadata(fields map[string]json.RawMessage) (datatug.ProjectFile, error) {
+	var file datatug.ProjectFile
+	body, err := json.Marshal(fields)
+	if err != nil {
+		return file, err
+	}
+	if err = json.Unmarshal(body, &file); err != nil {
+		return file, err
+	}
+	for key := range fields {
+		if strings.EqualFold(key, "dataModels") {
+			return datatug.ProjectFile{}, ErrDataModelsUnsupported
+		}
+	}
+	return file, nil
+}
 
 // notImplemented reports that member is not implemented yet, naming it so a
 // caller that hits a stub knows exactly what is missing and why.
@@ -104,6 +127,8 @@ func (s *ProjectStore) LoadProjectFile(ctx context.Context) (datatug.ProjectFile
 	if s.itemRoot != nil {
 		return datatug.ProjectFile{}, notImplemented("item-only parent read")
 	}
+	// Keep the provider's native typed read path for ordinary legacy metadata.
+	// Decoding through map[string]any would round opaque JSON numbers.
 	var file datatug.ProjectFile
 	rec := record.NewRecordWithData(projectKey(s.projectID), &file)
 	if err := s.db.Get(ctx, rec); err != nil {
@@ -111,6 +136,19 @@ func (s *ProjectStore) LoadProjectFile(ctx context.Context) (datatug.ProjectFile
 			return datatug.ProjectFile{}, fmt.Errorf("%w: %v", datatug.ErrProjectDoesNotExist, err)
 		}
 		return datatug.ProjectFile{}, fmt.Errorf("dalgostore: failed to load project record: %w", err)
+	}
+	if file.DataModels != nil {
+		return datatug.ProjectFile{}, ErrDataModelsUnsupported
+	}
+	// Inspect the raw namespace as well: a provider's typed decoding is not
+	// evidence that absent/null/case-colliding metadata was preserved. Raw
+	// values avoid numeric conversion while checking top-level presence.
+	var fields map[string]json.RawMessage
+	if err := s.db.Get(ctx, record.NewRecordWithData(projectKey(s.projectID), &fields)); err != nil {
+		return datatug.ProjectFile{}, fmt.Errorf("dalgostore: cannot inspect project metadata namespace: %w", err)
+	}
+	if _, err := decodeProjectMetadata(fields); err != nil {
+		return datatug.ProjectFile{}, err
 	}
 	file.ID = s.projectID
 	return file, nil
@@ -191,6 +229,21 @@ func (s *ProjectStore) SaveProject(ctx context.Context, p *datatug.Project) erro
 	}
 	key := projectKey(s.projectID)
 	return s.db.RunReadwriteTransaction(ctx, func(ctx context.Context, tx dal.ReadwriteTransaction) error {
+		// Inspect existing state inside the same transaction, even for an
+		// explicit v1 replacement: a future version must never be downgraded.
+		var fields map[string]json.RawMessage
+		err := tx.Get(ctx, record.NewRecordWithData(key, &fields))
+		if err != nil && !record.IsNotFound(err) {
+			return err
+		}
+		if err == nil {
+			if _, err = decodeProjectMetadata(fields); err != nil {
+				return err
+			}
+		}
+		if p.DataModels != nil {
+			return ErrDataModelsUnsupported
+		}
 		return tx.Set(ctx, record.NewRecordWithData(key, &file))
 	})
 }
