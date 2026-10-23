@@ -214,6 +214,8 @@ type CaseEvent struct {
 }
 
 type Case struct {
+	// WorkItemID is an immutable server-established association; shared metadata is a derived view.
+	WorkItemID           string                `json:"workItemId,omitempty"`
 	ID                   string                `json:"id"`
 	Title                string                `json:"title"`
 	Status               string                `json:"status"` // active | closed | archived
