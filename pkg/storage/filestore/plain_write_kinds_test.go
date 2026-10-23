@@ -261,14 +261,19 @@ func treeHash(t *testing.T, dir string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// linkSweepKinds is writeKinds and the write of the foreign keys file of a
-// model (model-foreign-keys-file), for the sweeps that put a link where a
-// write or a delete would go. The model is a new one, so its file is the
-// nested one; the flat one is pinned by its own test.
+// linkSweepKinds is writeKinds and the writes of the foreign keys file
+// (model-foreign-keys-file) and the indexes file (model-indexes-file) of a
+// model, for the sweeps that put a link where a write or a delete would go.
+// The model is a new one, so its files are the nested ones; the flat ones are
+// pinned by their own tests.
 func linkSweepKinds() []writeKind {
 	return append(writeKinds(), writeKind{
 		name: "model foreign keys", file: "dbmodels/m/m.refs.json",
 		write:  func(root string) error { return SaveModelForeignKeys(root, "m", refsFixture()) },
+		remove: func(root string) error { return newFsDbModelsStore(root).DeleteDbModel(context.Background(), "m") },
+	}, writeKind{
+		name: "model indexes", file: "dbmodels/m/m.indexes.json",
+		write:  func(root string) error { return SaveModelIndexes(root, "m", indexesFixture()) },
 		remove: func(root string) error { return newFsDbModelsStore(root).DeleteDbModel(context.Background(), "m") },
 	})
 }

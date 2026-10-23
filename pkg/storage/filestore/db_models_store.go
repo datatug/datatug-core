@@ -189,17 +189,20 @@ func (s fsDbModelsStore) SaveDbModels(ctx context.Context, dbModels datatug.DbMo
 	})
 }
 
-// DeleteDbModel removes the file of the model's foreign keys in each layout
-// (model-foreign-keys-file) and then the model's own file in each layout, so
-// that a model made later under the same id does not read the keys of this
-// one. The foreign keys files go first: a refusal on one leaves the model in
-// place and the call can be repeated. An id that names no foreign keys file
-// (see validateForeignKeysModelID) removes none.
+// DeleteDbModel removes the files of the model's foreign keys
+// (model-foreign-keys-file) and indexes (model-indexes-file) in each layout
+// and then the model's own file in each layout, so that a model made later
+// under the same id does not read the keys or indexes of this one. Those files
+// go first: a refusal on one leaves the model in place and the call can be
+// repeated. An id that names no such file (see validateModelSideFileID)
+// removes none.
 func (s fsDbModelsStore) DeleteDbModel(_ context.Context, id string) error {
 	var filePaths []string
 	if validateForeignKeysModelID(id) == nil {
-		refs := storage.JsonFileName(id, storage.DbModelRefsFileSuffix)
-		filePaths = append(filePaths, path.Join(s.dirPath, id, refs), path.Join(s.dirPath, refs))
+		for _, suffix := range []string{storage.DbModelRefsFileSuffix, storage.DbModelIndexesFileSuffix} {
+			name := storage.JsonFileName(id, suffix)
+			filePaths = append(filePaths, path.Join(s.dirPath, id, name), path.Join(s.dirPath, name))
+		}
 	}
 	filePaths = append(filePaths, s.nestedDbModelFilePath(id), s.flatDbModelFilePath(id))
 	for _, filePath := range filePaths {

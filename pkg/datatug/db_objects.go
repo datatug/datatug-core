@@ -300,6 +300,13 @@ type TableForeignKeys struct {
 	ForeignKeys ForeignKeys
 }
 
+// TableIndexes are the indexes of one table.
+type TableIndexes struct {
+	// Table is the table the indexes are on.
+	Table   DBCollectionKey
+	Indexes []*Index
+}
+
 // RefByForeignKey holds metadata about reference by FK
 type RefByForeignKey struct {
 	Name        string   `json:"name"`

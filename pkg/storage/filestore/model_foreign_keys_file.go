@@ -69,16 +69,17 @@ func (t foreignKeysFileTable) String() string {
 	return fmt.Sprintf("%q.%q", t.Schema, t.Name)
 }
 
-// foreignKeysFileError is a refusal of the file. Its text names the file
-// inside the project and never where the project is on the machine; cause,
-// when there is one, is kept for errors.Is and errors.As.
-type foreignKeysFileError struct {
+// modelFileError is a refusal of a file beside a model's own file (the
+// foreign keys file, the indexes file). Its text names the file inside the
+// project and never where the project is on the machine; cause, when there is
+// one, is kept for errors.Is and errors.As.
+type modelFileError struct {
 	msg   string
 	cause error
 }
 
-func (e *foreignKeysFileError) Error() string { return e.msg }
-func (e *foreignKeysFileError) Unwrap() error { return e.cause }
+func (e *modelFileError) Error() string { return e.msg }
+func (e *modelFileError) Unwrap() error { return e.cause }
 
 // LoadModelForeignKeys reads the foreign keys of the DB model modelID from the
 // project folder projectDir: the tables that hold keys, in the order of the
@@ -104,20 +105,32 @@ func SaveModelForeignKeys(projectDir, modelID string, tables []datatug.TableFore
 // exists, else flat if "<id>.dbmodel.json" exists, else the nested folder a
 // new model gets (see saveTarget).
 func (s fsDbModelsStore) foreignKeysFile(id string) (rel, full string) {
+	return s.modelSideFile(id, storage.DbModelRefsFileSuffix)
+}
+
+// modelSideFile returns the file "<id>.<suffix>.json" beside the own file of
+// model id, found by the rule foreignKeysFile describes.
+func (s fsDbModelsStore) modelSideFile(id, suffix string) (rel, full string) {
 	folder := id
 	if _, err := os.Stat(s.nestedDbModelFilePath(id)); err != nil {
 		if _, err = os.Stat(s.flatDbModelFilePath(id)); err == nil {
 			folder = ""
 		}
 	}
-	rel = path.Join(storage.DbModelsFolder, folder, storage.JsonFileName(id, storage.DbModelRefsFileSuffix))
+	rel = path.Join(storage.DbModelsFolder, folder, storage.JsonFileName(id, suffix))
 	return rel, path.Join(s.projectDir, rel)
 }
 
 func validateForeignKeysModelID(id string) error {
+	return validateModelSideFileID(id, "a foreign keys file")
+}
+
+// validateModelSideFileID refuses a model id that names no file beside a
+// model's own file; what names the file in the refusal.
+func validateModelSideFileID(id, what string) error {
 	if id == "" || id == "." || id == ".." || strings.ContainsAny(id, `/\`) {
-		return &foreignKeysFileError{msg: fmt.Sprintf(
-			"db model id %q cannot name a foreign keys file: it is empty, is . or .., or has a path separator", id)}
+		return &modelFileError{msg: fmt.Sprintf(
+			"db model id %q cannot name %s: it is empty, is . or .., or has a path separator", id, what)}
 	}
 	return nil
 }
@@ -129,7 +142,7 @@ func (s fsDbModelsStore) loadForeignKeys(id string) ([]datatug.TableForeignKeys,
 	rel, full := s.foreignKeysFile(id)
 	data, exists, err := readRegularFileCapped(full, maxForeignKeysFileSize)
 	if err != nil {
-		return nil, &foreignKeysFileError{msg: strings.ReplaceAll(err.Error(), full, rel), cause: err}
+		return nil, &modelFileError{msg: strings.ReplaceAll(err.Error(), full, rel), cause: err}
 	}
 	if !exists {
 		return nil, nil
@@ -154,14 +167,14 @@ func (s fsDbModelsStore) saveForeignKeys(id string, tables []datatug.TableForeig
 			}
 			item, err := foreignKeyItem(table.Table, fk)
 			if err != nil {
-				return &foreignKeysFileError{msg: fmt.Sprintf("%s: %v", rel, err), cause: err}
+				return &modelFileError{msg: fmt.Sprintf("%s: %v", rel, err), cause: err}
 			}
 			items = append(items, item)
 		}
 	}
 	items, err := checkAndSortForeignKeys(items)
 	if err != nil {
-		return &foreignKeysFileError{msg: fmt.Sprintf("%s: %v", rel, err), cause: err}
+		return &modelFileError{msg: fmt.Sprintf("%s: %v", rel, err), cause: err}
 	}
 	return plainfs.WriteFile(s.projectDir, full, func(w io.Writer) error {
 		return encodeForeignKeysFile(w, items)
@@ -198,10 +211,32 @@ func encodeForeignKeysFile(w io.Writer, items []foreignKeysFileItem) error {
 // decodeForeignKeysFile parses the file, whose path inside the project is
 // rel, and returns its entries checked and sorted.
 func decodeForeignKeysFile(rel string, data []byte) ([]foreignKeysFileItem, error) {
+	if err := checkModelSideFileHead(rel, data, foreignKeysFileVersion); err != nil {
+		return nil, err
+	}
+	var file foreignKeysFileRead
+	if err := json.Unmarshal(data, &file); err != nil {
+		return nil, notExpectedForm(rel, err)
+	}
+	if file.ForeignKeys == nil {
+		return nil, &modelFileError{msg: fmt.Sprintf(
+			"%s has no \"foreignKeys\" list (an empty list is \"foreignKeys\": [])", rel)}
+	}
+	items, err := checkAndSortForeignKeys(*file.ForeignKeys)
+	if err != nil {
+		return nil, &modelFileError{msg: fmt.Sprintf("%s: %v", rel, err), cause: err}
+	}
+	return items, nil
+}
+
+// checkModelSideFileHead refuses a file beside a model's own file, whose path
+// inside the project is rel, that is not valid UTF-8 text, is not a JSON
+// object, or is not of version, the only version this release reads.
+func checkModelSideFileHead(rel string, data []byte, version int) error {
 	// encoding/json replaces invalid UTF-8 with U+FFFD and reports nothing, so
 	// the file would load with other names.
 	if !utf8.Valid(data) {
-		return nil, &foreignKeysFileError{msg: fmt.Sprintf("%s is not valid UTF-8 text", rel)}
+		return &modelFileError{msg: fmt.Sprintf("%s is not valid UTF-8 text", rel)}
 	}
 	// The version is read alone first, so that a file of a later version, which
 	// may have another shape, is refused for its version.
@@ -209,34 +244,22 @@ func decodeForeignKeysFile(rel string, data []byte) ([]foreignKeysFileItem, erro
 		Version *int `json:"version"`
 	}
 	if err := json.Unmarshal(data, &head); err != nil {
-		return nil, notExpectedForm(rel, err)
+		return notExpectedForm(rel, err)
 	}
 	switch {
 	case head.Version == nil:
-		return nil, &foreignKeysFileError{msg: fmt.Sprintf(
-			"%s has no \"version\"; this release reads version %d", rel, foreignKeysFileVersion)}
-	case *head.Version != foreignKeysFileVersion:
-		return nil, &foreignKeysFileError{msg: fmt.Sprintf(
+		return &modelFileError{msg: fmt.Sprintf(
+			"%s has no \"version\"; this release reads version %d", rel, version)}
+	case *head.Version != version:
+		return &modelFileError{msg: fmt.Sprintf(
 			"%s is version %d, which this release does not know (it reads version %d); update DataTug to read it",
-			rel, *head.Version, foreignKeysFileVersion)}
+			rel, *head.Version, version)}
 	}
-	var file foreignKeysFileRead
-	if err := json.Unmarshal(data, &file); err != nil {
-		return nil, notExpectedForm(rel, err)
-	}
-	if file.ForeignKeys == nil {
-		return nil, &foreignKeysFileError{msg: fmt.Sprintf(
-			"%s has no \"foreignKeys\" list (an empty list is \"foreignKeys\": [])", rel)}
-	}
-	items, err := checkAndSortForeignKeys(*file.ForeignKeys)
-	if err != nil {
-		return nil, &foreignKeysFileError{msg: fmt.Sprintf("%s: %v", rel, err), cause: err}
-	}
-	return items, nil
+	return nil
 }
 
 func notExpectedForm(rel string, err error) error {
-	return &foreignKeysFileError{
+	return &modelFileError{
 		msg:   fmt.Sprintf("%s is not a JSON object of the expected form: %v", rel, err),
 		cause: err,
 	}
