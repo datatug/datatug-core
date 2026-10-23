@@ -7,7 +7,7 @@
     "title": "Customer invoices",
     "purpose": "Which invoices does this customer have?",
     "source": "chinook",
-    "dtql": "from:\n  name: Invoice\ncolumns:\n  - field: InvoiceId\n  - field: InvoiceDate\n  - field: Total\nwhere:\n  op: ==\n  left:\n    field: CustomerId\n  right:\n    param: Customer.ID\n",
+    "tugql": "from:\n  name: Invoice\ncolumns:\n  - field: InvoiceId\n  - field: InvoiceDate\n  - field: Total\nwhere:\n  op: ==\n  left:\n    field: CustomerId\n  right:\n    param: Customer.ID\n",
     "parameters": [
       {
         "id": "Customer.ID",

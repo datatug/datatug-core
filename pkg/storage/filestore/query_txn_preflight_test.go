@@ -31,7 +31,7 @@ func newPreflightProject(t *testing.T) (fsProjectStore, string) {
 	projectDir := t.TempDir()
 	writePreflightProjectFile(t, projectDir)
 	ps := newFsProjectStore("p", projectDir)
-	other := dtqlQuery("other", "", "OTHER")
+	other := tugqlQuery("other", "", "OTHER")
 	if _, err := ps.PutQuery(context.Background(), &other, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatalf("unexpected error creating the unrelated query: %v", err)
 	}
@@ -88,7 +88,7 @@ func assertStoreUsableAfterRefusal(t *testing.T, ps fsProjectStore, queriesDir s
 	} else if project.Queries == nil || !queriesFolderHas(project.Queries, "other") {
 		t.Errorf("LoadProject after a refused write: expected the query tree to hold %q, got %+v", "other", project.Queries)
 	}
-	third := dtqlQuery("third", "", "THIRD")
+	third := tugqlQuery("third", "", "THIRD")
 	if err := ps.SaveQuery(ctx, &third); err != nil {
 		t.Errorf("SaveQuery(third) after a refused write: %v", err)
 	}
@@ -105,10 +105,10 @@ func queriesFolderHas(folder *datatug.QueriesFolder, id string) bool {
 
 func TestPutQuery_RefusesADirectoryAtTheNewBodyNameAndStaysUsable(t *testing.T) {
 	ps, queriesDir := newPreflightProject(t)
-	if err := os.Mkdir(filepath.Join(queriesDir, "new.query.dtql"), 0o755); err != nil {
+	if err := os.Mkdir(filepath.Join(queriesDir, "new.query.tugql"), 0o755); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	q := dtqlQuery("new", "", "NEW")
+	q := tugqlQuery("new", "", "NEW")
 	_, err := ps.PutQuery(context.Background(), &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 	requireRefusedWrite(t, err, "not a regular file")
 	if _, statErr := os.Lstat(filepath.Join(queriesDir, "new.query.json")); !os.IsNotExist(statErr) {
@@ -117,7 +117,7 @@ func TestPutQuery_RefusesADirectoryAtTheNewBodyNameAndStaysUsable(t *testing.T) 
 	assertStoreUsableAfterRefusal(t, ps, queriesDir)
 
 	// The legacy writers funnel through the same commit, so they refuse too.
-	legacy := dtqlQuery("new", "", "NEW")
+	legacy := tugqlQuery("new", "", "NEW")
 	requireRefusedWrite(t, ps.SaveQuery(context.Background(), &legacy), "not a regular file")
 	assertStoreUsableAfterRefusal(t, ps, queriesDir)
 }
@@ -125,7 +125,7 @@ func TestPutQuery_RefusesADirectoryAtTheNewBodyNameAndStaysUsable(t *testing.T) 
 func TestPutQuery_RefusesAnOverCapFileAtTheNewBodyNameAndStaysUsable(t *testing.T) {
 	ps, queriesDir := newPreflightProject(t)
 	// A sparse file over the read cap, e.g. an orphaned legacy sidecar.
-	f, err := os.Create(filepath.Join(queriesDir, "new.query.dtql"))
+	f, err := os.Create(filepath.Join(queriesDir, "new.query.tugql"))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -133,7 +133,7 @@ func TestPutQuery_RefusesAnOverCapFileAtTheNewBodyNameAndStaysUsable(t *testing.
 		t.Fatalf("unexpected error: %v", err)
 	}
 	_ = f.Close()
-	q := dtqlQuery("new", "", "NEW")
+	q := tugqlQuery("new", "", "NEW")
 	_, err = ps.PutQuery(context.Background(), &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 	requireRefusedWrite(t, err, "over the")
 	assertStoreUsableAfterRefusal(t, ps, queriesDir)
@@ -142,7 +142,7 @@ func TestPutQuery_RefusesAnOverCapFileAtTheNewBodyNameAndStaysUsable(t *testing.
 func TestPutQuery_RefusesATypeChangeOntoADirectoryAndStaysUsable(t *testing.T) {
 	ps, queriesDir := newPreflightProject(t)
 	ctx := context.Background()
-	tc := dtqlQuery("tc", "", "DTQL BODY")
+	tc := tugqlQuery("tc", "", "TugQL BODY")
 	stored, err := ps.PutQuery(ctx, &tc, datatug.QueryWriteCondition{IfNoneMatch: true})
 	if err != nil {
 		t.Fatalf("unexpected error creating: %v", err)
@@ -150,19 +150,19 @@ func TestPutQuery_RefusesATypeChangeOntoADirectoryAndStaysUsable(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(queriesDir, "tc.query.sql"), 0o755); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	changed := dtqlQuery("tc", "", "SELECT 1")
+	changed := tugqlQuery("tc", "", "SELECT 1")
 	changed.Type = datatug.QueryTypeSQL
 	_, err = ps.PutQuery(ctx, &changed, datatug.QueryWriteCondition{IfMatch: stored.Revision})
 	requireRefusedWrite(t, err, "tc.query.sql")
 	assertStoreUsableAfterRefusal(t, ps, queriesDir)
 
-	// The refused type change left the DTQL pair exactly as it was.
+	// The refused type change left the TugQL pair exactly as it was.
 	got, err := ps.LoadQueryRevision(ctx, "tc")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if got.Revision != stored.Revision || got.Query.Type != datatug.QueryTypeDTQL || got.Query.Text != "DTQL BODY" {
-		t.Errorf("expected the DTQL pair unchanged at revision %s, got type %s, text %q, revision %s", stored.Revision, got.Query.Type, got.Query.Text, got.Revision)
+	if got.Revision != stored.Revision || got.Query.Type != datatug.QueryTypeTugQL || got.Query.Text != "TugQL BODY" {
+		t.Errorf("expected the TugQL pair unchanged at revision %s, got type %s, text %q, revision %s", stored.Revision, got.Query.Type, got.Query.Text, got.Revision)
 	}
 }
 
@@ -173,7 +173,7 @@ func TestPutQuery_RefusesATypeChangeOntoADirectoryAndStaysUsable(t *testing.T) {
 func TestRecovery_ExplainsHowToClearATargetChangedAfterTheCommit(t *testing.T) {
 	ps, queriesDir := newPreflightProject(t)
 	txnDir := filepath.Join(queriesDir, reservedQueryTxnDirName)
-	q := dtqlQuery("new", "", "NEW")
+	q := tugqlQuery("new", "", "NEW")
 	jsonBytes, err := queryJSONBytes(q.QueryDef)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -186,18 +186,18 @@ func TestRecovery_ExplainsHowToClearATargetChangedAfterTheCommit(t *testing.T) {
 	j := queryTxnJournal{
 		ID: "new", Operation: queryTxnOpPut,
 		JSONFileName: "new.query.json", JSONHash: hashBytes(jsonBytes),
-		BodyFileName: "new.query.dtql", BodyHash: hashBytes([]byte(q.Text)),
+		BodyFileName: "new.query.tugql", BodyHash: hashBytes([]byte(q.Text)),
 	}
 	if err := commitQueryTransaction(queriesDir, txnDir, j); err != nil {
 		t.Fatalf("unexpected error committing: %v", err)
 	}
 	// Tampering after the commit point.
-	target := filepath.Join(queriesDir, "new.query.dtql")
+	target := filepath.Join(queriesDir, "new.query.tugql")
 	if err := os.Mkdir(target, 0o755); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	_, err = ps.LoadQueries(context.Background(), "")
-	for _, want := range []string{"cannot be completed", "new.query.dtql", "next access", "Do not remove " + filepath.ToSlash(filepath.Join(txnDir, queryTxnJournalFile))} {
+	for _, want := range []string{"cannot be completed", "new.query.tugql", "next access", "Do not remove " + filepath.ToSlash(filepath.Join(txnDir, queryTxnJournalFile))} {
 		if err == nil || !strings.Contains(filepath.ToSlash(err.Error()), want) {
 			t.Errorf("expected the recovery error to mention %q, got: %v", want, err)
 		}

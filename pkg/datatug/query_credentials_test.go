@@ -382,13 +382,13 @@ func TestQueryDef_Validate_ScreensTheTitleAndEveryQueryText(t *testing.T) {
 		{"SQL", "SELECT * FROM users WHERE password = 'x'"},
 		{"SQL", "SELECT * FROM t WHERE api_key = 'abc123'"},
 		{"SQL", "SELECT * FROM t WHERE token = abc123"},
-		{"DTQL", "from:\n  name: Invoice\n# postgres://u:secret@h/db"},
+		{"TugQL", "from:\n  name: Invoice\n# postgres://u:secret@h/db"},
 		{"GraphQL", "# Authorization: Bearer secret\n{ a }"},
 		{"GraphQL", `{"query": "{ me }", "variables": {"token": "abc123"}}`},
 		{"SQL", "-- X-API-Key: abc123\nSELECT 1"},
 		{"SQL", "/* Authorization: Bearer abc123 */\nSELECT 1"},
 		{"SQL", "/*\n * Authorization: Bearer abc123\n */\nSELECT 1"},
-		{"DTQL", "// Authorization: Basic dXNlcjpwYXNz\nfrom:\n  name: Invoice"},
+		{"TugQL", "// Authorization: Basic dXNlcjpwYXNz\nfrom:\n  name: Invoice"},
 		{"HTTP", "https://u:secret@h/x"},
 	} {
 		err := newQueryDef(c.typ, c.text).Validate()
@@ -437,7 +437,7 @@ func TestQueryDef_Validate_AllowsPlaceholdersInQueryText(t *testing.T) {
 		{"GraphQL", "# Authorization: Bearer {token}\n{ me { id } }"},
 		{"SQL", "/* Authorization: Bearer {{token}} */\nSELECT 1"},
 		{"GraphQL", `{"query": "{ me }", "variables": {"token": "{{token}}"}}`},
-		{"DTQL", "from:\n  name: User\nwhere:\n  op: ==\n  left:\n    field: Token\n  right:\n    param: token\n"},
+		{"TugQL", "from:\n  name: User\nwhere:\n  op: ==\n  left:\n    field: Token\n  right:\n    param: token\n"},
 	} {
 		if err := newQueryDef(c.typ, c.text).Validate(); err != nil {
 			t.Errorf("expected %s %q to be allowed, got: %v", c.typ, c.text, err)
@@ -456,7 +456,7 @@ func TestQueryDef_Validate_AllowsTheDemoProjectQueries(t *testing.T) {
 		typ   QueryType
 		text  string
 	}{
-		{"Customer invoices", "DTQL", "from:\n  name: Invoice\n  alias: i\ncolumns:\n  - field: InvoiceId\n  - field: InvoiceDate\n  - field: BillingCity\n  - field: BillingCountry\n  - field: Total\nwhere:\n  op: ==\n  left:\n    field: CustomerId\n  right:\n    param: CustomerId\norderBy:\n  - field: InvoiceDate\n    desc: true\n"},
+		{"Customer invoices", "TugQL", "from:\n  name: Invoice\n  alias: i\ncolumns:\n  - field: InvoiceId\n  - field: InvoiceDate\n  - field: BillingCity\n  - field: BillingCountry\n  - field: Total\nwhere:\n  op: ==\n  left:\n    field: CustomerId\n  right:\n    param: CustomerId\norderBy:\n  - field: InvoiceDate\n    desc: true\n"},
 		{"Customer purchases by genre", "SQL", "SELECT\n    g.Name AS GenreName,\n    COUNT(il.InvoiceLineId) AS TracksPurchased,\n    SUM(il.UnitPrice * il.Quantity) AS TotalSpent\nFROM InvoiceLine AS il\nINNER JOIN Invoice AS i ON i.InvoiceId = il.InvoiceId\nINNER JOIN Track AS t ON t.TrackId = il.TrackId\nINNER JOIN Genre AS g ON g.GenreId = t.GenreId\nWHERE i.CustomerId = @CustomerId\nGROUP BY g.Name\nORDER BY TotalSpent DESC\n"},
 		{"Invoice lines", "SQL", "SELECT\n    il.InvoiceLineId,\n    t.Name AS TrackName,\n    il.UnitPrice,\n    il.Quantity,\n    (il.UnitPrice * il.Quantity) AS LineTotal\nFROM InvoiceLine AS il\nINNER JOIN Track AS t ON t.TrackId = il.TrackId\nWHERE il.InvoiceId = @InvoiceId\nORDER BY il.InvoiceLineId\n"},
 		{"Country facts (currency by country name)", "HTTP", "https://countriesnow.space/api/v0.1/countries/currency/q?country={name}\n"},

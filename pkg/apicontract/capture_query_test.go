@@ -14,7 +14,7 @@ func validCapturedQuery() CapturedQuery {
 		Title:      "Customer invoices",
 		Purpose:    "Which invoices does this customer have?",
 		Source:     "chinook",
-		DTQL:       "from: Invoice\n",
+		TugQL:      "from: Invoice\n",
 		Parameters: []CapturedParameter{{
 			ID: "CustomerId", Type: "integer", Title: "Customer", IsRequired: true,
 			Meta: &EntityFieldRef{Entity: "Customer", Field: "ID"},
@@ -61,7 +61,7 @@ func TestCaptureQueryRequest_JSONFieldNames(t *testing.T) {
 	if err := json.Unmarshal(top["query"], &query); err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"folderPath", "id", "title", "purpose", "source", "dtql", "parameters", "bindingOrigins"} {
+	for _, key := range []string{"folderPath", "id", "title", "purpose", "source", "tugql", "parameters", "bindingOrigins"} {
 		if _, ok := query[key]; !ok {
 			t.Errorf("missing query key %q in %s", key, top["query"])
 		}
@@ -130,7 +130,7 @@ func TestCaptureQueryRequest_Validate(t *testing.T) {
 		{name: "missing title", mutate: func(r *CaptureQueryRequest) { r.Query.Title = "" }, wantField: "query.title"},
 		{name: "missing purpose", mutate: func(r *CaptureQueryRequest) { r.Query.Purpose = "  " }, wantField: "query.purpose"},
 		{name: "missing source", mutate: func(r *CaptureQueryRequest) { r.Query.Source = "" }, wantField: "query.source"},
-		{name: "missing dtql", mutate: func(r *CaptureQueryRequest) { r.Query.DTQL = "" }, wantField: "query.dtql"},
+		{name: "missing tugql", mutate: func(r *CaptureQueryRequest) { r.Query.TugQL = "" }, wantField: "query.tugql"},
 
 		{name: "parameter without id", mutate: func(r *CaptureQueryRequest) { r.Query.Parameters[0].ID = "" }, wantField: "query.parameters"},
 		{name: "parameter without type", mutate: func(r *CaptureQueryRequest) { r.Query.Parameters[0].Type = "" }, wantField: "query.parameters"},
@@ -240,7 +240,7 @@ func TestCaptureQuery_DecodeStrictRejectsResultRowsAndIdentity(t *testing.T) {
 	}
 	for name, body := range map[string]string{
 		"result rows at the top level": strings.Replace(string(base), `"query":`, `"rows":[[1]],"query":`, 1),
-		"recordset inside the query":   strings.Replace(string(base), `"dtql":`, `"recordset":{"rows":[]},"dtql":`, 1),
+		"recordset inside the query":   strings.Replace(string(base), `"tugql":`, `"recordset":{"rows":[]},"tugql":`, 1),
 		"a captured default value":     strings.Replace(string(base), `"isRequired":`, `"defaultValue":5,"isRequired":`, 1),
 		"a session-local fact id":      strings.Replace(string(base), `"origin":"selection"`, `"origin":"selection","factId":"f1"`, 1),
 		"a client-claimed author":      strings.Replace(string(base), `"query":`, `"author":"root","query":`, 1),

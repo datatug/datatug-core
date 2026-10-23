@@ -16,7 +16,7 @@ import (
 // can carry a secret may hold one. QueryDefTarget.Validate screens a
 // target's driver, catalog, protocol, host and username; QueryDef.Validate
 // screens the query's title, its purpose, its text whatever the query type
-// (SQL, GraphQL, DTQL and HTTP alike: the text is the git-tracked body
+// (SQL, GraphQL, TugQL and HTTP alike: the text is the git-tracked body
 // sidecar) and every parameter default (strings, and maps, objects and
 // arrays walked recursively, whatever the parameter's declared type). The
 // provenance a captured query records is screened by shape rather than by
@@ -303,7 +303,7 @@ func keyValueValue(s string) string {
 }
 
 // jsonCredentialReason checks JSON members wherever they appear, including
-// inside otherwise non-JSON SQL, GraphQL or DTQL text.
+// inside otherwise non-JSON SQL, GraphQL or TugQL text.
 func jsonCredentialReason(value string) (reason string, found bool) {
 	for pass := 0; pass < 32; pass++ {
 		if reason, found := jsonCredentialReasonPass(value); found {

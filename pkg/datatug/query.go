@@ -131,13 +131,11 @@ const (
 	QueryTypeStructuredSQL QueryType = "StructuredSQL"
 	// QueryTypeTugQL is the canonical query type for TugQL queries.
 	QueryTypeTugQL QueryType = "TugQL"
-	// QueryTypeDTQL is the legacy alias for QueryTypeTugQL.
-	QueryTypeDTQL QueryType = "DTQL"
 )
 
 func IsKnownQueryType(queryType QueryType) bool {
 	switch queryType {
-	case QueryTypeSQL, QueryTypeHTTP, QueryTypeStructuredSQL, QueryTypeTugQL, QueryTypeDTQL:
+	case QueryTypeSQL, QueryTypeHTTP, QueryTypeStructuredSQL, QueryTypeTugQL:
 		return true
 	default:
 		return false
@@ -152,6 +150,11 @@ type QueryDef struct {
 	ProjectItem
 	Type QueryType `json:"type"` // Possible value: folder, DDL, GraphQL, HTTP, etc.
 	Text string    `json:"text,omitempty" yaml:"text,omitempty"`
+	// StructuredBody says Text of a TugQL query is the structured YAML
+	// document (persisted as "<id>.query.tugql.yaml") rather than TugQL text
+	// (persisted as "<id>.query.tugql"). It is never persisted in the JSON
+	// sidecar: the body file's name is what records the representation.
+	StructuredBody bool `json:"structuredBody,omitempty" yaml:"structuredBody,omitempty"`
 	// HTTP is the saved request of an HTTP query beyond its URL (Text); nil
 	// for every other query and for an HTTP query that is a plain GET.
 	HTTP       *QueryHTTPRequest `json:"http,omitempty" yaml:"http,omitempty" firestore:"http,omitempty"`
@@ -337,7 +340,7 @@ func (v QueryDef) Validate() error {
 				return validation.NewErrBadRecordFieldValue(fmt.Sprintf("targets[%v]", i), "for HTTP queries catalog should be empty, got: %v"+target.Catalog)
 			}
 		}
-	case "SQL", "GraphQL", "DTQL":
+	case "SQL", "GraphQL", "TugQL":
 		if v.HTTP != nil {
 			return validation.NewErrBadRecordFieldValue("http", "is only allowed for HTTP queries")
 		}
@@ -347,7 +350,10 @@ func (v QueryDef) Validate() error {
 	default:
 		return validation.NewErrBadRecordFieldValue("type", "unsupported value: "+string(v.Type))
 	}
-	// The text of every query type - an HTTP request, SQL, GraphQL or DTQL -
+	if v.StructuredBody && v.Type != QueryTypeTugQL {
+		return validation.NewErrBadRecordFieldValue("structuredBody", "is only allowed for TugQL queries")
+	}
+	// The text of every query type - an HTTP request, SQL, GraphQL or TugQL -
 	// is persisted to a git-tracked body sidecar, so it is screened whatever
 	// the type. Bind parameters and {name} references are placeholders, not
 	// secrets (see query_credentials.go).

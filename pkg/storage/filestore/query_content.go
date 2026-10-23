@@ -43,6 +43,7 @@ func validateQueryForWrite(query datatug.QueryDef) error {
 // mutate the caller's query.
 func queryJSONBytes(query datatug.QueryDef) ([]byte, error) {
 	query.Text = ""
+	query.StructuredBody = false // recorded by the body file's name, not here
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	enc.SetIndent("", "\t")
@@ -78,7 +79,7 @@ func queryTypeFileExtension(queryType datatug.QueryType) (string, error) {
 			return "", fmt.Errorf("query type %q cannot name a body sidecar file: only ASCII letters, digits, '_' and '-' are allowed", t)
 		}
 	}
-	return queryBodyFileExt(queryType), nil
+	return queryBodyFileExt(queryType, false), nil
 }
 
 // isQueryTypeByte reports whether c may appear in a query type used as a
@@ -87,26 +88,40 @@ func isQueryTypeByte(c byte) bool {
 	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_' || c == '-'
 }
 
+// tugqlStructuredBodyExt is the body file extension of a TugQL query whose
+// Text is the structured YAML document (QueryDef.StructuredBody).
+const tugqlStructuredBodyExt = "tugql.yaml"
+
 // queryBodyFileName returns the body sidecar file name a query of this
 // type/id persists, following "<id>.query.<lowercase type>" (see
-// pkg/datatug/doc.go's "Query text sidecar file naming" convention). It
-// fails for a type queryTypeFileExtension refuses. id must already be a
-// validated query ID.
-func queryBodyFileName(id string, queryType datatug.QueryType) (string, error) {
+// pkg/datatug/doc.go's "Query text sidecar file naming" convention), or
+// "<id>.query.tugql.yaml" for the structured form of a TugQL query. It
+// fails for a type queryTypeFileExtension refuses, and for a structured body
+// of any other type. id must already be a validated query ID.
+func queryBodyFileName(id string, queryType datatug.QueryType, structured bool) (string, error) {
 	ext, err := queryTypeFileExtension(queryType)
 	if err != nil {
 		return "", err
 	}
+	if structured {
+		if queryType != datatug.QueryTypeTugQL {
+			return "", fmt.Errorf("query type %q has no structured body form", queryType)
+		}
+		ext = tugqlStructuredBodyExt
+	}
 	return id + "." + storage.QueryFileSuffix + "." + ext, nil
 }
 
-// queryBodyFileExt returns the type-derived part of queryBodyFileName - the
-// "<lowercase type>" in "<id>.query.<lowercase type>" - which, unlike the
-// full file name, never depends on how the id was spelled to find the
-// sidecar (see computeQueryRevision). It does not validate the type: call
-// it only for a type queryTypeFileExtension (or queryBodyFileName) has
-// already accepted.
-func queryBodyFileExt(queryType datatug.QueryType) string {
+// queryBodyFileExt returns the representation-derived part of
+// queryBodyFileName - the "<lowercase type>" (or "tugql.yaml") in
+// "<id>.query.<ext>" - which, unlike the full file name, never depends on
+// how the id was spelled to find the sidecar (see computeQueryRevision). It
+// does not validate the type: call it only for a type queryTypeFileExtension
+// (or queryBodyFileName) has already accepted.
+func queryBodyFileExt(queryType datatug.QueryType, structured bool) string {
+	if structured {
+		return tugqlStructuredBodyExt
+	}
 	return strings.ToLower(string(queryType))
 }
 
@@ -120,7 +135,7 @@ func checkQueryBodyFileName(id, name string) error {
 	if !ok {
 		return fmt.Errorf("%q is not a body sidecar name of query %q", name, id)
 	}
-	derived, err := queryBodyFileName(id, datatug.QueryType(ext))
+	derived, err := queryBodyFileNameOfExt(id, ext)
 	if err != nil {
 		return fmt.Errorf("%q is not a body sidecar name of query %q: %w", name, id, err)
 	}
@@ -128,4 +143,13 @@ func checkQueryBodyFileName(id, name string) error {
 		return fmt.Errorf("%q is not a body sidecar name of query %q (the derived name is %q)", name, id, derived)
 	}
 	return nil
+}
+
+// queryBodyFileNameOfExt is queryBodyFileName for the extension a body
+// sidecar name carries: the lowercased type, or tugqlStructuredBodyExt.
+func queryBodyFileNameOfExt(id, ext string) (string, error) {
+	if ext == tugqlStructuredBodyExt {
+		return queryBodyFileName(id, datatug.QueryTypeTugQL, true)
+	}
+	return queryBodyFileName(id, datatug.QueryType(ext), false)
 }

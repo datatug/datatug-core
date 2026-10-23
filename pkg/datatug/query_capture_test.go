@@ -19,7 +19,7 @@ func validQueryCapture() *QueryCapture {
 func capturedQueryDef() QueryDef {
 	return QueryDef{
 		ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "customer-invoices", Title: "Customer invoices"}},
-		Type:        QueryTypeDTQL,
+		Type:        QueryTypeTugQL,
 		Text:        "from: Invoice\n",
 		Purpose:     "Which invoices does this customer have?",
 		Parameters: Parameters{{

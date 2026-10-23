@@ -29,32 +29,15 @@ func readQueryTextSidecar(dirPath string, query *datatug.QueryDef, budget *query
 	if query.Type == "" {
 		return "", nil
 	}
-	fileName, err := queryBodyFileName(query.ID, query.Type)
-	if err != nil {
+	normalizeLegacyQueryType(query)
+	body, err := readQueryBody(dirPath, query.ID, query.Type, func(filePath string) ([]byte, bool, error) {
+		return readRegularFileBudgeted(filePath, maxQueryFileSize, budget)
+	})
+	if err != nil || body == nil {
 		return "", err
 	}
-	data, exists, err := readRegularFileBudgeted(path.Join(dirPath, fileName), maxQueryFileSize, budget)
-	if err != nil {
-		return "", err
-	}
-	if !exists {
-		// Fallback check between canonical TugQL and legacy DTQL file extensions
-		var altType datatug.QueryType
-		switch query.Type {
-		case datatug.QueryTypeTugQL:
-			altType = datatug.QueryTypeDTQL
-		case datatug.QueryTypeDTQL:
-			altType = datatug.QueryTypeTugQL
-		}
-		if altType != "" {
-			altName, _ := queryBodyFileName(query.ID, altType)
-			if altData, altExists, err := readRegularFileBudgeted(path.Join(dirPath, altName), maxQueryFileSize, budget); err == nil && altExists {
-				return string(altData), nil
-			}
-		}
-		return "", nil
-	}
-	return string(data), nil
+	query.StructuredBody = body.structured
+	return string(body.data), nil
 }
 
 func newFsQueriesStore(projectPath string) fsQueriesStore {

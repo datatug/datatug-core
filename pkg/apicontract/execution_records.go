@@ -203,7 +203,7 @@ type ExecutionRecord struct {
 	Scope             ExecutionRecordScope       `json:"scope"`
 	QueryID           string                     `json:"queryId,omitempty"`
 	QueryRevision     string                     `json:"queryRevision,omitempty"`
-	DTQLHash          string                     `json:"dtqlHash,omitempty"`
+	TugQLHash         string                     `json:"tugqlHash,omitempty"`
 	Parameters        map[string]TypedValueOrSet `json:"parameters"`
 	BindingsApplied   []Binding                  `json:"bindingsApplied"`
 	Principal         ExecutionPrincipal         `json:"principal"`
@@ -235,7 +235,7 @@ func (r ExecutionRecord) Validate() error {
 	if r.Ref.ProjectID != r.Scope.Project {
 		return &ValidationError{Field: "ref", Message: "projectId must match scope project"}
 	}
-	if err := validateExecutionQueryIdentity(r.QueryID, r.QueryRevision, r.DTQLHash); err != nil {
+	if err := validateExecutionQueryIdentity(r.QueryID, r.QueryRevision, r.TugQLHash); err != nil {
 		return err
 	}
 	for key, value := range r.Parameters {
@@ -413,7 +413,7 @@ type ExecutionRecordBrief struct {
 	Scope             ExecutionRecordScope `json:"scope"`
 	QueryID           string               `json:"queryId,omitempty"`
 	QueryRevision     string               `json:"queryRevision,omitempty"`
-	DTQLHash          string               `json:"dtqlHash,omitempty"`
+	TugQLHash         string               `json:"tugqlHash,omitempty"`
 	ExecutedAt        string               `json:"executedAt"`
 	DurationMS        int64                `json:"durationMs"`
 	RowCount          int                  `json:"rowCount"`
@@ -433,7 +433,7 @@ func (b ExecutionRecordBrief) Validate() error {
 	if b.Ref.ProjectID != b.Scope.Project {
 		return &ValidationError{Field: "ref", Message: "projectId must match scope project"}
 	}
-	if err := validateExecutionQueryIdentity(b.QueryID, b.QueryRevision, b.DTQLHash); err != nil {
+	if err := validateExecutionQueryIdentity(b.QueryID, b.QueryRevision, b.TugQLHash); err != nil {
 		return err
 	}
 	executedAt, err := validateExecutionTime("executedAt", b.ExecutedAt)
@@ -577,7 +577,7 @@ type ExecutionSeriesPartition struct {
 	PolicyFingerprint string                `json:"policyFingerprint"`
 	QueryID           string                `json:"queryId,omitempty"`
 	QueryRevision     string                `json:"queryRevision,omitempty"`
-	DTQLHash          string                `json:"dtqlHash,omitempty"`
+	TugQLHash         string                `json:"tugqlHash,omitempty"`
 	BindingsApplied   []Binding             `json:"bindingsApplied"`
 	Projection        MeasurementProjection `json:"projection"`
 }
@@ -595,7 +595,7 @@ func (p ExecutionSeriesPartition) Validate() error {
 	if err := validateSHA256("policyFingerprint", p.PolicyFingerprint); err != nil {
 		return err
 	}
-	if err := validateExecutionQueryIdentity(p.QueryID, p.QueryRevision, p.DTQLHash); err != nil {
+	if err := validateExecutionQueryIdentity(p.QueryID, p.QueryRevision, p.TugQLHash); err != nil {
 		return err
 	}
 	if p.QueryID != "" && p.QueryRevision == "" {
@@ -698,9 +698,9 @@ func FingerprintRecordset(recordset Recordset) (string, error) {
 	return hex.EncodeToString(digest[:]), nil
 }
 
-func validateExecutionQueryIdentity(queryID, queryRevision, dtqlHash string) error {
-	if (queryID == "") == (dtqlHash == "") {
-		return &ValidationError{Field: "queryId/dtqlHash", Message: "exactly one of queryId or dtqlHash is required"}
+func validateExecutionQueryIdentity(queryID, queryRevision, tugqlHash string) error {
+	if (queryID == "") == (tugqlHash == "") {
+		return &ValidationError{Field: "queryId/tugqlHash", Message: "exactly one of queryId or tugqlHash is required"}
 	}
 	if queryID != "" {
 		if err := requireCanonicalString("queryId", queryID); err != nil {
@@ -715,8 +715,8 @@ func validateExecutionQueryIdentity(queryID, queryRevision, dtqlHash string) err
 			return err
 		}
 	}
-	if dtqlHash != "" {
-		return validateSHA256("dtqlHash", dtqlHash)
+	if tugqlHash != "" {
+		return validateSHA256("tugqlHash", tugqlHash)
 	}
 	return nil
 }

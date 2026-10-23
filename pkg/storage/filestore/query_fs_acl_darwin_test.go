@@ -29,8 +29,8 @@ func addDenyDeleteACL(t *testing.T, p string) (remove func()) {
 
 func TestACLDenyDeleteOnTheBody_RollsTheWriteBack(t *testing.T) {
 	ps, queriesDir, rev := seedQ(t)
-	addDenyDeleteACL(t, filepath.Join(queriesDir, "q.query.dtql"))
-	requireRefusedWrite(t, putQ("t1", "T1", datatug.QueryTypeDTQL)(ps, rev), "nothing was changed")
+	addDenyDeleteACL(t, filepath.Join(queriesDir, "q.query.tugql"))
+	requireRefusedWrite(t, putQ("t1", "T1", datatug.QueryTypeTugQL)(ps, rev), "nothing was changed")
 	if got, err := ps.LoadQueryRevision(context.Background(), "q"); err != nil || got.Revision != rev || got.Query.Text != "T0" {
 		t.Errorf("expected q unchanged, got %+v, %v", got, err)
 	}
@@ -41,16 +41,16 @@ func TestACLDenyDeleteOnTheMetadata_RefusesOnlyThatQuery(t *testing.T) {
 	ctx := context.Background()
 	ps, queriesDir, rev := seedQ(t)
 	remove := addDenyDeleteACL(t, filepath.Join(queriesDir, "q.query.json"))
-	requireStuck(t, "PutQuery(q)", putQ("t1", "T1", datatug.QueryTypeDTQL)(ps, rev))
+	requireStuck(t, "PutQuery(q)", putQ("t1", "T1", datatug.QueryTypeTugQL)(ps, rev))
 	if q, err := ps.LoadQuery(ctx, "other"); err != nil || q.Text != "OTHER" {
 		t.Errorf("LoadQuery(other): %v", err)
 	}
-	third := dtqlQuery("third", "", "THIRD")
+	third := tugqlQuery("third", "", "THIRD")
 	if err := ps.SaveQuery(ctx, &third); err != nil {
 		t.Errorf("SaveQuery(third): %v", err)
 	}
 	_, err := ps.LoadQueryRevision(ctx, "q")
 	requireStuck(t, "LoadQueryRevision(q)", err)
 	remove()
-	requireQ(t, ps, "t1", "T1", datatug.QueryTypeDTQL)
+	requireQ(t, ps, "t1", "T1", datatug.QueryTypeTugQL)
 }

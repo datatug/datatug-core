@@ -32,7 +32,7 @@ func TestExecutionRequest_JSONFieldNames(t *testing.T) {
 			t.Errorf("missing key %q in %s", key, data)
 		}
 	}
-	for _, key := range []string{"storeId", "source", "dtql", "snapshotId", "limit", "incident", "record", "snapshot", "measurementProjections"} {
+	for _, key := range []string{"storeId", "source", "tugql", "snapshotId", "limit", "incident", "record", "snapshot", "measurementProjections"} {
 		if _, ok := generic[key]; ok {
 			t.Errorf("expected %q to be omitted when absent, got %s", key, data)
 		}
@@ -112,10 +112,10 @@ func TestExecutionRequest_SetBindingAndAdHocRejection(t *testing.T) {
 	}
 	adhoc := request
 	adhoc.QueryID = ""
-	adhoc.DTQL = "from: Customer"
+	adhoc.TugQL = "from: Customer"
 	adhoc.Source = "source-1"
 	if err := adhoc.Validate(); err == nil {
-		t.Fatal("ad-hoc DTQL must reject set values")
+		t.Fatal("ad-hoc TugQL must reject set values")
 	}
 }
 
@@ -125,14 +125,14 @@ func TestExecutionRequest_Validate_Saved(t *testing.T) {
 	}
 }
 
-func TestExecutionRequest_Validate_AdHocDTQLRequiresSource(t *testing.T) {
+func TestExecutionRequest_Validate_AdHocTugQLRequiresSource(t *testing.T) {
 	r := ExecutionRequest{
 		Project: "p1", Environment: "local", SecurityContextID: "sc1",
-		DTQL: "from:\n  name: Customer\n",
-		Mode: "live",
+		TugQL: "from:\n  name: Customer\n",
+		Mode:  "live",
 	}
 	if err := r.Validate(); err == nil {
-		t.Error("expected an error: ad-hoc DTQL requires source")
+		t.Error("expected an error: ad-hoc TugQL requires source")
 	}
 	r.Source = "chinook"
 	if err := r.Validate(); err != nil {
@@ -140,17 +140,17 @@ func TestExecutionRequest_Validate_AdHocDTQLRequiresSource(t *testing.T) {
 	}
 }
 
-func TestExecutionRequest_Validate_ExactlyOneOfQueryIDOrDTQL(t *testing.T) {
+func TestExecutionRequest_Validate_ExactlyOneOfQueryIDOrTugQL(t *testing.T) {
 	neither := ExecutionRequest{Project: "p1", Environment: "local", SecurityContextID: "sc1", Mode: "live"}
 	if err := neither.Validate(); err == nil {
-		t.Error("expected an error: neither queryId nor dtql set")
+		t.Error("expected an error: neither queryId nor tugql set")
 	}
 
 	both := validExecutionRequestSaved()
-	both.DTQL = "from:\n  name: Customer\n"
+	both.TugQL = "from:\n  name: Customer\n"
 	both.Source = "chinook"
 	if err := both.Validate(); err == nil {
-		t.Error("expected an error: both queryId and dtql set")
+		t.Error("expected an error: both queryId and tugql set")
 	}
 }
 

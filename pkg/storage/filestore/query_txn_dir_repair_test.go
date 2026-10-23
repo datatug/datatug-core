@@ -29,7 +29,7 @@ func TestQueryStore_SurvivesAZipUnzipRoundTrip(t *testing.T) {
 	}
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q1", "", "from:\n  name: Invoice\n")
+	q := tugqlQuery("q1", "", "from:\n  name: Invoice\n")
 	stored, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 	if err != nil {
 		t.Fatalf("unexpected error creating: %v", err)
@@ -50,7 +50,7 @@ func TestQueryStore_SurvivesAZipUnzipRoundTrip(t *testing.T) {
 	if _, err := reopened.LoadQueryRevision(ctx, "q1"); err != nil {
 		t.Fatalf("LoadQueryRevision after the round trip: %v", err)
 	}
-	updated := dtqlQuery("q1", "", "updated")
+	updated := tugqlQuery("q1", "", "updated")
 	if _, err := reopened.PutQuery(ctx, &updated, datatug.QueryWriteCondition{IfMatch: stored.Revision}); err != nil {
 		t.Fatalf("PutQuery after the round trip: %v", err)
 	}

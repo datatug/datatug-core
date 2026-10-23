@@ -40,13 +40,13 @@ func queryReadErrors(store fsQueriesStore, id string) map[string]error {
 func TestQueryReads_RefuseASymlinkedTargetFile(t *testing.T) {
 	skipSymlinksOnWindows(t)
 	for _, tc := range []struct{ name, file, secret string }{
-		{"symlinked body (symread)", "q.query.dtql", "AWS_SECRET=abc123"},
-		{"symlinked json (symread)", "q.query.json", `{"title":"secret-json","type":"DTQL","createdAt":"2026-10-01T00:00:00Z"}`},
+		{"symlinked body (symread)", "q.query.tugql", "AWS_SECRET=abc123"},
+		{"symlinked json (symread)", "q.query.json", `{"title":"secret-json","type":"TugQL","createdAt":"2026-10-01T00:00:00Z"}`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			store, queriesDir := newTestQueriesStore(t)
 			ctx := context.Background()
-			q := dtqlQuery("q", "", "B0")
+			q := tugqlQuery("q", "", "B0")
 			if _, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 				t.Fatalf("unexpected error creating: %v", err)
 			}
@@ -67,7 +67,7 @@ func TestQueryReads_RefuseASymlinkedTargetFile(t *testing.T) {
 					t.Errorf("%s: expected a symlinked target to be refused, got: %v", reader, err)
 				}
 			}
-			replacement := dtqlQuery("q", "", "B1")
+			replacement := tugqlQuery("q", "", "B1")
 			if err := store.SaveQuery(ctx, &replacement); err == nil {
 				t.Error("SaveQuery: expected a write over a symlinked target to be refused")
 			}
@@ -86,11 +86,11 @@ func TestQueryReads_RefuseASymlinkedTargetFile(t *testing.T) {
 
 func TestQueryReads_RefuseADirectoryAtATargetFileName(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
-	q := dtqlQuery("q", "", "B0")
+	q := tugqlQuery("q", "", "B0")
 	if _, err := store.PutQuery(context.Background(), &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatalf("unexpected error creating: %v", err)
 	}
-	body := filepath.Join(queriesDir, "q.query.dtql")
+	body := filepath.Join(queriesDir, "q.query.tugql")
 	if err := os.Remove(body); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -107,10 +107,10 @@ func TestQueryReads_RefuseADirectoryAtATargetFileName(t *testing.T) {
 }
 
 func TestQueryReads_RefuseATargetFileOverTheCap(t *testing.T) {
-	for _, file := range []string{"q.query.dtql", "q.query.json"} {
+	for _, file := range []string{"q.query.tugql", "q.query.json"} {
 		t.Run(file, func(t *testing.T) {
 			store, queriesDir := newTestQueriesStore(t)
-			q := dtqlQuery("q", "", "B0")
+			q := tugqlQuery("q", "", "B0")
 			if _, err := store.PutQuery(context.Background(), &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 				t.Fatalf("unexpected error creating: %v", err)
 			}
@@ -133,13 +133,13 @@ func TestRecovery_RefusesASymlinkedFinalFileAndTouchesNothing(t *testing.T) {
 	p := plantTxn(t, queryTxnJournal{
 		ID: "x", Operation: queryTxnOpPut,
 		JSONFileName: "x.query.json", JSONHash: hashBytes(payload),
-		BodyFileName: "x.query.dtql", BodyHash: hashBytes(payload),
+		BodyFileName: "x.query.tugql", BodyHash: hashBytes(payload),
 	}, payload, payload)
 	outside := filepath.Join(t.TempDir(), "outside")
 	if err := os.WriteFile(outside, []byte("KEEP"), 0o600); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := os.Symlink(outside, filepath.Join(p.queriesDir, "x.query.dtql")); err != nil {
+	if err := os.Symlink(outside, filepath.Join(p.queriesDir, "x.query.tugql")); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	before := snapshotTxnArtifacts(t, p.txnDir)
@@ -156,11 +156,11 @@ func TestRecovery_RefusesASymlinkedFinalFileAndTouchesNothing(t *testing.T) {
 }
 
 func TestRecovery_RefusesToDeleteADirectoryAndTouchesNothing(t *testing.T) {
-	p := plantTxn(t, queryTxnJournal{ID: "x", Operation: queryTxnOpDelete, JSONFileName: "x.query.json", BodyFileName: "x.query.dtql"}, nil, nil)
+	p := plantTxn(t, queryTxnJournal{ID: "x", Operation: queryTxnOpDelete, JSONFileName: "x.query.json", BodyFileName: "x.query.tugql"}, nil, nil)
 	if err := os.MkdirAll(filepath.Join(p.queriesDir, "x.query.json", "child"), 0o755); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(p.queriesDir, "x.query.dtql"), []byte("body"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(p.queriesDir, "x.query.tugql"), []byte("body"), 0o644); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	queriesBefore := snapshotDir(t, p.queriesDir)

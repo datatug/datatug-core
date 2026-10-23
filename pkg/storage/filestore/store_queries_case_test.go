@@ -50,13 +50,13 @@ func TestPutQuery_CaseInsensitiveFilesystemCollidesOnDifferentlyCasedID(t *testi
 	requireFileNameAliases(t, filepath.Dir(queriesDir), "CaseTest", "casetest")
 	ctx := context.Background()
 
-	lower := dtqlQuery("CaseTest", "", "lower")
+	lower := tugqlQuery("CaseTest", "", "lower")
 	stored, err := store.PutQuery(ctx, &lower, datatug.QueryWriteCondition{IfNoneMatch: true})
 	if err != nil {
 		t.Fatalf("unexpected error creating %q: %v", lower.ID, err)
 	}
 
-	upper := dtqlQuery("casetest", "", "upper")
+	upper := tugqlQuery("casetest", "", "upper")
 	_, err = store.PutQuery(ctx, &upper, datatug.QueryWriteCondition{IfNoneMatch: true})
 	if !datatug.IsQueryRevisionConflict(err) {
 		t.Fatalf("expected a differently-cased id to collide with the existing record (case-insensitive filesystem), got %T: %v", err, err)
@@ -72,7 +72,7 @@ func TestPutQuery_CaseInsensitiveFilesystemCollidesOnDifferentlyCasedID(t *testi
 			jsonFiles++
 		}
 	}
-	if jsonFiles != 2 { // "CaseTest.query.json" + "CaseTest.query.dtql"
+	if jsonFiles != 2 { // "CaseTest.query.json" + "CaseTest.query.tugql"
 		t.Fatalf("expected exactly one query's pair of files on disk, got %d entries: %v", jsonFiles, entries)
 	}
 
@@ -110,7 +110,7 @@ func TestLoadQueryRevision_FileNameAliasesOfOneRecordShareItsRevision(t *testing
 			requireFileNameAliases(t, filepath.Dir(queriesDir), tt.id, tt.alias)
 			ctx := context.Background()
 
-			created := dtqlQuery(tt.id, "", "original")
+			created := tugqlQuery(tt.id, "", "original")
 			stored, err := store.PutQuery(ctx, &created, datatug.QueryWriteCondition{IfNoneMatch: true})
 			if err != nil {
 				t.Fatalf("unexpected error creating %q: %v", tt.id, err)
@@ -126,7 +126,7 @@ func TestLoadQueryRevision_FileNameAliasesOfOneRecordShareItsRevision(t *testing
 				}
 			}
 
-			updated := dtqlQuery(tt.alias, "", "updated")
+			updated := tugqlQuery(tt.alias, "", "updated")
 			written, err := store.PutQuery(ctx, &updated, datatug.QueryWriteCondition{IfMatch: stored.Revision})
 			if err != nil {
 				t.Fatalf("expected a conditional write via %q with the revision of %q to succeed, got %T: %v", tt.alias, tt.id, err, err)
@@ -162,7 +162,7 @@ func TestLoadQueryRevision_RevisionIgnoresTheRequestedIDSpelling(t *testing.T) {
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
 
-	created := dtqlQuery("original", "", "SELECT 1")
+	created := tugqlQuery("original", "", "SELECT 1")
 	stored, err := store.PutQuery(ctx, &created, datatug.QueryWriteCondition{IfNoneMatch: true})
 	if err != nil {
 		t.Fatalf("unexpected error creating: %v", err)
@@ -170,7 +170,7 @@ func TestLoadQueryRevision_RevisionIgnoresTheRequestedIDSpelling(t *testing.T) {
 	for _, fileName := range []func(id string) string{
 		func(id string) string { return storage.JsonFileName(id, storage.QueryFileSuffix) },
 		func(id string) string {
-			name, _ := queryBodyFileName(id, datatug.QueryTypeDTQL) // DTQL is always an accepted type
+			name, _ := queryBodyFileName(id, datatug.QueryTypeTugQL, false) // TugQL is always an accepted type
 			return name
 		},
 	} {

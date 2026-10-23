@@ -48,7 +48,7 @@ func TestPutQuery_LeavesOnlyOrdinaryUncommittedGitChanges(t *testing.T) {
 	headBefore := runGit(t, projectDir, "rev-parse", "HEAD")
 
 	store := newFsQueriesStore(projectDir)
-	q := dtqlQuery("q1", "", "from:\n  name: Invoice\n")
+	q := tugqlQuery("q1", "", "from:\n  name: Invoice\n")
 	if _, err := store.PutQuery(context.Background(), &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -64,7 +64,7 @@ func TestPutQuery_LeavesOnlyOrdinaryUncommittedGitChanges(t *testing.T) {
 	if !strings.Contains(status, "queries/q1.query.json") {
 		t.Fatalf("expected the JSON sidecar to show as an ordinary uncommitted change, got status:\n%s", status)
 	}
-	if !strings.Contains(status, "queries/q1.query.dtql") {
+	if !strings.Contains(status, "queries/q1.query.tugql") {
 		t.Fatalf("expected the body sidecar to show as an ordinary uncommitted change, got status:\n%s", status)
 	}
 	// N1: assert the exact set of status lines, not merely that the two
@@ -99,7 +99,7 @@ func TestDeleteQueryRevision_LeavesOnlyOrdinaryUncommittedGitChanges(t *testing.
 
 	store := newFsQueriesStore(projectDir)
 	ctx := context.Background()
-	q := dtqlQuery("q1", "", "text")
+	q := tugqlQuery("q1", "", "text")
 	stored, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 	if err != nil {
 		t.Fatalf("unexpected error creating: %v", err)
@@ -117,7 +117,8 @@ func TestDeleteQueryRevision_LeavesOnlyOrdinaryUncommittedGitChanges(t *testing.
 		t.Fatalf("expected no commit to be created by DeleteQueryRevision; HEAD moved from %s to %s", headBefore, headAfter)
 	}
 	status := runGit(t, projectDir, "status", "--porcelain")
-	if !strings.Contains(status, "D  queries/q1.query.json") && !strings.Contains(status, " D queries/q1.query.json") {
+	// status is trimmed, so the first line loses its leading space.
+	if !strings.Contains(status, "D queries/q1.query.json") && !strings.Contains(status, "D  queries/q1.query.json") {
 		t.Fatalf("expected the JSON sidecar to show as an ordinary deletion, got status:\n%s", status)
 	}
 }

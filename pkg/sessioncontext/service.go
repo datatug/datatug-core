@@ -172,7 +172,7 @@ func canonicalDefinitionDocument(expectedKind string, raw json.RawMessage) (json
 		if !safeID.MatchString(query.ID) || queryIDs[query.ID] || len(query.Text) == 0 || len(query.Text) > 100000 || query.ConnectionID != "" && !safeID.MatchString(query.ConnectionID) || len(query.Parameters) > 100 {
 			return nil, "", ErrInvalid
 		}
-		if query.QueryType != "SQL" && query.QueryType != "DTQL" && query.QueryType != "TugQL" {
+		if query.QueryType != "SQL" && query.QueryType != "TugQL" {
 			return nil, "", ErrInvalid
 		}
 		queryIDs[query.ID] = true

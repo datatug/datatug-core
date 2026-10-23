@@ -17,7 +17,7 @@ import (
 func TestLoadQueries_ChecksTheBudgetBeforeOpeningAFile(t *testing.T) {
 	skipIfRoot(t)
 	ps, queriesDir := newBudgetTestProject(t, 1000, map[string]string{"a": strings.Repeat("x", 2000)})
-	body := filepath.Join(queriesDir, "a.query.dtql")
+	body := filepath.Join(queriesDir, "a.query.tugql")
 	if err := os.Chmod(body, 0); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -51,7 +51,7 @@ func TestQueryLock_RefusesAPlantedLockSymlink(t *testing.T) {
 			if _, err := store.LoadQueries(ctx, ""); err == nil || !strings.Contains(err.Error(), "symlink") {
 				t.Errorf("LoadQueries: expected a symlinked lock to be refused, got: %v", err)
 			}
-			q := dtqlQuery("q", "", "B")
+			q := tugqlQuery("q", "", "B")
 			if _, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err == nil {
 				t.Error("PutQuery: expected a symlinked lock to be refused")
 			}
@@ -104,7 +104,7 @@ func TestQueryLock_AcceptsItsOwnRegularLockAfterAnArchiveRoundTrip(t *testing.T)
 	}
 	store, queriesDir := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q", "", "B0")
+	q := tugqlQuery("q", "", "B0")
 	created, err := store.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 	if err != nil {
 		t.Fatalf("unexpected error creating: %v", err)
@@ -120,7 +120,7 @@ func TestQueryLock_AcceptsItsOwnRegularLockAfterAnArchiveRoundTrip(t *testing.T)
 	if _, err := reopened.LoadQueryRevision(ctx, "q"); err != nil {
 		t.Fatalf("LoadQueryRevision: %v", err)
 	}
-	updated := dtqlQuery("q", "", "B1")
+	updated := tugqlQuery("q", "", "B1")
 	if _, err := reopened.PutQuery(ctx, &updated, datatug.QueryWriteCondition{IfMatch: created.Revision}); err != nil {
 		t.Fatalf("PutQuery: %v", err)
 	}

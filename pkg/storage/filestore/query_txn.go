@@ -985,8 +985,10 @@ type currentQueryPair struct {
 	complete     bool
 	jsonBytes    []byte
 	bodyFileName string
-	bodyBytes    []byte
-	revision     datatug.QueryRevision
+	// bodyStructured says bodyFileName is a structured YAML TugQL body.
+	bodyStructured bool
+	bodyBytes      []byte
+	revision       datatug.QueryRevision
 }
 
 // readQueryPairAt is readCurrentQueryPair for the query addressed as
@@ -1030,38 +1032,20 @@ func readCurrentQueryPair(dir, id string) (currentQueryPair, error) {
 		cur.revision = computeQueryRevision(jsonBytes, "", nil)
 		return cur, nil
 	}
-	bodyFileName, err := queryBodyFileName(id, meta.Type)
+	body, err := readQueryBody(dir, id, meta.Type, func(filePath string) ([]byte, bool, error) {
+		return readRegularFileCapped(filePath, maxQueryFileSize)
+	})
 	if err != nil {
-		return cur, fmt.Errorf("existing query metadata for %s: %w", id, err)
+		return cur, fmt.Errorf("existing query %s: %w", id, err)
 	}
-	bodyBytes, bodyExists, err := readRegularFileCapped(path.Join(dir, bodyFileName), maxQueryFileSize)
-	if err != nil {
-		return cur, fmt.Errorf("failed to read query body: %w", err)
-	}
-	if !bodyExists {
-		// Fallback check between canonical TugQL and legacy DTQL file extensions
-		var altFileName string
-		switch meta.Type {
-		case datatug.QueryTypeTugQL:
-			altFileName, _ = queryBodyFileName(id, datatug.QueryTypeDTQL)
-		case datatug.QueryTypeDTQL:
-			altFileName, _ = queryBodyFileName(id, datatug.QueryTypeTugQL)
-		}
-		if altFileName != "" {
-			if altBytes, altExists, altErr := readRegularFileCapped(path.Join(dir, altFileName), maxQueryFileSize); altErr == nil && altExists {
-				bodyBytes = altBytes
-				bodyExists = true
-				bodyFileName = altFileName
-			}
-		}
-	}
-	if !bodyExists {
+	if body == nil {
 		cur.revision = computeQueryRevision(jsonBytes, "", nil)
 		return cur, nil
 	}
 	cur.complete = true
-	cur.bodyFileName = bodyFileName
-	cur.bodyBytes = bodyBytes
-	cur.revision = computeQueryRevision(jsonBytes, queryBodyFileExt(meta.Type), bodyBytes)
+	cur.bodyFileName = body.fileName
+	cur.bodyStructured = body.structured
+	cur.bodyBytes = body.data
+	cur.revision = computeQueryRevision(jsonBytes, body.ext, body.data)
 	return cur, nil
 }

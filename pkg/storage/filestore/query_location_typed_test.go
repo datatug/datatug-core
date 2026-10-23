@@ -32,24 +32,24 @@ func TestSymlinkAtTheNewBodyName_IsATypedLocationError(t *testing.T) {
 	skipSymlinksOnWindows(t)
 	ps, queriesDir := newPreflightProject(t)
 	ctx := context.Background()
-	if err := os.Symlink("/nonexistent/elsewhere", filepath.Join(queriesDir, "new.query.dtql")); err != nil {
+	if err := os.Symlink("/nonexistent/elsewhere", filepath.Join(queriesDir, "new.query.tugql")); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	q := dtqlQuery("new", "", "NEW")
+	q := tugqlQuery("new", "", "NEW")
 	_, err := ps.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true})
-	requireTypedQueryLocation(t, "PutQuery", err, "new.query.dtql is a symlink")
-	requireTypedQueryLocation(t, "SaveQuery", ps.SaveQuery(ctx, &q), "new.query.dtql is a symlink")
+	requireTypedQueryLocation(t, "PutQuery", err, "new.query.tugql is a symlink")
+	requireTypedQueryLocation(t, "SaveQuery", ps.SaveQuery(ctx, &q), "new.query.tugql is a symlink")
 	_, err = ps.CreateQuery(ctx, q)
-	requireTypedQueryLocation(t, "CreateQuery", err, "new.query.dtql is a symlink")
+	requireTypedQueryLocation(t, "CreateQuery", err, "new.query.tugql is a symlink")
 	assertStoreUsableAfterRefusal(t, ps, queriesDir)
 }
 
 func TestDirectoryAtTheNewBodyName_IsATypedLocationError(t *testing.T) {
 	ps, queriesDir := newPreflightProject(t)
-	if err := os.Mkdir(filepath.Join(queriesDir, "new.query.dtql"), 0o755); err != nil {
+	if err := os.Mkdir(filepath.Join(queriesDir, "new.query.tugql"), 0o755); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	q := dtqlQuery("new", "", "NEW")
+	q := tugqlQuery("new", "", "NEW")
 	_, err := ps.PutQuery(context.Background(), &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 	requireTypedQueryLocation(t, "PutQuery", err, "not a regular file")
 	assertStoreUsableAfterRefusal(t, ps, queriesDir)
@@ -60,13 +60,13 @@ func TestSymlinkedExistingMetadata_IsATypedLocationError(t *testing.T) {
 	ps, queriesDir := newPreflightProject(t)
 	ctx := context.Background()
 	outside := filepath.Join(t.TempDir(), "outside.json")
-	if err := os.WriteFile(outside, []byte(`{"title":"o","type":"DTQL"}`), 0o644); err != nil {
+	if err := os.WriteFile(outside, []byte(`{"title":"o","type":"TugQL"}`), 0o644); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := os.Symlink(outside, filepath.Join(queriesDir, "sj.query.json")); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	q := dtqlQuery("sj", "", "X")
+	q := tugqlQuery("sj", "", "X")
 	_, err := ps.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 	requireTypedQueryLocation(t, "PutQuery", err, "sj.query.json is a symlink")
 	requireTypedQueryLocation(t, "SaveQuery", ps.SaveQuery(ctx, &q), "sj.query.json is a symlink")
@@ -76,7 +76,7 @@ func TestSymlinkedExistingMetadata_IsATypedLocationError(t *testing.T) {
 	requireTypedQueryLocation(t, "DeleteQueryRevision", ps.DeleteQueryRevision(ctx, "sj", "any"), "sj.query.json is a symlink")
 	_, err = ps.LoadQueryRevision(ctx, "sj")
 	requireTypedQueryLocation(t, "LoadQueryRevision", err, "sj.query.json is a symlink")
-	if b, _ := os.ReadFile(outside); string(b) != `{"title":"o","type":"DTQL"}` {
+	if b, _ := os.ReadFile(outside); string(b) != `{"title":"o","type":"TugQL"}` {
 		t.Errorf("expected the symlink's target untouched, got %q", b)
 	}
 }
@@ -84,15 +84,15 @@ func TestSymlinkedExistingMetadata_IsATypedLocationError(t *testing.T) {
 func TestDirectoryAtAnExistingBodyName_IsATypedLocationError(t *testing.T) {
 	ps, queriesDir := newPreflightProject(t)
 	ctx := context.Background()
-	if err := os.WriteFile(filepath.Join(queriesDir, "d.query.json"), []byte(`{"title":"d","type":"DTQL"}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(queriesDir, "d.query.json"), []byte(`{"title":"d","type":"TugQL"}`), 0o644); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := os.Mkdir(filepath.Join(queriesDir, "d.query.dtql"), 0o755); err != nil {
+	if err := os.Mkdir(filepath.Join(queriesDir, "d.query.tugql"), 0o755); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	requireTypedQueryLocation(t, "DeleteQuery", ps.DeleteQuery(ctx, "d"), "d.query.dtql is not a regular file")
-	q := dtqlQuery("d", "", "X")
-	requireTypedQueryLocation(t, "SaveQuery", ps.SaveQuery(ctx, &q), "d.query.dtql is not a regular file")
+	requireTypedQueryLocation(t, "DeleteQuery", ps.DeleteQuery(ctx, "d"), "d.query.tugql is not a regular file")
+	q := tugqlQuery("d", "", "X")
+	requireTypedQueryLocation(t, "SaveQuery", ps.SaveQuery(ctx, &q), "d.query.tugql is not a regular file")
 }
 
 // A refusal about a transaction artifact is not about the query's

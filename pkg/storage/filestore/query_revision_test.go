@@ -12,8 +12,8 @@ import "testing"
 // TestLoadQueryRevision_RevisionIgnoresTheRequestedIDSpelling.
 
 func TestComputeQueryRevision_Deterministic(t *testing.T) {
-	a := computeQueryRevision([]byte(`{"id":"q1"}`), "dtql", []byte("from:\n  name: Invoice\n"))
-	b := computeQueryRevision([]byte(`{"id":"q1"}`), "dtql", []byte("from:\n  name: Invoice\n"))
+	a := computeQueryRevision([]byte(`{"id":"q1"}`), "tugql", []byte("from:\n  name: Invoice\n"))
+	b := computeQueryRevision([]byte(`{"id":"q1"}`), "tugql", []byte("from:\n  name: Invoice\n"))
 	if a != b {
 		t.Fatalf("expected identical inputs to produce identical revisions, got %q vs %q", a, b)
 	}
@@ -23,28 +23,28 @@ func TestComputeQueryRevision_Deterministic(t *testing.T) {
 }
 
 func TestComputeQueryRevision_JSONHandEditChangesRevision(t *testing.T) {
-	before := computeQueryRevision([]byte(`{"id":"q1","title":"Q1"}`), "dtql", []byte("body"))
+	before := computeQueryRevision([]byte(`{"id":"q1","title":"Q1"}`), "tugql", []byte("body"))
 	// Simulate an external hand edit of the JSON sidecar only.
-	after := computeQueryRevision([]byte(`{"id":"q1","title":"Q1 edited"}`), "dtql", []byte("body"))
+	after := computeQueryRevision([]byte(`{"id":"q1","title":"Q1 edited"}`), "tugql", []byte("body"))
 	if before == after {
 		t.Fatalf("expected a hand edit of the JSON bytes to change the revision")
 	}
 }
 
 func TestComputeQueryRevision_BodyHandEditChangesRevision(t *testing.T) {
-	before := computeQueryRevision([]byte(`{"id":"q1"}`), "dtql", []byte("SELECT 1"))
-	after := computeQueryRevision([]byte(`{"id":"q1"}`), "dtql", []byte("SELECT 2"))
+	before := computeQueryRevision([]byte(`{"id":"q1"}`), "tugql", []byte("SELECT 1"))
+	after := computeQueryRevision([]byte(`{"id":"q1"}`), "tugql", []byte("SELECT 2"))
 	if before == after {
 		t.Fatalf("expected a hand edit of the body bytes to change the revision")
 	}
 }
 
 func TestComputeQueryRevision_BodyTypeChangeChangesRevision(t *testing.T) {
-	// A type change (e.g. SQL -> DTQL) swaps the body sidecar's extension
+	// A type change (e.g. SQL -> TugQL) swaps the body sidecar's extension
 	// while possibly leaving the body bytes identical; the revision must
 	// still change since the persisted pair is different.
 	before := computeQueryRevision([]byte(`{"id":"q1"}`), "sql", []byte("SELECT 1"))
-	after := computeQueryRevision([]byte(`{"id":"q1"}`), "dtql", []byte("SELECT 1"))
+	after := computeQueryRevision([]byte(`{"id":"q1"}`), "tugql", []byte("SELECT 1"))
 	if before == after {
 		t.Fatalf("expected a body sidecar type change to change the revision")
 	}

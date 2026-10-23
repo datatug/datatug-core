@@ -112,31 +112,31 @@ func TestFsQueriesStore(t *testing.T) {
 		})
 	})
 
-	t.Run("CreateQuery_DTQL", func(t *testing.T) {
-		const dtqlQueryID = "customer-invoices"
+	t.Run("CreateQuery_TugQL", func(t *testing.T) {
+		const tugqlQueryID = "customer-invoices"
 		query := datatug.QueryDefWithFolderPath{
 			FolderPath: folder1,
 			QueryDef: datatug.QueryDef{
 				ProjectItem: datatug.ProjectItem{ProjItemBrief: datatug.ProjItemBrief{
-					ID: dtqlQueryID, Title: "Customer invoices"}},
-				Type: datatug.QueryTypeDTQL,
+					ID: tugqlQueryID, Title: "Customer invoices"}},
+				Type: datatug.QueryTypeTugQL,
 				Text: "from:\n  name: Invoice\n",
 			},
 		}
 		_, err := store.CreateQuery(ctx, query)
 		assert.NoError(t, err)
 
-		jsonFileName := fmt.Sprintf("%s.%s.json", dtqlQueryID, storage.QueryFileSuffix)
+		jsonFileName := fmt.Sprintf("%s.%s.json", tugqlQueryID, storage.QueryFileSuffix)
 		assert.FileExists(t, filepath.Join(queriesDir, folder1, jsonFileName))
 
-		// DTQL body follows the same "<id>.query.<lowercase type>" convention as
+		// TugQL body follows the same "<id>.query.<lowercase type>" convention as
 		// SQL/HTTP query text sidecars - see pkg/datatug/doc.go.
-		dtqlFileName := fmt.Sprintf("%s.%s.dtql", dtqlQueryID, storage.QueryFileSuffix)
-		assert.FileExists(t, filepath.Join(queriesDir, folder1, dtqlFileName))
+		tugqlFileName := fmt.Sprintf("%s.%s.tugql", tugqlQueryID, storage.QueryFileSuffix)
+		assert.FileExists(t, filepath.Join(queriesDir, folder1, tugqlFileName))
 
-		q, err := store.LoadQuery(ctx, path.Join(folder1, dtqlQueryID))
+		q, err := store.LoadQuery(ctx, path.Join(folder1, tugqlQueryID))
 		assert.NoError(t, err)
-		assert.Equal(t, datatug.QueryTypeDTQL, q.Type)
+		assert.Equal(t, datatug.QueryTypeTugQL, q.Type)
 		assert.Equal(t, "from:\n  name: Invoice\n", q.Text)
 	})
 

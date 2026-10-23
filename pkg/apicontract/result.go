@@ -81,7 +81,7 @@ const (
 // Provenance describes where a Result actually came from: "Result.provenance
 // .executionProfile reports the actual executor used for that run" - never
 // the session's allowed capabilities, and a privileged principal running
-// protected DTQL still receives protected provenance. api-contract.md
+// protected TugQL still receives protected provenance. api-contract.md
 // "Shared JSON types" / "Security and errors".
 type Provenance struct {
 	Source           string `json:"source"`

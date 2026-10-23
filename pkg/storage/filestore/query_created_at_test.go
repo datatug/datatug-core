@@ -15,7 +15,7 @@ func TestQueryCreatedAtServerOwnedPersistence(t *testing.T) {
 		t.Run(map[bool]string{true: "legacy", false: "revisioned"}[legacy], func(t *testing.T) {
 			s, dir := newTestQueriesStore(t)
 			ctx := context.Background()
-			q := dtqlQuery("q", "", "SELECT 1")
+			q := tugqlQuery("q", "", "SELECT 1")
 			q.CreatedAt = "client"
 			before := time.Now().UTC()
 			if legacy {
@@ -63,7 +63,7 @@ func TestQueryCreationTimeServerIntentProducesSameRevision(t *testing.T) {
 	var revision datatug.QueryRevision
 	for i := 0; i < 2; i++ {
 		s, _ := newTestQueriesStore(t)
-		q := dtqlQuery("q", "", "SELECT 1")
+		q := tugqlQuery("q", "", "SELECT 1")
 		saved, err := s.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true})
 		if err != nil {
 			t.Fatal(err)
@@ -81,7 +81,7 @@ func TestQueryCreationTimeServerIntentProducesSameRevision(t *testing.T) {
 func TestQueryUndatedUpdateFailsClosed(t *testing.T) {
 	s, dir := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q", "", "SELECT 1")
+	q := tugqlQuery("q", "", "SELECT 1")
 	if _, err := s.PutQuery(ctx, &q, datatug.QueryWriteCondition{IfNoneMatch: true}); err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +114,7 @@ func TestQueryUndatedUpdateFailsClosed(t *testing.T) {
 func TestQueryPersistedReadAndListRejectMissingCreation(t *testing.T) {
 	s, dir := newTestQueriesStore(t)
 	ctx := context.Background()
-	q := dtqlQuery("q", "", "SELECT 1")
+	q := tugqlQuery("q", "", "SELECT 1")
 	if err := s.SaveQuery(ctx, &q); err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +145,7 @@ func TestQueryPersistedReadAndListRejectMissingCreation(t *testing.T) {
 
 func TestQueryPairWriterRejectsCorruptStoredCreationMetadataBeforeStaging(t *testing.T) {
 	s, _ := newTestQueriesStore(t)
-	q := dtqlQuery("q", "", "SELECT 1")
+	q := tugqlQuery("q", "", "SELECT 1")
 	for _, raw := range []string{`{`, `{"createdAt":"not-a-date"}`} {
 		if _, err := s.stageAndInstallQueryPair(queryLockGuard{}, "", q.QueryDef, currentQueryPair{exists: true, jsonBytes: []byte(raw)}); err == nil {
 			t.Fatalf("accepted corrupt previous metadata %s", raw)

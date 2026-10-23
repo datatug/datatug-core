@@ -9,7 +9,7 @@ import (
 // Capture as project query: POST queries/capture (hub datatug/datatug
 // executable-knowledge-library REQ:capture-from-exploration, Phase 2 plan
 // task 2). The browser saves a lookup it already ran as an ordinary project
-// query - a "<id>.query.json" / "<id>.query.dtql" pair left as an
+// query - a "<id>.query.json" / "<id>.query.tugql" pair left as an
 // uncommitted Git change - with its purpose, typed parameters (semantic
 // ones declaring Meta as an EntityFieldRef) and source/binding provenance.
 //
@@ -48,8 +48,8 @@ type CapturedQuery struct {
 	// captured lookup read; the server resolves it through the project
 	// registry and binds the saved query to it.
 	Source string `json:"source"`
-	// DTQL is the query text persisted as "<id>.query.dtql".
-	DTQL           string                 `json:"dtql"`
+	// TugQL is the query text persisted as "<id>.query.tugql".
+	TugQL          string                 `json:"tugql"`
 	Parameters     []CapturedParameter    `json:"parameters"`
 	BindingOrigins []CaptureBindingOrigin `json:"bindingOrigins"`
 }
@@ -102,7 +102,7 @@ type CaptureProvenance struct {
 	Author string `json:"author,omitempty"`
 	// Environment is the environment the source was resolved in.
 	Environment string `json:"environment"`
-	// Collection is the collection the query reads, derived from the DTQL.
+	// Collection is the collection the query reads, derived from the TugQL.
 	Collection string `json:"collection"`
 }
 
@@ -138,7 +138,7 @@ func (r CaptureQueryRequest) Validate() error {
 // Validate enforces the shape rules both server and client apply: ID is one
 // path segment and FolderPath is "" or "/"-separated segments, none empty,
 // "." or ".." and none holding a backslash or NUL (the server applies its
-// stricter file-name rules on top); Title, Purpose, Source and DTQL are
+// stricter file-name rules on top); Title, Purpose, Source and TugQL are
 // required; every parameter has a unique ID, a type from the closed set and,
 // when present, a complete Meta; every binding origin names a declared
 // parameter at most once with origin selection, context or manual.
@@ -160,7 +160,7 @@ func (q CapturedQuery) Validate() error {
 		}
 	}
 	for _, f := range []struct{ name, value string }{
-		{"title", q.Title}, {"purpose", q.Purpose}, {"source", q.Source}, {"dtql", q.DTQL},
+		{"title", q.Title}, {"purpose", q.Purpose}, {"source", q.Source}, {"tugql", q.TugQL},
 	} {
 		if err := requireNonEmpty(f.name, f.value); err != nil {
 			return err

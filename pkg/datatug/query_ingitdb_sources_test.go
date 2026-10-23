@@ -8,17 +8,17 @@ import (
 
 const geoDescriptor = "https://raw.githubusercontent.com/datatug/datatug-demo-project/50ed33afd0aee803588b186a2a09b36760a7c99e/demo-project-1/fixtures/ovdb/geo-github.ovdb.yaml"
 
-func dtqlWithIngitdbSources(sources ...QueryIngitdbSource) QueryDef {
+func tugqlWithIngitdbSources(sources ...QueryIngitdbSource) QueryDef {
 	return QueryDef{
 		ProjectItem: ProjectItem{ProjItemBrief: ProjItemBrief{ID: "q", Title: "Q"}},
-		Type:        "DTQL",
+		Type:        "TugQL",
 		Federation:  &QueryFederation{OVDBBaseURL: "https://cloud.openvaultdb.com", IngitdbSources: sources},
 	}
 }
 
 func TestQueryFederation_IngitdbSourcesDecode(t *testing.T) {
 	var q QueryDef
-	if err := json.Unmarshal([]byte(`{"id":"q","type":"DTQL","federation":{"ingitdbSources":[{"database":"geo","descriptor":"`+geoDescriptor+`"}]}}`), &q); err != nil {
+	if err := json.Unmarshal([]byte(`{"id":"q","type":"TugQL","federation":{"ingitdbSources":[{"database":"geo","descriptor":"`+geoDescriptor+`"}]}}`), &q); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
 	if got := q.Federation.IngitdbSources; len(got) != 1 || got[0].Database != "geo" || got[0].Descriptor != geoDescriptor {
@@ -27,7 +27,7 @@ func TestQueryFederation_IngitdbSourcesDecode(t *testing.T) {
 }
 
 func TestQueryFederation_IngitdbSourcesValidate(t *testing.T) {
-	if err := dtqlWithIngitdbSources(QueryIngitdbSource{Database: "geo", Descriptor: geoDescriptor}).Validate(); err != nil {
+	if err := tugqlWithIngitdbSources(QueryIngitdbSource{Database: "geo", Descriptor: geoDescriptor}).Validate(); err != nil {
 		t.Fatalf("valid source refused: %v", err)
 	}
 	for name, tc := range map[string]struct {
@@ -46,7 +46,7 @@ func TestQueryFederation_IngitdbSourcesValidate(t *testing.T) {
 		"database listed twice": {[]QueryIngitdbSource{{Database: "geo", Descriptor: geoDescriptor}, {Database: "geo", Descriptor: geoDescriptor}}, "listed twice"},
 	} {
 		t.Run(name, func(t *testing.T) {
-			err := dtqlWithIngitdbSources(tc.sources...).Validate()
+			err := tugqlWithIngitdbSources(tc.sources...).Validate()
 			if err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Fatalf("want error containing %q, got %v", tc.want, err)
 			}
