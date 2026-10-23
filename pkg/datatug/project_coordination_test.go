@@ -21,6 +21,11 @@ func TestWatchCoordinationBoundaries(t *testing.T) {
 		require.Error(t, descriptor.UnmarshalJSON([]byte(body)))
 	}
 	var file ProjectFile
+	invalid := &WatchCoordination{Endpoint: "http://remote.example.com", Namespace: "northwind"}
+	require.ErrorContains(t, (&Project{Coordination: invalid}).Validate(), "HTTPS")
+	require.ErrorContains(t, (ProjectFile{Coordination: invalid}).Validate(), "HTTPS")
+	require.ErrorContains(t, json.Unmarshal([]byte(`{"coordination":{"endpoint":"http://remote.example.com","namespace":"northwind"}}`), &file), "HTTPS")
+	require.Nil(t, file.Coordination, "an invalid network endpoint must not become usable project metadata")
 	require.NoError(t, json.Unmarshal([]byte(`{"coordination":{"endpoint":"https://coord.example.com","namespace":"northwind"}}`), &file))
 	require.Equal(t, "northwind", file.Coordination.Namespace)
 	encoded, err := json.Marshal(file)
