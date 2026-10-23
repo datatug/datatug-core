@@ -1,0 +1,123 @@
+{
+	"version": 1,
+	"indexes": [
+		{
+			"name": "ix_ledger_currency",
+			"table": {
+				"schema": "accounting",
+				"name": "ledger"
+			},
+			"columns": [
+				{
+					"name": "currency_code"
+				}
+			]
+		},
+		{
+			"name": "ix_invoice_customer_date",
+			"table": {
+				"schema": "public",
+				"name": "invoice"
+			},
+			"columns": [
+				{
+					"name": "customer_id"
+				},
+				{
+					"name": "issued_on",
+					"descending": true
+				}
+			]
+		},
+		{
+			"name": "ux_invoice_number",
+			"table": {
+				"schema": "public",
+				"name": "invoice"
+			},
+			"columns": [
+				{
+					"name": "number"
+				}
+			],
+			"unique": true
+		},
+		{
+			"name": "ix_line_product",
+			"table": {
+				"schema": "public",
+				"name": "line"
+			},
+			"columns": [
+				{
+					"name": "product_sku"
+				},
+				{
+					"name": "quantity",
+					"included": true
+				},
+				{
+					"name": "price",
+					"included": true
+				}
+			]
+		},
+		{
+			"name": "pk_line",
+			"table": {
+				"schema": "public",
+				"name": "line"
+			},
+			"columns": [
+				{
+					"name": "order_id"
+				},
+				{
+					"name": "line_no"
+				}
+			],
+			"unique": true
+		},
+		{
+			"name": "ux_orders_open_ref",
+			"table": {
+				"schema": "public",
+				"name": "orders"
+			},
+			"columns": [
+				{
+					"name": "ref"
+				}
+			],
+			"unique": true,
+			"partial": true
+		},
+		{
+			"name": "ix \"quoted\" \\ back",
+			"table": {
+				"schema": "s",
+				"name": "a.b"
+			},
+			"columns": [
+				{
+					"name": "c\"1"
+				},
+				{
+					"name": "c\\2"
+				}
+			]
+		},
+		{
+			"name": "ix_dot",
+			"table": {
+				"schema": "s.a",
+				"name": "b"
+			},
+			"columns": [
+				{
+					"name": "a.b"
+				}
+			]
+		}
+	]
+}

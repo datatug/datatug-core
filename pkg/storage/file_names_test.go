@@ -18,6 +18,7 @@ func TestJsonFileName(t *testing.T) {
 		{"test", DbCatalogObjectFileSuffix, "test.objects.json"},
 		{"test", DbCatalogRefsFileSuffix, "test.refs.json"},
 		{"test", DbModelFileSuffix, "test.dbmodel.json"},
+		{"test", DbModelIndexesFileSuffix, "test.indexes.json"},
 		{"test", DbServerFileSuffix, "test.dbserver.json"},
 		{"test", RecordsetFileSuffix, "test.recordset.json"},
 		{"test", EntityFileSuffix, "test.entity.json"},
@@ -45,6 +46,7 @@ func TestGetProjItemIDFromFileName(t *testing.T) {
 		{"test.board.json", "test", "board"},
 		{"test.db.json", "test", "db"},
 		{"my.test.query.json", "my.test", "query"},
+		{"chinook.indexes.json", "chinook", DbModelIndexesFileSuffix},
 		{"short.json", "", ""},
 		{"nojson", "", ""},
 	}

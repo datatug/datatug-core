@@ -37,6 +37,7 @@ func JsonFileName(id, suffix string) string {
 		DbCatalogObjectFileSuffix,
 		DbCatalogRefsFileSuffix,
 		DbModelFileSuffix,
+		DbModelIndexesFileSuffix,
 		DbServerFileSuffix,
 		RecordsetFileSuffix,
 		EntityFileSuffix,
@@ -74,6 +75,10 @@ const (
 	// keys of a DB model, "<id>.refs.json" (spec/features/model-foreign-keys-file).
 	// It is the suffix JsonFileName already accepts for refs files.
 	DbModelRefsFileSuffix = DbCatalogRefsFileSuffix
+	// DbModelIndexesFileSuffix is the suffix of the file that holds the
+	// indexes of a DB model, "<id>.indexes.json"
+	// (spec/features/model-indexes-file).
+	DbModelIndexesFileSuffix = "indexes"
 	//DbSchemaFileSuffix        = "schema"
 	DbServerFileSuffix  = "dbserver"
 	RecordsetFileSuffix = "recordset"

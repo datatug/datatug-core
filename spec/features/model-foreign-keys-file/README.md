@@ -161,7 +161,7 @@ Writing the file changes no other file of the project, and a project with no suc
 
 #### REQ: not-stored
 
-The file does not store: indexes; check constraints; unique and primary keys (they are in the table's own files); the rule on delete or on update of a key; the match option; whether a key is deferrable, enforced or validated; the catalog of a table; and the inverse view of a key (the tables that reference a table), which is computed by reading every entry from the other side.
+The file does not store: indexes (they are in the [indexes file](../model-indexes-file/README.md) beside this one); check constraints; unique and primary keys (they are in the table's own files); the rule on delete or on update of a key; the match option; whether a key is deferrable, enforced or validated; the catalog of a table; and the inverse view of a key (the tables that reference a table), which is computed by reading every entry from the other side.
 
 These are left out because the consumers of the file (a join suggestion, a related-records lookup, a chat that follows a relation) need only the pairs of columns that join two tables, and because engines report the rest in different shapes that this format should not fix before a need is known. Each of these can be added later as an optional member of a foreign key, or as another file beside this one, without a new version, because a reader ignores what it does not know. The one exception is a catalog that differs between the two tables of a key, which cannot be added that way (below).
 
