@@ -200,6 +200,106 @@ func TestResolverCurrentHistoryCyclesRawNumbersAndNoMeanings(t *testing.T) {
 	require.Equal(t, upper, same.Reference)
 	require.Equal(t, f.rootID, same.Root.RevisionID)
 }
+
+// These are deployment metadata fixtures, not running database environments.
+// Engine/catalog selection stays outside the logical model's exact identity.
+func TestProjectCatalogBindingsResolveEngineIndependentRevisionFixtures(t *testing.T) {
+	f, config := newFixture(t)
+	resolver, err := NewResolver(config)
+	require.NoError(t, err)
+	require.Equal(t, f.ref.Address, f.history.Address)
+	require.NotEqual(t, f.ref.Commit, f.history.Commit)
+
+	var environments datatug.Environments
+	require.NoError(t, json.Unmarshal([]byte(`[
+		{"id":"dev","title":"SQLite metadata fixture","dbServers":[{"driver":"sqlite3","catalogs":["model-dev"]}]},
+		{"id":"QA","title":"PostgreSQL metadata fixture","dbServers":[{"driver":"postgres","host":"qa-fixture.invalid","port":5432,"catalogs":["model-qa"]}]},
+		{"id":"prod","title":"SQLServer metadata fixture","dbServers":[{"driver":"sqlserver","host":"prod-fixture.invalid","port":1433,"catalogs":["model-prod"]}]}
+	]`), &environments))
+	require.NoError(t, environments.Validate())
+	physicalMetadata, err := json.Marshal(environments)
+	require.NoError(t, err)
+
+	metadata := `{"id":"deployment-fixture","title":"Metadata fixtures only","access":"private","created":{"at":"2026-10-23T00:00:00Z"},"dataModels":{
+		"version":1,"references":[
+			{"id":"pin-a","address":"` + f.ref.Address + `","commit":"` + f.ref.Commit + `"},
+			{"id":"pin-b","address":"` + f.history.Address + `","commit":"` + f.history.Commit + `"}],
+		"catalogBindings":[
+			{"environment":"dev","catalog":"model-dev","reference":"pin-a"},
+			{"environment":"QA","catalog":"model-qa","reference":"QA-PIN"},
+			{"environment":"prod","catalog":"model-prod","reference":"pin-b"}]}}`
+	resolved := map[string]ModelRevision{}
+	for _, qaPin := range []string{"pin-a", "pin-b"} {
+		t.Run("QA-"+qaPin, func(t *testing.T) {
+			var project, restored datatug.ProjectFile
+			require.NoError(t, json.Unmarshal([]byte(strings.Replace(metadata, "QA-PIN", qaPin, 1)), &project))
+			require.NoError(t, project.Validate())
+			body, err := json.Marshal(project)
+			require.NoError(t, err)
+			require.NoError(t, json.Unmarshal(body, &restored))
+			require.NoError(t, restored.Validate())
+			require.Equal(t, project.DataModels, restored.DataModels)
+			for _, deployment := range []struct{ environment, driver, catalog, alias string }{
+				{"dev", "sqlite3", "model-dev", "pin-a"},
+				{"QA", "postgres", "model-qa", qaPin},
+				{"prod", "sqlserver", "model-prod", "pin-b"},
+			} {
+				t.Run(deployment.environment, func(t *testing.T) {
+					environment := environments.GetByID(deployment.environment)
+					require.NotNil(t, environment)
+					require.Equal(t, deployment.driver, environment.DbServers[0].Driver)
+					require.Contains(t, environment.DbServers[0].Catalogs, deployment.catalog)
+					want, revisionID := f.ref, f.rootID
+					if deployment.alias == "pin-b" {
+						want, revisionID = f.history, f.oldID
+					}
+					ref, err := restored.DataModels.ReferenceForCatalog(environment.ID, deployment.catalog)
+					require.NoError(t, err)
+					require.Equal(t, want, ref)
+					got, err := resolver.Resolve(context.Background(), ref)
+					require.NoError(t, err)
+					require.Equal(t, ref, got.Reference)
+					require.Equal(t, want, got.Root.DataModelReference)
+					require.Equal(t, revisionID, got.Root.RevisionID)
+					definition, err := os.ReadFile(filepath.Join(f.root, "definitions", revisionID+".json"))
+					require.NoError(t, err)
+					require.Equal(t, definition, []byte(got.Root.Definition))
+					for _, item := range f.receipt(t, revisionID)["files"].([]any) {
+						source := item.(map[string]any)
+						original, err := os.ReadFile(filepath.Join(f.root, source["artifactPath"].(string)))
+						require.NoError(t, err)
+						switch source["path"] {
+						case "model/A.modelspec.json":
+							require.Equal(t, original, []byte(got.Root.SourceJSON))
+						case "model/A.modelspec.hcl":
+							require.Equal(t, original, got.Root.SourceHCL)
+						}
+					}
+					if previous, exists := resolved[ref.Commit]; exists {
+						require.Equal(t, previous.Definition, got.Root.Definition)
+						require.Equal(t, previous.SourceJSON, got.Root.SourceJSON)
+						require.Equal(t, previous.SourceHCL, got.Root.SourceHCL)
+					}
+					resolved[ref.Commit] = got.Root
+				})
+			}
+			_, err = restored.DataModels.ReferenceForCatalog("unknown", "model-qa")
+			require.Error(t, err, "an unknown deployment must not inherit a default binding")
+		})
+	}
+	require.Len(t, resolved, 2)
+	require.Equal(t, resolved[f.ref.Commit].Module, resolved[f.history.Commit].Module)
+	require.NotEqual(t, resolved[f.ref.Commit].SourceJSON, resolved[f.history.Commit].SourceJSON)
+	after, err := json.Marshal(environments)
+	require.NoError(t, err)
+	require.Equal(t, physicalMetadata, after, "QA model reassignment must not rewrite engine/environment metadata")
+	missing := f.history
+	missing.Commit = strings.Repeat("0", 40)
+	result, err := resolver.Resolve(context.Background(), missing)
+	require.Error(t, err, "a missing exact pin must not fall back to the selected revision")
+	require.Nil(t, result)
+}
+
 func TestResolverRejectsMissingPinsHashesAndIdentityWithoutLatestFallback(t *testing.T) {
 	cases := []struct {
 		name   string
