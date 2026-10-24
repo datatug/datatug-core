@@ -99,10 +99,9 @@ func CopyContext(ctx context.Context, p Principal, source, destination *Service,
 			if !ok || entry.CurrentRevisionID != ref.RevisionID {
 				return ErrConflict
 			}
-			revision, ok := revisions[ref.RevisionID]
-			if !ok {
-				return ErrUnavailable
-			}
+			// loadSnapshot validated and included every entry's exact current
+			// revision before selection was admitted above.
+			revision := revisions[ref.RevisionID]
 			fromBag := bags[entry.BagID]
 			if err = destination.authorizeCopy(ctx, p, dst.ID, &fromBag.Scope); err != nil {
 				return err

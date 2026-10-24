@@ -224,3 +224,9 @@ func TestWorkIncidentAssociationIsTrustedProjectionOnly(t *testing.T) {
 	events[0].Payload = append(events[0].Payload[:len(events[0].Payload)-1], []byte(`,"workItemId":"forged"}`)...)
 	require.Error(t, events[0].Validate())
 }
+
+func TestResolutionProofRejectsMalformedReopeningState(t *testing.T) {
+	_, proof, at := reopenFixture(t)
+	incident := Incident{ResolutionEpoch: 1}
+	require.ErrorContains(t, ValidateIncidentResolutionProof(incident, proof, at), "requires reopening time")
+}
