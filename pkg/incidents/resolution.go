@@ -124,6 +124,8 @@ func (c ResolutionCriterion) Validate() error {
 // latest attempts/configuration for every affected input. Core validates the
 // immutable contract and wall-clock freshness; it does not fetch source records.
 type ResolutionProof struct {
+	// ResolutionEpoch binds proof to the current reopening epoch (zero for legacy streams).
+	ResolutionEpoch uint64 `json:"resolutionEpoch,omitempty"`
 	// DefinitionDigest must come from the actual retained run definition, using
 	// sessioncontext.CanonicalDetectiveDefinition, under current host admission.
 	DefinitionDigest string          `json:"definitionDigest,omitempty"`
@@ -217,11 +219,17 @@ func validateDefinitionDigest(digest string) error {
 
 // ResolvedPayload commits the human note and proof in the same event.
 type ResolvedPayload struct {
-	HumanNote string          `json:"humanNote"`
-	Proof     ResolutionProof `json:"proof"`
+	// LifecycleVersion 1 records the resolved outcome with verified evidence.
+	// Version 0 retains historical streams with a separate outcome event.
+	LifecycleVersion int             `json:"lifecycleVersion,omitempty"`
+	HumanNote        string          `json:"humanNote"`
+	Proof            ResolutionProof `json:"proof"`
 }
 
 func (p ResolvedPayload) Validate(at time.Time) error {
+	if p.LifecycleVersion < 0 || p.LifecycleVersion > 1 {
+		return fmt.Errorf("unsupported resolution lifecycle version")
+	}
 	if strings.TrimSpace(p.HumanNote) == "" {
 		return fmt.Errorf("resolution humanNote is required")
 	}
@@ -255,12 +263,15 @@ func (p *Incident) applyResolutionEvent(event Event) error {
 		if p.ResolutionCriterion == nil {
 			return fmt.Errorf("verified resolution requires a criterion")
 		}
-		if err := ValidateResolutionProof(*p.ResolutionCriterion, r.Proof, event.At); err != nil {
+		if err := ValidateIncidentResolutionProof(*p, r.Proof, event.At); err != nil {
 			return err
 		}
 		p.Resolution = &r
 		p.ResolutionEventID = event.ID
 		p.Status = StatusResolved
+		if r.LifecycleVersion == 1 {
+			p.Outcome = OutcomeResolved
+		}
 		p.NoteEntries = append(p.NoteEntries, Note{EventID: event.ID, Body: r.HumanNote})
 		p.Notes = append(p.Notes, r.HumanNote)
 	}

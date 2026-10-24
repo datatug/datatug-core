@@ -33,7 +33,7 @@ type AuditEvent struct {
 // CreateCase strips server-owned history and starts a versioned active Case.
 // Capacity and uniqueness are repository checks inside its transaction.
 func CreateCase(item Case, actor string, at time.Time) (Case, AuditEvent, error) {
-	if !validSlug(item.ID) || strings.TrimSpace(item.Title) == "" || item.Version != 0 || actor == "" || at.IsZero() {
+	if item.WorkItemID != "" || !validSlug(item.ID) || strings.TrimSpace(item.Title) == "" || item.Version != 0 || actor == "" || at.IsZero() {
 		return Case{}, AuditEvent{}, ErrInvalid
 	}
 	var err error
@@ -65,7 +65,7 @@ func CreateCase(item Case, actor string, at time.Time) (Case, AuditEvent, error)
 // UpdateCase applies a client edit while preserving run links, scenario
 // applications, and server-issued lifecycle history from the stored version.
 func UpdateCase(old, next Case, actor string, at time.Time) (Case, AuditEvent, error) {
-	if !validSlug(next.ID) || old.ID != next.ID || next.Version != old.Version || strings.TrimSpace(next.Title) == "" || actor == "" || at.IsZero() {
+	if old.WorkItemID != next.WorkItemID || !validSlug(next.ID) || old.ID != next.ID || next.Version != old.Version || strings.TrimSpace(next.Title) == "" || actor == "" || at.IsZero() {
 		return Case{}, AuditEvent{}, ErrConflict
 	}
 	if !validTransition(old.Status, next.Status, next.ClosureReason) {

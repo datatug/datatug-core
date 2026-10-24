@@ -144,6 +144,9 @@ type CreateResult struct {
 }
 
 func (m Mutation) Validate() error {
+	if m.Event.Type == EventIncidentReopened && (m.ExpectedSeq == nil || *m.ExpectedSeq == 0) {
+		return fmt.Errorf("incidents: reopen requires positive expectedSeq")
+	}
 	if err := ValidateMutationID(m.MutationID); err != nil {
 		return err
 	}

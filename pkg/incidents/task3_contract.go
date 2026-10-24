@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/datatug/datatug-core/pkg/investigation"
@@ -25,8 +26,14 @@ func (a Actor) Validate() error {
 }
 
 func (i Incident) Validate() error {
+	if i.WorkItemID != "" && !validSegment(i.WorkItemID) {
+		return fmt.Errorf("invalid workItemId")
+	}
+	if err := i.validateResolutionEpoch(); err != nil {
+		return err
+	}
 	if i.Resolution != nil && i.ResolutionCriterion != nil {
-		if err := ValidateResolutionProof(*i.ResolutionCriterion, i.Resolution.Proof, i.Resolution.Proof.EvaluatedAt); err != nil {
+		if err := ValidateIncidentResolutionProof(i, i.Resolution.Proof, i.Resolution.Proof.EvaluatedAt); err != nil {
 			return err
 		}
 	}
@@ -140,6 +147,9 @@ type ViewPolicy struct {
 // always contains canonical facts; only this read model may contain redaction
 // markers.
 type IncidentView struct {
+	WorkItemID          string                    `json:"workItemId,omitempty"`
+	ResolutionEpoch     uint64                    `json:"resolutionEpoch,omitempty"`
+	ReopenedAt          *time.Time                `json:"reopenedAt,omitempty"`
 	ResolutionCriterion *ResolutionCriterion      `json:"resolutionCriterion,omitempty"`
 	Resolution          *ResolvedPayload          `json:"resolution,omitempty"`
 	Ref                 IncidentRef               `json:"ref"`
@@ -161,7 +171,9 @@ type IncidentView struct {
 
 func (i IncidentView) Validate() error {
 	storedShape := Incident{
+		WorkItemID:          i.WorkItemID,
 		ResolutionCriterion: i.ResolutionCriterion, Resolution: i.Resolution,
+		ResolutionEpoch: i.ResolutionEpoch, ReopenedAt: i.ReopenedAt,
 		Ref: i.Ref, UID: i.UID, Title: i.Title, Description: i.Description, Status: i.Status,
 		Outcome: i.Outcome, MergedInto: i.MergedInto, Projects: i.Projects,
 		Participants: i.Participants, AssetRefs: i.AssetRefs, Notes: i.Notes, LastSeq: i.LastSeq,
@@ -185,7 +197,8 @@ func (i Incident) validateWithoutContext() error {
 
 func ApplyIncidentView(stored Incident, policy ViewPolicy) IncidentView {
 	return IncidentView{
-		Ref: stored.Ref, UID: stored.UID, Title: stored.Title, Description: stored.Description,
+		WorkItemID: stored.WorkItemID,
+		Ref:        stored.Ref, UID: stored.UID, Title: stored.Title, Description: stored.Description,
 		Status: stored.Status, Outcome: stored.Outcome, MergedInto: cloneIncidentRef(stored.MergedInto),
 		Projects:          append([]ProjectRef(nil), stored.Projects...),
 		Participants:      append([]Participant(nil), stored.Participants...),
@@ -194,6 +207,7 @@ func ApplyIncidentView(stored Incident, policy ViewPolicy) IncidentView {
 		ContextRejections: filterContextRejections(stored.ContextRejections, policy),
 		AssetRefs:         filterAssetRefs(stored, policy), Notes: filterNotes(stored, policy),
 		ResolutionCriterion: visibleCriterion(stored, policy), Resolution: visibleResolution(stored, policy),
+		ResolutionEpoch: stored.ResolutionEpoch, ReopenedAt: cloneReopenedAt(stored.ReopenedAt),
 		LastSeq: stored.LastSeq,
 	}
 }
