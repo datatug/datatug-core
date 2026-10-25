@@ -117,7 +117,7 @@ func TestDefinitionRefusalsAreRecoverableAndCannotOpen(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			opened, err := Open(test.manifest, test.fixtures)
 			require.Nil(t, opened)
-			requireRefused(t, err, test.code)
+			_ = requireRefused(t, err, test.code)
 		})
 	}
 
@@ -128,7 +128,7 @@ func TestDefinitionRefusalsAreRecoverableAndCannotOpen(t *testing.T) {
 		fixtures[firstFixture] = corrupted
 		opened, err := Open(valid, fixtures)
 		require.Nil(t, opened)
-		requireRefused(t, err, CodeFixtureHash)
+		_ = requireRefused(t, err, CodeFixtureHash)
 	})
 
 	t.Run("mismatched fixture byte length", func(t *testing.T) {
@@ -136,7 +136,7 @@ func TestDefinitionRefusalsAreRecoverableAndCannotOpen(t *testing.T) {
 		fixtures[firstFixture] = fixtures[firstFixture][:len(fixtures[firstFixture])-1]
 		opened, err := Open(valid, fixtures)
 		require.Nil(t, opened)
-		requireRefused(t, err, CodeFixtureBytes)
+		_ = requireRefused(t, err, CodeFixtureBytes)
 	})
 
 	t.Run("missing fixture bytes", func(t *testing.T) {
@@ -144,7 +144,7 @@ func TestDefinitionRefusalsAreRecoverableAndCannotOpen(t *testing.T) {
 		delete(fixtures, firstFixture)
 		opened, err := Open(valid, fixtures)
 		require.Nil(t, opened)
-		requireRefused(t, err, CodeFixtureMissing)
+		_ = requireRefused(t, err, CodeFixtureMissing)
 	})
 
 	// A refused definition cannot be turned into a completed attempt.
@@ -157,7 +157,7 @@ func TestDefinitionRefusalsAreRecoverableAndCannotOpen(t *testing.T) {
 		fixtures["surprise"] = []byte("not pinned")
 		opened, err := Open(valid, fixtures)
 		require.Nil(t, opened)
-		requireRefused(t, err, CodeFixtureUnknown)
+		_ = requireRefused(t, err, CodeFixtureUnknown)
 	})
 }
 
@@ -296,7 +296,7 @@ func TestStructuredManifestReferencesAreClosed(t *testing.T) {
 	for _, test := range mutations {
 		t.Run(test.name, func(t *testing.T) {
 			_, err := LoadManifest(mutateManifestJSON(t, valid, test.mutate))
-			requireRefused(t, err, CodeInvalidManifest)
+			_ = requireRefused(t, err, CodeInvalidManifest)
 		})
 	}
 }
@@ -328,13 +328,13 @@ func TestOpenedFixturesAreImmutableCopies(t *testing.T) {
 
 func TestAssetPathsRejectTraversalAndBadRevisions(t *testing.T) {
 	_, err := AssetPath("../escape", 1)
-	requireRefused(t, err, CodeInvalidManifest)
+	_ = requireRefused(t, err, CodeInvalidManifest)
 	_, err = AssetPath("ok", 0)
-	requireRefused(t, err, CodeInvalidManifest)
+	_ = requireRefused(t, err, CodeInvalidManifest)
 	_, err = GuidedRouteSuffix("ok", 0)
-	requireRefused(t, err, CodeInvalidManifest)
+	_ = requireRefused(t, err, CodeInvalidManifest)
 	_, err = FixtureAssetPath("ok", "../escape")
-	requireRefused(t, err, CodeInvalidManifest)
+	_ = requireRefused(t, err, CodeInvalidManifest)
 
 	path, err := FixtureAssetPath("deduplicate-customers", "nonsequential")
 	require.NoError(t, err)
@@ -365,7 +365,8 @@ func TestRequireEngineRejectsDifferentRuntime(t *testing.T) {
 	require.NoError(t, opened.RequireEngine(SupportedEngine))
 	different := SupportedEngine
 	different.Version = "3.99.0-build1"
-	requireRefused(t, opened.RequireEngine(different), CodeUnsupportedEngine)
+	differentErr := opened.RequireEngine(different)
+	_ = requireRefused(t, differentErr, CodeUnsupportedEngine)
 }
 
 func TestResultOracleAcceptsHeterogeneousCellsButValidatesMetadata(t *testing.T) {
