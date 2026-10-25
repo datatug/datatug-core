@@ -196,7 +196,7 @@ func (s *ProjectStore) saveAsset(ctx context.Context, kind, id string, value any
 	if err := writer.Get(ctx, r); err != nil && !record.IsNotFound(err) {
 		return err
 	}
-	if card, ok := value.(*datatug.Card); ok && card.CreatedAt == "" {
+	if card, ok := value.(*datatug.Card); ok {
 		var previous *datatug.Card
 		if r.Exists() {
 			previous = new(datatug.Card)

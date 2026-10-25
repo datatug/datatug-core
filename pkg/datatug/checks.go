@@ -15,7 +15,9 @@ type Check struct {
 	Title string          `json:"title,omitempty"`
 	Type  string          `json:"type"`
 	Data  json.RawMessage `json:"data,omitempty"`
-	// CreatedAt is the optional RFC3339 creation date.
+	// CreatedAt is the optional RFC3339 creation date. Core has no save path for
+	// checks: the writer (the CLI detective store) stamps it on create. Existing
+	// undated files stay undated on purpose.
 	CreatedAt string `json:"createdAt,omitempty"`
 }
 

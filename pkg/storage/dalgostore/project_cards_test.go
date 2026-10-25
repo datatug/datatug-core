@@ -87,6 +87,11 @@ func TestProjectCardsCreatedAt(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "2026-10-07T06:18:13Z", got.CreatedAt)
 
+	backdated := assetCard("fresh")
+	backdated.CreatedAt = "2000-01-01T00:00:00Z"
+	require.NoError(t, store.SaveCard(ctx, backdated))
+	require.Equal(t, fresh.CreatedAt, backdated.CreatedAt, "a backdated save cannot change the stored date")
+
 	bad := assetCard("bad")
 	bad.CreatedAt = "nope"
 	require.ErrorIs(t, store.SaveCard(ctx, bad), dalgostore.ErrAssetInvalid)

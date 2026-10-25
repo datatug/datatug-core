@@ -24,16 +24,16 @@ func NewCreatedAt(at time.Time) string {
 	return at.UTC().Format(time.RFC3339Nano)
 }
 
-// StampCardCreatedAt keeps a card's creation date across saves. A card that
-// already carries one keeps it; otherwise it inherits the stored card's, and
-// only a card that was never saved (existing == nil) is stamped with now.
-// A stored card that has no date stays undated: its creation time is unknown.
+// StampCardCreatedAt makes a card's creation date immutable across saves. A
+// stored card's date always wins, so an overwrite or a backdated save cannot
+// change it. Only when the stored card has no date (or there is none) does the
+// caller's date apply, and when that is empty too the card is stamped with now.
+// It mutates card.
 func StampCardCreatedAt(card, existing *Card, now time.Time) {
 	switch {
-	case card.CreatedAt != "":
-	case existing != nil:
+	case existing != nil && existing.CreatedAt != "":
 		card.CreatedAt = existing.CreatedAt
-	default:
+	case card.CreatedAt == "":
 		card.CreatedAt = NewCreatedAt(now)
 	}
 }

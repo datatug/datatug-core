@@ -27,19 +27,27 @@ func TestStampCardCreatedAt(t *testing.T) {
 	now := time.Date(2026, 10, 25, 1, 2, 3, 0, time.UTC)
 	card := &Card{CreatedAt: "2026-01-01T00:00:00Z"}
 	StampCardCreatedAt(card, &Card{CreatedAt: "2025-01-01T00:00:00Z"}, now)
-	assert.Equal(t, "2026-01-01T00:00:00Z", card.CreatedAt, "own date wins")
+	assert.Equal(t, "2025-01-01T00:00:00Z", card.CreatedAt, "stored date wins over a backdated one")
 
 	card = &Card{}
 	StampCardCreatedAt(card, &Card{CreatedAt: "2025-01-01T00:00:00Z"}, now)
 	assert.Equal(t, "2025-01-01T00:00:00Z", card.CreatedAt, "inherited from stored card")
 
+	card = &Card{CreatedAt: "2026-01-01T00:00:00Z"}
+	StampCardCreatedAt(card, &Card{}, now)
+	assert.Equal(t, "2026-01-01T00:00:00Z", card.CreatedAt, "undated stored card takes the caller's date")
+
 	card = &Card{}
 	StampCardCreatedAt(card, &Card{}, now)
-	assert.Empty(t, card.CreatedAt, "stored undated card stays undated")
+	assert.Equal(t, "2026-10-25T01:02:03Z", card.CreatedAt, "undated stored card is stamped")
 
 	card = &Card{}
 	StampCardCreatedAt(card, nil, now)
 	assert.Equal(t, "2026-10-25T01:02:03Z", card.CreatedAt, "new card is stamped")
+
+	card = &Card{CreatedAt: "2026-01-01T00:00:00Z"}
+	StampCardCreatedAt(card, nil, now)
+	assert.Equal(t, "2026-01-01T00:00:00Z", card.CreatedAt, "new card keeps the caller's date")
 }
 
 func TestCardCreatedAt(t *testing.T) {

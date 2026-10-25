@@ -165,7 +165,8 @@ func (s fsCardsStore) LoadCards(_ context.Context, o ...datatug.StoreOption) (da
 }
 
 // SaveCard always writes the folder form. A flat file of the same card is
-// removed so the saved card is not shadowed or duplicated.
+// removed so the saved card is not shadowed or duplicated. SaveCard mutates the
+// caller's card: its CreatedAt is set to the stored value, or stamped when new.
 func (s fsCardsStore) SaveCard(_ context.Context, card *datatug.Card) error {
 	if card == nil {
 		return fmt.Errorf("card is nil")
@@ -173,13 +174,14 @@ func (s fsCardsStore) SaveCard(_ context.Context, card *datatug.Card) error {
 	if err := checkCardID(card.ID); err != nil {
 		return err
 	}
-	if card.CreatedAt == "" {
-		existing, err := s.loadOneCard(card.ID)
-		if err != nil && !errors.Is(err, errInvalidCardContent) {
-			return err
-		}
-		datatug.StampCardCreatedAt(card, existing, time.Now()) // unreadable content counts as never saved
+	if err := datatug.ValidateOptionalCreatedAt(card.CreatedAt); err != nil {
+		return err
 	}
+	existing, err := s.loadOneCard(card.ID)
+	if err != nil && !errors.Is(err, errInvalidCardContent) {
+		return err
+	}
+	datatug.StampCardCreatedAt(card, existing, time.Now()) // unreadable content counts as never saved
 	if err := saveJSONFile(s.projectDir, path.Join(s.dirPath, card.ID), cardFileName, card); err != nil {
 		return fmt.Errorf("failed to save card file: %w", err)
 	}
