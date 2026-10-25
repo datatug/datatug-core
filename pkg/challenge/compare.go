@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/datatug/datatug-core/pkg/apicontract"
 )
@@ -48,6 +50,15 @@ type RowDiff struct {
 	Unexpected int      `json:"unexpected,omitempty"`
 	Examples   []string `json:"examples,omitempty"`
 }
+
+// Feedback examples are bounded so a hostile cell cannot inflate an answer or
+// its wire payload. The limit counts Unicode code points, not UTF-16 units, so
+// truncation never splits a surrogate pair or an astral character.
+const (
+	maxFeedbackExamples     = 3
+	maxFeedbackExampleRunes = 240
+	feedbackEllipsis        = "…"
+)
 
 // CompareTypedRows compares a declared expected recordset with an observed
 // one. Column metadata is validated for supported shape, but a column's declared
@@ -110,7 +121,7 @@ func CompareTypedRows(expectedColumns, actualColumns []apicontract.Column, expec
 	for index, expected := range expectedRows {
 		if !matchedExpected[index] {
 			missing++
-			if len(examples) < 3 {
+			if len(examples) < maxFeedbackExamples {
 				examples = append(examples, "missing: "+renderRow(expected))
 			}
 		}
@@ -118,7 +129,7 @@ func CompareTypedRows(expectedColumns, actualColumns []apicontract.Column, expec
 	for index, actual := range actualRows {
 		if !matchedActual[index] {
 			unexpected++
-			if len(examples) < 3 {
+			if len(examples) < maxFeedbackExamples {
 				examples = append(examples, "unexpected: "+renderRow(actual))
 			}
 		}
@@ -131,8 +142,36 @@ func CompareTypedRows(expectedColumns, actualColumns []apicontract.Column, expec
 		Message:    fmt.Sprintf("%d expected row(s) missing, %d unexpected row(s); duplicate multiplicity and NULL are significant", missing, unexpected),
 		Missing:    missing,
 		Unexpected: unexpected,
-		Examples:   examples,
+		Examples:   boundedExamples(examples),
 	}
+}
+
+// boundedExamples returns a new, deterministically ordered slice capped at
+// maxFeedbackExamples entries, each valid UTF-8 and capped at
+// maxFeedbackExampleRunes code points. Truncation appends an explicit ellipsis
+// marker, so a clipped example can never be mistaken for a complete one.
+func boundedExamples(examples []string) []string {
+	if len(examples) == 0 {
+		return nil
+	}
+	limit := len(examples)
+	if limit > maxFeedbackExamples {
+		limit = maxFeedbackExamples
+	}
+	bounded := make([]string, 0, limit)
+	for _, example := range examples[:limit] {
+		bounded = append(bounded, boundedExample(example))
+	}
+	return bounded
+}
+
+func boundedExample(example string) string {
+	valid := strings.ToValidUTF8(example, "\uFFFD")
+	if utf8.RuneCountInString(valid) <= maxFeedbackExampleRunes {
+		return valid
+	}
+	runes := []rune(valid)
+	return string(runes[:maxFeedbackExampleRunes]) + feedbackEllipsis
 }
 
 // matchRows returns a deterministic maximum matching. Exact typed equality is

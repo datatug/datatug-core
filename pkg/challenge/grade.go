@@ -35,14 +35,19 @@ type Observation struct {
 	ErrorCode string                 `json:"errorCode,omitempty"`
 }
 
-// SQLCaseResult reports one fixture's graded outcome.
+// SQLCaseResult reports one fixture's graded outcome. Missing, Unexpected and
+// Examples are present only for a same-shape unordered row-content mismatch;
+// they carry bounded, deterministic feedback and never affect the verdict.
 type SQLCaseResult struct {
-	Fixture         string `json:"fixture"`
-	Outcome         string `json:"outcome"`
-	ExecutionStatus string `json:"executionStatus"`
-	Problem         string `json:"problem,omitempty"`
-	InvariantID     string `json:"invariantId,omitempty"`
-	Message         string `json:"message,omitempty"`
+	Fixture         string   `json:"fixture"`
+	Outcome         string   `json:"outcome"`
+	ExecutionStatus string   `json:"executionStatus"`
+	Problem         string   `json:"problem,omitempty"`
+	InvariantID     string   `json:"invariantId,omitempty"`
+	Message         string   `json:"message,omitempty"`
+	Missing         int      `json:"missing,omitempty"`
+	Unexpected      int      `json:"unexpected,omitempty"`
+	Examples        []string `json:"examples,omitempty"`
 }
 
 // SQLPartResult reports every fixture case for one SQL answer.
@@ -118,6 +123,11 @@ func GradeSQLPart(part SQLPart, sql string, observations map[string]Observation)
 					caseResult.Outcome = OutcomeFail
 					caseResult.Problem = diff.Problem
 					caseResult.Message = diff.Message
+					// Row-content feedback is bounded and copied so callers can
+					// retain or mutate one result without affecting another.
+					caseResult.Missing = diff.Missing
+					caseResult.Unexpected = diff.Unexpected
+					caseResult.Examples = boundedExamples(diff.Examples)
 				}
 			case OracleFinalState:
 				if len(observation.Tables) == 0 {

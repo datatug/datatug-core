@@ -25,6 +25,7 @@ each fixture is pinned by SHA-256 and byte length in the manifest.
 | Read challenge: typed result oracle + closed multi-select part | `testdata/challenges/retry-evidence/1.json` |
 | Pristine-run observations for both challenges | `testdata/goldens/*.json` |
 | Language-neutral grading regression vectors | `testdata/grading-vectors.json` |
+| Language-neutral bounded-feedback vectors | `testdata/feedback-vectors.json` |
 | Fixture bytes (committed, pinned) | `testdata/fixtures/<challengeId>/*.db` |
 | Deterministic generator | `testdata/generate_goldens.py` |
 
@@ -49,7 +50,10 @@ from a refused definition.
   columns are therefore legitimate. Expected oracle rows and observed rows use
   the same local shape/value rules.
 - Result oracles compare typed rows as an unordered multiset by default; ordered
-  comparison happens only when `ordering: "ordered"` is declared.
+  comparison happens only when `ordering: "ordered"` is declared. A failed
+  unordered comparison carries complete `missing`/`unexpected` counts and at
+  most three examples, each bounded to 240 Unicode code points plus an ellipsis
+  marker when truncated; ordered comparison keeps its first differing cell.
 - Final-state oracles compare every declared table exactly and then evaluate
   named invariants. The observed table set must match the declared set exactly,
   so an undeclared or newly created table cannot pass unnoticed. The only
