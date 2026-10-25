@@ -2,10 +2,11 @@ package detective
 
 import (
 	"fmt"
-	"github.com/datatug/datatug-core/pkg/datatug"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
 // AuditEvent deliberately carries metadata only. No parameter values, source
