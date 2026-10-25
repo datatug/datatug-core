@@ -62,3 +62,37 @@ func TestProjectCardsRejections(t *testing.T) {
 	invalid.Title = ""
 	require.ErrorIs(t, store.SaveCard(ctx, invalid), dalgostore.ErrAssetInvalid)
 }
+
+func TestProjectCardsCreatedAt(t *testing.T) {
+	ctx := context.Background()
+	root := record.NewKeyWithParentAndID(record.NewKeyWithID("spaces", "one"), "projects", "project")
+	store, err := dalgostore.NewProjectItemsStore(newTestDB(), "project", root)
+	require.NoError(t, err)
+
+	fresh := assetCard("fresh")
+	require.NoError(t, store.SaveCard(ctx, fresh))
+	require.NotEmpty(t, fresh.CreatedAt, "new card is stamped")
+
+	again := assetCard("fresh")
+	require.NoError(t, store.SaveCard(ctx, again))
+	require.Equal(t, fresh.CreatedAt, again.CreatedAt, "overwrite keeps the stored date")
+	got, err := store.LoadCard(ctx, "fresh")
+	require.NoError(t, err)
+	require.Equal(t, fresh.CreatedAt, got.CreatedAt)
+
+	explicit := assetCard("explicit")
+	explicit.CreatedAt = "2026-10-07T06:18:13Z"
+	require.NoError(t, store.SaveCard(ctx, explicit))
+	got, err = store.LoadCard(ctx, "explicit")
+	require.NoError(t, err)
+	require.Equal(t, "2026-10-07T06:18:13Z", got.CreatedAt)
+
+	backdated := assetCard("fresh")
+	backdated.CreatedAt = "2000-01-01T00:00:00Z"
+	require.NoError(t, store.SaveCard(ctx, backdated))
+	require.Equal(t, fresh.CreatedAt, backdated.CreatedAt, "a backdated save cannot change the stored date")
+
+	bad := assetCard("bad")
+	bad.CreatedAt = "nope"
+	require.ErrorIs(t, store.SaveCard(ctx, bad), dalgostore.ErrAssetInvalid)
+}

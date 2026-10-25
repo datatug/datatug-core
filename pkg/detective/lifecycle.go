@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
 // AuditEvent deliberately carries metadata only. No parameter values, source
@@ -337,7 +339,7 @@ func AttachRun(c Case, run CheckRun, eventID, actor string, at time.Time) (Case,
 // ValidateScenario checks query range bindings per step. Scenario inputs may
 // be consumed by query steps or by the Check steps they configure.
 func ValidateScenario(scenario Scenario) error {
-	if !validSlug(scenario.ID) || strings.TrimSpace(scenario.Title) == "" || len(scenario.Steps) == 0 || len(scenario.Steps) > 32 || len(scenario.Inputs) > 64 {
+	if !validSlug(scenario.ID) || strings.TrimSpace(scenario.Title) == "" || len(scenario.Steps) == 0 || len(scenario.Steps) > 32 || len(scenario.Inputs) > 64 || datatug.ValidateOptionalCreatedAt(scenario.CreatedAt) != nil {
 		return ErrInvalid
 	}
 	inputNames := map[string]bool{}

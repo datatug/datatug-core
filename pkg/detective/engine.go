@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/datatug/datatug-core/pkg/apicontract"
+	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/investigation"
 )
 
@@ -37,7 +38,7 @@ type QueryFailure struct{ Code string }
 func (e *QueryFailure) Error() string { return "saved query execution failed" }
 
 func validateCheck(c Check) error {
-	if !validSlug(c.ID) || strings.TrimSpace(c.Title) == "" || len(c.Steps) == 0 || len(c.Steps) > 32 {
+	if !validSlug(c.ID) || strings.TrimSpace(c.Title) == "" || len(c.Steps) == 0 || len(c.Steps) > 32 || datatug.ValidateOptionalCreatedAt(c.CreatedAt) != nil {
 		return ErrInvalid
 	}
 	inputNames := map[string]bool{}

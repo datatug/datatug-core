@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/storage"
@@ -220,4 +221,78 @@ func TestFsCardsStore_ListPropagatesIOFailuresButSkipsBadContent(t *testing.T) {
 	_, err = store.LoadCards(ctx)
 	require.Error(t, err)
 	assert.NotErrorIs(t, err, errInvalidCardContent)
+}
+
+func TestFsCardsStore_CreatedAt(t *testing.T) {
+	ctx := context.Background()
+	store, cardsDir := newCardsTestStore(t)
+
+	fresh := testCard("fresh", "Fresh")
+	require.NoError(t, store.SaveCard(ctx, fresh))
+	require.NotEmpty(t, fresh.CreatedAt, "new card is stamped")
+	_, err := time.Parse(time.RFC3339Nano, fresh.CreatedAt)
+	require.NoError(t, err)
+
+	again := testCard("fresh", "Fresh v2") // overwrite without a date keeps the stored one
+	require.NoError(t, store.SaveCard(ctx, again))
+	assert.Equal(t, fresh.CreatedAt, again.CreatedAt)
+	loaded, err := store.LoadCard(ctx, "fresh")
+	require.NoError(t, err)
+	assert.Equal(t, fresh.CreatedAt, loaded.CreatedAt)
+
+	explicit := testCard("explicit", "E")
+	explicit.CreatedAt = "2026-10-07T06:18:13Z"
+	require.NoError(t, store.SaveCard(ctx, explicit))
+	loaded, err = store.LoadCard(ctx, "explicit")
+	require.NoError(t, err)
+	assert.Equal(t, "2026-10-07T06:18:13Z", loaded.CreatedAt)
+
+	// A card file written by other tools with createdAt loads (it used to fail).
+	writeCardJSON(t, filepath.Join(cardsDir, "foreign", "card.json"),
+		`{"id":"foreign","title":"F","createdAt":"2026-10-07T06:18:13Z","widget":{"name":"text","data":{"markdown":"hi"}}}`)
+	loaded, err = store.LoadCard(ctx, "foreign")
+	require.NoError(t, err)
+	assert.Equal(t, "2026-10-07T06:18:13Z", loaded.CreatedAt)
+
+	// A backdated save cannot change the stored date.
+	backdated := testCard("fresh", "Fresh v3")
+	backdated.CreatedAt = "2000-01-01T00:00:00Z"
+	require.NoError(t, store.SaveCard(ctx, backdated))
+	assert.Equal(t, fresh.CreatedAt, backdated.CreatedAt)
+
+	// An invalid date is rejected before anything is written.
+	invalid := testCard("invalid", "I")
+	invalid.CreatedAt = "nope"
+	require.Error(t, store.SaveCard(ctx, invalid))
+	assert.NoFileExists(t, filepath.Join(cardsDir, "invalid", "card.json"))
+
+	// An undated stored card is stamped on its next save.
+	writeCardJSON(t, filepath.Join(cardsDir, "old", "card.json"),
+		`{"id":"old","title":"O","widget":{"name":"text","data":{"markdown":"hi"}}}`)
+	old := testCard("old", "O")
+	require.NoError(t, store.SaveCard(ctx, old))
+	assert.NotEmpty(t, old.CreatedAt)
+
+	// Unreadable stored content counts as never saved.
+	writeCardJSON(t, filepath.Join(cardsDir, "broken", "card.json"), `{`)
+	broken := testCard("broken", "B")
+	require.NoError(t, store.SaveCard(ctx, broken))
+	assert.NotEmpty(t, broken.CreatedAt)
+
+	bad := testCard("bad", "B")
+	bad.CreatedAt = "nope"
+	require.Error(t, bad.Validate())
+}
+
+func TestFsCardsStore_SavedCardsValidate(t *testing.T) {
+	ctx := context.Background()
+	store, _ := newCardsTestStore(t)
+	dated := testCard("dated", "D")
+	dated.CreatedAt = "2026-10-07T06:18:13Z"
+	for _, card := range []*datatug.Card{testCard("undated", "U"), dated} {
+		require.NoError(t, store.SaveCard(ctx, card))
+		loaded, err := store.LoadCard(ctx, card.ID)
+		require.NoError(t, err)
+		assert.NoError(t, loaded.Validate(), card.ID)
+	}
 }
