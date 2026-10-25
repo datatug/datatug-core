@@ -97,16 +97,12 @@ func EvaluateFinalState(oracle FinalStateOracle, actual []TableState) FinalState
 		result.Invariants = append(result.Invariants, invariantResult)
 		if !invariantResult.Pass {
 			result.Pass = false
-			switch {
-			case invariantResult.Problem == ProblemInvariant:
-				if result.Problem != ProblemInvariant {
-					result.Problem = ProblemInvariant
-					result.Message = invariantResult.Message
-				}
-			case result.Problem == "":
-				// A malformed observation keeps its structural problem rather
-				// than being reported as a violated retention rule.
-				result.Problem = invariantResult.Problem
+			// A violated retention rule outranks a structural problem already
+			// recorded by table comparison. Table comparison records the same
+			// structural issue before invariant evaluation, so a structural
+			// invariant failure never needs to set the result problem here.
+			if invariantResult.Problem == ProblemInvariant && result.Problem != ProblemInvariant {
+				result.Problem = ProblemInvariant
 				result.Message = invariantResult.Message
 			}
 		}
@@ -153,10 +149,7 @@ func evaluateInvariant(invariant Invariant, expected TableExpectation, actual Ta
 		if err != nil {
 			return fail(ProblemInvariant, "%s", err)
 		}
-		retention, ok := valueAt(row, retentionExpected)
-		if !ok {
-			return fail(ProblemRowShape, "expected table %q has a row narrower than its declared columns", invariant.Table)
-		}
+		retention := row[retentionExpected]
 		value, ok := numericRat(retention)
 		if !ok {
 			return fail(ProblemInvariant, "expected retention value is not numeric")
@@ -187,10 +180,7 @@ func evaluateInvariant(invariant Invariant, expected TableExpectation, actual Ta
 		if len(rows) != 1 {
 			return fail(ProblemInvariant, "group has %d surviving rows; exactly one lowest-%s row is required", len(rows), invariant.Column)
 		}
-		retention, ok := valueAt(rows[0], retentionActual)
-		if !ok {
-			return fail(ProblemRowShape, "observed table %q has a row narrower than its declared columns", invariant.Table)
-		}
+		retention := rows[0][retentionActual]
 		actualValue, ok := numericRat(retention)
 		if !ok {
 			return fail(ProblemInvariant, "observed retention value is not numeric")
