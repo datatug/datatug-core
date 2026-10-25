@@ -201,6 +201,18 @@ func EvaluateCheckDefinition(part CheckDefinitionPart, answer CheckDefinitionAns
 	return result
 }
 
+// validateObservationRecordset applies the challenge-local result rules to a
+// Check-definition observation. It deliberately does not call the shared
+// apicontract Recordset validator: grading accepts heterogeneous SQLite cells
+// and all-NULL columns, while still refusing unsupported column metadata,
+// malformed typed cells and a wrong row width.
+func validateObservationRecordset(recordset *apicontract.Recordset) *RowDiff {
+	if diff := validateObservedColumns(recordset.Columns); diff != nil {
+		return diff
+	}
+	return validateRowTypes(recordset.Columns, recordset.Rows)
+}
+
 func unavailableCheckCase(item CheckCase, problem, message string) CheckCaseResult {
 	return CheckCaseResult{
 		Fixture: item.Fixture, ExpectedOutcome: item.ExpectedOutcome,
@@ -221,8 +233,8 @@ func gradeCheckCase(item CheckCase, observation Observation, ok bool, expectedCo
 	if observation.Rows == nil {
 		return unavailableCheckCase(item, ProblemMissingObservation, fmt.Sprintf("fixture %q returned no result rows", item.Fixture))
 	}
-	if err := observation.Rows.Validate(); err != nil {
-		return unavailableCheckCase(item, ProblemMissingObservation, fmt.Sprintf("fixture %q returned malformed rows", item.Fixture))
+	if diff := validateObservationRecordset(observation.Rows); diff != nil {
+		return unavailableCheckCase(item, ProblemMissingObservation, fmt.Sprintf("fixture %q returned malformed rows: %s", item.Fixture, diff.Message))
 	}
 	observed := OutcomePass
 	if len(observation.Rows.Rows) != expectedCount {

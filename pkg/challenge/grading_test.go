@@ -258,6 +258,49 @@ func TestCheckDefinitionTreatsFixtureExecutionErrorAsUnknown(t *testing.T) {
 	require.Equal(t, ProblemExecutionError, checkCaseResultFor(t, result, "repaired").Problem)
 }
 
+func TestCheckDefinitionRowCountAcceptsHeterogeneousResults(t *testing.T) {
+	part := checkPart()
+	answer := CheckDefinitionAnswer{QueryID: "queries/duplicate-emails", Expectation: part.CheckDefinition.Expectation}
+
+	// A row-count expectation cares about cardinality, not homogeneity: mixed
+	// INTEGER/TEXT cells and column metadata that does not match every cell are
+	// valid observations.
+	mixedColumns := []apicontract.Column{{Name: "value", Type: "integer"}}
+	observations := map[string]Observation{
+		"broken": {Rows: &apicontract.Recordset{
+			Columns: mixedColumns,
+			Rows:    [][]apicontract.TypedValue{{integer("1")}, {text("not-an-integer")}},
+		}},
+		"repaired": {Rows: &apicontract.Recordset{
+			Columns: []apicontract.Column{{Name: "value", Type: "string"}},
+		}},
+	}
+	result := EvaluateCheckDefinition(*part.CheckDefinition, answer, observations)
+	require.Equal(t, OutcomePass, result.Outcome, result.Message)
+	require.Equal(t, StatusCompleted, result.ExecutionStatus)
+
+	// Challenge-local validation still rejects unsupported metadata, malformed
+	// typed cells and a wrong row width instead of trusting the shared
+	// Recordset validator.
+	for name, rows := range map[string]*apicontract.Recordset{
+		"unsupported metadata": {Columns: []apicontract.Column{{Name: "value", Type: "blob"}}},
+		"malformed cell":       {Columns: mixedColumns, Rows: [][]apicontract.TypedValue{{integer("+1")}}},
+		"wrong row width":      {Columns: mixedColumns, Rows: [][]apicontract.TypedValue{{integer("1")}, {}}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			bad := map[string]Observation{
+				"broken":   {Rows: checkRows(mixedColumns, 2)},
+				"repaired": {Rows: rows},
+			}
+			result := EvaluateCheckDefinition(*part.CheckDefinition, answer, bad)
+			require.Equal(t, OutcomeUnknown, result.Outcome)
+			require.Equal(t, StatusError, result.ExecutionStatus)
+			require.Equal(t, ProblemMissingObservation, result.Problem)
+			require.Equal(t, ProblemMissingObservation, checkCaseResultFor(t, result, "repaired").Problem)
+		})
+	}
+}
+
 func checkCaseResultFor(t *testing.T, result CheckDefinitionResult, fixture string) CheckCaseResult {
 	t.Helper()
 	for _, item := range result.Cases {
@@ -450,6 +493,72 @@ func TestFinalStateShortObservedRowsFailInsteadOfPanickingOrPassing(t *testing.T
 	require.Equal(t, OutcomeFail, partResult.Outcome)
 	require.Equal(t, StatusCompleted, partResult.ExecutionStatus)
 	require.Equal(t, ProblemRowShape, partResult.Problem)
+}
+
+func TestGroupMinValidatesRetentionCellsNotMetadata(t *testing.T) {
+	columns := []apicontract.Column{{Name: "id", Type: "integer"}, {Name: "email", Type: "string"}}
+	invariant := Invariant{
+		ID: "keep-lowest-id", Kind: InvariantGroupMin, Table: "customers",
+		GroupBy: []string{"email"}, Column: "id",
+		Description: "Keep the lowest id per exact email value.",
+	}
+	oracleWith := func(columns []apicontract.Column, rows [][]apicontract.TypedValue) FinalStateOracle {
+		return FinalStateOracle{
+			Tables:     []TableExpectation{{Name: "customers", Columns: columns, Rows: rows}},
+			Invariants: []Invariant{invariant},
+		}
+	}
+
+	// Numeric metadata does not make a TEXT cell numeric: "2" cannot satisfy the
+	// numeric lowest-id invariant, so manifest validation rejects it instead of
+	// accepting a manifest that cannot be evaluated.
+	textCell := oracleWith(columns, [][]apicontract.TypedValue{{text("2"), text("a@x.com")}})
+	require.ErrorContains(t, textCell.Validate(), "requires a numeric retention value")
+
+	// NULL retention cells stay invalid regardless of declared metadata.
+	nullCell := oracleWith(columns, [][]apicontract.TypedValue{{apicontract.NewNullValue(), text("a@x.com")}})
+	require.ErrorContains(t, nullCell.Validate(), "requires a non-null retention value")
+
+	// Actual numeric cells decide the invariant: their declared column type is
+	// descriptive, so other supported metadata stays accepted and evaluated.
+	for _, metadataType := range []string{"string", "boolean", "datetime", "number"} {
+		t.Run(metadataType, func(t *testing.T) {
+			descriptive := []apicontract.Column{{Name: "id", Type: metadataType}, {Name: "email", Type: "string"}}
+			oracle := oracleWith(descriptive, [][]apicontract.TypedValue{{integer("1"), text("a@x.com")}})
+			require.NoError(t, oracle.Validate())
+
+			keptLowest := EvaluateFinalState(oracle, []TableState{{
+				Name: "customers", Columns: descriptive,
+				Rows: [][]apicontract.TypedValue{{integer("1"), text("a@x.com")}},
+			}})
+			require.True(t, keptLowest.Pass)
+
+			keptHigher := EvaluateFinalState(oracle, []TableState{{
+				Name: "customers", Columns: descriptive,
+				Rows: [][]apicontract.TypedValue{{integer("2"), text("a@x.com")}},
+			}})
+			require.False(t, keptHigher.Pass)
+			require.Equal(t, "keep-lowest-id", keptHigher.ViolatedInvariant())
+			require.Equal(t, ProblemInvariant, keptHigher.Problem)
+		})
+	}
+
+	// Numeric cells of different classes are compared by value under
+	// non-numeric metadata, without any metadata-driven coercion.
+	mixedNumeric := []apicontract.Column{{Name: "id", Type: "string"}, {Name: "email", Type: "string"}}
+	mixed := oracleWith(mixedNumeric, [][]apicontract.TypedValue{
+		{integer("1"), text("a@x.com")},
+		{apicontract.NewDecimalValue("2.5"), text("b@x.com")},
+	})
+	require.NoError(t, mixed.Validate())
+	result := EvaluateFinalState(mixed, []TableState{{
+		Name: "customers", Columns: mixedNumeric,
+		Rows: [][]apicontract.TypedValue{
+			{integer("1"), text("a@x.com")},
+			{apicontract.NewDecimalValue("2.5"), text("b@x.com")},
+		},
+	}})
+	require.True(t, result.Pass)
 }
 
 func TestGoldenRetryEvidenceGradesTypedResultAndStructuredParts(t *testing.T) {

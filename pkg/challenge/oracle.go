@@ -235,12 +235,12 @@ func (i Invariant) Validate(tables map[string]TableExpectation) error {
 	if !ok {
 		return fmt.Errorf("invariant %q has an unknown retention column %q", i.ID, i.Column)
 	}
-	if !isNumericType(table.Columns[retentionIndex].Type) {
-		return fmt.Errorf("invariant %q requires a numeric retention column", i.ID)
-	}
 
 	// The expected table must itself embody the invariant: exactly one survivor
 	// per group, and that survivor carries the group's lowest retention value.
+	// Column metadata is descriptive, so it cannot prove a cell is numeric: an
+	// integer-declared column may hold TEXT "2". Validate every expected
+	// retention cell by value with numericRat before any evaluation.
 	groups := map[string][][]apicontract.TypedValue{}
 	for _, row := range table.Rows {
 		key, err := groupKey(row, i.GroupBy, columnIndex)
@@ -253,13 +253,24 @@ func (i Invariant) Validate(tables map[string]TableExpectation) error {
 		if len(rows) != 1 {
 			return fmt.Errorf("invariant %q expects exactly one surviving row per group", i.ID)
 		}
-		if rows[0][retentionIndex].Type == apicontract.ValueTypeNull {
+		retention, ok := valueAt(rows[0], retentionIndex)
+		if !ok {
+			return fmt.Errorf("invariant %q: expected row is narrower than its declared columns", i.ID)
+		}
+		if retention.Type == apicontract.ValueTypeNull {
 			return fmt.Errorf("invariant %q requires a non-null retention value", i.ID)
+		}
+		if _, ok := numericRat(retention); !ok {
+			return fmt.Errorf("invariant %q requires a numeric retention value", i.ID)
 		}
 	}
 	return nil
 }
 
+// validateRows checks declared row shape and typed-cell validity. Column
+// metadata types are descriptive: heterogeneous SQLite results and all-NULL
+// columns are legitimate, so a cell does not have to match its column's
+// declared type.
 func validateRows(columns []apicontract.Column, rows [][]apicontract.TypedValue) error {
 	if len(rows) > MaxResultRows {
 		return fmt.Errorf("row count exceeds %d", MaxResultRows)
@@ -271,9 +282,6 @@ func validateRows(columns []apicontract.Column, rows [][]apicontract.TypedValue)
 		for columnIndex, value := range row {
 			if err := value.Validate(); err != nil {
 				return fmt.Errorf("row %d column %d: %w", rowIndex+1, columnIndex+1, err)
-			}
-			if value.Type != apicontract.ValueTypeNull && string(value.Type) != columns[columnIndex].Type {
-				return fmt.Errorf("row %d column %d has type %q but the column is %q", rowIndex+1, columnIndex+1, value.Type, columns[columnIndex].Type)
 			}
 		}
 	}

@@ -368,18 +368,30 @@ func TestRequireEngineRejectsDifferentRuntime(t *testing.T) {
 	requireRefused(t, opened.RequireEngine(different), CodeUnsupportedEngine)
 }
 
-func TestResultOracleRequiresTypedRows(t *testing.T) {
-	base := `{"kind":"result","columns":[{"name":"id","type":"integer"}],"rows":[[{"type":"string","value":"1"}]],"ordering":"unordered"}`
+func TestResultOracleAcceptsHeterogeneousCellsButValidatesMetadata(t *testing.T) {
+	// Column metadata describes the column; the typed cells carry the SQLite
+	// storage class. A string cell in an integer-declared column, an all-NULL
+	// column and heterogeneous rows are all legitimate.
+	heterogeneous := `{"kind":"result","columns":[{"name":"id","type":"integer"}],"rows":[[{"type":"string","value":"1"}],[{"type":"null","value":null}]],"ordering":"unordered"}`
 	var oracle Oracle
-	err := json.Unmarshal([]byte(base), &oracle)
-	require.Error(t, err, "a string cell cannot satisfy an integer column")
+	require.NoError(t, json.Unmarshal([]byte(heterogeneous), &oracle))
+	require.NoError(t, oracle.Validate())
 
 	good := `{"kind":"result","columns":[{"name":"id","type":"integer"}],"rows":[[{"type":"integer","value":"1"}]],"ordering":"unordered"}`
 	require.NoError(t, json.Unmarshal([]byte(good), &oracle))
 	require.NoError(t, oracle.Validate())
 
-	unknown := `{"kind":"result","columns":[{"name":"id","type":"integer"}],"rows":[],"ordering":"unordered","extra":true}`
-	require.Error(t, json.Unmarshal([]byte(unknown), &oracle))
+	for name, wire := range map[string]string{
+		"unsupported column metadata": `{"kind":"result","columns":[{"name":"id","type":"blob"}],"rows":[],"ordering":"unordered"}`,
+		"malformed integer cell":      `{"kind":"result","columns":[{"name":"id","type":"integer"}],"rows":[[{"type":"integer","value":"+1"}]],"ordering":"unordered"}`,
+		"malformed number cell":       `{"kind":"result","columns":[{"name":"id","type":"number"}],"rows":[[{"type":"number","value":"NaN"}]],"ordering":"unordered"}`,
+		"wrong row width":             `{"kind":"result","columns":[{"name":"id","type":"integer"}],"rows":[[{"type":"integer","value":"1"},{"type":"string","value":"extra"}]],"ordering":"unordered"}`,
+		"unknown field":               `{"kind":"result","columns":[{"name":"id","type":"integer"}],"rows":[],"ordering":"unordered","extra":true}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			require.Error(t, json.Unmarshal([]byte(wire), &oracle))
+		})
+	}
 }
 
 func TestManifestRoundTripsThroughItsWireForm(t *testing.T) {

@@ -17,8 +17,10 @@ const (
 
 // Stable comparison problem codes. They are wire values used in feedback.
 const (
-	ProblemColumnCount    = "column-count"
-	ProblemColumnName     = "column-name"
+	ProblemColumnCount = "column-count"
+	ProblemColumnName  = "column-name"
+	// ProblemColumnType is reserved. Column metadata types describe a column,
+	// not a graded cell; SQLite storage class is compared per typed cell.
 	ProblemColumnType     = "column-type"
 	ProblemRowShape       = "row-shape"
 	ProblemRowValueType   = "row-value-type"
@@ -48,10 +50,13 @@ type RowDiff struct {
 }
 
 // CompareTypedRows compares a declared expected recordset with an observed
-// one. Values are matched by declared column position; column count is exact;
-// column aliases are ignored unless RequireColumnNames is set. SQLite storage
-// classes remain distinct (INTEGER 2 differs from REAL 2.0) unless an explicit
-// non-negative numeric tolerance is declared.
+// one. Column metadata is validated for supported shape, but a column's declared
+// type is descriptive and is not compared with the observed metadata or the
+// cells in it: SQLite storage class participates in equality per typed cell.
+// Values are matched by declared column position; column count is exact; column
+// aliases are ignored unless RequireColumnNames is set. Storage classes remain
+// distinct (INTEGER 2 differs from REAL 2.0) unless an explicit non-negative
+// numeric tolerance is declared.
 func CompareTypedRows(expectedColumns, actualColumns []apicontract.Column, expectedRows, actualRows [][]apicontract.TypedValue, options RowOptions) RowDiff {
 	if options.Ordering != OrderUnordered && options.Ordering != OrderOrdered {
 		return RowDiff{Problem: ProblemInvalidOptions, Message: fmt.Sprintf("ordering must be %q or %q", OrderUnordered, OrderOrdered)}
@@ -72,14 +77,6 @@ func CompareTypedRows(expectedColumns, actualColumns []apicontract.Column, expec
 	for index := range expectedColumns {
 		if options.RequireColumnNames && expectedColumns[index].Name != actualColumns[index].Name {
 			return RowDiff{Problem: ProblemColumnName, Message: fmt.Sprintf("column %d expected name %q, observed %q", index+1, expectedColumns[index].Name, actualColumns[index].Name)}
-		}
-		// An empty result has no observable storage class; the runtime cannot
-		// know a declared type beyond the SQL text. Assert column types only
-		// when there is at least one observed value, where storage class is real.
-		if len(actualRows) > 0 && expectedColumns[index].Type != actualColumns[index].Type {
-			if tolerance == nil || !isNumericType(string(expectedColumns[index].Type)) || !isNumericType(string(actualColumns[index].Type)) {
-				return RowDiff{Problem: ProblemColumnType, Message: fmt.Sprintf("column %d expected type %q, observed %q", index+1, expectedColumns[index].Type, actualColumns[index].Type)}
-			}
 		}
 	}
 	if diff := validateRowTypes(expectedColumns, expectedRows); diff != nil {
@@ -228,6 +225,9 @@ func validateObservedColumns(columns []apicontract.Column) *RowDiff {
 	return nil
 }
 
+// validateRowTypes checks only challenge-local row shape and typed-cell
+// validity. A cell's SQLite storage class is carried by the TypedValue, so it
+// need not (and must not) match the descriptive column metadata type.
 func validateRowTypes(columns []apicontract.Column, rows [][]apicontract.TypedValue) *RowDiff {
 	if len(rows) > MaxResultRows {
 		return &RowDiff{Problem: ProblemInvalidOptions, Message: fmt.Sprintf("row count exceeds %d", MaxResultRows)}
@@ -239,9 +239,6 @@ func validateRowTypes(columns []apicontract.Column, rows [][]apicontract.TypedVa
 		for columnIndex, value := range values {
 			if err := value.Validate(); err != nil {
 				return &RowDiff{Problem: ProblemRowValueType, Message: fmt.Sprintf("row %d column %d: %s", rowIndex+1, columnIndex+1, err)}
-			}
-			if value.Type != apicontract.ValueTypeNull && string(value.Type) != columns[columnIndex].Type {
-				return &RowDiff{Problem: ProblemRowValueType, Message: fmt.Sprintf("row %d column %d has type %q but the column is %q", rowIndex+1, columnIndex+1, value.Type, columns[columnIndex].Type)}
 			}
 		}
 	}

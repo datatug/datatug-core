@@ -72,15 +72,19 @@ func TestCompareTypedRowsKeepsNullAndStorageClassDistinct(t *testing.T) {
 	expectedRows := [][]apicontract.TypedValue{row(integer("2"))}
 	actualRows := [][]apicontract.TypedValue{row(number(2))}
 
+	// Column metadata describes a column; it is not compared. The typed cell
+	// storage classes still are, so INTEGER 2 differs from REAL 2 without a
+	// declared tolerance.
+	require.True(t, CompareTypedRows(expectedInteger, actualReal, expectedRows, expectedRows, RowOptions{Ordering: OrderUnordered}).Match)
 	diff := CompareTypedRows(expectedInteger, actualReal, expectedRows, actualRows, RowOptions{Ordering: OrderUnordered})
 	require.False(t, diff.Match)
-	require.Equal(t, ProblemColumnType, diff.Problem)
+	require.Equal(t, ProblemRowContent, diff.Problem)
 
 	tolerated := CompareTypedRows(expectedInteger, actualReal, expectedRows, actualRows, RowOptions{Ordering: OrderUnordered, NumericTolerance: "0.01"})
 	require.True(t, tolerated.Match, tolerated.Message)
 
-	// An empty result cannot expose a storage class, so declared observed
-	// column types are not asserted without values.
+	// An empty result has no cells to compare; column metadata remains valid
+	// but descriptive.
 	emptyExpected := [][]apicontract.TypedValue{}
 	emptyActual := [][]apicontract.TypedValue{}
 	require.True(t, CompareTypedRows(expectedInteger, actualReal, emptyExpected, emptyActual, RowOptions{Ordering: OrderUnordered}).Match)
@@ -95,6 +99,31 @@ func TestCompareTypedRowsKeepsNullAndStorageClassDistinct(t *testing.T) {
 	actualIntegerRows := [][]apicontract.TypedValue{row(integer("2"))}
 	require.False(t, CompareTypedRows(expectedDecimal, actualInteger, expectedDecimalRows, actualIntegerRows, RowOptions{Ordering: OrderUnordered}).Match)
 	require.True(t, CompareTypedRows(expectedDecimal, actualInteger, expectedDecimalRows, actualIntegerRows, RowOptions{Ordering: OrderUnordered, NumericTolerance: "0.01"}).Match)
+}
+
+func TestCompareTypedRowsTreatsColumnMetadataAsDescriptive(t *testing.T) {
+	expectedColumns := []apicontract.Column{{Name: "a", Type: "integer"}, {Name: "b", Type: "number"}}
+	observedColumns := []apicontract.Column{{Name: "a", Type: "number"}, {Name: "b", Type: "integer"}}
+	expectedRows := [][]apicontract.TypedValue{row(integer("2"), number(2))}
+
+	// Identical mixed cells match even though the declared column metadata is
+	// deliberately different.
+	diff := CompareTypedRows(expectedColumns, observedColumns, expectedRows, expectedRows, RowOptions{Ordering: OrderUnordered})
+	require.True(t, diff.Match, diff.Message)
+
+	// The cells, not the metadata, determine storage class.
+	realObserved := [][]apicontract.TypedValue{row(number(2), number(2))}
+	require.False(t, CompareTypedRows(expectedColumns, observedColumns, expectedRows, realObserved, RowOptions{Ordering: OrderUnordered}).Match)
+	require.True(t, CompareTypedRows(expectedColumns, observedColumns, expectedRows, realObserved, RowOptions{Ordering: OrderUnordered, NumericTolerance: "0"}).Match)
+
+	// All-NULL rows match under different valid metadata. NULL never becomes an
+	// empty string or integer zero, even with an explicit tolerance.
+	nullExpectedColumns := []apicontract.Column{{Name: "a", Type: "string"}}
+	nullObservedColumns := []apicontract.Column{{Name: "a", Type: "integer"}}
+	nullRows := [][]apicontract.TypedValue{row(null())}
+	require.True(t, CompareTypedRows(nullExpectedColumns, nullObservedColumns, nullRows, nullRows, RowOptions{Ordering: OrderUnordered}).Match)
+	require.False(t, CompareTypedRows(nullExpectedColumns, nullObservedColumns, nullRows, [][]apicontract.TypedValue{row(text(""))}, RowOptions{Ordering: OrderUnordered, NumericTolerance: "0"}).Match)
+	require.False(t, CompareTypedRows(nullExpectedColumns, nullObservedColumns, nullRows, [][]apicontract.TypedValue{row(integer("0"))}, RowOptions{Ordering: OrderUnordered, NumericTolerance: "0"}).Match)
 }
 
 func TestCompareTypedRowsFindsAMaximumMatchUnderTolerance(t *testing.T) {
@@ -113,10 +142,11 @@ func TestCompareTypedRowsTreatsExplicitZeroToleranceAsDeclared(t *testing.T) {
 	expectedRows := [][]apicontract.TypedValue{row(integer("2"))}
 	actualRows := [][]apicontract.TypedValue{row(number(2))}
 
-	// An omitted tolerance stays strict about the SQLite storage class.
+	// An omitted tolerance stays strict about the SQLite storage class carried
+	// by the typed cell.
 	strict := CompareTypedRows(expectedInteger, actualReal, expectedRows, actualRows, RowOptions{Ordering: OrderUnordered})
 	require.False(t, strict.Match)
-	require.Equal(t, ProblemColumnType, strict.Problem)
+	require.Equal(t, ProblemRowContent, strict.Problem)
 
 	// An explicit "0" is a declared tolerance, not an omitted one.
 	parsed, err := parseTolerance("0")
@@ -174,10 +204,23 @@ func TestCompareTypedRowsEnforcesColumnCountNamesAndValues(t *testing.T) {
 	require.Equal(t, 1, diff.Missing)
 	require.Equal(t, 1, diff.Unexpected)
 
-	malformed := [][]apicontract.TypedValue{row(number(1), text("x"))}
+	// A heterogeneous cell is legitimate; only its typed value matters. REAL 1
+	// differs from the expected INTEGER 1 without a tolerance.
+	heterogeneous := [][]apicontract.TypedValue{row(number(1), text("x"))}
+	diff = CompareTypedRows(two, two, rows, heterogeneous, RowOptions{Ordering: OrderUnordered})
+	require.False(t, diff.Match)
+	require.Equal(t, ProblemRowContent, diff.Problem)
+
+	// A malformed typed cell is still rejected.
+	malformed := [][]apicontract.TypedValue{row(integer("+1"), text("x"))}
 	diff = CompareTypedRows(two, two, rows, malformed, RowOptions{Ordering: OrderUnordered})
 	require.False(t, diff.Match)
 	require.Equal(t, ProblemRowValueType, diff.Problem)
+
+	wrongWidth := [][]apicontract.TypedValue{row(integer("1"))}
+	diff = CompareTypedRows(two, two, rows, wrongWidth, RowOptions{Ordering: OrderUnordered})
+	require.False(t, diff.Match)
+	require.Equal(t, ProblemRowShape, diff.Problem)
 
 	diff = CompareTypedRows(two, two, rows, rows, RowOptions{Ordering: "sideways"})
 	require.False(t, diff.Match)

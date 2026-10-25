@@ -24,6 +24,7 @@ each fixture is pinned by SHA-256 and byte length in the manifest.
 | Write challenge: SQL final-state oracle + `group-min` invariant + Check-definition part | `testdata/challenges/deduplicate-customers/1.json` |
 | Read challenge: typed result oracle + closed multi-select part | `testdata/challenges/retry-evidence/1.json` |
 | Pristine-run observations for both challenges | `testdata/goldens/*.json` |
+| Language-neutral grading regression vectors | `testdata/grading-vectors.json` |
 | Fixture bytes (committed, pinned) | `testdata/fixtures/<challengeId>/*.db` |
 | Deterministic generator | `testdata/generate_goldens.py` |
 
@@ -39,26 +40,34 @@ from a refused definition.
 - `CompareTypedRows` is the single typed comparison used by both result and
   final-state oracles. It compares a positional column set exactly, ignores
   column aliases unless `requireColumnNames` is set, preserves duplicate
-  multiplicity and NULL, and keeps SQLite storage classes distinct (INTEGER `2`
-  differs from REAL `2.0`) unless the manifest declares a non-negative
-  `numericTolerance`. An empty observed result has no storage class to compare;
-  declared observed column types are asserted only when rows are present.
+  multiplicity and NULL, and keeps SQLite storage classes distinct per typed
+  cell (INTEGER `2` differs from REAL `2.0`) unless the manifest declares a
+  non-negative `numericTolerance` (an explicit `"0"` permits numeric equality
+  but no difference). Column metadata (`columns[].type`) describes a column and
+  is validated for supported shape, but it is never compared with observed
+  metadata or with a cell's storage class; heterogeneous results and all-NULL
+  columns are therefore legitimate. Expected oracle rows and observed rows use
+  the same local shape/value rules.
 - Result oracles compare typed rows as an unordered multiset by default; ordered
   comparison happens only when `ordering: "ordered"` is declared.
 - Final-state oracles compare every declared table exactly and then evaluate
   named invariants. The observed table set must match the declared set exactly,
   so an undeclared or newly created table cannot pass unnoticed. The only
   invariant in `challenge-grading-v1` is `group-min`: one surviving row per
-  declared group whose retention column equals the expected lowest value. This
-  is a challenge-only declarative rule, not a production Check accepting
-  arbitrary learner SQL.
+  declared group whose retention column equals the expected lowest value. The
+  retention cell of every expected row must be a non-null numeric value, checked
+  by cell value rather than by declared column type; a numeric column declaration
+  alone never makes a TEXT cell numeric. This is a challenge-only declarative
+  rule, not a production Check accepting arbitrary learner SQL.
 - Structured answers use closed field and option IDs and exact set/value
   equality. Unknown fields/options, duplicates and wrong cardinality are
   reported against the part ID without AI judgement.
 - Check-definition answers select one declared saved query plus a supported
   typed expectation (`row-count` over the result set). Their outcomes are
-  evaluated on the declared broken, repaired and mutated fixtures. No SQL text
-  executes inside this package.
+  evaluated on the declared broken, repaired and mutated fixtures. Observation
+  recordsets pass the same challenge-local column and row shape/value checks,
+  so a mixed-result row count is valid without weakening shared
+  `pkg/apicontract` validators. No SQL text executes inside this package.
 - `GradeAttempt` derives completion only from the manifest's required parts:
   every required part must be `pass` with `completed` execution status.
 
