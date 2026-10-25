@@ -290,7 +290,8 @@ func TestProposalSchemaCoversEditableCoreWireFields(t *testing.T) {
 			want := make([]string, 0, typeOf.NumField())
 			for i := range typeOf.NumField() {
 				name := strings.Split(typeOf.Field(i).Tag.Get("json"), ",")[0]
-				if name != "" && name != "-" {
+				// createdAt is stamped by the writer on create, never proposed by the AI.
+				if name != "" && name != "-" && name != "createdAt" {
 					want = append(want, name)
 				}
 			}
