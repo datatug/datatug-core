@@ -1,0 +1,236 @@
+{
+  "schemaVersion": 1,
+  "gradingVersion": "challenge-grading-v1",
+  "challengeId": "retry-evidence",
+  "revision": 1,
+  "title": "Correlate retries with successful payments",
+  "objective": "Return the request IDs that produced more than one successful payment, then select the exact evidence pairs that support the conclusion.",
+  "difficulty": "intermediate",
+  "dialect": "sqlite",
+  "allowedOperation": "read",
+  "timing": "off",
+  "engine": {
+    "package": "@sqlite.org/sqlite-wasm",
+    "version": "3.54.1-build1",
+    "sqliteVersion": "3.54.1"
+  },
+  "fixtureSuite": {
+    "id": "retry-evidence-v1",
+    "fixtures": [
+      {
+        "id": "retry-evidence",
+        "label": "Synthetic payments, retry events and deployments",
+        "sha256": "db5f5bb31254a1e92434e8aa83f73c77bef9f887bd268097a57601abc987098f",
+        "bytes": 20480,
+        "runs": 1
+      }
+    ]
+  },
+  "visibleSchema": {
+    "tables": [
+      {
+        "name": "orders",
+        "columns": [
+          {
+            "name": "id",
+            "type": "integer",
+            "primaryKey": true
+          },
+          {
+            "name": "customer_id",
+            "type": "integer"
+          },
+          {
+            "name": "total_cents",
+            "type": "integer"
+          }
+        ]
+      },
+      {
+        "name": "payments",
+        "columns": [
+          {
+            "name": "id",
+            "type": "integer",
+            "primaryKey": true
+          },
+          {
+            "name": "order_id",
+            "type": "integer"
+          },
+          {
+            "name": "attempt_id",
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "type": "string"
+          },
+          {
+            "name": "amount_cents",
+            "type": "integer"
+          },
+          {
+            "name": "created_at",
+            "type": "string"
+          }
+        ]
+      },
+      {
+        "name": "retry_events",
+        "columns": [
+          {
+            "name": "attempt_id",
+            "type": "string"
+          },
+          {
+            "name": "request_id",
+            "type": "string"
+          },
+          {
+            "name": "idempotency_key",
+            "type": "string"
+          },
+          {
+            "name": "outcome",
+            "type": "string"
+          },
+          {
+            "name": "created_at",
+            "type": "string"
+          }
+        ]
+      }
+    ]
+  },
+  "parts": [
+    {
+      "id": "requests",
+      "title": "Find requests with more than one successful payment",
+      "required": true,
+      "answerKind": "sql",
+      "sql": {
+        "cases": [
+          {
+            "fixture": "retry-evidence",
+            "oracle": {
+              "kind": "result",
+              "columns": [
+                {
+                  "name": "request_id",
+                  "type": "string"
+                },
+                {
+                  "name": "successes",
+                  "type": "integer"
+                }
+              ],
+              "rows": [
+                [
+                  {
+                    "type": "string",
+                    "value": "r2"
+                  },
+                  {
+                    "type": "integer",
+                    "value": "2"
+                  }
+                ],
+                [
+                  {
+                    "type": "string",
+                    "value": "r4"
+                  },
+                  {
+                    "type": "integer",
+                    "value": "2"
+                  }
+                ]
+              ],
+              "ordering": "unordered"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "evidence-pairs",
+      "title": "Select the exact duplicate evidence pairs",
+      "required": true,
+      "answerKind": "structured",
+      "structured": {
+        "fields": [
+          {
+            "id": "evidence-pairs",
+            "label": "Evidence pairs",
+            "cardinality": "multi",
+            "required": true,
+            "minSelections": 2,
+            "maxSelections": 2,
+            "options": [
+              {
+                "id": "r1-a1-trace",
+                "label": "r1 / a1 / trace-r1"
+              },
+              {
+                "id": "r2-a2-a3-trace",
+                "label": "r2 / a2+a3 / trace-r2"
+              },
+              {
+                "id": "r3-a4-a5-trace",
+                "label": "r3 / a4+a5 / trace-r3"
+              },
+              {
+                "id": "r4-a6-a7-trace",
+                "label": "r4 / a6+a7 / trace-r4"
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "selections": {
+            "evidence-pairs": [
+              "r2-a2-a3-trace",
+              "r4-a6-a7-trace"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "hints": [
+    {
+      "id": "hint-1",
+      "text": "Join retry events to payments by attempt_id."
+    },
+    {
+      "id": "hint-2",
+      "text": "Count only succeeded payments, then group by request_id."
+    },
+    {
+      "id": "hint-3",
+      "text": "A request with a failed attempt and one success is not a duplicate."
+    }
+  ],
+  "referenceSolutions": [
+    {
+      "partId": "requests",
+      "answer": {
+        "sql": "SELECT r.request_id, COUNT(*) AS successes\nFROM retry_events r\nJOIN payments p ON p.attempt_id = r.attempt_id\nWHERE p.status = 'succeeded'\nGROUP BY r.request_id\nHAVING COUNT(*) > 1"
+      }
+    },
+    {
+      "partId": "evidence-pairs",
+      "answer": {
+        "structured": {
+          "selections": {
+            "evidence-pairs": [
+              "r2-a2-a3-trace",
+              "r4-a6-a7-trace"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

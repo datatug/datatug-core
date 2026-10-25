@@ -1,0 +1,285 @@
+{
+  "gradingVersion": "challenge-grading-v1",
+  "vectors": [
+    {
+      "id": "heterogeneous-cells-identical-metadata-differs",
+      "description": "Column metadata is descriptive: identical mixed INTEGER/REAL cells match even when the declared column types differ.",
+      "options": {"ordering": "unordered"},
+      "expected": {
+        "columns": [{"name": "a", "type": "integer"}, {"name": "b", "type": "number"}],
+        "rows": [[{"type": "integer", "value": "2"}, {"type": "number", "value": 2.0}]]
+      },
+      "observed": {
+        "columns": [{"name": "a", "type": "number"}, {"name": "b", "type": "integer"}],
+        "rows": [[{"type": "integer", "value": "2"}, {"type": "number", "value": 2.0}]]
+      },
+      "want": {"match": true}
+    },
+    {
+      "id": "mixed-expected-real-observed-absent-tolerance",
+      "description": "Without a declared tolerance, INTEGER 2 does not equal REAL 2.0 even though the expected set itself is mixed.",
+      "options": {"ordering": "unordered"},
+      "expected": {
+        "columns": [{"name": "a", "type": "integer"}, {"name": "b", "type": "number"}],
+        "rows": [[{"type": "integer", "value": "2"}, {"type": "number", "value": 2.0}]]
+      },
+      "observed": {
+        "columns": [{"name": "a", "type": "number"}, {"name": "b", "type": "number"}],
+        "rows": [[{"type": "number", "value": 2.0}, {"type": "number", "value": 2.0}]]
+      },
+      "want": {"match": false, "problem": "row-content", "missing": 1, "unexpected": 1}
+    },
+    {
+      "id": "mixed-expected-real-observed-zero-tolerance",
+      "description": "An explicit zero tolerance permits cross-storage-class numeric equality but no numeric difference.",
+      "options": {"ordering": "unordered", "numericTolerance": "0"},
+      "expected": {
+        "columns": [{"name": "a", "type": "integer"}, {"name": "b", "type": "number"}],
+        "rows": [[{"type": "integer", "value": "2"}, {"type": "number", "value": 2.0}]]
+      },
+      "observed": {
+        "columns": [{"name": "a", "type": "number"}, {"name": "b", "type": "number"}],
+        "rows": [[{"type": "number", "value": 2.0}, {"type": "number", "value": 2.0}]]
+      },
+      "want": {"match": true}
+    },
+    {
+      "id": "null-rows-different-valid-metadata",
+      "description": "All-NULL rows match regardless of valid declared column metadata.",
+      "options": {"ordering": "unordered"},
+      "expected": {
+        "columns": [{"name": "a", "type": "string"}, {"name": "b", "type": "boolean"}],
+        "rows": [[{"type": "null", "value": null}, {"type": "null", "value": null}]]
+      },
+      "observed": {
+        "columns": [{"name": "a", "type": "integer"}, {"name": "b", "type": "number"}],
+        "rows": [[{"type": "null", "value": null}, {"type": "null", "value": null}]]
+      },
+      "want": {"match": true}
+    },
+    {
+      "id": "null-vs-empty-string-and-zero-any-tolerance",
+      "description": "NULL only matches NULL; neither an empty string nor integer zero becomes equal under a tolerance.",
+      "options": {"ordering": "unordered", "numericTolerance": "0"},
+      "expected": {
+        "columns": [{"name": "a", "type": "string"}, {"name": "b", "type": "integer"}],
+        "rows": [[{"type": "null", "value": null}, {"type": "null", "value": null}]]
+      },
+      "observed": {
+        "columns": [{"name": "a", "type": "string"}, {"name": "b", "type": "integer"}],
+        "rows": [[{"type": "string", "value": ""}, {"type": "integer", "value": "0"}]]
+      },
+      "want": {"match": false, "problem": "row-content", "missing": 1, "unexpected": 1}
+    },
+    {
+      "id": "integer-vs-fractional-real-zero-tolerance",
+      "description": "Zero tolerance never hides a real numeric difference.",
+      "options": {"ordering": "unordered", "numericTolerance": "0"},
+      "expected": {
+        "columns": [{"name": "a", "type": "integer"}],
+        "rows": [[{"type": "integer", "value": "2"}]]
+      },
+      "observed": {
+        "columns": [{"name": "a", "type": "number"}],
+        "rows": [[{"type": "number", "value": 2.5}]]
+      },
+      "want": {"match": false, "problem": "row-content", "missing": 1, "unexpected": 1}
+    },
+    {
+      "id": "mixed-int-text-exact",
+      "description": "Heterogeneous rows with the same typed cells match strictly.",
+      "options": {"ordering": "unordered"},
+      "expected": {
+        "columns": [{"name": "a", "type": "integer"}, {"name": "b", "type": "string"}],
+        "rows": [[{"type": "integer", "value": "1"}, {"type": "string", "value": "x"}]]
+      },
+      "observed": {
+        "columns": [{"name": "a", "type": "integer"}, {"name": "b", "type": "string"}],
+        "rows": [[{"type": "integer", "value": "1"}, {"type": "string", "value": "x"}]]
+      },
+      "want": {"match": true}
+    },
+    {
+      "id": "mixed-int-text-wrong-class",
+      "description": "A cell with the wrong SQLite storage class fails without a tolerance.",
+      "options": {"ordering": "unordered"},
+      "expected": {
+        "columns": [{"name": "a", "type": "integer"}, {"name": "b", "type": "string"}],
+        "rows": [[{"type": "integer", "value": "1"}, {"type": "string", "value": "x"}]]
+      },
+      "observed": {
+        "columns": [{"name": "a", "type": "number"}, {"name": "b", "type": "string"}],
+        "rows": [[{"type": "number", "value": 1.0}, {"type": "string", "value": "x"}]]
+      },
+      "want": {"match": false, "problem": "row-content", "missing": 1, "unexpected": 1}
+    },
+    {
+      "id": "duplicate-multiplicity-preserved",
+      "description": "Duplicate rows are a multiset, not a set.",
+      "options": {"ordering": "unordered"},
+      "expected": {
+        "columns": [{"name": "a", "type": "integer"}],
+        "rows": [[{"type": "integer", "value": "1"}], [{"type": "integer", "value": "1"}]]
+      },
+      "observed": {
+        "columns": [{"name": "a", "type": "integer"}],
+        "rows": [[{"type": "integer", "value": "1"}], [{"type": "integer", "value": "1"}]]
+      },
+      "want": {"match": true}
+    },
+    {
+      "id": "duplicate-multiplicity-short",
+      "description": "A missing duplicate is reported as one missing row.",
+      "options": {"ordering": "unordered"},
+      "expected": {
+        "columns": [{"name": "a", "type": "integer"}],
+        "rows": [[{"type": "integer", "value": "1"}], [{"type": "integer", "value": "1"}]]
+      },
+      "observed": {
+        "columns": [{"name": "a", "type": "integer"}],
+        "rows": [[{"type": "integer", "value": "1"}]]
+      },
+      "want": {"match": false, "problem": "row-content", "missing": 1}
+    },
+    {
+      "id": "unordered-reversed-rows",
+      "description": "Unordered comparison ignores row order by default.",
+      "options": {"ordering": "unordered"},
+      "expected": {
+        "columns": [{"name": "a", "type": "integer"}],
+        "rows": [[{"type": "integer", "value": "1"}], [{"type": "integer", "value": "2"}]]
+      },
+      "observed": {
+        "columns": [{"name": "a", "type": "integer"}],
+        "rows": [[{"type": "integer", "value": "2"}], [{"type": "integer", "value": "1"}]]
+      },
+      "want": {"match": true}
+    },
+    {
+      "id": "ordered-reversed-rows",
+      "description": "Ordered comparison asserts position.",
+      "options": {"ordering": "ordered"},
+      "expected": {
+        "columns": [{"name": "a", "type": "integer"}],
+        "rows": [[{"type": "integer", "value": "1"}], [{"type": "integer", "value": "2"}]]
+      },
+      "observed": {
+        "columns": [{"name": "a", "type": "integer"}],
+        "rows": [[{"type": "integer", "value": "2"}], [{"type": "integer", "value": "1"}]]
+      },
+      "want": {"match": false, "problem": "row-order"}
+    },
+    {
+      "id": "wrong-row-width",
+      "description": "A row must contain exactly one value per declared column.",
+      "options": {"ordering": "unordered"},
+      "expected": {
+        "columns": [{"name": "a", "type": "integer"}],
+        "rows": [[{"type": "integer", "value": "1"}]]
+      },
+      "observed": {
+        "columns": [{"name": "a", "type": "integer"}],
+        "rows": [[{"type": "integer", "value": "1"}, {"type": "string", "value": "extra"}]]
+      },
+      "want": {"match": false, "problem": "row-shape"}
+    },
+    {
+      "id": "unsupported-observed-column-metadata",
+      "description": "Unsupported observed column metadata is refused.",
+      "options": {"ordering": "unordered"},
+      "expected": {
+        "columns": [{"name": "a", "type": "integer"}],
+        "rows": []
+      },
+      "observed": {
+        "columns": [{"name": "a", "type": "blob"}],
+        "rows": []
+      },
+      "want": {"match": false, "problem": "invalid-options"}
+    },
+    {
+      "id": "unsupported-expected-column-metadata",
+      "description": "Unsupported expected column metadata is refused.",
+      "options": {"ordering": "unordered"},
+      "expected": {
+        "columns": [{"name": "a", "type": "blob"}],
+        "rows": []
+      },
+      "observed": {
+        "columns": [{"name": "a", "type": "integer"}],
+        "rows": []
+      },
+      "want": {"match": false, "problem": "invalid-options"}
+    },
+    {
+      "id": "malformed-integer-cell",
+      "description": "An invalid canonical integer string is rejected, never coerced.",
+      "options": {"ordering": "unordered"},
+      "expected": {
+        "columns": [{"name": "a", "type": "integer"}],
+        "rows": [[{"type": "integer", "value": "1"}]]
+      },
+      "observed": {
+        "columns": [{"name": "a", "type": "integer"}],
+        "rows": [[{"type": "integer", "value": "+1"}]]
+      },
+      "want": {"match": false, "problem": "row-value-type"}
+    },
+    {
+      "id": "malformed-number-cell",
+      "description": "A non-finite number cell is rejected, never rounded or coerced.",
+      "options": {"ordering": "unordered"},
+      "expected": {
+        "columns": [{"name": "a", "type": "number"}],
+        "rows": [[{"type": "number", "value": 1.0}]]
+      },
+      "observed": {
+        "columns": [{"name": "a", "type": "number"}],
+        "rows": [[{"type": "number", "value": "NaN"}]]
+      },
+      "want": {"match": false, "problem": "row-value-type"}
+    },
+    {
+      "id": "wrong-column-count",
+      "description": "Column count is exact.",
+      "options": {"ordering": "unordered"},
+      "expected": {
+        "columns": [{"name": "a", "type": "integer"}, {"name": "b", "type": "string"}],
+        "rows": [[{"type": "integer", "value": "1"}, {"type": "string", "value": "x"}]]
+      },
+      "observed": {
+        "columns": [{"name": "a", "type": "integer"}],
+        "rows": [[{"type": "integer", "value": "1"}]]
+      },
+      "want": {"match": false, "problem": "column-count"}
+    },
+    {
+      "id": "aliases-ignored-by-default",
+      "description": "Column aliases do not participate unless requested.",
+      "options": {"ordering": "unordered"},
+      "expected": {
+        "columns": [{"name": "a", "type": "integer"}, {"name": "b", "type": "string"}],
+        "rows": [[{"type": "integer", "value": "1"}, {"type": "string", "value": "x"}]]
+      },
+      "observed": {
+        "columns": [{"name": "x", "type": "integer"}, {"name": "y", "type": "string"}],
+        "rows": [[{"type": "integer", "value": "1"}, {"type": "string", "value": "x"}]]
+      },
+      "want": {"match": true}
+    },
+    {
+      "id": "alias-equality-when-required",
+      "description": "Positional column names must match when requireColumnNames is set.",
+      "options": {"ordering": "unordered", "requireColumnNames": true},
+      "expected": {
+        "columns": [{"name": "a", "type": "integer"}, {"name": "b", "type": "string"}],
+        "rows": [[{"type": "integer", "value": "1"}, {"type": "string", "value": "x"}]]
+      },
+      "observed": {
+        "columns": [{"name": "x", "type": "integer"}, {"name": "y", "type": "string"}],
+        "rows": [[{"type": "integer", "value": "1"}, {"type": "string", "value": "x"}]]
+      },
+      "want": {"match": false, "problem": "column-name"}
+    }
+  ]
+}

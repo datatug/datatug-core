@@ -1,0 +1,399 @@
+{
+  "gradingVersion": "challenge-grading-v1",
+  "vectors": [
+    {
+      "id": "same-row-count-wrong-value",
+      "description": "An unordered answer with the expected row count but wrong cells reports both sides and bounded examples.",
+      "options": {
+        "ordering": "unordered"
+      },
+      "expected": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "integer"
+          },
+          {
+            "name": "label",
+            "type": "string"
+          }
+        ],
+        "rows": [
+          [
+            {
+              "type": "integer",
+              "value": "1"
+            },
+            {
+              "type": "string",
+              "value": "a"
+            }
+          ]
+        ]
+      },
+      "observed": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "integer"
+          },
+          {
+            "name": "label",
+            "type": "string"
+          }
+        ],
+        "rows": [
+          [
+            {
+              "type": "integer",
+              "value": "2"
+            },
+            {
+              "type": "string",
+              "value": "a"
+            }
+          ]
+        ]
+      },
+      "want": {
+        "match": false,
+        "problem": "row-content",
+        "missing": 1,
+        "unexpected": 1,
+        "examples": [
+          "missing: [{\"type\":\"integer\",\"value\":\"1\"},{\"type\":\"string\",\"value\":\"a\"}]",
+          "unexpected: [{\"type\":\"integer\",\"value\":\"2\"},{\"type\":\"string\",\"value\":\"a\"}]"
+        ]
+      }
+    },
+    {
+      "id": "duplicate-multiplicity",
+      "description": "Duplicate rows remain a multiset; one surviving duplicate and one wrong value are reported separately.",
+      "options": {
+        "ordering": "unordered"
+      },
+      "expected": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "integer"
+          }
+        ],
+        "rows": [
+          [
+            {
+              "type": "integer",
+              "value": "1"
+            }
+          ],
+          [
+            {
+              "type": "integer",
+              "value": "1"
+            }
+          ]
+        ]
+      },
+      "observed": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "integer"
+          }
+        ],
+        "rows": [
+          [
+            {
+              "type": "integer",
+              "value": "1"
+            }
+          ],
+          [
+            {
+              "type": "integer",
+              "value": "2"
+            }
+          ]
+        ]
+      },
+      "want": {
+        "match": false,
+        "problem": "row-content",
+        "missing": 1,
+        "unexpected": 1,
+        "examples": [
+          "missing: [{\"type\":\"integer\",\"value\":\"1\"}]",
+          "unexpected: [{\"type\":\"integer\",\"value\":\"2\"}]"
+        ]
+      }
+    },
+    {
+      "id": "null-versus-empty-string",
+      "description": "NULL is a distinct typed value; it never matches an empty string even in feedback.",
+      "options": {
+        "ordering": "unordered"
+      },
+      "expected": {
+        "columns": [
+          {
+            "name": "a",
+            "type": "string"
+          }
+        ],
+        "rows": [
+          [
+            {
+              "type": "null",
+              "value": null
+            }
+          ]
+        ]
+      },
+      "observed": {
+        "columns": [
+          {
+            "name": "a",
+            "type": "string"
+          }
+        ],
+        "rows": [
+          [
+            {
+              "type": "string",
+              "value": ""
+            }
+          ]
+        ]
+      },
+      "want": {
+        "match": false,
+        "problem": "row-content",
+        "missing": 1,
+        "unexpected": 1,
+        "examples": [
+          "missing: [{\"type\":\"null\",\"value\":null}]",
+          "unexpected: [{\"type\":\"string\",\"value\":\"\"}]"
+        ]
+      }
+    },
+    {
+      "id": "examples-capped-at-three",
+      "description": "Counts are complete, but examples stop after the first three deterministic rows.",
+      "options": {
+        "ordering": "unordered"
+      },
+      "expected": {
+        "columns": [
+          {
+            "name": "a",
+            "type": "integer"
+          }
+        ],
+        "rows": [
+          [
+            {
+              "type": "integer",
+              "value": "1"
+            }
+          ],
+          [
+            {
+              "type": "integer",
+              "value": "2"
+            }
+          ],
+          [
+            {
+              "type": "integer",
+              "value": "3"
+            }
+          ],
+          [
+            {
+              "type": "integer",
+              "value": "4"
+            }
+          ],
+          [
+            {
+              "type": "integer",
+              "value": "5"
+            }
+          ]
+        ]
+      },
+      "observed": {
+        "columns": [
+          {
+            "name": "a",
+            "type": "integer"
+          }
+        ],
+        "rows": []
+      },
+      "want": {
+        "match": false,
+        "problem": "row-content",
+        "missing": 5,
+        "examples": [
+          "missing: [{\"type\":\"integer\",\"value\":\"1\"}]",
+          "missing: [{\"type\":\"integer\",\"value\":\"2\"}]",
+          "missing: [{\"type\":\"integer\",\"value\":\"3\"}]"
+        ]
+      }
+    },
+    {
+      "id": "long-ascii-cell-bounded",
+      "description": "A hostile ASCII cell is cut at 240 Unicode code points and marked with an ellipsis.",
+      "options": {
+        "ordering": "unordered"
+      },
+      "expected": {
+        "columns": [
+          {
+            "name": "payload",
+            "type": "string"
+          }
+        ],
+        "rows": [
+          [
+            {
+              "type": "string",
+              "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            }
+          ]
+        ]
+      },
+      "observed": {
+        "columns": [
+          {
+            "name": "payload",
+            "type": "string"
+          }
+        ],
+        "rows": [
+          [
+            {
+              "type": "string",
+              "value": "y"
+            }
+          ]
+        ]
+      },
+      "want": {
+        "match": false,
+        "problem": "row-content",
+        "missing": 1,
+        "unexpected": 1,
+        "examples": [
+          "missing: [{\"type\":\"string\",\"value\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…",
+          "unexpected: [{\"type\":\"string\",\"value\":\"y\"}]"
+        ]
+      }
+    },
+    {
+      "id": "astral-cell-bounded",
+      "description": "Astral characters count as one code point each, so truncation never splits a surrogate pair.",
+      "options": {
+        "ordering": "unordered"
+      },
+      "expected": {
+        "columns": [
+          {
+            "name": "payload",
+            "type": "string"
+          }
+        ],
+        "rows": [
+          [
+            {
+              "type": "string",
+              "value": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+            }
+          ]
+        ]
+      },
+      "observed": {
+        "columns": [
+          {
+            "name": "payload",
+            "type": "string"
+          }
+        ],
+        "rows": [
+          [
+            {
+              "type": "string",
+              "value": "different"
+            }
+          ]
+        ]
+      },
+      "want": {
+        "match": false,
+        "problem": "row-content",
+        "missing": 1,
+        "unexpected": 1,
+        "examples": [
+          "missing: [{\"type\":\"string\",\"value\":\"😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀…",
+          "unexpected: [{\"type\":\"string\",\"value\":\"different\"}]"
+        ]
+      }
+    },
+    {
+      "id": "ordered-first-mismatch",
+      "description": "Ordered comparison keeps the existing first differing cell as its feedback and adds no row-count metadata.",
+      "options": {
+        "ordering": "ordered"
+      },
+      "expected": {
+        "columns": [
+          {
+            "name": "a",
+            "type": "integer"
+          }
+        ],
+        "rows": [
+          [
+            {
+              "type": "integer",
+              "value": "1"
+            }
+          ],
+          [
+            {
+              "type": "integer",
+              "value": "2"
+            }
+          ]
+        ]
+      },
+      "observed": {
+        "columns": [
+          {
+            "name": "a",
+            "type": "integer"
+          }
+        ],
+        "rows": [
+          [
+            {
+              "type": "integer",
+              "value": "1"
+            }
+          ],
+          [
+            {
+              "type": "integer",
+              "value": "3"
+            }
+          ]
+        ]
+      },
+      "want": {
+        "match": false,
+        "problem": "row-order"
+      }
+    }
+  ]
+}

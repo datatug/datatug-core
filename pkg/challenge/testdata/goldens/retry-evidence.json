@@ -1,0 +1,148 @@
+{
+  "generatedWith": {
+    "python": "3.14.7",
+    "sqlite": "3.53.4"
+  },
+  "challenge": "retry-evidence",
+  "revision": 1,
+  "answers": [
+    {
+      "id": "reference",
+      "kind": "sql",
+      "sql": "SELECT r.request_id, COUNT(*) AS successes\nFROM retry_events r\nJOIN payments p ON p.attempt_id = r.attempt_id\nWHERE p.status = 'succeeded'\nGROUP BY r.request_id\nHAVING COUNT(*) > 1",
+      "fixtures": [
+        {
+          "fixture": "retry-evidence",
+          "fixtureSha256": "db5f5bb31254a1e92434e8aa83f73c77bef9f887bd268097a57601abc987098f",
+          "runs": 1,
+          "rows": {
+            "columns": [
+              {
+                "name": "request_id",
+                "type": "string"
+              },
+              {
+                "name": "successes",
+                "type": "integer"
+              }
+            ],
+            "rows": [
+              [
+                {
+                  "type": "string",
+                  "value": "r2"
+                },
+                {
+                  "type": "integer",
+                  "value": "2"
+                }
+              ],
+              [
+                {
+                  "type": "string",
+                  "value": "r4"
+                },
+                {
+                  "type": "integer",
+                  "value": "2"
+                }
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "alternative",
+      "kind": "sql",
+      "sql": "WITH successful AS (\n  SELECT r.request_id\n  FROM retry_events r\n  JOIN payments p ON p.attempt_id = r.attempt_id\n  WHERE p.status = 'succeeded'\n)\nSELECT request_id, COUNT(*) AS successes\nFROM successful\nGROUP BY request_id\nHAVING COUNT(*) > 1",
+      "fixtures": [
+        {
+          "fixture": "retry-evidence",
+          "fixtureSha256": "db5f5bb31254a1e92434e8aa83f73c77bef9f887bd268097a57601abc987098f",
+          "runs": 1,
+          "rows": {
+            "columns": [
+              {
+                "name": "request_id",
+                "type": "string"
+              },
+              {
+                "name": "successes",
+                "type": "integer"
+              }
+            ],
+            "rows": [
+              [
+                {
+                  "type": "string",
+                  "value": "r2"
+                },
+                {
+                  "type": "integer",
+                  "value": "2"
+                }
+              ],
+              [
+                {
+                  "type": "string",
+                  "value": "r4"
+                },
+                {
+                  "type": "integer",
+                  "value": "2"
+                }
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "wrong-same-row-count",
+      "kind": "sql",
+      "sql": "SELECT request_id, COUNT(*) AS successes\nFROM retry_events\nWHERE request_id IN ('r3','r4')\nGROUP BY request_id",
+      "fixtures": [
+        {
+          "fixture": "retry-evidence",
+          "fixtureSha256": "db5f5bb31254a1e92434e8aa83f73c77bef9f887bd268097a57601abc987098f",
+          "runs": 1,
+          "rows": {
+            "columns": [
+              {
+                "name": "request_id",
+                "type": "string"
+              },
+              {
+                "name": "successes",
+                "type": "integer"
+              }
+            ],
+            "rows": [
+              [
+                {
+                  "type": "string",
+                  "value": "r3"
+                },
+                {
+                  "type": "integer",
+                  "value": "2"
+                }
+              ],
+              [
+                {
+                  "type": "string",
+                  "value": "r4"
+                },
+                {
+                  "type": "integer",
+                  "value": "2"
+                }
+              ]
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
