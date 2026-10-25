@@ -10,6 +10,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/datatug/datatug-core/internal/plainfs"
 	"github.com/datatug/datatug-core/pkg/datatug"
@@ -171,6 +172,13 @@ func (s fsCardsStore) SaveCard(_ context.Context, card *datatug.Card) error {
 	}
 	if err := checkCardID(card.ID); err != nil {
 		return err
+	}
+	if card.CreatedAt == "" {
+		existing, err := s.loadOneCard(card.ID)
+		if err != nil && !errors.Is(err, errInvalidCardContent) {
+			return err
+		}
+		datatug.StampCardCreatedAt(card, existing, time.Now()) // unreadable content counts as never saved
 	}
 	if err := saveJSONFile(s.projectDir, path.Join(s.dirPath, card.ID), cardFileName, card); err != nil {
 		return fmt.Errorf("failed to save card file: %w", err)

@@ -102,6 +102,8 @@ type Card struct {
 	Parameters  []CardParameterDef `json:"parameters,omitempty"`
 	Widget      *BoardWidget       `json:"widget,omitempty"`
 	Display     string             `json:"display,omitempty"`
+	// CreatedAt is the optional RFC3339 creation date, kept across saves.
+	CreatedAt string `json:"createdAt,omitempty"`
 }
 
 // GetID returns the card id.
@@ -142,6 +144,9 @@ func (v *Card) Validate() error {
 	}
 	if err := validateStringField("description", v.Description, false, MaxCardDescriptionLength); err != nil {
 		return err
+	}
+	if err := ValidateOptionalCreatedAt(v.CreatedAt); err != nil {
+		return validation.NewErrBadRecordFieldValue("createdAt", err.Error())
 	}
 	switch v.Display {
 	case "", CardDisplayPanel, CardDisplayTooltip:

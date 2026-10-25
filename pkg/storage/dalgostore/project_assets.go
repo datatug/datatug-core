@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/dal-go/dalgo/dal"
 	"github.com/dal-go/record"
@@ -194,6 +195,19 @@ func (s *ProjectStore) saveAsset(ctx context.Context, kind, id string, value any
 	r := record.NewRecordWithData(key, &existing)
 	if err := writer.Get(ctx, r); err != nil && !record.IsNotFound(err) {
 		return err
+	}
+	if card, ok := value.(*datatug.Card); ok && card.CreatedAt == "" {
+		var previous *datatug.Card
+		if r.Exists() {
+			previous = new(datatug.Card)
+			if err := json.Unmarshal(existing.Content, previous); err != nil {
+				previous = nil // unreadable content counts as never saved
+			}
+		}
+		datatug.StampCardCreatedAt(card, previous, time.Now())
+		if body, err = encodeAsset(value); err != nil {
+			return err
+		}
 	}
 	if !r.Exists() {
 		items, err := s.listAssets(ctx, kind, func() any {

@@ -188,6 +188,8 @@ type Check struct {
 	Steps       []Step    `json:"steps"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 	UpdatedBy   string    `json:"updatedBy"`
+	// CreatedAt is the optional RFC3339 creation date.
+	CreatedAt string `json:"createdAt,omitempty"`
 }
 
 type EvidenceRef struct {
@@ -286,6 +288,8 @@ type Scenario struct {
 	Version     int64          `json:"version"`
 	Inputs      []Input        `json:"inputs"`
 	Steps       []ScenarioStep `json:"steps"`
+	// CreatedAt is the optional RFC3339 creation date.
+	CreatedAt string `json:"createdAt,omitempty"`
 }
 
 type ValidationResult struct {

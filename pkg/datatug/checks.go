@@ -15,6 +15,8 @@ type Check struct {
 	Title string          `json:"title,omitempty"`
 	Type  string          `json:"type"`
 	Data  json.RawMessage `json:"data,omitempty"`
+	// CreatedAt is the optional RFC3339 creation date.
+	CreatedAt string `json:"createdAt,omitempty"`
 }
 
 // Validate returns error if not valid
@@ -24,6 +26,9 @@ func (v *Check) Validate() error {
 	}
 	if v.Title == "" {
 		return validation.NewErrRecordIsMissingRequiredField("title")
+	}
+	if err := ValidateOptionalCreatedAt(v.CreatedAt); err != nil {
+		return validation.NewErrBadRecordFieldValue("createdAt", err.Error())
 	}
 	if v.Data == nil {
 		return validation.NewErrRecordIsMissingRequiredField("data")

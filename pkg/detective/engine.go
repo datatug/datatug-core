@@ -37,7 +37,7 @@ type QueryFailure struct{ Code string }
 func (e *QueryFailure) Error() string { return "saved query execution failed" }
 
 func validateCheck(c Check) error {
-	if !validSlug(c.ID) || strings.TrimSpace(c.Title) == "" || len(c.Steps) == 0 || len(c.Steps) > 32 {
+	if !validSlug(c.ID) || strings.TrimSpace(c.Title) == "" || len(c.Steps) == 0 || len(c.Steps) > 32 || !validOptionalCreatedAt(c.CreatedAt) {
 		return ErrInvalid
 	}
 	inputNames := map[string]bool{}
