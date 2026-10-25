@@ -1,10 +1,18 @@
 # Session Context M0 storage spike
 
 This isolated module exercises `sessioncontext.DALRepository` through the mounted
-OVDB API and keeps the process-exit M0 reproduction. It pins OVDB Go v0.25.0,
-DALgo v0.93.0, `dalgo2ingitdb` v0.7.1, ingitdb v0.9.0, `dalgo2sql` v0.29.0,
-`dalgo2sqlite` v0.2.3 and modernc SQLite v1.60.1. The only local replacement
-points back to this checkout's Core module; no machine-specific paths are used.
+OVDB API and keeps the process-exit M0 reproduction. It pins OVDB Go v0.25.6,
+effective DALgo v0.95.1, `dalgo2ingitdb` v0.7.1, ingitdb v0.9.1,
+`dalgo2sql` v0.29.0, `dalgo2sqlite` v0.2.3 and modernc SQLite v1.60.1.
+The Core replacement points back to this checkout; no machine-specific paths
+are used.
+
+Core's requirements make Go's minimal version selection choose DALgo v0.95.2.
+This nested module replaces that selection with DALgo v0.95.1 to retain the
+`dtql` package required by OVDB Go v0.25.6; DALgo v0.95.2 renamed it to `tugql`.
+The replacement applies only to this isolated reproduction. Remove it when
+upgrading this fixture to an OVDB Go release that uses `tugql`, and verify the
+updated driver graph separately.
 
 Run from this directory:
 

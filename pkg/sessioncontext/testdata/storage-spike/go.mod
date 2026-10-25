@@ -3,7 +3,7 @@ module github.com/datatug/datatug-core/pkg/sessioncontext/testdata/storage-spike
 go 1.27.0
 
 require (
-	github.com/dal-go/dalgo v0.95.1
+	github.com/dal-go/dalgo v0.95.2
 	github.com/dal-go/record v0.1.5
 	github.com/datatug/datatug-core v0.57.1
 	github.com/openvaultdb/openvaultdb-go v0.25.6
@@ -86,3 +86,10 @@ require (
 )
 
 replace github.com/datatug/datatug-core => ../../../../
+
+// openvaultdb-go v0.25.6 imports github.com/dal-go/dalgo/dtql, which DALgo
+// renamed to tugql in v0.95.2. The require above still records the build
+// list's minimum (v0.95.2, selected by datatug-core); this pin keeps the
+// fixture on the pre-rename DALgo API OVDB v0.25.6 actually compiles against.
+// Drop it when this fixture moves to an OVDB Go release built on tugql.
+replace github.com/dal-go/dalgo => github.com/dal-go/dalgo v0.95.1
