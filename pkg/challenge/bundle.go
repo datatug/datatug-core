@@ -90,10 +90,22 @@ func Open(manifestJSON []byte, fixtures map[string][]byte) (*Opened, error) {
 		}
 		snapshots[fixture.ID] = append([]byte(nil), data...)
 	}
+	return finalizeOpened(manifest, snapshots)
+}
 
+// finalizeOpened canonicalizes a manifest whose schema, references and fixture
+// pins have already been verified, then assembles the immutable definition.
+// Serialization is the last refusal point: a structurally invalid oracle union
+// cannot be canonicalized, so it remains a recoverable manifest refusal and no
+// Opened value is produced.
+func finalizeOpened(manifest Manifest, snapshots map[string][]byte) (*Opened, error) {
 	encoded, err := json.Marshal(manifest)
 	if err != nil {
 		return nil, refuse(CodeInvalidManifest, "manifest", "cannot canonicalize: %s", err)
+	}
+	pinned := make(map[string]Fixture, len(manifest.FixtureSuite.Fixtures))
+	for _, fixture := range manifest.FixtureSuite.Fixtures {
+		pinned[fixture.ID] = fixture
 	}
 	digest := sha256.New()
 	_, _ = digest.Write(encoded)
