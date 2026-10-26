@@ -173,6 +173,109 @@
       }
     },
     {
+      "id": "sidecar-at-limit",
+      "description": "A sidecar of exactly 64 KiB parses.",
+      "operation": "narrative-sidecar",
+      "inputFile": "narrative/sidecars/minimal-at-limit.json",
+      "want": {
+        "accepted": true,
+        "digest": "8e7e2515723ee17639cb289cc174eab34eaa20dd67dd8fd8f2f7d18322e7b5f6",
+        "definition": {
+          "schemaVersion": "1",
+          "scenarioId": "training-demo",
+          "revision": "1",
+          "locale": "en",
+          "fallbackLocale": "en",
+          "messageCatalogues": [
+            {
+              "locale": "en",
+              "path": "walkthroughs/training-demo/messages.en.json",
+              "sha256": "e83f6779ddf7d2da312c67ba2ba9288af96b73e2afe891fefcfb348d3a9ef827",
+              "bytes": "111"
+            }
+          ],
+          "chapterRefs": [
+            "retries"
+          ],
+          "actors": [
+            {
+              "id": "guide",
+              "name": "Guide"
+            }
+          ],
+          "assets": [
+            {
+              "id": "photo",
+              "mediaType": "image/png",
+              "path": "training/photo.png",
+              "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "bytes": "5"
+            }
+          ],
+          "segments": [
+            {
+              "id": "discussion",
+              "chapterId": "retries",
+              "stepId": "discussion",
+              "eventIds": [
+                "await-result",
+                "explain"
+              ],
+              "prerequisiteContextEventIds": []
+            }
+          ],
+          "events": [
+            {
+              "id": "await-result",
+              "chapterId": "retries",
+              "type": "challenge.await_validation",
+              "payload": {
+                "stepId": "solve",
+                "checkpointId": "result"
+              },
+              "presentation": null
+            },
+            {
+              "id": "explain",
+              "chapterId": "retries",
+              "type": "chat.message",
+              "payload": {
+                "actorId": "guide",
+                "messageKey": "retry.explanation",
+                "attachmentIds": [
+                  "photo"
+                ]
+              },
+              "presentation": {
+                "delayBeforeMs": 10,
+                "pauseAfterMs": 20,
+                "typingSpeed": "fast",
+                "typingIndicator": true,
+                "transition": "fade",
+                "cameraTargetId": ""
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sidecar-over-limit",
+      "description": "A sidecar padded past 64 KiB refuses at the parser.",
+      "operation": "narrative-sidecar",
+      "inputFile": "narrative/sidecars/minimal-over-limit.json",
+      "want": {
+        "accepted": false,
+        "digest": "d21119095a817c110cb57eaaae574086733ef700826a3e0b1cc0c688d13f9bdd",
+        "issues": [
+          {
+            "code": "too_large",
+            "path": ""
+          }
+        ]
+      }
+    },
+    {
       "id": "catalogue-valid",
       "description": "A valid catalogue with stable keys.",
       "operation": "message-catalogue",
@@ -940,22 +1043,6 @@
           "proposals": [],
           "presentationTargets": []
         }
-      }
-    },
-    {
-      "id": "admission-sidecar-over-limit",
-      "description": "A sidecar padded past 64 KiB refuses before any admitted projection.",
-      "operation": "narrative-admission",
-      "inputFile": "narrative/admissions/sidecar-over-limit.json",
-      "want": {
-        "digest": "466e7817b0a58f5d7f8adc51404216c77db2a40fbb0b1b84cfcef0c7dc122fa0",
-        "accepted": false,
-        "issues": [
-          {
-            "code": "too_long",
-            "path": ""
-          }
-        ]
       }
     }
   ]

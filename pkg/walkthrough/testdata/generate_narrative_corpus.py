@@ -666,10 +666,6 @@ def main() -> None:
             NARRATIVE / "declarations" / "minimal-at-limit.json",
             declaration(narrative_ref(at_limit_sidecar)),
         ),
-        "minimal-over-limit": dump_pretty(
-            NARRATIVE / "declarations" / "minimal-over-limit.json",
-            declaration(narrative_ref(over_limit_sidecar)),
-        ),
     }
 
     vectors = []
@@ -732,6 +728,33 @@ def main() -> None:
                 "want": want,
             }
         )
+
+    vectors.append(
+        {
+            "id": "sidecar-at-limit",
+            "description": "A sidecar of exactly 64 KiB parses.",
+            "operation": "narrative-sidecar",
+            "inputFile": "narrative/sidecars/minimal-at-limit.json",
+            "want": {
+                "accepted": True,
+                "digest": sha(at_limit_sidecar),
+                "definition": project_sidecar(at_limit_sidecar_value),
+            },
+        }
+    )
+    vectors.append(
+        {
+            "id": "sidecar-over-limit",
+            "description": "A sidecar padded past 64 KiB refuses at the parser.",
+            "operation": "narrative-sidecar",
+            "inputFile": "narrative/sidecars/minimal-over-limit.json",
+            "want": {
+                "accepted": False,
+                "digest": sha(over_limit_sidecar),
+                "issues": [{"code": "too_large", "path": ""}],
+            },
+        }
+    )
 
     for name, description, data, want in [
         ("catalogue-valid", "A valid catalogue with stable keys.", en, {"accepted": True, "digest": sha(en), "definition": project_catalogue(catalogue("en", {"retry.explanation": "Repeated requests need an idempotency key."}))}),
@@ -1245,17 +1268,6 @@ def main() -> None:
         None,
         minimal_owner,
         {"accepted": True, "admission": at_limit_value},
-    )
-    add_admission(
-        "admission-sidecar-over-limit",
-        "A sidecar padded past 64 KiB refuses before any admitted projection.",
-        "minimal-over-limit",
-        "minimal-over-limit",
-        over_limit_sidecar,
-        ["en"],
-        None,
-        minimal_owner,
-        {"accepted": False, "issues": [{"code": "too_long", "path": ""}]},
     )
 
     corpus = {"corpusVersion": "walkthrough-contracts-v3", "vectors": vectors}

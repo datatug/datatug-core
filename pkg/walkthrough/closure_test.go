@@ -852,12 +852,13 @@ func TestAdmitNarrativeSidecarTextAssetLimit(t *testing.T) {
 		narrative.TextBytes)
 
 	over := rebuildFixture(t, base, sidecarPaddedTo(t, base.sidecarBytes, MaxTextAssetBytes+1))
-	result := AdmitNarrative(over.bundle, over.authority, over.owner,
-		admissionInputFor(t, over, over.sidecarBytes, over.catalogueBytes))
+	result := AdmitNarrative(over.bundle, over.authority, over.owner, NarrativeAdmissionInput{
+		Sidecar: NarrativeAssetBytes{Reference: over.bundle.Narrative, Bytes: over.sidecarBytes},
+	})
 	require.False(t, result.Admitted)
 	require.Nil(t, result.Narrative)
-	require.Equal(t, CodeTooLong, result.Issues[0].Code)
-	require.Contains(t, result.Issues[0].Message, "64 KiB")
+	require.Equal(t, CodeTooLarge, result.Issues[0].Code)
+	require.Contains(t, result.Issues[0].Message, "byte budget")
 }
 
 func TestAdmitNarrativeRefusesUnknownCodecKindNames(t *testing.T) {
