@@ -3,13 +3,20 @@
 package walkthrough
 
 const (
-	LocaleRegistryFileDate           = "2026-09-17"
-	LocaleRegistrySHA256             = "755fad43283be7b41ebe3c89ad054b6eaf928f404f9c0edb74799e0eab74beb1"
-	LocaleRegistryURL                = "https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry"
+	// LocaleRegistryFileDate is the pinned IANA Language Subtag Registry File-Date.
+	LocaleRegistryFileDate = "2026-09-17"
+	// LocaleRegistrySHA256 is the SHA-256 of the exact retained registry bytes.
+	LocaleRegistrySHA256 = "755fad43283be7b41ebe3c89ad054b6eaf928f404f9c0edb74799e0eab74beb1"
+	// LocaleRegistryURL is the official source of LocaleRegistrySHA256.
+	LocaleRegistryURL = "https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry"
+	// LocaleExtensionsRegistryFileDate is the pinned extension registry File-Date.
 	LocaleExtensionsRegistryFileDate = "2014-04-02"
-	LocaleExtensionsRegistrySHA256   = "fdf7764455c493c245a9b3b5b9cd3938391f0637302c3e943fde86aee652e376"
-	LocaleExtensionsRegistryURL      = "https://www.iana.org/assignments/language-tag-extensions-registry/language-tag-extensions-registry"
-	LocaleTablesSHA256               = "7328cbddaa0f4450eeb730ebca222cedf9bd9c7a16a8037f3d3ad22a4e5ccad6"
+	// LocaleExtensionsRegistrySHA256 is the SHA-256 of the retained extension bytes.
+	LocaleExtensionsRegistrySHA256 = "fdf7764455c493c245a9b3b5b9cd3938391f0637302c3e943fde86aee652e376"
+	// LocaleExtensionsRegistryURL is the official source of that snapshot.
+	LocaleExtensionsRegistryURL = "https://www.iana.org/assignments/language-tag-extensions-registry/language-tag-extensions-registry"
+	// LocaleTablesSHA256 is the SHA-256 of testdata/locale/locale-tables.json.
+	LocaleTablesSHA256 = "7328cbddaa0f4450eeb730ebca222cedf9bd9c7a16a8037f3d3ad22a4e5ccad6"
 )
 
 var localeLanguages = newLocaleSet(
