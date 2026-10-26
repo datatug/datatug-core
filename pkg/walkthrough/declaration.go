@@ -554,13 +554,12 @@ func (c *checker) versionField(object *jsonValue, path string) Integer {
 	return Integer(value.number)
 }
 
-func (c *checker) boolField(object *jsonValue, path, name string, required bool) (bool, bool) {
+// boolField reads an optional boolean. Callers that need presence first check
+// the member themselves (the exit index variant), so an absent field is always
+// the optional case here.
+func (c *checker) boolField(object *jsonValue, path, name string) (bool, bool) {
 	value, present := object.member(name)
 	if !present {
-		if required {
-			c.report(CodeMissingField, pointerChild(path, name), "required field is missing")
-			return false, false
-		}
 		return false, true
 	}
 	if value.kind != jsonBoolean {

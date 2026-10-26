@@ -61,7 +61,7 @@ func (c *checker) target(value *jsonValue, path string, ordinal int) Target {
 			Parameters: c.namedValues(value, path, "parameters", false, ordinal, false),
 		}
 	case "board":
-		tutorial, _ := c.boolField(value, path, "tutorial", false)
+		tutorial, _ := c.boolField(value, path, "tutorial")
 		target.Board = &BoardTarget{
 			BoardID:    c.assetString(value, path, "boardId", true),
 			Parameters: c.namedValues(value, path, "parameters", false, ordinal, false),
@@ -186,7 +186,7 @@ func (c *checker) exit(value *jsonValue, path string) Exit {
 		return Exit{Kind: "target", Target: &target}
 	}
 	if _, ok := value.member("index"); ok {
-		index, valid := c.boolField(value, path, "index", true)
+		index, valid := c.boolField(value, path, "index")
 		if valid && !index {
 			c.report(CodeInvalidValue, pointerChild(path, "index"), "index must be true")
 		}
