@@ -181,6 +181,35 @@ python3 pkg/walkthrough/testdata/locale/generate_locale_tables.py
 go test ./pkg/walkthrough
 ```
 
+
+## Narrative sidecar, catalogues and closure
+
+The pure `/2` narrative slice is split into three modules:
+
+- `narrative.go` — `ParseNarrativeSidecar` (closed schema 1 shape, bounds,
+  event registry, payloads, presentation hints and sidecar-local references)
+  and `ParseMessageCatalogue` (closed catalogue with stable keys and plain
+  text). Both return a typed snapshot or structured recoverable issues.
+- `catalogue.go` — `SelectNarrativeLocale` implements exactly the declared
+  exact/primary-language/fallback selection using the accepted locale profile;
+  `accountNarrativeText` deduplicates canonical source+path aliases, rejects
+  conflicting pins, counts different paths separately and enforces the 6 MiB
+  combined and 64 KiB per-text-asset budgets.
+- `closure.go` — `AdmitNarrative` binds the parsed sidecar to the admitted
+  declaration, every pinned byte reference, the package text inventory and the
+  trusted `NarrativeOwnerContext`. That extension composes the accepted a2
+  port and adds only typed Check, proposal, presentation-target and accounting
+  snapshots. Every returned binding carries the exact project/source/
+  declaration/package key; a missing, kind-mismatched or drifting binding
+  refuses before any admitted executable projection.
+
+A3 is explicitly not a package loader. It neither reads a package index nor
+interprets native Check/query/manifest definitions, and it never runs SQL,
+Checks or Watches or creates Work. A test double proves closure against its
+declared typed inventories only. The caller must construct the context after
+the normative package-index/child-byte/codec/native-validation pipeline and
+keep it stable for the admission call.
+
 ## Corpus
 
 `testdata/corpus.json` is the canonical, language-neutral `/1` conformance
@@ -193,11 +222,16 @@ the owner tables by the independent normalizer in
 `testdata/generate_corpus.py`; they are never produced by this package.
 
 `provenance-v2.json` records every file hash, the training corpus hash and the
-hash of the unchanged base `/1` corpus. Regenerate fixtures after an
-intentional corpus change:
+hash of the unchanged base `/1` corpus. `testdata/corpus-v3.json` is the
+separately versioned narrative/catalogue/closure corpus; its `operation` field
+selects `narrative-sidecar`, `message-catalogue`, `locale-selection` or
+`narrative-admission`. `provenance-v3.json` records every new raw byte file and
+the unchanged v2 corpus hash. Raw bytes live under
+`testdata/narrative/`. Regenerate fixtures after an intentional corpus change:
 
 ```sh
 python3 pkg/walkthrough/testdata/generate_corpus.py
+python3 pkg/walkthrough/testdata/generate_narrative_corpus.py
 go test ./pkg/walkthrough
 ```
 
