@@ -13,9 +13,11 @@ import (
 const NarrativeSchemaVersion = 1
 
 // Sidecar, catalogue and presentation bounds from the owner declaration and
-// training-package formats. The combined text budget is enforced by
-// [AdmitNarrative]; the sidecar itself has no separate 64 KiB declaration
-// budget.
+// training-package formats. Every text asset, including the narrative sidecar,
+// is also bound by the independent 64 KiB per-text-asset cap enforced during
+// [AdmitNarrative] text accounting. MaxNarrativeSidecarBytes is only the
+// parser's outer untrusted-input ceiling; it does not waive that cap. The
+// combined 6 MiB aggregate is likewise enforced during admission.
 const (
 	MaxNarrativeSidecarBytes = 6 << 20
 	MaxNarrativeTextBytes    = 6 << 20

@@ -1,0 +1,94 @@
+{
+  "declarationFile": "narrative/declarations/targets-nested.json",
+  "sidecarFile": "narrative/sidecars/targets-nested.json",
+  "catalogueFiles": [
+    "en"
+  ],
+  "request": null,
+  "owner": {
+    "assets": [
+      {
+        "assetId": "evidence",
+        "kind": "evidence-text",
+        "path": "training/evidence.txt",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "bytes": "10"
+      },
+      {
+        "assetId": "owner-check-definition",
+        "kind": "check-definition",
+        "path": "training/check.json",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "bytes": "20"
+      }
+    ],
+    "cases": [
+      "case-one"
+    ],
+    "incidents": [
+      "incident-one"
+    ],
+    "checks": [
+      "owner-check"
+    ],
+    "queries": [
+      "queries/retries"
+    ],
+    "proposals": [
+      "patch"
+    ],
+    "presentationTargets": [
+      "check-panel",
+      "proposal-panel"
+    ],
+    "checkBindings": [
+      {
+        "checkId": "owner-check",
+        "definitionAssetId": "owner-check-definition"
+      }
+    ],
+    "proposalBindings": [
+      {
+        "proposalId": "patch",
+        "kind": "query",
+        "definitionId": "queries/retries",
+        "evidenceIds": [
+          "evidence"
+        ],
+        "rationale": "Try the idempotency key."
+      }
+    ],
+    "targetBindings": [
+      {
+        "targetId": "check-panel",
+        "kind": "check",
+        "refId": "owner-check",
+        "closureKind": "check",
+        "closureId": "owner-check",
+        "closureCheck": {
+          "checkId": "owner-check",
+          "definitionAssetId": "owner-check-definition"
+        },
+        "omitClosure": true
+      },
+      {
+        "targetId": "proposal-panel",
+        "kind": "proposal",
+        "refId": "patch",
+        "closureKind": "proposal",
+        "closureId": "patch",
+        "closureProposal": {
+          "proposalId": "patch",
+          "kind": "query",
+          "definitionId": "queries/retries",
+          "evidenceIds": [
+            "evidence"
+          ],
+          "rationale": "Try the idempotency key."
+        }
+      }
+    ],
+    "mutateOnSecondRead": false,
+    "wrongPackageBinding": false
+  }
+}

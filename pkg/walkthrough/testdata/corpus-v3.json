@@ -649,6 +649,314 @@
           }
         ]
       }
+    },
+    {
+      "id": "admission-target-closures",
+      "description": "Check and proposal presentation targets require matching typed nested closures.",
+      "operation": "narrative-admission",
+      "inputFile": "narrative/admissions/target-closures.json",
+      "want": {
+        "digest": "d712f2ffda19df7be08066c755d50a324d1bf6768fcd62cc9c77db98c76e1ef6",
+        "accepted": true,
+        "admission": {
+          "scenarioId": "training-demo",
+          "revision": "1",
+          "package": {
+            "id": "training-demo",
+            "revision": "1",
+            "path": "training/package.json",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": "100"
+          },
+          "locale": {
+            "requestedLocale": "en",
+            "selectedLocale": "en",
+            "matched": "exact",
+            "fallbackLocale": "en"
+          },
+          "textBytes": "2530",
+          "catalogueLocales": [
+            "en"
+          ],
+          "messages": [
+            {
+              "eventId": "explain",
+              "key": "retry.explanation",
+              "text": "Repeated requests need an idempotency key.",
+              "locale": "en",
+              "fromFallback": false
+            }
+          ],
+          "checks": [
+            {
+              "checkId": "owner-check",
+              "definitionAssetId": "owner-check-definition"
+            }
+          ],
+          "proposals": [
+            {
+              "proposalId": "patch",
+              "kind": "query",
+              "definitionId": "queries/retries",
+              "evidenceIds": [
+                "evidence"
+              ],
+              "rationale": "Try the idempotency key."
+            }
+          ],
+          "presentationTargets": [
+            {
+              "targetId": "check-panel",
+              "kind": "check",
+              "refId": "owner-check"
+            },
+            {
+              "targetId": "proposal-panel",
+              "kind": "proposal",
+              "refId": "patch"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "admission-check-not-inventory",
+      "description": "A Check binding must be a member of the admitted package Check inventory.",
+      "operation": "narrative-admission",
+      "inputFile": "narrative/admissions/check-not-inventory.json",
+      "want": {
+        "digest": "91d30d75177fd9452aa595892eef1a6f84103e791736f3e6805f824bc4a14c55",
+        "accepted": false,
+        "issues": [
+          {
+            "code": "not_admitted",
+            "path": "/events/2/payload/checkId"
+          },
+          {
+            "code": "invalid_reference",
+            "path": "/events/4/payload/targetId"
+          }
+        ]
+      }
+    },
+    {
+      "id": "admission-target-check-closure-absent",
+      "description": "A Check target without its typed closure refuses.",
+      "operation": "narrative-admission",
+      "inputFile": "narrative/admissions/target-check-closure-absent.json",
+      "want": {
+        "digest": "47cd8ef8a138209855a24b723452e473b0d05b34a4ece2d379a176733cb59a16",
+        "accepted": false,
+        "issues": [
+          {
+            "code": "mismatch",
+            "path": "/events/4/payload/targetId"
+          }
+        ]
+      }
+    },
+    {
+      "id": "admission-target-check-nested-absent",
+      "description": "A Check target without its nested Check binding refuses.",
+      "operation": "narrative-admission",
+      "inputFile": "narrative/admissions/target-check-nested-absent.json",
+      "want": {
+        "digest": "be7aadef38a3fff1ba7a3ed8232ca8e81a377ed7863188c96d0596d9a647bd6d",
+        "accepted": false,
+        "issues": [
+          {
+            "code": "mismatch",
+            "path": "/events/4/payload/targetId"
+          }
+        ]
+      }
+    },
+    {
+      "id": "admission-target-check-nested-mismatch",
+      "description": "A contradictory nested Check definition refuses.",
+      "operation": "narrative-admission",
+      "inputFile": "narrative/admissions/target-check-nested-mismatch.json",
+      "want": {
+        "digest": "135ad910f2303e0d44e37f75f097d8b737059755c3e1a46a89ee825f63bdb618",
+        "accepted": false,
+        "issues": [
+          {
+            "code": "mismatch",
+            "path": "/events/4/payload/targetId"
+          }
+        ]
+      }
+    },
+    {
+      "id": "admission-target-check-nested-pin",
+      "description": "A nested Check binding tied to another package pin refuses.",
+      "operation": "narrative-admission",
+      "inputFile": "narrative/admissions/target-check-nested-pin.json",
+      "want": {
+        "digest": "711997e9a528fd79b802082e9d12ec61622ae008044f74cd8e3ef5248e7afb2a",
+        "accepted": false,
+        "issues": [
+          {
+            "code": "mismatch",
+            "path": "/events/4/payload/targetId"
+          }
+        ]
+      }
+    },
+    {
+      "id": "admission-target-proposal-nested-absent",
+      "description": "A proposal target without its nested proposal binding refuses.",
+      "operation": "narrative-admission",
+      "inputFile": "narrative/admissions/target-proposal-nested-absent.json",
+      "want": {
+        "digest": "8a598e3aed3b04b14a5d4a788234a83b78637b2f598de6c97bdcef10ca15c163",
+        "accepted": false,
+        "issues": [
+          {
+            "code": "mismatch",
+            "path": "/events/5/payload/targetId"
+          }
+        ]
+      }
+    },
+    {
+      "id": "admission-target-proposal-nested-mismatch",
+      "description": "A contradictory nested proposal binding refuses.",
+      "operation": "narrative-admission",
+      "inputFile": "narrative/admissions/target-proposal-nested-mismatch.json",
+      "want": {
+        "digest": "93cb84224f74186313c2a031bbb551aceff55c4d11e2bff297995b508e106dba",
+        "accepted": false,
+        "issues": [
+          {
+            "code": "mismatch",
+            "path": "/events/5/payload/targetId"
+          }
+        ]
+      }
+    },
+    {
+      "id": "admission-target-case-extra-nested",
+      "description": "An untyped target carrying an unrelated nested Check binding refuses.",
+      "operation": "narrative-admission",
+      "inputFile": "narrative/admissions/target-case-extra-nested.json",
+      "want": {
+        "digest": "7994a8bbe1be1b492e34b7e0052fb9f549edae75ddff72c2f5056d8874290920",
+        "accepted": false,
+        "issues": [
+          {
+            "code": "mismatch",
+            "path": "/events/4/payload/targetId"
+          }
+        ]
+      }
+    },
+    {
+      "id": "admission-codec-constructor",
+      "description": "An inherited Object property name 'constructor' is not a codec kind.",
+      "operation": "narrative-admission",
+      "inputFile": "narrative/admissions/codec-constructor.json",
+      "want": {
+        "digest": "18ce740eb28ac7fbb1e2f3f1aa1a90b7e514013c5810a8488fd945b34e022b3d",
+        "accepted": false,
+        "issues": [
+          {
+            "code": "invalid_value",
+            "path": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "admission-codec-proto",
+      "description": "An inherited Object property name '__proto__' is not a codec kind.",
+      "operation": "narrative-admission",
+      "inputFile": "narrative/admissions/codec-proto.json",
+      "want": {
+        "digest": "0640e6e3ec968b25ab8f498c17d43f0f2a39b21a327196586f0fa7a096aed08e",
+        "accepted": false,
+        "issues": [
+          {
+            "code": "invalid_value",
+            "path": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "admission-codec-tostring",
+      "description": "An inherited Object property name 'toString' is not a codec kind.",
+      "operation": "narrative-admission",
+      "inputFile": "narrative/admissions/codec-tostring.json",
+      "want": {
+        "digest": "7ed7472773856218f0466a84de0968d2efe925bea86f2fb3d23d67392ed3e7b5",
+        "accepted": false,
+        "issues": [
+          {
+            "code": "invalid_value",
+            "path": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "admission-sidecar-at-limit",
+      "description": "A sidecar of exactly 64 KiB counts once and admits.",
+      "operation": "narrative-admission",
+      "inputFile": "narrative/admissions/sidecar-at-limit.json",
+      "want": {
+        "digest": "056ea291e766fd53e69d4f2275ed054515b61ae80b97a1570305c5d259321f78",
+        "accepted": true,
+        "admission": {
+          "scenarioId": "training-demo",
+          "revision": "1",
+          "package": {
+            "id": "training-demo",
+            "revision": "1",
+            "path": "training/package.json",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": "100"
+          },
+          "locale": {
+            "requestedLocale": "en",
+            "selectedLocale": "en",
+            "matched": "exact",
+            "fallbackLocale": "en"
+          },
+          "textBytes": "65677",
+          "catalogueLocales": [
+            "en"
+          ],
+          "messages": [
+            {
+              "eventId": "explain",
+              "key": "retry.explanation",
+              "text": "Repeated requests need an idempotency key.",
+              "locale": "en",
+              "fromFallback": false
+            }
+          ],
+          "checks": [],
+          "proposals": [],
+          "presentationTargets": []
+        }
+      }
+    },
+    {
+      "id": "admission-sidecar-over-limit",
+      "description": "A sidecar padded past 64 KiB refuses before any admitted projection.",
+      "operation": "narrative-admission",
+      "inputFile": "narrative/admissions/sidecar-over-limit.json",
+      "want": {
+        "digest": "466e7817b0a58f5d7f8adc51404216c77db2a40fbb0b1b84cfcef0c7dc122fa0",
+        "accepted": false,
+        "issues": [
+          {
+            "code": "too_long",
+            "path": ""
+          }
+        ]
+      }
     }
   ]
 }

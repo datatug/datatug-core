@@ -316,10 +316,11 @@ func AdmitNarrative(
 
 	texts := make([]narrativeTextItem, 0)
 	texts = append(texts, narrativeTextItem{
-		path:        bundle.Narrative.Path,
-		sha256:      bundle.Narrative.SHA256,
-		pinnedBytes: bundle.Narrative.Bytes,
-		actualBytes: len(input.Sidecar.Bytes),
+		path:          bundle.Narrative.Path,
+		sha256:        bundle.Narrative.SHA256,
+		pinnedBytes:   bundle.Narrative.Bytes,
+		actualBytes:   len(input.Sidecar.Bytes),
+		perAssetLimit: true,
 	})
 	for _, catalogue := range input.Catalogues {
 		texts = append(texts, narrativeTextItem{
@@ -787,6 +788,13 @@ func (a *narrativeAdmission) validateCheckBinding(binding CheckBinding, checkID,
 			Message: "the admitted Check id does not equal the requested id",
 		})
 	}
+	if !containsString(a.inventory.Checks, binding.CheckID) {
+		issues = append(issues, Issue{
+			Code:    CodeNotAdmitted,
+			Path:    path,
+			Message: "the Check is not in the admitted package inventory",
+		})
+	}
 	asset, ok := a.packageAsset(binding.DefinitionAssetID)
 	if !ok || asset.Kind != "check-definition" {
 		issues = append(issues, Issue{
@@ -921,7 +929,7 @@ func (a *narrativeAdmission) resolveTarget(targetID, path string) (*Presentation
 		return nil, []Issue{{Code: CodeNotAdmitted, Path: path, Message: err.Error()}}
 	}
 	binding := snapshotPresentationTargetBinding(raw)
-	issues := a.validateTargetBinding(binding, targetID, path)
+	issues := a.validateTargetBinding(&binding, targetID, path)
 	if len(issues) > 0 {
 		return nil, issues
 	}
@@ -929,7 +937,7 @@ func (a *narrativeAdmission) resolveTarget(targetID, path string) (*Presentation
 	return &binding, nil
 }
 
-func (a *narrativeAdmission) validateTargetBinding(binding PresentationTargetBinding, targetID, path string) []Issue {
+func (a *narrativeAdmission) validateTargetBinding(binding *PresentationTargetBinding, targetID, path string) []Issue {
 	issues := make([]Issue, 0)
 	if !equalOwnerBindingKey(binding.Binding, expectedBinding(a.bundle), a.projectAuthority()) {
 		issues = append(issues, Issue{
@@ -963,6 +971,13 @@ func (a *narrativeAdmission) validateTargetBinding(binding PresentationTargetBin
 	}
 	switch binding.Kind {
 	case "case":
+		if binding.Closure.Check != nil || binding.Closure.Proposal != nil {
+			issues = append(issues, Issue{
+				Code:    CodeMismatch,
+				Path:    path,
+				Message: "the presentation Case closure carries an unrelated typed binding",
+			})
+		}
 		if !containsString(a.inventory.Cases, binding.RefID) {
 			issues = append(issues, Issue{
 				Code:    CodeInvalidReference,
@@ -971,6 +986,13 @@ func (a *narrativeAdmission) validateTargetBinding(binding PresentationTargetBin
 			})
 		}
 	case "incident":
+		if binding.Closure.Check != nil || binding.Closure.Proposal != nil {
+			issues = append(issues, Issue{
+				Code:    CodeMismatch,
+				Path:    path,
+				Message: "the presentation incident closure carries an unrelated typed binding",
+			})
+		}
 		if !containsString(a.inventory.Incidents, binding.RefID) {
 			issues = append(issues, Issue{
 				Code:    CodeInvalidReference,
@@ -979,6 +1001,13 @@ func (a *narrativeAdmission) validateTargetBinding(binding PresentationTargetBin
 			})
 		}
 	case "evidence":
+		if binding.Closure.Check != nil || binding.Closure.Proposal != nil {
+			issues = append(issues, Issue{
+				Code:    CodeMismatch,
+				Path:    path,
+				Message: "the presentation evidence closure carries an unrelated typed binding",
+			})
+		}
 		asset, ok := a.packageAsset(binding.RefID)
 		if !ok || !isEvidenceKind(asset.Kind) {
 			issues = append(issues, Issue{
@@ -994,9 +1023,40 @@ func (a *narrativeAdmission) validateTargetBinding(binding PresentationTargetBin
 				Path:    path,
 				Message: "the presentation Check does not resolve",
 			})
-		} else if _, checkIssues := a.resolveCheck(binding.RefID, path); len(checkIssues) > 0 {
-			issues = append(issues, checkIssues...)
+			break
 		}
+		resolved, checkIssues := a.resolveCheck(binding.RefID, path)
+		if len(checkIssues) > 0 {
+			issues = append(issues, checkIssues...)
+			break
+		}
+		if binding.Closure.Check == nil {
+			issues = append(issues, Issue{
+				Code:    CodeMismatch,
+				Path:    path,
+				Message: "the presentation Check closure is absent",
+			})
+			break
+		}
+		if binding.Closure.Proposal != nil {
+			issues = append(issues, Issue{
+				Code:    CodeMismatch,
+				Path:    path,
+				Message: "the presentation Check closure carries a proposal binding",
+			})
+			break
+		}
+		if !equalCheckBinding(*binding.Closure.Check, *resolved, a.projectAuthority()) {
+			issues = append(issues, Issue{
+				Code:    CodeMismatch,
+				Path:    path,
+				Message: "the presentation Check closure does not match the resolved binding",
+			})
+			break
+		}
+		// Retain only the independently validated owner binding.
+		copied := snapshotCheckBinding(*resolved)
+		binding.Closure.Check = &copied
 	case "proposal":
 		if !containsString(a.inventory.Proposals, binding.RefID) {
 			issues = append(issues, Issue{
@@ -1004,9 +1064,40 @@ func (a *narrativeAdmission) validateTargetBinding(binding PresentationTargetBin
 				Path:    path,
 				Message: "the presentation proposal does not resolve",
 			})
-		} else if _, proposalIssues := a.resolveProposal(binding.RefID, path); len(proposalIssues) > 0 {
-			issues = append(issues, proposalIssues...)
+			break
 		}
+		resolved, proposalIssues := a.resolveProposal(binding.RefID, path)
+		if len(proposalIssues) > 0 {
+			issues = append(issues, proposalIssues...)
+			break
+		}
+		if binding.Closure.Proposal == nil {
+			issues = append(issues, Issue{
+				Code:    CodeMismatch,
+				Path:    path,
+				Message: "the presentation proposal closure is absent",
+			})
+			break
+		}
+		if binding.Closure.Check != nil {
+			issues = append(issues, Issue{
+				Code:    CodeMismatch,
+				Path:    path,
+				Message: "the presentation proposal closure carries a Check binding",
+			})
+			break
+		}
+		if !equalProposalBinding(*binding.Closure.Proposal, *resolved, a.projectAuthority()) {
+			issues = append(issues, Issue{
+				Code:    CodeMismatch,
+				Path:    path,
+				Message: "the presentation proposal closure does not match the resolved binding",
+			})
+			break
+		}
+		// Retain only the independently validated owner binding.
+		copied := snapshotProposalBinding(*resolved)
+		binding.Closure.Proposal = &copied
 	default:
 		issues = append(issues, Issue{
 			Code:    CodeInvalidValue,
@@ -1015,6 +1106,21 @@ func (a *narrativeAdmission) validateTargetBinding(binding PresentationTargetBin
 		})
 	}
 	return issues
+}
+
+func equalCheckBinding(left, right CheckBinding, authority ProjectAuthority) bool {
+	return equalOwnerBindingKey(left.Binding, right.Binding, authority) &&
+		left.CheckID == right.CheckID &&
+		left.DefinitionAssetID == right.DefinitionAssetID
+}
+
+func equalProposalBinding(left, right ProposalBinding, authority ProjectAuthority) bool {
+	return equalOwnerBindingKey(left.Binding, right.Binding, authority) &&
+		left.ProposalID == right.ProposalID &&
+		left.Kind == right.Kind &&
+		left.DefinitionID == right.DefinitionID &&
+		stringSlicesEqual(left.EvidenceIDs, right.EvidenceIDs) &&
+		left.Rationale == right.Rationale
 }
 
 func (a *narrativeAdmission) projectAuthority() ProjectAuthority {

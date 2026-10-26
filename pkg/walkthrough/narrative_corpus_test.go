@@ -77,11 +77,29 @@ type narrativeProposalFixture struct {
 }
 
 type narrativeTargetFixture struct {
-	TargetID    string `json:"targetId"`
-	Kind        string `json:"kind"`
-	RefID       string `json:"refId"`
-	ClosureKind string `json:"closureKind"`
-	ClosureID   string `json:"closureId"`
+	TargetID        string                           `json:"targetId"`
+	Kind            string                           `json:"kind"`
+	RefID           string                           `json:"refId"`
+	ClosureKind     string                           `json:"closureKind"`
+	ClosureID       string                           `json:"closureId"`
+	OmitClosure     bool                             `json:"omitClosure"`
+	ClosureCheck    *narrativeClosureCheckFixture    `json:"closureCheck"`
+	ClosureProposal *narrativeClosureProposalFixture `json:"closureProposal"`
+}
+
+type narrativeClosureCheckFixture struct {
+	CheckID             string `json:"checkId"`
+	DefinitionAssetID   string `json:"definitionAssetId"`
+	WrongPackageBinding bool   `json:"wrongPackageBinding"`
+}
+
+type narrativeClosureProposalFixture struct {
+	ProposalID          string   `json:"proposalId"`
+	Kind                string   `json:"kind"`
+	DefinitionID        string   `json:"definitionId"`
+	EvidenceIDs         []string `json:"evidenceIds"`
+	Rationale           string   `json:"rationale"`
+	WrongPackageBinding bool     `json:"wrongPackageBinding"`
 }
 
 func loadNarrativeCorpus(t *testing.T) narrativeCorpus {
@@ -308,10 +326,39 @@ func assertNarrativeAdmissionVector(t *testing.T, vector narrativeVector, data [
 		}
 	}
 	for _, fixture := range admissionCase.Owner.TargetBindings {
-		owner.targets[fixture.TargetID] = PresentationTargetBinding{
+		target := PresentationTargetBinding{
 			Binding: binding, TargetID: fixture.TargetID, Kind: fixture.Kind, RefID: fixture.RefID,
-			Closure: &PresentationClosure{Kind: fixture.ClosureKind, ID: fixture.ClosureID},
 		}
+		if !fixture.OmitClosure {
+			closure := &PresentationClosure{Kind: fixture.ClosureKind, ID: fixture.ClosureID}
+			if fixture.ClosureCheck != nil {
+				checkBinding := binding
+				if fixture.ClosureCheck.WrongPackageBinding {
+					checkBinding = otherPackageBinding(binding)
+				}
+				closure.Check = &CheckBinding{
+					Binding:           checkBinding,
+					CheckID:           fixture.ClosureCheck.CheckID,
+					DefinitionAssetID: fixture.ClosureCheck.DefinitionAssetID,
+				}
+			}
+			if fixture.ClosureProposal != nil {
+				proposalBinding := binding
+				if fixture.ClosureProposal.WrongPackageBinding {
+					proposalBinding = otherPackageBinding(binding)
+				}
+				closure.Proposal = &ProposalBinding{
+					Binding:      proposalBinding,
+					ProposalID:   fixture.ClosureProposal.ProposalID,
+					Kind:         fixture.ClosureProposal.Kind,
+					DefinitionID: fixture.ClosureProposal.DefinitionID,
+					EvidenceIDs:  append([]string{}, fixture.ClosureProposal.EvidenceIDs...),
+					Rationale:    fixture.ClosureProposal.Rationale,
+				}
+			}
+			target.Closure = closure
+		}
+		owner.targets[fixture.TargetID] = target
 	}
 
 	resolution := ResolveTraining(declaration.Definition, source, fakeAuthority{}, owner)
@@ -330,6 +377,14 @@ func assertNarrativeAdmissionVector(t *testing.T, vector narrativeVector, data [
 	}
 	require.Nil(t, result.Narrative)
 	require.Equal(t, vector.Want.Issues, corpusIssues(result.Issues))
+}
+
+func otherPackageBinding(binding OwnerBindingKey) OwnerBindingKey {
+	binding.Package = PackageReference{
+		ID: "other-package", Revision: "1", Path: "training/package.json",
+		SHA256: strings.Repeat("a", 64), Bytes: "100",
+	}
+	return binding
 }
 
 func readNarrativeFixture(t *testing.T, relative string) []byte {

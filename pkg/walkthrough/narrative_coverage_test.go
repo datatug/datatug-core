@@ -421,9 +421,21 @@ func TestAdmitNarrativeCoversProposalAndTargetKinds(t *testing.T) {
 				target.RefID = "owner-check"
 				target.Closure.ID = "owner-check"
 				fixture.owner.narrative.Checks = []string{"owner-check"}
+				check := fixture.owner.checks["owner-check"]
+				target.Closure.Check = &CheckBinding{
+					Binding: check.Binding, CheckID: check.CheckID,
+					DefinitionAssetID: check.DefinitionAssetID,
+				}
 			case "proposal":
 				target.RefID = "patch"
 				target.Closure.ID = "patch"
+				proposal := fixture.owner.proposals["patch"]
+				target.Closure.Proposal = &ProposalBinding{
+					Binding: proposal.Binding, ProposalID: proposal.ProposalID,
+					Kind: proposal.Kind, DefinitionID: proposal.DefinitionID,
+					EvidenceIDs: append([]string{}, proposal.EvidenceIDs...),
+					Rationale:   proposal.Rationale,
+				}
 			}
 			target.Binding = binding
 			fixture.owner.targets["case-panel"] = target

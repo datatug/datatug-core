@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from copy import deepcopy
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -97,6 +98,43 @@ def target_events() -> list[dict]:
                 "chapterId": "retries",
                 "type": "camera.focus",
                 "payload": {"targetId": "case-panel"},
+            },
+        ]
+    )
+    return events
+
+
+def nested_target_events() -> list[dict]:
+    events = base_events()
+    events.extend(
+        [
+            {
+                "id": "check-event",
+                "chapterId": "retries",
+                "type": "check.run",
+                "payload": {
+                    "checkId": "owner-check",
+                    "referenceOutcome": "passed",
+                    "referenceAssisted": False,
+                },
+            },
+            {
+                "id": "recommend-event",
+                "chapterId": "retries",
+                "type": "postmortem.recommend",
+                "payload": {"proposalId": "patch"},
+            },
+            {
+                "id": "focus-check",
+                "chapterId": "retries",
+                "type": "camera.focus",
+                "payload": {"targetId": "check-panel"},
+            },
+            {
+                "id": "focus-proposal",
+                "chapterId": "retries",
+                "type": "camera.focus",
+                "payload": {"targetId": "proposal-panel"},
             },
         ]
     )
@@ -534,6 +572,38 @@ def main() -> None:
     )
     target_sidecar = dump_pretty(NARRATIVE / "sidecars" / "targets.json", target_sidecar_value)
     target_sidecar_value["_bytes"] = target_sidecar
+    nested_target_sidecar_value = sidecar(
+        refs[:1],
+        nested_target_events(),
+        [
+            "await-result",
+            "explain",
+            "check-event",
+            "recommend-event",
+            "focus-check",
+            "focus-proposal",
+        ],
+    )
+    nested_target_sidecar = dump_pretty(
+        NARRATIVE / "sidecars" / "targets-nested.json", nested_target_sidecar_value
+    )
+    nested_target_sidecar_value["_bytes"] = nested_target_sidecar
+    def padded_sidecar(source: bytes, size: int) -> bytes:
+        padding = size - len(source)
+        if padding < 0 or not source.startswith(b"{\n"):
+            raise ValueError("sidecar cannot be padded in place")
+        # Indent the first member line with JSON whitespace: valid, and not
+        # trailing whitespace at end of line.
+        return source[:2] + b" " * padding + source[2:]
+
+    at_limit_sidecar = padded_sidecar(base_sidecar, 64 * 1024)
+    at_limit_sidecar_value = dict(base_sidecar_value)
+    at_limit_sidecar_value["_bytes"] = at_limit_sidecar
+    (NARRATIVE / "sidecars" / "minimal-at-limit.json").write_bytes(at_limit_sidecar)
+    over_limit_sidecar = padded_sidecar(base_sidecar, 64 * 1024 + 1)
+    over_limit_sidecar_value = dict(base_sidecar_value)
+    over_limit_sidecar_value["_bytes"] = over_limit_sidecar
+    (NARRATIVE / "sidecars" / "minimal-over-limit.json").write_bytes(over_limit_sidecar)
 
     unknown_sidecar_value = sidecar(refs[:1], base_events(), ["await-result", "explain"])
     unknown_sidecar_value["extra"] = 1
@@ -587,6 +657,18 @@ def main() -> None:
         "targets": dump_pretty(
             NARRATIVE / "declarations" / "targets.json",
             declaration(narrative_ref(target_sidecar)),
+        ),
+        "targets-nested": dump_pretty(
+            NARRATIVE / "declarations" / "targets-nested.json",
+            declaration(narrative_ref(nested_target_sidecar)),
+        ),
+        "minimal-at-limit": dump_pretty(
+            NARRATIVE / "declarations" / "minimal-at-limit.json",
+            declaration(narrative_ref(at_limit_sidecar)),
+        ),
+        "minimal-over-limit": dump_pretty(
+            NARRATIVE / "declarations" / "minimal-over-limit.json",
+            declaration(narrative_ref(over_limit_sidecar)),
         ),
     }
 
@@ -972,6 +1054,208 @@ def main() -> None:
         None,
         drift_owner,
         {"accepted": False, "issues": [{"code": "mismatch", "path": ""}]},
+    )
+
+    proposal_binding = {
+        "proposalId": "patch",
+        "kind": "query",
+        "definitionId": "queries/retries",
+        "evidenceIds": ["evidence"],
+        "rationale": "Try the idempotency key.",
+    }
+    nested_target_owner = owner_fixture(
+        base_assets(),
+        cases=["case-one"],
+        incidents=["incident-one"],
+        checks=["owner-check"],
+        queries=["queries/retries"],
+        proposals=["patch"],
+        presentation_targets=["check-panel", "proposal-panel"],
+        check_bindings=[
+            {"checkId": "owner-check", "definitionAssetId": "owner-check-definition"}
+        ],
+        proposal_bindings=[proposal_binding],
+        target_bindings=[
+            {
+                "targetId": "check-panel",
+                "kind": "check",
+                "refId": "owner-check",
+                "closureKind": "check",
+                "closureId": "owner-check",
+                "closureCheck": {
+                    "checkId": "owner-check",
+                    "definitionAssetId": "owner-check-definition",
+                },
+            },
+            {
+                "targetId": "proposal-panel",
+                "kind": "proposal",
+                "refId": "patch",
+                "closureKind": "proposal",
+                "closureId": "patch",
+                "closureProposal": dict(proposal_binding),
+            },
+        ],
+    )
+    nested_target_value = project_admission(
+        declaration(narrative_ref(nested_target_sidecar)),
+        nested_target_sidecar_value,
+        {"en": catalogue("en", {"retry.explanation": "Repeated requests need an idempotency key."})},
+        nested_target_owner,
+        None,
+    )
+    add_admission(
+        "admission-target-closures",
+        "Check and proposal presentation targets require matching typed nested closures.",
+        "targets-nested",
+        "targets-nested",
+        nested_target_sidecar,
+        ["en"],
+        None,
+        nested_target_owner,
+        {"accepted": True, "admission": nested_target_value},
+    )
+
+    def nested_variant(name, description, mutate, want):
+        owner = deepcopy(nested_target_owner)
+        mutate(owner)
+        add_admission(
+            name,
+            description,
+            "targets-nested",
+            "targets-nested",
+            nested_target_sidecar,
+            ["en"],
+            None,
+            owner,
+            want,
+        )
+
+    def target_binding(owner, target_id):
+        for binding in owner["targetBindings"]:
+            if binding["targetId"] == target_id:
+                return binding
+        raise AssertionError(f"missing target {target_id}")
+
+    nested_variant(
+        "admission-check-not-inventory",
+        "A Check binding must be a member of the admitted package Check inventory.",
+        lambda owner: owner.update({"checks": []}),
+        {
+            "accepted": False,
+            "issues": [
+                {"code": "not_admitted", "path": "/events/2/payload/checkId"},
+                {"code": "invalid_reference", "path": "/events/4/payload/targetId"},
+            ],
+        },
+    )
+    nested_variant(
+        "admission-target-check-closure-absent",
+        "A Check target without its typed closure refuses.",
+        lambda owner: target_binding(owner, "check-panel").update({"omitClosure": True}),
+        {"accepted": False, "issues": [{"code": "mismatch", "path": "/events/4/payload/targetId"}]},
+    )
+    nested_variant(
+        "admission-target-check-nested-absent",
+        "A Check target without its nested Check binding refuses.",
+        lambda owner: target_binding(owner, "check-panel").pop("closureCheck", None),
+        {"accepted": False, "issues": [{"code": "mismatch", "path": "/events/4/payload/targetId"}]},
+    )
+    nested_variant(
+        "admission-target-check-nested-mismatch",
+        "A contradictory nested Check definition refuses.",
+        lambda owner: target_binding(owner, "check-panel")["closureCheck"].update(
+            {"definitionAssetId": "evidence"}
+        ),
+        {"accepted": False, "issues": [{"code": "mismatch", "path": "/events/4/payload/targetId"}]},
+    )
+    nested_variant(
+        "admission-target-check-nested-pin",
+        "A nested Check binding tied to another package pin refuses.",
+        lambda owner: target_binding(owner, "check-panel")["closureCheck"].update(
+            {"wrongPackageBinding": True}
+        ),
+        {"accepted": False, "issues": [{"code": "mismatch", "path": "/events/4/payload/targetId"}]},
+    )
+    nested_variant(
+        "admission-target-proposal-nested-absent",
+        "A proposal target without its nested proposal binding refuses.",
+        lambda owner: target_binding(owner, "proposal-panel").pop("closureProposal", None),
+        {"accepted": False, "issues": [{"code": "mismatch", "path": "/events/5/payload/targetId"}]},
+    )
+    nested_variant(
+        "admission-target-proposal-nested-mismatch",
+        "A contradictory nested proposal binding refuses.",
+        lambda owner: target_binding(owner, "proposal-panel")["closureProposal"].update(
+            {"rationale": "Different rationale."}
+        ),
+        {"accepted": False, "issues": [{"code": "mismatch", "path": "/events/5/payload/targetId"}]},
+    )
+    nested_variant(
+        "admission-target-case-extra-nested",
+        "An untyped target carrying an unrelated nested Check binding refuses.",
+        lambda owner: target_binding(owner, "check-panel").update(
+            {
+                "kind": "case",
+                "refId": "case-one",
+                "closureKind": "case",
+                "closureId": "case-one",
+                "closureCheck": {
+                    "checkId": "owner-check",
+                    "definitionAssetId": "owner-check-definition",
+                },
+            }
+        ),
+        {"accepted": False, "issues": [{"code": "mismatch", "path": "/events/4/payload/targetId"}]},
+    )
+
+    for name, kind in [
+        ("admission-codec-constructor", "constructor"),
+        ("admission-codec-proto", "__proto__"),
+        ("admission-codec-tostring", "toString"),
+    ]:
+        owner = deepcopy(minimal_owner)
+        owner["assets"][1]["kind"] = kind
+        add_admission(
+            name,
+            f"An inherited Object property name {kind!r} is not a codec kind.",
+            "minimal",
+            "minimal",
+            base_sidecar,
+            ["en"],
+            None,
+            owner,
+            {"accepted": False, "issues": [{"code": "invalid_value", "path": ""}]},
+        )
+
+    at_limit_value = project_admission(
+        declaration(narrative_ref(at_limit_sidecar)),
+        at_limit_sidecar_value,
+        {"en": catalogue("en", {"retry.explanation": "Repeated requests need an idempotency key."})},
+        minimal_owner,
+        None,
+    )
+    add_admission(
+        "admission-sidecar-at-limit",
+        "A sidecar of exactly 64 KiB counts once and admits.",
+        "minimal-at-limit",
+        "minimal-at-limit",
+        at_limit_sidecar,
+        ["en"],
+        None,
+        minimal_owner,
+        {"accepted": True, "admission": at_limit_value},
+    )
+    add_admission(
+        "admission-sidecar-over-limit",
+        "A sidecar padded past 64 KiB refuses before any admitted projection.",
+        "minimal-over-limit",
+        "minimal-over-limit",
+        over_limit_sidecar,
+        ["en"],
+        None,
+        minimal_owner,
+        {"accepted": False, "issues": [{"code": "too_long", "path": ""}]},
     )
 
     corpus = {"corpusVersion": "walkthrough-contracts-v3", "vectors": vectors}

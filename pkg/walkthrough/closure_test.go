@@ -617,6 +617,263 @@ func TestAdmitNarrativeSnapshotDoesNotAliasOwner(t *testing.T) {
 	require.Equal(t, "case", narrative.Events[4].PresentationTarget.Closure.Kind)
 }
 
+func TestAdmitNarrativeRefusesCheckOutsideInventory(t *testing.T) {
+	f := newTargetFixture(t)
+	f.owner.narrative.Checks = nil
+	result := AdmitNarrative(f.bundle, f.authority, f.owner,
+		admissionInputFor(t, f, f.sidecarBytes, f.catalogueBytes))
+	require.False(t, result.Admitted)
+	require.Nil(t, result.Narrative)
+	require.Equal(t, CodeNotAdmitted, result.Issues[0].Code)
+	require.Equal(t, "/events/2/payload/checkId", result.Issues[0].Path)
+}
+
+func checkTargetFixture(t *testing.T) *narrativeFixture {
+	t.Helper()
+	f := newTargetFixture(t)
+	target := f.owner.targets["case-panel"]
+	check := f.owner.checks["owner-check"]
+	target.Kind = "check"
+	target.RefID = "owner-check"
+	target.Closure = &PresentationClosure{
+		Kind: "check",
+		ID:   "owner-check",
+		Check: &CheckBinding{
+			Binding:           check.Binding,
+			CheckID:           check.CheckID,
+			DefinitionAssetID: check.DefinitionAssetID,
+		},
+	}
+	f.owner.targets["case-panel"] = target
+	return f
+}
+
+func proposalTargetFixture(t *testing.T) *narrativeFixture {
+	t.Helper()
+	f := newTargetFixture(t)
+	target := f.owner.targets["case-panel"]
+	proposal := f.owner.proposals["patch"]
+	target.Kind = "proposal"
+	target.RefID = "patch"
+	target.Closure = &PresentationClosure{
+		Kind: "proposal",
+		ID:   "patch",
+		Proposal: &ProposalBinding{
+			Binding:      proposal.Binding,
+			ProposalID:   proposal.ProposalID,
+			Kind:         proposal.Kind,
+			DefinitionID: proposal.DefinitionID,
+			EvidenceIDs:  append([]string{}, proposal.EvidenceIDs...),
+			Rationale:    proposal.Rationale,
+		},
+	}
+	f.owner.targets["case-panel"] = target
+	return f
+}
+
+func TestAdmitNarrativeValidatesNestedCheckTargetClosure(t *testing.T) {
+	admit := func(t *testing.T, f *narrativeFixture) NarrativeResolution {
+		t.Helper()
+		return AdmitNarrative(f.bundle, f.authority, f.owner,
+			admissionInputFor(t, f, f.sidecarBytes, f.catalogueBytes))
+	}
+
+	valid := checkTargetFixture(t)
+	result := admit(t, valid)
+	require.True(t, result.Admitted, "%v", result.Issues)
+	require.NotNil(t, result.Narrative.Events[4].PresentationTarget)
+	require.NotNil(t, result.Narrative.Events[4].PresentationTarget.Closure.Check)
+	require.Equal(t, "owner-check",
+		result.Narrative.Events[4].PresentationTarget.Closure.Check.CheckID)
+
+	// The admitted result keeps the independently validated binding, not the
+	// caller's nested object.
+	valid.owner.targets["case-panel"].Closure.Check.CheckID = "mutated-check"
+	require.Equal(t, "owner-check",
+		result.Narrative.Events[4].PresentationTarget.Closure.Check.CheckID)
+
+	cases := []struct {
+		name   string
+		mutate func(*PresentationTargetBinding)
+	}{
+		{"nested closure absent", func(target *PresentationTargetBinding) {
+			target.Closure.Check = nil
+		}},
+		{"nested check id mismatch", func(target *PresentationTargetBinding) {
+			target.Closure.Check.CheckID = "foreign-check"
+		}},
+		{"nested definition missing", func(target *PresentationTargetBinding) {
+			target.Closure.Check.DefinitionAssetID = ""
+		}},
+		{"nested definition mutated", func(target *PresentationTargetBinding) {
+			target.Closure.Check.DefinitionAssetID = "evidence"
+		}},
+		{"nested package pin", func(target *PresentationTargetBinding) {
+			target.Closure.Check.Binding.Package = PackageReference{
+				ID: "other", Revision: "1", Path: "training/package.json",
+				SHA256: strings.Repeat("a", 64), Bytes: "100",
+			}
+		}},
+		{"nested project pin", func(target *PresentationTargetBinding) {
+			target.Closure.Check.Binding.Project = ProjectIdentity{Value: "other-project"}
+		}},
+		{"nested content pin", func(target *PresentationTargetBinding) {
+			target.Closure.Check.Binding.ContentPin = ContentPin{
+				Kind: PinGit, Commit: strings.Repeat("f", 40),
+			}
+		}},
+		{"unrelated proposal nested", func(target *PresentationTargetBinding) {
+			target.Closure.Proposal = &ProposalBinding{ProposalID: "patch"}
+		}},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			f := checkTargetFixture(t)
+			target := f.owner.targets["case-panel"]
+			test.mutate(&target)
+			f.owner.targets["case-panel"] = target
+			result := admit(t, f)
+			require.False(t, result.Admitted)
+			require.Nil(t, result.Narrative)
+			require.Equal(t, CodeMismatch, result.Issues[0].Code, "%v", result.Issues)
+			require.Equal(t, "/events/4/payload/targetId", result.Issues[0].Path)
+		})
+	}
+}
+
+func TestAdmitNarrativeValidatesNestedProposalTargetClosure(t *testing.T) {
+	admit := func(t *testing.T, f *narrativeFixture) NarrativeResolution {
+		t.Helper()
+		return AdmitNarrative(f.bundle, f.authority, f.owner,
+			admissionInputFor(t, f, f.sidecarBytes, f.catalogueBytes))
+	}
+
+	valid := proposalTargetFixture(t)
+	result := admit(t, valid)
+	require.True(t, result.Admitted, "%v", result.Issues)
+	require.NotNil(t, result.Narrative.Events[4].PresentationTarget.Closure.Proposal)
+
+	cases := []struct {
+		name   string
+		mutate func(*PresentationTargetBinding)
+	}{
+		{"nested closure absent", func(target *PresentationTargetBinding) {
+			target.Closure.Proposal = nil
+		}},
+		{"nested proposal id mismatch", func(target *PresentationTargetBinding) {
+			target.Closure.Proposal.ProposalID = "foreign-proposal"
+		}},
+		{"nested proposal kind mismatch", func(target *PresentationTargetBinding) {
+			target.Closure.Proposal.Kind = "watch"
+		}},
+		{"nested definition mutated", func(target *PresentationTargetBinding) {
+			target.Closure.Proposal.DefinitionID = "queries/other"
+		}},
+		{"nested evidence mutated", func(target *PresentationTargetBinding) {
+			target.Closure.Proposal.EvidenceIDs = []string{"owner-check-definition"}
+		}},
+		{"nested rationale mutated", func(target *PresentationTargetBinding) {
+			target.Closure.Proposal.Rationale = "Different rationale."
+		}},
+		{"nested package pin", func(target *PresentationTargetBinding) {
+			target.Closure.Proposal.Binding.Package = PackageReference{
+				ID: "other", Revision: "1", Path: "training/package.json",
+				SHA256: strings.Repeat("a", 64), Bytes: "100",
+			}
+		}},
+		{"unrelated check nested", func(target *PresentationTargetBinding) {
+			target.Closure.Check = &CheckBinding{CheckID: "owner-check"}
+		}},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			f := proposalTargetFixture(t)
+			target := f.owner.targets["case-panel"]
+			test.mutate(&target)
+			f.owner.targets["case-panel"] = target
+			result := admit(t, f)
+			require.False(t, result.Admitted)
+			require.Nil(t, result.Narrative)
+			require.Equal(t, CodeMismatch, result.Issues[0].Code, "%v", result.Issues)
+			require.Equal(t, "/events/4/payload/targetId", result.Issues[0].Path)
+		})
+	}
+}
+
+func TestAdmitNarrativeRefusesNestedClosureOnUntypedTarget(t *testing.T) {
+	for _, kind := range []string{"case", "incident", "evidence"} {
+		t.Run(kind, func(t *testing.T) {
+			f := newTargetFixture(t)
+			target := f.owner.targets["case-panel"]
+			target.Kind = kind
+			switch kind {
+			case "case":
+				target.RefID = "case-one"
+			case "incident":
+				target.RefID = "incident-one"
+			case "evidence":
+				target.RefID = "evidence"
+			}
+			target.Closure = &PresentationClosure{
+				Kind: kind,
+				ID:   target.RefID,
+				Check: &CheckBinding{
+					CheckID: "owner-check",
+				},
+			}
+			f.owner.targets["case-panel"] = target
+			result := AdmitNarrative(f.bundle, f.authority, f.owner,
+				admissionInputFor(t, f, f.sidecarBytes, f.catalogueBytes))
+			require.False(t, result.Admitted)
+			require.Equal(t, CodeMismatch, result.Issues[0].Code)
+			require.Equal(t, "/events/4/payload/targetId", result.Issues[0].Path)
+		})
+	}
+}
+
+func sidecarPaddedTo(t *testing.T, source []byte, size int) []byte {
+	t.Helper()
+	require.LessOrEqual(t, len(source), size)
+	padded := append([]byte{}, source...)
+	for len(padded) < size {
+		padded = append(padded, ' ')
+	}
+	require.Len(t, padded, size)
+	return padded
+}
+
+func TestAdmitNarrativeSidecarTextAssetLimit(t *testing.T) {
+	base := newNarrativeFixture(t)
+
+	atLimit := rebuildFixture(t, base, sidecarPaddedTo(t, base.sidecarBytes, MaxTextAssetBytes))
+	narrative := admittedMinimal(t, atLimit)
+	require.Equal(t,
+		Integer(fmt.Sprint(MaxTextAssetBytes+len(atLimit.catalogueBytes)+30)),
+		narrative.TextBytes)
+
+	over := rebuildFixture(t, base, sidecarPaddedTo(t, base.sidecarBytes, MaxTextAssetBytes+1))
+	result := AdmitNarrative(over.bundle, over.authority, over.owner,
+		admissionInputFor(t, over, over.sidecarBytes, over.catalogueBytes))
+	require.False(t, result.Admitted)
+	require.Nil(t, result.Narrative)
+	require.Equal(t, CodeTooLong, result.Issues[0].Code)
+	require.Contains(t, result.Issues[0].Message, "64 KiB")
+}
+
+func TestAdmitNarrativeRefusesUnknownCodecKindNames(t *testing.T) {
+	for _, kind := range []string{"constructor", "__proto__", "toString", "hasOwnProperty"} {
+		t.Run(kind, func(t *testing.T) {
+			f := newNarrativeFixture(t)
+			f.owner.narrative.Assets[1].Kind = kind
+			result := AdmitNarrative(f.bundle, f.authority, f.owner,
+				admissionInputFor(t, f, f.sidecarBytes, f.catalogueBytes))
+			require.False(t, result.Admitted)
+			require.Nil(t, result.Narrative)
+			require.Equal(t, CodeInvalidValue, result.Issues[0].Code)
+		})
+	}
+}
+
 func TestAdmitNarrativeCheckpointAndBranchReferences(t *testing.T) {
 	f := newNarrativeFixture(t)
 	branchSidecar := []byte(strings.Replace(
