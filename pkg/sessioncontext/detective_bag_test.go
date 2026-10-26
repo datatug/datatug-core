@@ -2,14 +2,21 @@ package sessioncontext
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
+	"fmt"
+	"reflect"
+	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/datatug/datatug-core/pkg/apicontract"
 	"github.com/datatug/datatug-core/pkg/detective"
 )
+
+var detectiveWorkDigest = regexp.MustCompile(`^[0-9a-f]{64}$`)
+
+var detectiveWorkPrivatePayload = []string{"111", "222", "private_value", "Private Check"}
 
 func bagPinCommand(t *testing.T, s *Service, p Principal) PinDetectiveInputCommand {
 	t.Helper()
@@ -55,18 +62,130 @@ func TestDetectivePinPreservesMixedHistoricalBagVersions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	metadata, _ := json.Marshal(work)
-	for _, private := range []string{"111", "222", "private_value", "Private Check"} {
-		if strings.Contains(string(metadata), private) {
-			t.Fatal("raw input copied to accepted work")
-		}
-	}
+	assertDetectiveWorkPrivacy(t, work)
 	c.Pin.Reference.Bindings[0].Entries[0].BagVersion = 99
 	c.Pin.EffectiveInputs["first"].Scalar.Str = "999"
 	c.Attachments[0].RevisionID = "changed"
 	got, err := s.ReadDetectiveDispatch(context.Background(), p, "s1", "run")
 	if err != nil || got.Reference.Bindings[0].Entries[0].BagVersion != 2 || got.EffectiveInputs["first"].Scalar.Str != "111" {
 		t.Fatalf("pin aliases bag caller: %v", err)
+	}
+}
+
+// detectiveWorkLeaks returns each accepted-work metadata path whose scalar
+// value contains a raw pin payload. The typed acceptedAt timestamp and digest
+// leaves are opaque metadata: legitimate RFC3339Nano timestamps and SHA-256
+// spellings can contain the short numeric sentinels by coincidence, so they
+// are validated by shape instead of substring-scanned. Every other scalar
+// leaf, including identifiers, state and version counters, is scanned
+// verbatim; this is not a general value allowlist.
+func detectiveWorkLeaks(t *testing.T, work AcceptedDetectiveWork) []string {
+	t.Helper()
+	var leaks []string
+	scan := func(path, value string) {
+		for _, payload := range detectiveWorkPrivatePayload {
+			if strings.Contains(value, payload) {
+				leaks = append(leaks, path+" contains "+payload)
+			}
+		}
+	}
+	var walk func(path string, value reflect.Value)
+	walk = func(path string, value reflect.Value) {
+		if !value.IsValid() {
+			return
+		}
+		switch value.Kind() {
+		case reflect.Pointer, reflect.Interface:
+			if value.IsNil() {
+				return
+			}
+			walk(path, value.Elem())
+		case reflect.Struct:
+			typ := value.Type()
+			for index := 0; index < value.NumField(); index++ {
+				field := typ.Field(index)
+				if field.PkgPath != "" {
+					continue
+				}
+				fieldPath := path + "." + field.Name
+				fieldValue := value.Field(index)
+				if field.Type == reflect.TypeOf(time.Time{}) {
+					if fieldValue.Interface().(time.Time).IsZero() {
+						leaks = append(leaks, fieldPath+" is not a set timestamp")
+					}
+					continue
+				}
+				if field.Type.Kind() == reflect.String && strings.HasSuffix(field.Name, "Digest") {
+					if digest := fieldValue.String(); digest != "" && !detectiveWorkDigest.MatchString(digest) {
+						leaks = append(leaks, fieldPath+" is not a canonical digest")
+					}
+					continue
+				}
+				walk(fieldPath, fieldValue)
+			}
+		case reflect.Slice, reflect.Array:
+			for index := 0; index < value.Len(); index++ {
+				walk(fmt.Sprintf("%s[%d]", path, index), value.Index(index))
+			}
+		case reflect.Map:
+			iter := value.MapRange()
+			for iter.Next() {
+				walk(fmt.Sprintf("%s[%v]", path, iter.Key().Interface()), iter.Value())
+			}
+		default:
+			scan(path, fmt.Sprint(value.Interface()))
+		}
+	}
+	walk("AcceptedDetectiveWork", reflect.ValueOf(work))
+	return leaks
+}
+
+func assertDetectiveWorkPrivacy(t *testing.T, work AcceptedDetectiveWork) {
+	t.Helper()
+	if leaks := detectiveWorkLeaks(t, work); len(leaks) != 0 {
+		t.Fatalf("raw input copied to accepted work: %s", strings.Join(leaks, "; "))
+	}
+}
+
+func TestDetectiveWorkPrivacyBoundary(t *testing.T) {
+	valid := AcceptedDetectiveWork{
+		ID:              "run",
+		Owner:           "alice",
+		SessionID:       "s1",
+		RunID:           "run",
+		InputSnapshotID: "input",
+		State:           "accepted",
+		Version:         1,
+		AcceptedAt:      time.Date(2026, 10, 26, 17, 48, 51, 111222333, time.UTC),
+	}
+	valid.Reference.DefinitionDigest = strings.Repeat("1", 64)
+	valid.Dispatch.DefinitionDigest = strings.Repeat("1", 64)
+	valid.Dispatch.NativeRequestDigest = strings.Repeat("2", 64)
+	valid.AcceptanceDigest = strings.Repeat("2", 64)
+	if leaks := detectiveWorkLeaks(t, valid); len(leaks) != 0 {
+		t.Fatalf("legal timestamp/digest metadata rejected: %v", leaks)
+	}
+
+	cases := []struct {
+		name   string
+		inject func(*AcceptedDetectiveWork)
+		want   string
+	}{
+		{"input value in identifier", func(w *AcceptedDetectiveWork) { w.Reference.InputSnapshotID = "111" }, "111"},
+		{"input value in state", func(w *AcceptedDetectiveWork) { w.State = "222" }, "222"},
+		{"check title in owner", func(w *AcceptedDetectiveWork) { w.Owner = "Private Check" }, "Private Check"},
+		{"query payload in dispatch", func(w *AcceptedDetectiveWork) { w.Dispatch.CheckID = "select private_value" }, "private_value"},
+		{"input value disguised as digest", func(w *AcceptedDetectiveWork) { w.Reference.DefinitionDigest = "111" }, "not a canonical digest"},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			injected := valid
+			test.inject(&injected)
+			leaks := detectiveWorkLeaks(t, injected)
+			if len(leaks) == 0 || !strings.Contains(strings.Join(leaks, "; "), test.want) {
+				t.Fatalf("payload %q was not reported: %v", test.want, leaks)
+			}
+		})
 	}
 }
 func TestDetectivePinBagIdentityAndValueFailures(t *testing.T) {
