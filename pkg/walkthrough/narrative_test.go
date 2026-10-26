@@ -1,8 +1,6 @@
 package walkthrough
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"strings"
 	"testing"
@@ -386,11 +384,6 @@ func sidecarCatalogueReference(t *testing.T, sidecarBytes []byte) AssetReference
 	require.True(t, parsed.Accepted, "%v", parsed.Issues)
 	require.NotEmpty(t, parsed.Sidecar.MessageCatalogues)
 	return parsed.Sidecar.MessageCatalogues[0].Asset()
-}
-
-func sha256Of(data []byte) string {
-	digest := sha256.Sum256(data)
-	return hex.EncodeToString(digest[:])
 }
 
 // ---------------------------------------------------------------------------
