@@ -816,6 +816,26 @@ newer_cases = [
         "Any other schema major, including zero, is a newer-client boundary.",
         {"schema": "datatug-walkthrough/0", "id": "tour", "future": True},
     ),
+    (
+        "v1-schema-10-newer",
+        "A two-digit major is a newer-client boundary, not an invalid schema.",
+        {"schema": "datatug-walkthrough/10", "id": "tour", "future": True},
+    ),
+    (
+        "v1-schema-11-newer",
+        "A two-digit major is a newer-client boundary, not an invalid schema.",
+        {"schema": "datatug-walkthrough/11", "id": "tour", "future": True},
+    ),
+    (
+        "v1-schema-100-newer",
+        "A multi-digit major is a newer-client boundary, not an invalid schema.",
+        {"schema": "datatug-walkthrough/100", "id": "tour", "future": True},
+    ),
+    (
+        "v1-schema-large-major-newer",
+        "A major larger than any machine integer is still a canonical decimal newer-client boundary.",
+        {"schema": "datatug-walkthrough/100000000000000000000", "id": "tour", "future": True},
+    ),
 ]
 for case_id, description, fixture in newer_cases:
     newer(case_id, description, fixture)
@@ -886,6 +906,37 @@ refuse(
     "31 steps in one chapter is one beyond the legal maximum.",
     steps_in_one_chapter(31),
     [("too_many", "/chapters/0/steps")],
+)
+def sized_chapters(sizes):
+    return declaration(
+        "tour",
+        [
+            chapter(
+                f"ch-{chapter_index:02d}",
+                [
+                    step(
+                        f"s-{chapter_index:02d}-{step_index:02d}",
+                        {"kind": "check", "checkId": "c"},
+                        {"kind": "acknowledged"},
+                    )
+                    for step_index in range(1, size + 1)
+                ],
+            )
+            for chapter_index, size in enumerate(sizes, start=1)
+        ],
+    )
+
+
+accept(
+    "v1-boundary-steps-200-seven-chapters",
+    "200 steps in total is legal with only seven chapters, each within 30.",
+    sized_chapters([30, 30, 30, 30, 30, 30, 20]),
+)
+refuse(
+    "v1-boundary-steps-201-seven-chapters",
+    "201 steps in total is refused with only seven chapters, each within 30.",
+    sized_chapters([30, 30, 30, 30, 30, 30, 21]),
+    [("too_many", "/chapters")],
 )
 accept("v1-boundary-steps-200", "200 steps in total is the legal maximum.", total_steps(200))
 refuse(
@@ -973,6 +1024,31 @@ CASES.append(
         "directory": "tour",
         "issues": [("too_large", "")],
     }
+)
+
+deep_opaque = 0
+for _ in range(300):
+    deep_opaque = [deep_opaque]
+deep_unknown = declaration(
+    "tour",
+    [
+        chapter(
+            "start",
+            [
+                step(
+                    "one",
+                    {"kind": "future-deep-target", "opaque": deep_opaque},
+                    {"kind": "acknowledged"},
+                )
+            ],
+        )
+    ],
+)
+accept(
+    "v1-deep-opaque-unknown-target",
+    "A 300-level opaque body inside an unknown target kind is preserved step-locally; no invented nesting cap refuses the declaration.",
+    compact(deep_unknown),
+    directory="tour",
 )
 
 # --- structural and scalar negatives --------------------------------------

@@ -1471,6 +1471,54 @@
       }
     },
     {
+      "id": "v1-schema-10-newer",
+      "description": "A two-digit major is a newer-client boundary, not an invalid schema.",
+      "operation": "declaration",
+      "inputFile": "declarations/v1-schema-10-newer.json",
+      "directoryId": "tour",
+      "want": {
+        "accepted": false,
+        "newerClient": true,
+        "digest": "29ad6b6256cafdce012097643e44b3a777b7fe0d5eb6ff5fdd8e4a17a93439ec"
+      }
+    },
+    {
+      "id": "v1-schema-11-newer",
+      "description": "A two-digit major is a newer-client boundary, not an invalid schema.",
+      "operation": "declaration",
+      "inputFile": "declarations/v1-schema-11-newer.json",
+      "directoryId": "tour",
+      "want": {
+        "accepted": false,
+        "newerClient": true,
+        "digest": "c16bae7e17a1ff57a47266fae11a730d05b8b96a47189f2c8a655da84da4b602"
+      }
+    },
+    {
+      "id": "v1-schema-100-newer",
+      "description": "A multi-digit major is a newer-client boundary, not an invalid schema.",
+      "operation": "declaration",
+      "inputFile": "declarations/v1-schema-100-newer.json",
+      "directoryId": "tour",
+      "want": {
+        "accepted": false,
+        "newerClient": true,
+        "digest": "0891239f4a5dc5e12649e3c7ffad785f53bfc48b41fd6926d0d715d6c50b4fb5"
+      }
+    },
+    {
+      "id": "v1-schema-large-major-newer",
+      "description": "A major larger than any machine integer is still a canonical decimal newer-client boundary.",
+      "operation": "declaration",
+      "inputFile": "declarations/v1-schema-large-major-newer.json",
+      "directoryId": "tour",
+      "want": {
+        "accepted": false,
+        "newerClient": true,
+        "digest": "755ac51dfeec60dd4eefbb21c537f029fecdb4c0eb31772128b2296ae876af35"
+      }
+    },
+    {
       "id": "v1-boundary-chapters-20",
       "description": "20 chapters is the legal maximum.",
       "operation": "declaration",
@@ -2729,6 +2777,3923 @@
           }
         ],
         "digest": "bcab33a1cc3311d78b5d5ab735b0e30f916150f12984e84792a95235f00e8bfa"
+      }
+    },
+    {
+      "id": "v1-boundary-steps-200-seven-chapters",
+      "description": "200 steps in total is legal with only seven chapters, each within 30.",
+      "operation": "declaration",
+      "inputFile": "declarations/v1-boundary-steps-200-seven-chapters.json",
+      "directoryId": "tour",
+      "want": {
+        "accepted": true,
+        "newerClient": false,
+        "digest": "d829bad2f9157dff17764481cb05d9c9b4ddbc561ebd71907c60037c668ff6a4",
+        "definition": {
+          "id": "tour",
+          "version": "1",
+          "summary": "",
+          "chapters": [
+            {
+              "id": "ch-01",
+              "formerIds": [],
+              "requires": "anonymous",
+              "requiresReason": "",
+              "continuesFrom": "",
+              "readiness": null,
+              "entryStepId": "s-01-01",
+              "steps": [
+                {
+                  "id": "s-01-01",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-02",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-03",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-04",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-05",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-06",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-07",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-08",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-09",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-10",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-11",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-12",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-13",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-14",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-15",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-16",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-17",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-18",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-19",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-20",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-21",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-22",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-23",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-24",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-25",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-26",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-27",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-28",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-29",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-01-30",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "ch-02",
+              "formerIds": [],
+              "requires": "anonymous",
+              "requiresReason": "",
+              "continuesFrom": "",
+              "readiness": null,
+              "entryStepId": "s-02-01",
+              "steps": [
+                {
+                  "id": "s-02-01",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-02",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-03",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-04",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-05",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-06",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-07",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-08",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-09",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-10",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-11",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-12",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-13",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-14",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-15",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-16",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-17",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-18",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-19",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-20",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-21",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-22",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-23",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-24",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-25",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-26",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-27",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-28",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-29",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-02-30",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "ch-03",
+              "formerIds": [],
+              "requires": "anonymous",
+              "requiresReason": "",
+              "continuesFrom": "",
+              "readiness": null,
+              "entryStepId": "s-03-01",
+              "steps": [
+                {
+                  "id": "s-03-01",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-02",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-03",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-04",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-05",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-06",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-07",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-08",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-09",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-10",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-11",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-12",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-13",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-14",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-15",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-16",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-17",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-18",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-19",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-20",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-21",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-22",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-23",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-24",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-25",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-26",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-27",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-28",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-29",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-03-30",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "ch-04",
+              "formerIds": [],
+              "requires": "anonymous",
+              "requiresReason": "",
+              "continuesFrom": "",
+              "readiness": null,
+              "entryStepId": "s-04-01",
+              "steps": [
+                {
+                  "id": "s-04-01",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-02",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-03",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-04",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-05",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-06",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-07",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-08",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-09",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-10",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-11",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-12",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-13",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-14",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-15",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-16",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-17",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-18",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-19",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-20",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-21",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-22",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-23",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-24",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-25",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-26",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-27",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-28",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-29",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-04-30",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "ch-05",
+              "formerIds": [],
+              "requires": "anonymous",
+              "requiresReason": "",
+              "continuesFrom": "",
+              "readiness": null,
+              "entryStepId": "s-05-01",
+              "steps": [
+                {
+                  "id": "s-05-01",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-02",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-03",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-04",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-05",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-06",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-07",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-08",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-09",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-10",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-11",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-12",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-13",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-14",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-15",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-16",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-17",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-18",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-19",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-20",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-21",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-22",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-23",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-24",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-25",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-26",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-27",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-28",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-29",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-05-30",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "ch-06",
+              "formerIds": [],
+              "requires": "anonymous",
+              "requiresReason": "",
+              "continuesFrom": "",
+              "readiness": null,
+              "entryStepId": "s-06-01",
+              "steps": [
+                {
+                  "id": "s-06-01",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-02",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-03",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-04",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-05",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-06",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-07",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-08",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-09",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-10",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-11",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-12",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-13",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-14",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-15",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-16",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-17",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-18",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-19",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-20",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-21",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-22",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-23",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-24",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-25",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-26",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-27",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-28",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-29",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-06-30",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "ch-07",
+              "formerIds": [],
+              "requires": "anonymous",
+              "requiresReason": "",
+              "continuesFrom": "",
+              "readiness": null,
+              "entryStepId": "s-07-01",
+              "steps": [
+                {
+                  "id": "s-07-01",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-07-02",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-07-03",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-07-04",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-07-05",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-07-06",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-07-07",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-07-08",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-07-09",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-07-10",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-07-11",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-07-12",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-07-13",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-07-14",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-07-15",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-07-16",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-07-17",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-07-18",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-07-19",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                },
+                {
+                  "id": "s-07-20",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "supported",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "check",
+                    "support": "supported",
+                    "checkId": "c"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                }
+              ]
+            }
+          ],
+          "finish": {
+            "kind": "index"
+          }
+        }
+      }
+    },
+    {
+      "id": "v1-boundary-steps-201-seven-chapters",
+      "description": "201 steps in total is refused with only seven chapters, each within 30.",
+      "operation": "declaration",
+      "inputFile": "declarations/v1-boundary-steps-201-seven-chapters.json",
+      "directoryId": "tour",
+      "want": {
+        "accepted": false,
+        "newerClient": false,
+        "issues": [
+          {
+            "code": "too_many",
+            "path": "/chapters"
+          }
+        ],
+        "digest": "489a1f0ccbd83d208557fa0b2fe47ecdefaa8490c72d3c7ad362322c64369697"
       }
     },
     {
@@ -7175,6 +11140,57 @@
           }
         ],
         "digest": "cae4014f1deb87228bbb45537573965fef5a8f14f3ef23e9780a87afe9566a17"
+      }
+    },
+    {
+      "id": "v1-deep-opaque-unknown-target",
+      "description": "A 300-level opaque body inside an unknown target kind is preserved step-locally; no invented nesting cap refuses the declaration.",
+      "operation": "declaration",
+      "inputFile": "declarations/v1-deep-opaque-unknown-target.json",
+      "directoryId": "tour",
+      "want": {
+        "accepted": true,
+        "newerClient": false,
+        "digest": "9f0c99912d77daf89eaa91d5833087bdfef4b21636657468ceb85cf0be7d546a",
+        "definition": {
+          "id": "tour",
+          "version": "1",
+          "summary": "",
+          "chapters": [
+            {
+              "id": "start",
+              "formerIds": [],
+              "requires": "anonymous",
+              "requiresReason": "",
+              "continuesFrom": "",
+              "readiness": null,
+              "entryStepId": "one",
+              "steps": [
+                {
+                  "id": "one",
+                  "modes": [
+                    "guided",
+                    "explore"
+                  ],
+                  "support": "needs-newer",
+                  "capture": "",
+                  "needs": "",
+                  "target": {
+                    "kind": "future-deep-target",
+                    "support": "needs-newer"
+                  },
+                  "done": {
+                    "kind": "acknowledged",
+                    "support": "supported"
+                  }
+                }
+              ]
+            }
+          ],
+          "finish": {
+            "kind": "index"
+          }
+        }
       }
     },
     {

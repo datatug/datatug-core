@@ -18,10 +18,16 @@
     "declarations/v1-schema-2-newer.json": "5bbc4374eba4d3ca884974b45050d5978e7db51d1a9abf955b88bf2ba0ff6360",
     "declarations/v1-schema-99-newer.json": "71de611e0bd34baf43e5dfa5b0aab0b0fad65359af48e9746c9e377da94a0650",
     "declarations/v1-schema-0-newer.json": "fde571117a3106c37a9a7df1a48fa8f7ce810391036401648471f17980f6b6c7",
+    "declarations/v1-schema-10-newer.json": "29ad6b6256cafdce012097643e44b3a777b7fe0d5eb6ff5fdd8e4a17a93439ec",
+    "declarations/v1-schema-11-newer.json": "c16bae7e17a1ff57a47266fae11a730d05b8b96a47189f2c8a655da84da4b602",
+    "declarations/v1-schema-100-newer.json": "0891239f4a5dc5e12649e3c7ffad785f53bfc48b41fd6926d0d715d6c50b4fb5",
+    "declarations/v1-schema-large-major-newer.json": "755ac51dfeec60dd4eefbb21c537f029fecdb4c0eb31772128b2296ae876af35",
     "declarations/v1-boundary-chapters-20.json": "9efd0a67edee587a0e681b9f744b7be43d418a1bbfc61e908d6d9b819ea3753e",
     "declarations/v1-boundary-chapters-21.json": "f37b34d6626b1e836e9d82c994102b4eb6b0176c4fade01fb6d605b423f581c8",
     "declarations/v1-boundary-steps-30.json": "3c4c46448d4bfc51278bfe6e4669a6c787f3334807ffb0c1a118f79ac7566912",
     "declarations/v1-boundary-steps-31.json": "bcab33a1cc3311d78b5d5ab735b0e30f916150f12984e84792a95235f00e8bfa",
+    "declarations/v1-boundary-steps-200-seven-chapters.json": "d829bad2f9157dff17764481cb05d9c9b4ddbc561ebd71907c60037c668ff6a4",
+    "declarations/v1-boundary-steps-201-seven-chapters.json": "489a1f0ccbd83d208557fa0b2fe47ecdefaa8490c72d3c7ad362322c64369697",
     "declarations/v1-boundary-steps-200.json": "ed728d02e0494ba5273f669db29e486f367b4ffe406fc56d3a3841e2e3024d29",
     "declarations/v1-boundary-steps-201.json": "9d4616b5b1fb32169d96c0b2a10316955be303ab718bbefc4b9698be43fff93b",
     "declarations/v1-boundary-title-120.json": "0debbac055a338f09aec7fe52b3bb301d244bc0bc9ead1e0f0991ceb854a6f8f",
@@ -36,6 +42,7 @@
     "declarations/v1-boundary-id-49.json": "2a256a28bbb2c6e955d91c2866531f091ac0f838b78ace06e60db106c69e71f9",
     "declarations/v1-boundary-bytes-65536.json": "567de43b01acb9171e8f9f55309d71e3207c2c6229f26b477178940a49eecd9e",
     "declarations/v1-boundary-bytes-65537.json": "cae4014f1deb87228bbb45537573965fef5a8f14f3ef23e9780a87afe9566a17",
+    "declarations/v1-deep-opaque-unknown-target.json": "9f0c99912d77daf89eaa91d5833087bdfef4b21636657468ceb85cf0be7d546a",
     "declarations/v1-empty-bytes.json": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "declarations/v1-malformed-utf8.json": "f17929de0f85618f3622fe6f288e86f7034aec94bac6ba56e830d4fb23a35200",
     "declarations/v1-utf8-bom.json": "28de35bdf7eb579475d060ef3fae7364ac42ef1e692be98e5138ec11a90ca3f9",
@@ -114,5 +121,5 @@
     "declarations/v1-needs-without-readiness.json": "27e0699d288fc02748fcad48b872fc11e409973675a067b98cb3ff021bcb4af7",
     "declarations/v1-needs-invalid.json": "db9a1340e6cc1a653fdf76da586f4f671ca153348b508403927fe6158c5a41c5"
   },
-  "corpusSha256": "b10844efba0234e8968baa121a7796cef85b3ca878681d1e8d4a7eccb22f7576"
+  "corpusSha256": "36afb9f3b454b27fc1c351a5cab255c15fade2560fe4cbb5ec3d0de491316b20"
 }

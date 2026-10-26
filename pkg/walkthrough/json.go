@@ -8,10 +8,6 @@ import (
 	"unicode/utf8"
 )
 
-// maxJSONDepth bounds parser recursion against a pathological 64 KiB input.
-// It is a parser-safety guard, not a declaration-content limit.
-const maxJSONDepth = 256
-
 type jsonKind uint8
 
 const (
@@ -28,7 +24,6 @@ const (
 // escaped-surrogate normalization to strings and keys.
 type jsonValue struct {
 	kind   jsonKind
-	path   string
 	bool   bool
 	number string
 	text   string
@@ -55,155 +50,218 @@ type jsonParser struct {
 	pos  int
 }
 
+type jsonFrame struct {
+	kind       jsonKind
+	items      []*jsonValue
+	members    []jsonMember
+	keys       map[string]bool
+	pendingKey string
+}
+
 // parseJSON parses exactly one JSON value with the strictness the declaration
 // contract needs: valid UTF-8, no duplicate keys (after escape and surrogate
 // normalization), no trailing data, no unescaped controls and no lenient
 // number spellings.
+//
+// The parser is iterative and keeps its own container stack. A declaration may
+// legitimately carry a deeply nested opaque body inside an unknown target
+// kind, so nesting is bounded only by the 64 KiB input budget, never by an
+// invented content depth limit. Paths are built as path segments and joined
+// only when an issue is reported, so a deeply nested declaration does not
+// allocate a full path string per level.
 func parseJSON(data []byte) (*jsonValue, *Issue) {
 	parser := &jsonParser{data: data}
-	value, issue := parser.value("", 0)
-	if issue != nil {
-		return nil, issue
-	}
-	parser.skipSpace()
-	if parser.pos != len(parser.data) {
-		return nil, &Issue{
-			Code:    CodeTrailingData,
-			Path:    "",
-			Message: "trailing data after the JSON value",
-		}
-	}
-	return value, nil
-}
+	stack := make([]*jsonFrame, 0, 8)
+	segments := make([]string, 0, 8)
+	var root *jsonValue
+	expectKey := false
 
-func (p *jsonParser) value(path string, depth int) (*jsonValue, *Issue) {
-	if depth > maxJSONDepth {
-		return nil, &Issue{Code: CodeInvalidJSON, Path: path, Message: "JSON nesting is too deep"}
-	}
-	p.skipSpace()
-	if p.pos >= len(p.data) {
-		return nil, &Issue{Code: CodeInvalidJSON, Path: path, Message: "unexpected end of JSON"}
-	}
-	switch char := p.data[p.pos]; {
-	case char == '{':
-		return p.object(path, depth)
-	case char == '[':
-		return p.array(path, depth)
-	case char == '"':
-		text, issue := p.stringValue(path)
-		if issue != nil {
-			return nil, issue
-		}
-		return &jsonValue{kind: jsonString, path: path, text: text}, nil
-	case char == 't':
-		return p.literal(path, "true", jsonBoolean, true)
-	case char == 'f':
-		return p.literal(path, "false", jsonBoolean, false)
-	case char == 'n':
-		return p.literal(path, "null", jsonNull, false)
-	case char == '-' || (char >= '0' && char <= '9'):
-		return p.number(path)
-	default:
-		return nil, &Issue{
-			Code:    CodeInvalidJSON,
-			Path:    path,
-			Message: "unexpected character in JSON",
-		}
-	}
-}
-
-func (p *jsonParser) object(path string, depth int) (*jsonValue, *Issue) {
-	p.pos++ // {
-	value := &jsonValue{kind: jsonObject, path: path}
-	seen := make(map[string]bool)
-	p.skipSpace()
-	if p.peek() == '}' {
-		p.pos++
-		return value, nil
-	}
+outer:
 	for {
-		p.skipSpace()
-		if p.peek() != '"' {
-			return nil, &Issue{Code: CodeInvalidJSON, Path: path, Message: "expected an object key"}
+		parser.skipSpace()
+		if expectKey {
+			frame := stack[len(stack)-1]
+			if parser.peek() != '"' {
+				return nil, &Issue{Code: CodeInvalidJSON, Path: pointerPath(segments), Message: "expected an object key"}
+			}
+			key, issue := parser.stringValue()
+			if issue != nil {
+				issue.Path = pointerPath(segments)
+				return nil, issue
+			}
+			if frame.keys[key] {
+				return nil, &Issue{
+					Code:    CodeDuplicateKey,
+					Path:    pointerChild(pointerPath(segments), key),
+					Message: "duplicate JSON object key",
+				}
+			}
+			frame.keys[key] = true
+			parser.skipSpace()
+			if parser.peek() != ':' {
+				return nil, &Issue{Code: CodeInvalidJSON, Path: pointerChild(pointerPath(segments), key), Message: "expected ':' after an object key"}
+			}
+			parser.pos++
+			parser.skipSpace()
+			frame.pendingKey = key
+			segments = append(segments, key)
+			expectKey = false
 		}
-		key, issue := p.stringValue(path)
-		if issue != nil {
-			return nil, issue
+
+		if parser.pos >= len(parser.data) {
+			return nil, &Issue{Code: CodeInvalidJSON, Path: pointerPath(segments), Message: "unexpected end of JSON"}
 		}
-		keyPath := pointerChild(path, key)
-		if seen[key] {
-			return nil, &Issue{
-				Code:    CodeDuplicateKey,
-				Path:    keyPath,
-				Message: "duplicate JSON object key",
+
+		switch parser.peek() {
+		case '{':
+			frame := &jsonFrame{kind: jsonObject, keys: make(map[string]bool)}
+			parser.pos++
+			parser.skipSpace()
+			if parser.peek() == '}' {
+				parser.pos++
+				attachJSON(&stack, &root, &jsonValue{kind: jsonObject})
+			} else {
+				stack = append(stack, frame)
+				expectKey = true
+				continue
+			}
+		case '[':
+			frame := &jsonFrame{kind: jsonArray}
+			parser.pos++
+			parser.skipSpace()
+			if parser.peek() == ']' {
+				parser.pos++
+				attachJSON(&stack, &root, &jsonValue{kind: jsonArray})
+			} else {
+				stack = append(stack, frame)
+				segments = append(segments, "0")
+				expectKey = false
+				continue
+			}
+		case '"':
+			text, issue := parser.stringValue()
+			if issue != nil {
+				issue.Path = pointerPath(segments)
+				return nil, issue
+			}
+			attachJSON(&stack, &root, &jsonValue{kind: jsonString, text: text})
+		case 't':
+			literalValue, issue := parser.literal("true", jsonBoolean, true)
+			if issue != nil {
+				issue.Path = pointerPath(segments)
+				return nil, issue
+			}
+			attachJSON(&stack, &root, literalValue)
+		case 'f':
+			literalValue, issue := parser.literal("false", jsonBoolean, false)
+			if issue != nil {
+				issue.Path = pointerPath(segments)
+				return nil, issue
+			}
+			attachJSON(&stack, &root, literalValue)
+		case 'n':
+			literalValue, issue := parser.literal("null", jsonNull, false)
+			if issue != nil {
+				issue.Path = pointerPath(segments)
+				return nil, issue
+			}
+			attachJSON(&stack, &root, literalValue)
+		default:
+			if parser.peek() == '-' || (parser.peek() >= '0' && parser.peek() <= '9') {
+				numberValue, issue := parser.number()
+				if issue != nil {
+					issue.Path = pointerPath(segments)
+					return nil, issue
+				}
+				attachJSON(&stack, &root, numberValue)
+			} else {
+				return nil, &Issue{Code: CodeInvalidJSON, Path: pointerPath(segments), Message: "unexpected character in JSON"}
 			}
 		}
-		seen[key] = true
-		p.skipSpace()
-		if p.peek() != ':' {
-			return nil, &Issue{Code: CodeInvalidJSON, Path: keyPath, Message: "expected ':' after an object key"}
-		}
-		p.pos++
-		memberValue, issue := p.value(keyPath, depth+1)
-		if issue != nil {
-			return nil, issue
-		}
-		value.object = append(value.object, jsonMember{key: key, value: memberValue})
-		p.skipSpace()
-		switch p.peek() {
-		case ',':
-			p.pos++
-		case '}':
-			p.pos++
-			return value, nil
-		default:
-			return nil, &Issue{Code: CodeInvalidJSON, Path: path, Message: "expected ',' or '}' in an object"}
+
+		for {
+			if len(stack) == 0 {
+				parser.skipSpace()
+				if parser.pos != len(parser.data) {
+					return nil, &Issue{Code: CodeTrailingData, Path: "", Message: "trailing data after the JSON value"}
+				}
+				return root, nil
+			}
+			frame := stack[len(stack)-1]
+			parser.skipSpace()
+			if frame.kind == jsonArray {
+				switch parser.peek() {
+				case ',':
+					parser.pos++
+					if len(segments) > 0 {
+						segments = segments[:len(segments)-1]
+					}
+					segments = append(segments, strconv.Itoa(len(frame.items)))
+					expectKey = false
+					continue outer
+				case ']':
+					parser.pos++
+					stack = stack[:len(stack)-1]
+					if len(segments) > 0 {
+						segments = segments[:len(segments)-1]
+					}
+					attachJSON(&stack, &root, &jsonValue{kind: jsonArray, array: frame.items})
+					continue
+				default:
+					return nil, &Issue{Code: CodeInvalidJSON, Path: pointerPath(segments), Message: "expected ',' or ']' in an array"}
+				}
+			}
+			switch parser.peek() {
+			case ',':
+				parser.pos++
+				if len(segments) > 0 {
+					segments = segments[:len(segments)-1]
+				}
+				expectKey = true
+				continue outer
+			case '}':
+				parser.pos++
+				stack = stack[:len(stack)-1]
+				if len(segments) > 0 {
+					segments = segments[:len(segments)-1]
+				}
+				attachJSON(&stack, &root, &jsonValue{kind: jsonObject, object: frame.members})
+				continue
+			default:
+				return nil, &Issue{Code: CodeInvalidJSON, Path: pointerPath(segments), Message: "expected ',' or '}' in an object"}
+			}
 		}
 	}
 }
 
-func (p *jsonParser) array(path string, depth int) (*jsonValue, *Issue) {
-	p.pos++ // [
-	value := &jsonValue{kind: jsonArray, path: path}
-	p.skipSpace()
-	if p.peek() == ']' {
-		p.pos++
-		return value, nil
+func attachJSON(stack *[]*jsonFrame, root **jsonValue, value *jsonValue) {
+	if len(*stack) == 0 {
+		*root = value
+		return
 	}
-	for index := 0; ; index++ {
-		item, issue := p.value(pointerIndex(path, index), depth+1)
-		if issue != nil {
-			return nil, issue
-		}
-		value.array = append(value.array, item)
-		p.skipSpace()
-		switch p.peek() {
-		case ',':
-			p.pos++
-		case ']':
-			p.pos++
-			return value, nil
-		default:
-			return nil, &Issue{Code: CodeInvalidJSON, Path: path, Message: "expected ',' or ']' in an array"}
-		}
+	frame := (*stack)[len(*stack)-1]
+	if frame.kind == jsonArray {
+		frame.items = append(frame.items, value)
+		return
 	}
+	frame.members = append(frame.members, jsonMember{key: frame.pendingKey, value: value})
 }
 
-func (p *jsonParser) literal(path, spelling string, kind jsonKind, boolean bool) (*jsonValue, *Issue) {
+func (p *jsonParser) literal(spelling string, kind jsonKind, boolean bool) (*jsonValue, *Issue) {
 	if !bytes.HasPrefix(p.data[p.pos:], []byte(spelling)) {
-		return nil, &Issue{Code: CodeInvalidJSON, Path: path, Message: "invalid JSON literal"}
+		return nil, &Issue{Code: CodeInvalidJSON, Message: "invalid JSON literal"}
 	}
 	p.pos += len(spelling)
-	return &jsonValue{kind: kind, path: path, bool: boolean}, nil
+	return &jsonValue{kind: kind, bool: boolean}, nil
 }
 
-func (p *jsonParser) number(path string) (*jsonValue, *Issue) {
+func (p *jsonParser) number() (*jsonValue, *Issue) {
 	start := p.pos
 	if p.peek() == '-' {
 		p.pos++
 	}
 	if p.pos >= len(p.data) {
-		return nil, &Issue{Code: CodeInvalidJSON, Path: path, Message: "invalid JSON number"}
+		return nil, &Issue{Code: CodeInvalidJSON, Message: "invalid JSON number"}
 	}
 	switch char := p.data[p.pos]; {
 	case char == '0':
@@ -211,12 +269,12 @@ func (p *jsonParser) number(path string) (*jsonValue, *Issue) {
 	case char >= '1' && char <= '9':
 		p.consumeDigits()
 	default:
-		return nil, &Issue{Code: CodeInvalidJSON, Path: path, Message: "invalid JSON number"}
+		return nil, &Issue{Code: CodeInvalidJSON, Message: "invalid JSON number"}
 	}
 	if p.peek() == '.' {
 		p.pos++
 		if !p.consumeDigits() {
-			return nil, &Issue{Code: CodeInvalidJSON, Path: path, Message: "invalid JSON number fraction"}
+			return nil, &Issue{Code: CodeInvalidJSON, Message: "invalid JSON number fraction"}
 		}
 	}
 	if char := p.peek(); char == 'e' || char == 'E' {
@@ -225,10 +283,10 @@ func (p *jsonParser) number(path string) (*jsonValue, *Issue) {
 			p.pos++
 		}
 		if !p.consumeDigits() {
-			return nil, &Issue{Code: CodeInvalidJSON, Path: path, Message: "invalid JSON number exponent"}
+			return nil, &Issue{Code: CodeInvalidJSON, Message: "invalid JSON number exponent"}
 		}
 	}
-	return &jsonValue{kind: jsonNumber, path: path, number: string(p.data[start:p.pos])}, nil
+	return &jsonValue{kind: jsonNumber, number: string(p.data[start:p.pos])}, nil
 }
 
 func (p *jsonParser) consumeDigits() bool {
@@ -242,7 +300,7 @@ func (p *jsonParser) consumeDigits() bool {
 // stringValue decodes one JSON string. Valid UTF-16 pairs become one code
 // point; an unpaired surrogate becomes U+FFFD, matching the repository's
 // established Go-compatible treatment and the TypeScript mirror.
-func (p *jsonParser) stringValue(path string) (string, *Issue) {
+func (p *jsonParser) stringValue() (string, *Issue) {
 	p.pos++ // opening quote
 	buffer := make([]byte, 0, 32)
 	for p.pos < len(p.data) {
@@ -254,7 +312,7 @@ func (p *jsonParser) stringValue(path string) (string, *Issue) {
 		case char == '\\':
 			p.pos++
 			if p.pos >= len(p.data) {
-				return "", &Issue{Code: CodeInvalidJSON, Path: path, Message: "unterminated JSON escape"}
+				return "", &Issue{Code: CodeInvalidJSON, Message: "unterminated JSON escape"}
 			}
 			switch escaped := p.data[p.pos]; escaped {
 			case '"', '\\', '/':
@@ -279,20 +337,20 @@ func (p *jsonParser) stringValue(path string) (string, *Issue) {
 				p.pos++
 				unit, ok := p.readHex4()
 				if !ok {
-					return "", &Issue{Code: CodeInvalidJSON, Path: path, Message: "invalid \\u escape"}
+					return "", &Issue{Code: CodeInvalidJSON, Message: "invalid \\u escape"}
 				}
 				buffer = p.appendCodeUnit(buffer, unit)
 			default:
-				return "", &Issue{Code: CodeInvalidJSON, Path: path, Message: "invalid JSON escape"}
+				return "", &Issue{Code: CodeInvalidJSON, Message: "invalid JSON escape"}
 			}
 		case char < 0x20:
-			return "", &Issue{Code: CodeInvalidJSON, Path: path, Message: "unescaped control character in JSON string"}
+			return "", &Issue{Code: CodeInvalidJSON, Message: "unescaped control character in JSON string"}
 		default:
 			buffer = append(buffer, char)
 			p.pos++
 		}
 	}
-	return "", &Issue{Code: CodeInvalidJSON, Path: path, Message: "unterminated JSON string"}
+	return "", &Issue{Code: CodeInvalidJSON, Message: "unterminated JSON string"}
 }
 
 func (p *jsonParser) appendCodeUnit(buffer []byte, unit uint16) []byte {
@@ -371,4 +429,17 @@ func pointerChild(path, token string) string {
 
 func pointerIndex(path string, index int) string {
 	return path + "/" + strconv.Itoa(index)
+}
+
+// pointerPath joins already-normalized path segments only when an issue is
+// reported. The parser never stores one path string per nesting level.
+func pointerPath(segments []string) string {
+	if len(segments) == 0 {
+		return ""
+	}
+	var builder strings.Builder
+	for _, segment := range segments {
+		builder.WriteString(pointerChild("", segment))
+	}
+	return builder.String()
 }

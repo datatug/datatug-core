@@ -10,7 +10,7 @@ import (
 
 var (
 	idPattern               = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,47}$`)
-	newerSchemaPattern      = regexp.MustCompile(`^datatug-walkthrough/(0|[2-9][0-9]*)$`)
+	newerSchemaPattern      = regexp.MustCompile(`^datatug-walkthrough/(0|[2-9]|[1-9][0-9]+)$`)
 	canonicalIntegerPattern = regexp.MustCompile(`^(0|[1-9][0-9]*)$`)
 )
 
