@@ -505,7 +505,7 @@ func (c *checker) positiveInteger(object *jsonValue, path, name string, required
 }
 
 func validAssetPath(path string) bool {
-	if path == "" || strings.HasPrefix(path, "/") || strings.ContainsAny(path, "\\?#:") {
+	if path == "" || strings.HasPrefix(path, "/") || strings.ContainsAny(path, "\\?#") || hasURLScheme(path) {
 		return false
 	}
 	for _, char := range path {
@@ -517,6 +517,29 @@ func validAssetPath(path string) bool {
 		if segment == "" || segment == "." || segment == ".." || segment != strings.TrimSpace(segment) {
 			return false
 		}
+	}
+	return true
+}
+
+// hasURLScheme rejects a leading RFC 3986 scheme (`https:`), which is the only
+// way a URL scheme can appear in a project-root-relative path. A colon inside a
+// later segment is an ordinary file-name character.
+func hasURLScheme(path string) bool {
+	colon := strings.IndexByte(path, ':')
+	if colon <= 0 {
+		return false
+	}
+	first := path[0]
+	if (first < 'a' || first > 'z') && (first < 'A' || first > 'Z') {
+		return false
+	}
+	for index := 1; index < colon; index++ {
+		char := path[index]
+		if (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') ||
+			(char >= '0' && char <= '9') || char == '+' || char == '-' || char == '.' {
+			continue
+		}
+		return false
 	}
 	return true
 }

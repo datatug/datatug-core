@@ -208,6 +208,10 @@ func TestValidAssetPath(t *testing.T) {
 	require.False(t, validAssetPath("training/\x7fpackage.json"))
 	require.False(t, validAssetPath(" training/package.json"))
 	require.False(t, validAssetPath("training /package.json"))
+	require.True(t, validAssetPath("training/2024:01/package.json"))
+	require.False(t, validAssetPath("mailto:package.json"))
+	require.False(t, validAssetPath("c:/training/package.json"))
+	require.True(t, validAssetPath("1abc:def/package.json"))
 }
 
 func TestHexHelpers(t *testing.T) {
