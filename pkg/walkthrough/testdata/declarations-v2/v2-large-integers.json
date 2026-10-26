@@ -1,0 +1,63 @@
+{
+  "schema": "datatug-walkthrough/2",
+  "id": "training-demo",
+  "version": 9007199254740992,
+  "title": "Walkthrough training-demo",
+  "trainingPackage": {
+    "id": "training-demo",
+    "revision": 18446744073709551615,
+    "path": "training/package.json",
+    "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "bytes": 9007199254740993
+  },
+  "narrative": {
+    "path": "walkthroughs/training-demo/narrative.json",
+    "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "bytes": 1000000000000000000000000000000
+  },
+  "chapters": [
+    {
+      "id": "retries",
+      "title": "Chapter retries",
+      "why": "Why retries",
+      "steps": [
+        {
+          "id": "solve",
+          "kind": "challenge",
+          "title": "Step solve",
+          "why": "Why solve",
+          "target": {
+            "kind": "challenge",
+            "challengeId": "retry-query",
+            "revision": 1000000
+          },
+          "done": {
+            "kind": "challenge-passed",
+            "checkpoints": [
+              {
+                "id": "result",
+                "completion": "whole-challenge"
+              }
+            ]
+          }
+        },
+        {
+          "id": "discussion",
+          "kind": "scripted-dialogue",
+          "segmentId": "discussion",
+          "title": "Step discussion",
+          "why": "Why discussion",
+          "modes": [
+            "guided"
+          ],
+          "target": {
+            "kind": "none"
+          },
+          "done": {
+            "kind": "dialogue-finished"
+          }
+        }
+      ]
+    }
+  ]
+}

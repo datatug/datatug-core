@@ -58,6 +58,32 @@ const (
 	CodeMissingExploreEntry Code = "missing_explore_entry"
 	// CodeInvalidEntryTarget means a chapter's first Explore step targets none.
 	CodeInvalidEntryTarget Code = "invalid_entry_target"
+	// CodeInvalidPath means an asset path is not a safe project-relative path.
+	CodeInvalidPath Code = "invalid_path"
+	// CodeMissingContext means a required owner adapter or resolved source
+	// context is absent. Nothing may be admitted from a refused context.
+	CodeMissingContext Code = "missing_context"
+	// CodeNotAdmitted means the trusted owner context does not admit the named
+	// package, asset, Case or challenge manifest.
+	CodeNotAdmitted Code = "not_admitted"
+	// CodeMismatch means two bound identities or references must be equal field
+	// for field and are not.
+	CodeMismatch Code = "mismatch"
+	// CodePinMismatch means a source pin is not the one exact immutable pin its
+	// source requires (for example a branch or HEAD where a commit is required).
+	CodePinMismatch Code = "pin_mismatch"
+	// CodeDigestMismatch means supplied bytes or a repeated digest disagree with
+	// the pinned SHA-256.
+	CodeDigestMismatch Code = "digest_mismatch"
+	// CodeByteCountMismatch means supplied bytes disagree with the pinned byte
+	// length.
+	CodeByteCountMismatch Code = "byte_count_mismatch"
+	// CodeInconsistentSummary means a checkpoint envelope's outcome and
+	// whole-attempt completion contradict each other.
+	CodeInconsistentSummary Code = "inconsistent_summary"
+	// CodeIneligible means a registry entry or namespace may not be used here:
+	// a non-public scope or a reference/Test-only result.
+	CodeIneligible Code = "ineligible"
 )
 
 // Issue is one structured, recoverable declaration problem. Path is a JSON

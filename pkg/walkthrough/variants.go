@@ -15,6 +15,11 @@ var targetFields = map[string]map[string]bool{
 	"none":                 {"kind": true},
 }
 
+var trainingTargetFields = map[string]map[string]bool{
+	"challenge":     {"kind": true, "challengeId": true, "revision": true},
+	"training-case": {"kind": true, "manifestCaseId": true, "trainingPackage": true},
+}
+
 var conditionFields = map[string]map[string]bool{
 	"route-reached":   {"kind": true},
 	"parameter-value": {"kind": true, "name": true, "equals": true},
@@ -27,6 +32,53 @@ var conditionFields = map[string]map[string]bool{
 	"asset-exists":    {"kind": true, "asset": true, "id": true},
 	"board-tutorial":  {"kind": true, "untilCard": true},
 	"acknowledged":    {"kind": true},
+}
+
+var trainingConditionFields = map[string]map[string]bool{
+	"dialogue-finished": {"kind": true},
+	"challenge-passed":  {"kind": true, "checkpoints": true},
+}
+
+var checkpointFields = map[string]bool{"id": true, "completion": true}
+
+// knownTargetKind is the closed registry for the active profile. The /2-only
+// kinds are not admitted into ordinary /1, where they remain unknown step-local
+// kinds.
+func (c *checker) knownTargetKind(kind string) bool {
+	if knownTargetKinds[kind] {
+		return true
+	}
+	if !c.training {
+		return false
+	}
+	_, ok := trainingTargetFields[kind]
+	return ok
+}
+
+// knownConditionKind is the closed registry for the active profile.
+func (c *checker) knownConditionKind(kind string) bool {
+	if knownConditionKinds[kind] {
+		return true
+	}
+	if !c.training {
+		return false
+	}
+	_, ok := trainingConditionFields[kind]
+	return ok
+}
+
+func (c *checker) targetFieldSet(kind string) map[string]bool {
+	if fields, ok := targetFields[kind]; ok {
+		return fields
+	}
+	return trainingTargetFields[kind]
+}
+
+func (c *checker) conditionFieldSet(kind string) map[string]bool {
+	if fields, ok := conditionFields[kind]; ok {
+		return fields
+	}
+	return trainingConditionFields[kind]
 }
 
 func (c *checker) target(value *jsonValue, path string, ordinal int) Target {
@@ -43,11 +95,11 @@ func (c *checker) target(value *jsonValue, path string, ordinal int) Target {
 		return Target{}
 	}
 	kind := kindValue.text
-	if !knownTargetKinds[kind] {
+	if !c.knownTargetKind(kind) {
 		return Target{Kind: kind, Supported: false}
 	}
 	target := Target{Kind: kind, Supported: true}
-	c.rejectUnknown(value, path, targetFields[kind])
+	c.rejectUnknown(value, path, c.targetFieldSet(kind))
 	switch kind {
 	case "table-record":
 		target.TableRecord = &TableRecordTarget{
@@ -100,6 +152,22 @@ func (c *checker) target(value *jsonValue, path string, ordinal int) Target {
 		target.Check = &CheckTarget{CheckID: c.assetString(value, path, "checkId", true)}
 	case "none":
 		target.None = &struct{}{}
+	case "challenge":
+		target.Challenge = &ChallengeTarget{
+			ChallengeID: c.challengeID(value, path),
+			Revision:    c.challengeRevision(value, path),
+		}
+	case "training-case":
+		parsed := &TrainingCaseTarget{
+			ManifestCaseID:  c.requiredID(value, path, "manifestCaseId"),
+			TrainingPackage: c.packageReferenceField(value, path, "trainingPackage"),
+		}
+		if c.trainingPackage.Path != "" && parsed.TrainingPackage.Path != "" &&
+			!parsed.TrainingPackage.Equal(c.trainingPackage) {
+			c.report(CodeMismatch, pointerChild(pointerChild(path, "trainingPackage"), "id"),
+				"training-case trainingPackage must equal the declaration trainingPackage field for field")
+		}
+		target.TrainingCase = parsed
 	}
 	return target
 }
@@ -118,11 +186,11 @@ func (c *checker) condition(value *jsonValue, path string, ordinal int) Conditio
 		return Condition{}
 	}
 	kind := kindValue.text
-	if !knownConditionKinds[kind] {
+	if !c.knownConditionKind(kind) {
 		return Condition{Kind: kind, Supported: false}
 	}
 	condition := Condition{Kind: kind, Supported: true}
-	c.rejectUnknown(value, path, conditionFields[kind])
+	c.rejectUnknown(value, path, c.conditionFieldSet(kind))
 	switch kind {
 	case "parameter-value":
 		condition.ParameterValue = &ParameterValueCondition{
@@ -155,8 +223,85 @@ func (c *checker) condition(value *jsonValue, path string, ordinal int) Conditio
 		}
 	case "board-tutorial":
 		condition.BoardTutorial = &BoardTutorialCondition{UntilCard: c.optionalText(value, path, "untilCard")}
+	case "dialogue-finished":
+		condition.DialogueFinished = &DialogueFinishedCondition{}
+	case "challenge-passed":
+		condition.ChallengePassed = &ChallengePassedCondition{Checkpoints: c.checkpointMappings(value, path)}
 	}
 	return condition
+}
+
+// checkpointMappings parses exactly one closed {id, completion: whole-challenge}
+// mapping. More than one, none, unknown fields, part-level kinds and unknown
+// completion kinds all refuse before rendering.
+func (c *checker) checkpointMappings(object *jsonValue, path string) []CheckpointMapping {
+	values := c.arrayField(object, path, "checkpoints", true, 1, 1)
+	mappings := make([]CheckpointMapping, 0, len(values))
+	for index, value := range values {
+		mappingPath := pointerIndex(pointerChild(path, "checkpoints"), index)
+		if !c.requireObject(value, mappingPath) {
+			continue
+		}
+		c.rejectUnknown(value, mappingPath, checkpointFields)
+		mappings = append(mappings, CheckpointMapping{
+			ID:         c.requiredID(value, mappingPath, "id"),
+			Completion: c.enumField(value, mappingPath, "completion", true, CompletionWholeChallenge),
+		})
+	}
+	return mappings
+}
+
+// challengeID validates the challenge-execution owner's lowercase slug
+// contract, which is not the shorter walkthrough ID grammar.
+func (c *checker) challengeID(object *jsonValue, path string) string {
+	text, ok := c.text(object, path, "challengeId", true)
+	if !ok {
+		return ""
+	}
+	if !challengeIDPattern.MatchString(text) {
+		c.report(CodeInvalidValue, pointerChild(path, "challengeId"),
+			"must match ^[a-z][a-z0-9-]{0,63}$")
+		return ""
+	}
+	return text
+}
+
+// challengeRevision validates the challenge-execution owner's revision range
+// without converting the lexeme to a machine integer.
+func (c *checker) challengeRevision(object *jsonValue, path string) Integer {
+	return c.challengeRevisionNamed(object, path, "revision")
+}
+
+func (c *checker) challengeRevisionNamed(object *jsonValue, path, name string) Integer {
+	revision := c.positiveInteger(object, path, name, true)
+	if revision == "" {
+		return ""
+	}
+	if !integerAtMost(string(revision), "1000000") {
+		c.report(CodeInvalidValue, pointerChild(path, name),
+			"must be between 1 and 1000000")
+		return ""
+	}
+	return revision
+}
+
+// integerAtMost compares a canonical positive decimal lexeme with a bound
+// without a numeric conversion.
+func integerAtMost(value, bound string) bool {
+	if len(value) != len(bound) {
+		return len(value) < len(bound)
+	}
+	return value <= bound
+}
+
+// packageReferenceField parses one required package-reference member.
+func (c *checker) packageReferenceField(object *jsonValue, path, name string) PackageReference {
+	value, present := object.member(name)
+	if !present {
+		c.report(CodeMissingField, pointerChild(path, name), "required field is missing")
+		return PackageReference{}
+	}
+	return c.packageReference(value, pointerChild(path, name))
 }
 
 func (c *checker) exit(value *jsonValue, path string) Exit {

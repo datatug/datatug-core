@@ -1,0 +1,11 @@
+{
+  "storyId": "phantom-orders",
+  "revision": 1,
+  "projectUrl": "/project/github.com/datatug/datatug-demo-project/demo-project-1",
+  "walkthroughId": "training-demo",
+  "contentPin": {
+    "kind": "git",
+    "commit": "0123456789ABCDEF0123456789ABCDEF01234567"
+  },
+  "declarationSha256": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+}

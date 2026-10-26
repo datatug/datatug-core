@@ -12,12 +12,18 @@ var (
 	idPattern               = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,47}$`)
 	newerSchemaPattern      = regexp.MustCompile(`^datatug-walkthrough/(0|[2-9]|[1-9][0-9]+)$`)
 	canonicalIntegerPattern = regexp.MustCompile(`^(0|[1-9][0-9]*)$`)
+	challengeIDPattern      = regexp.MustCompile(`^[a-z][a-z0-9-]{0,63}$`)
 )
 
 var (
 	topLevelFields = map[string]bool{
 		"schema": true, "id": true, "version": true, "title": true,
 		"summary": true, "chapters": true, "finish": true,
+	}
+	trainingTopLevelFields = map[string]bool{
+		"schema": true, "id": true, "version": true, "title": true,
+		"summary": true, "chapters": true, "finish": true,
+		"trainingPackage": true, "narrative": true,
 	}
 	chapterFields = map[string]bool{
 		"id": true, "formerIds": true, "title": true, "why": true,
@@ -28,16 +34,21 @@ var (
 		"id": true, "title": true, "why": true, "hint": true, "modes": true,
 		"target": true, "done": true, "capture": true, "needs": true,
 	}
+	trainingStepFields = map[string]bool{
+		"id": true, "title": true, "why": true, "hint": true, "modes": true,
+		"target": true, "done": true, "capture": true, "needs": true,
+		"kind": true, "segmentId": true,
+	}
 )
 
-// ErrNewerClient is returned by [Result.Err] when the declaration bytes name a
-// schema this client cannot parse. It is a recoverable newer-client boundary,
-// not a malformed declaration.
+// ErrNewerClient is returned by [Result.Err] and [TrainingResult.Err] when the
+// declaration bytes name a schema this entry point cannot parse. It is a
+// recoverable newer-client boundary, not a malformed declaration.
 var ErrNewerClient = errors.New("walkthrough: declaration needs a newer DataTug")
 
-// Result is the outcome of one declaration parse. Definition is non-nil only
-// when Accepted is true. Digest is always the SHA-256 of the exact bytes
-// supplied.
+// Result is the outcome of one ordinary declaration parse. Definition is
+// non-nil only when Accepted is true. Digest is always the SHA-256 of the exact
+// bytes supplied.
 type Result struct {
 	Accepted    bool         `json:"accepted"`
 	NewerClient bool         `json:"newerClient"`
@@ -58,39 +69,38 @@ func (r Result) Err() error {
 	return &Error{Issues: r.Issues}
 }
 
+// TrainingResult is the outcome of one explicit /2 declaration parse. It is a
+// structural admission only; owner-context admission is [ResolveTraining].
+type TrainingResult struct {
+	Accepted    bool                 `json:"accepted"`
+	NewerClient bool                 `json:"newerClient"`
+	Digest      string               `json:"digest"`
+	Definition  *TrainingDeclaration `json:"definition,omitempty"`
+	Issues      []Issue              `json:"issues,omitempty"`
+}
+
+// Err returns nil for an admitted declaration, [ErrNewerClient] for a later
+// schema major, or an aggregate recoverable [Error].
+func (r TrainingResult) Err() error {
+	if r.Accepted {
+		return nil
+	}
+	if r.NewerClient {
+		return ErrNewerClient
+	}
+	return &Error{Issues: r.Issues}
+}
+
 // ParseDeclaration validates one ordinary /1 declaration. directoryID is the
 // `<id>` in `walkthroughs/<id>/walkthrough.json`; it must equal the declaration
-// ID. The input slice is never retained or mutated.
+// ID. The input slice is never retained or mutated. A /2 declaration is
+// reported as [Result.NewerClient] exactly as before the explicit /2 entry
+// point existed.
 func ParseDeclaration(directoryID string, data []byte) Result {
-	digest := sha256.Sum256(data)
-	result := Result{Digest: hex.EncodeToString(digest[:])}
-	if len(data) > MaxDeclarationBytes {
-		result.Issues = []Issue{{
-			Code:    CodeTooLarge,
-			Path:    "",
-			Message: "declaration exceeds 64 KiB",
-		}}
-		return result
-	}
-	if !utf8.Valid(data) {
-		result.Issues = []Issue{{
-			Code:    CodeInvalidUTF8,
-			Path:    "",
-			Message: "declaration must be valid UTF-8",
-		}}
-		return result
-	}
-	root, issue := parseJSON(data)
+	digest, root, issue := decodeDeclaration(data)
+	result := Result{Digest: digest}
 	if issue != nil {
 		result.Issues = []Issue{*issue}
-		return result
-	}
-	if root.kind != jsonObject {
-		result.Issues = []Issue{{
-			Code:    CodeNotObject,
-			Path:    "",
-			Message: "declaration root must be a JSON object",
-		}}
 		return result
 	}
 	schemaValue, ok := root.member("schema")
@@ -123,10 +133,69 @@ func ParseDeclaration(directoryID string, data []byte) Result {
 		return result
 	}
 
-	checker := &checker{
-		chapterIdentities: make(map[string]string),
-		stepIdentities:    make(map[string]string),
+	checker := newChecker(false)
+	declaration := checker.declaration(root, directoryID)
+	result.Issues = checker.issues
+	if len(checker.issues) == 0 {
+		declaration.Revision = result.Digest
+		result.Accepted = true
+		result.Definition = &Declaration{
+			Schema:   declaration.Schema,
+			ID:       declaration.ID,
+			Version:  declaration.Version,
+			Title:    declaration.Title,
+			Summary:  declaration.Summary,
+			Chapters: declaration.Chapters,
+			Finish:   declaration.Finish,
+			Revision: declaration.Revision,
+		}
 	}
+	return result
+}
+
+// ParseTrainingDeclaration validates one explicit datatug-walkthrough/2
+// declaration. It shares the ordinary JSON and variant machinery without
+// widening ordinary /1 admission. The returned definition is structurally
+// valid only: a parsed declaration is never claimed render-ready, and package,
+// Case, challenge and source-context authority still require [ResolveTraining].
+func ParseTrainingDeclaration(directoryID string, data []byte) TrainingResult {
+	digest, root, issue := decodeDeclaration(data)
+	result := TrainingResult{Digest: digest}
+	if issue != nil {
+		result.Issues = []Issue{*issue}
+		return result
+	}
+	schemaValue, ok := root.member("schema")
+	if !ok {
+		result.Issues = []Issue{{
+			Code:    CodeMissingField,
+			Path:    "/schema",
+			Message: "required field is missing",
+		}}
+		return result
+	}
+	if schemaValue.kind != jsonString {
+		result.Issues = []Issue{{
+			Code:    CodeInvalidType,
+			Path:    "/schema",
+			Message: "schema must be a string",
+		}}
+		return result
+	}
+	if schemaValue.text != SchemaV2 {
+		if major, ok := schemaMajor(schemaValue.text); ok && majorGreater(major, "2") {
+			result.NewerClient = true
+			return result
+		}
+		result.Issues = []Issue{{
+			Code:    CodeInvalidValue,
+			Path:    "/schema",
+			Message: "schema must be \"datatug-walkthrough/2\"",
+		}}
+		return result
+	}
+
+	checker := newChecker(true)
 	declaration := checker.declaration(root, directoryID)
 	result.Issues = checker.issues
 	if len(checker.issues) == 0 {
@@ -135,6 +204,57 @@ func ParseDeclaration(directoryID string, data []byte) Result {
 		result.Definition = declaration
 	}
 	return result
+}
+
+// decodeDeclaration applies the shared byte budget, UTF-8 requirement, strict
+// JSON parse and object-root requirement, and always returns the exact-byte
+// digest.
+func decodeDeclaration(data []byte) (string, *jsonValue, *Issue) {
+	digest := sha256.Sum256(data)
+	hexDigest := hex.EncodeToString(digest[:])
+	if len(data) > MaxDeclarationBytes {
+		return hexDigest, nil, &Issue{
+			Code:    CodeTooLarge,
+			Path:    "",
+			Message: "declaration exceeds 64 KiB",
+		}
+	}
+	if !utf8.Valid(data) {
+		return hexDigest, nil, &Issue{
+			Code:    CodeInvalidUTF8,
+			Path:    "",
+			Message: "declaration must be valid UTF-8",
+		}
+	}
+	root, issue := parseJSON(data)
+	if issue != nil {
+		return hexDigest, nil, issue
+	}
+	if root.kind != jsonObject {
+		return hexDigest, nil, &Issue{
+			Code:    CodeNotObject,
+			Path:    "",
+			Message: "declaration root must be a JSON object",
+		}
+	}
+	return hexDigest, root, nil
+}
+
+// schemaMajor reads a canonical schema major from `datatug-walkthrough/<major>`.
+func schemaMajor(schema string) (string, bool) {
+	if !newerSchemaPattern.MatchString(schema) {
+		return "", false
+	}
+	return schema[len("datatug-walkthrough/"):], true
+}
+
+// majorGreater compares two canonical decimal majors without converting to a
+// machine integer, so a huge future major is still classified correctly.
+func majorGreater(major, bound string) bool {
+	if len(major) != len(bound) {
+		return len(major) > len(bound)
+	}
+	return major > bound
 }
 
 type captureDecl struct {
@@ -157,11 +277,29 @@ type checker struct {
 	captures          []captureDecl
 	captureRefs       []captureRef
 	chapterPaths      []string
+	training          bool
+	trainingPackage   PackageReference
 }
 
-func (c *checker) declaration(root *jsonValue, directoryID string) *Declaration {
-	c.rejectUnknown(root, "", topLevelFields)
-	declaration := &Declaration{Schema: SchemaV1}
+func newChecker(training bool) *checker {
+	return &checker{
+		chapterIdentities: make(map[string]string),
+		stepIdentities:    make(map[string]string),
+		training:          training,
+	}
+}
+
+func (c *checker) declaration(root *jsonValue, directoryID string) *TrainingDeclaration {
+	topFields := topLevelFields
+	if c.training {
+		topFields = trainingTopLevelFields
+	}
+	c.rejectUnknown(root, "", topFields)
+	schema := SchemaV1
+	if c.training {
+		schema = SchemaV2
+	}
+	declaration := &TrainingDeclaration{Schema: schema}
 
 	declaration.ID = c.requiredID(root, "", "id")
 	if declaration.ID != "" && declaration.ID != directoryID {
@@ -171,6 +309,20 @@ func (c *checker) declaration(root *jsonValue, directoryID string) *Declaration 
 	declaration.Version = c.versionField(root, "")
 	declaration.Title = c.textLimited(root, "", "title", MaxTitleChars, true)
 	declaration.Summary = c.textLimited(root, "", "summary", 0, false)
+
+	if c.training {
+		if packageValue, ok := root.member("trainingPackage"); ok {
+			declaration.TrainingPackage = c.packageReference(packageValue, "/trainingPackage")
+			c.trainingPackage = declaration.TrainingPackage
+		} else {
+			c.report(CodeMissingField, "/trainingPackage", "required field is missing")
+		}
+		if narrativeValue, ok := root.member("narrative"); ok {
+			declaration.Narrative = c.assetReference(narrativeValue, "/narrative")
+		} else {
+			c.report(CodeMissingField, "/narrative", "required field is missing")
+		}
+	}
 
 	chapterValues := c.arrayField(root, "", "chapters", true, 1, MaxChapters)
 	totalSteps := 0
@@ -264,6 +416,9 @@ func (c *checker) chapter(value *jsonValue, path string) Chapter {
 		stepPath := pointerIndex(pointerChild(path, "steps"), index)
 		chapter.Steps = append(chapter.Steps, c.step(stepValue, stepPath, readinessPresent))
 	}
+	if c.training {
+		c.checkChapterCheckpoints(chapter, path)
+	}
 	entryFound := false
 	if len(chapter.Steps) > 0 {
 		for index := range chapter.Steps {
@@ -294,7 +449,12 @@ func (c *checker) step(value *jsonValue, path string, chapterHasReadiness bool) 
 	if !c.requireObject(value, path) {
 		return step
 	}
-	c.rejectUnknown(value, path, stepFields)
+	if c.training {
+		c.rejectUnknown(value, path, trainingStepFields)
+		c.parseStepKind(value, path, &step)
+	} else {
+		c.rejectUnknown(value, path, stepFields)
+	}
 
 	step.ID = c.requiredID(value, path, "id")
 	if step.ID != "" {
@@ -349,7 +509,14 @@ func (c *checker) step(value *jsonValue, path string, chapterHasReadiness bool) 
 
 	step.Capture = c.optionalID(value, path, "capture")
 	if step.Capture != "" {
-		if step.Done.Supported && !captureAllowed(step.Done.Kind) {
+		switch {
+		case c.training && step.Kind == "scripted-dialogue":
+			c.report(CodeCaptureNotAllowed, pointerChild(path, "capture"),
+				"a scripted-dialogue step cannot capture")
+		case c.training && step.Kind == "challenge":
+			c.report(CodeCaptureNotAllowed, pointerChild(path, "capture"),
+				"a challenge step cannot capture")
+		case step.Done.Supported && !captureAllowed(step.Done.Kind):
 			c.report(CodeCaptureNotAllowed, pointerChild(path, "capture"),
 				"capture is allowed only on parameter-value, record-selected and incident-open")
 		}
@@ -374,10 +541,118 @@ func (c *checker) step(value *jsonValue, path string, chapterHasReadiness bool) 
 			}
 		}
 	}
+	if c.training {
+		c.checkStepVariant(value, path, &step)
+	}
 	return step
 }
 
-func (c *checker) checkChapterReferences(declaration *Declaration) {
+// parseStepKind applies the closed /2 step-kind registry. An unknown kind
+// rejects the declaration; Kind stays empty so no pairing check cascades.
+func (c *checker) parseStepKind(value *jsonValue, path string, step *Step) {
+	kind := "standard"
+	if kindValue, present := value.member("kind"); present {
+		if kindValue.kind != jsonString {
+			c.report(CodeInvalidType, pointerChild(path, "kind"), "must be a string")
+			return
+		}
+		switch kindValue.text {
+		case "standard", "scripted-dialogue", "challenge":
+			kind = kindValue.text
+		default:
+			c.report(CodeInvalidValue, pointerChild(path, "kind"),
+				"step kind must be standard, scripted-dialogue or challenge")
+			return
+		}
+	}
+	step.Kind = kind
+}
+
+// checkStepVariant applies the exact /2 variant pairings. An unknown target or
+// condition kind keeps the ordinary step-local newer-client policy and is not
+// turned into a fatal pairing error.
+func (c *checker) checkStepVariant(value *jsonValue, path string, step *Step) {
+	if step.Kind == "" {
+		return
+	}
+	segmentID := c.optionalID(value, path, "segmentId")
+	step.SegmentID = segmentID
+	_, segmentPresent := value.member("segmentId")
+
+	switch step.Kind {
+	case "standard":
+		if segmentPresent {
+			c.report(CodeInvalidValue, pointerChild(path, "segmentId"),
+				"segmentId is allowed only on a scripted-dialogue step")
+		}
+		if step.Target.Supported && step.Target.Kind == "challenge" {
+			c.report(CodeInvalidValue, pointerChild(pointerChild(path, "target"), "kind"),
+				"a challenge target requires a challenge step")
+		}
+		if step.Done.Supported && (step.Done.Kind == "challenge-passed" || step.Done.Kind == "dialogue-finished") {
+			c.report(CodeInvalidValue, pointerChild(pointerChild(path, "done"), "kind"),
+				"%s requires a scripted-dialogue or challenge step", step.Done.Kind)
+		}
+	case "scripted-dialogue":
+		if !segmentPresent {
+			c.report(CodeMissingField, pointerChild(path, "segmentId"), "required field is missing")
+		}
+		if step.Target.Supported && step.Target.Kind != "none" {
+			c.report(CodeInvalidValue, pointerChild(pointerChild(path, "target"), "kind"),
+				"a scripted-dialogue target must be none")
+		}
+		if step.Done.Supported && step.Done.Kind != "dialogue-finished" {
+			c.report(CodeInvalidValue, pointerChild(pointerChild(path, "done"), "kind"),
+				"a scripted-dialogue done must be dialogue-finished")
+		}
+		if step.Needs != "" {
+			c.report(CodeInvalidValue, pointerChild(path, "needs"),
+				"needs is not allowed on a scripted-dialogue step")
+		}
+	case "challenge":
+		if segmentPresent {
+			c.report(CodeInvalidValue, pointerChild(path, "segmentId"),
+				"segmentId is allowed only on a scripted-dialogue step")
+		}
+		if step.Target.Supported && step.Target.Kind != "challenge" {
+			c.report(CodeInvalidValue, pointerChild(pointerChild(path, "target"), "kind"),
+				"a challenge step target must be a challenge target")
+		}
+		if step.Done.Supported && step.Done.Kind != "challenge-passed" {
+			c.report(CodeInvalidValue, pointerChild(pointerChild(path, "done"), "kind"),
+				"a challenge step done must be challenge-passed")
+		}
+	}
+}
+
+// checkChapterCheckpoints rejects a checkpoint id repeated within one chapter.
+// The walkthrough owns the mapping; the challenge manifest owns required named
+// parts, so part ids are never interpreted as checkpoint ids.
+func (c *checker) checkChapterCheckpoints(chapter Chapter, path string) {
+	seen := make(map[string]string)
+	stepsPath := pointerChild(path, "steps")
+	for stepIndex, step := range chapter.Steps {
+		if step.Done.ChallengePassed == nil {
+			continue
+		}
+		checkpointsPath := pointerChild(
+			pointerChild(pointerIndex(stepsPath, stepIndex), "done"), "checkpoints")
+		for checkpointIndex, checkpoint := range step.Done.ChallengePassed.Checkpoints {
+			checkpointPath := pointerIndex(checkpointsPath, checkpointIndex)
+			if checkpoint.ID == "" {
+				continue
+			}
+			if existing, ok := seen[checkpoint.ID]; ok {
+				c.report(CodeDuplicateID, pointerChild(checkpointPath, "id"),
+					"checkpoint id %q is already declared at %s", checkpoint.ID, existing)
+				continue
+			}
+			seen[checkpoint.ID] = pointerChild(checkpointPath, "id")
+		}
+	}
+}
+
+func (c *checker) checkChapterReferences(declaration *TrainingDeclaration) {
 	index := make(map[string]int, len(declaration.Chapters))
 	for position, chapter := range declaration.Chapters {
 		if chapter.ID != "" {
@@ -561,6 +836,21 @@ func (c *checker) boolField(object *jsonValue, path, name string) (bool, bool) {
 	value, present := object.member(name)
 	if !present {
 		return false, true
+	}
+	if value.kind != jsonBoolean {
+		c.report(CodeInvalidType, pointerChild(path, name), "must be a boolean")
+		return false, false
+	}
+	return value.bool, true
+}
+
+// requiredBool reads a required boolean. The second result is false when the
+// field is absent or is not a boolean; the matching issue is already reported.
+func (c *checker) requiredBool(object *jsonValue, path, name string) (bool, bool) {
+	value, present := object.member(name)
+	if !present {
+		c.report(CodeMissingField, pointerChild(path, name), "required field is missing")
+		return false, false
 	}
 	if value.kind != jsonBoolean {
 		c.report(CodeInvalidType, pointerChild(path, name), "must be a boolean")

@@ -1,0 +1,53 @@
+{
+  "schema": "datatug-walkthrough/2",
+  "id": "training-demo",
+  "version": 1,
+  "title": "Walkthrough training-demo",
+  "trainingPackage": {
+    "id": "training-demo",
+    "revision": 1,
+    "path": "training/package.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "bytes": 100
+  },
+  "narrative": {
+    "path": "walkthroughs/training-demo/narrative.json",
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "bytes": 879
+  },
+  "chapters": [
+    {
+      "id": "find",
+      "title": "Chapter find",
+      "why": "Why find",
+      "steps": [
+        {
+          "id": "pick",
+          "title": "Step pick",
+          "why": "Why pick",
+          "target": {
+            "kind": "query",
+            "queryId": "customer-orders"
+          },
+          "done": {
+            "kind": "parameter-value",
+            "name": "CustomerID"
+          },
+          "capture": "customer"
+        },
+        {
+          "id": "open",
+          "title": "Step open",
+          "why": "Why open",
+          "target": {
+            "kind": "check",
+            "checkId": "check-1"
+          },
+          "done": {
+            "kind": "check-run"
+          }
+        }
+      ]
+    }
+  ]
+}

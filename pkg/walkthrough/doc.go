@@ -1,14 +1,18 @@
-// Package walkthrough owns the pure, closed `datatug-walkthrough/1`
-// declaration contract: the declaration bytes, its targets, conditions,
-// values and captures, exits, static reference closure and the exact-byte
-// revision digest.
+// Package walkthrough owns the pure walkthrough contracts: the ordinary
+// `datatug-walkthrough/1` declaration, the opt-in `datatug-walkthrough/2`
+// training declaration additions, immutable asset/package references and
+// source pins, the public story registry shape and the external checkpoint
+// envelope with its pure match decisions.
 //
-// The package is deliberately passive. It reads declaration bytes supplied by
-// a caller, validates them against the normative owner tables in
-// `datatug/backstage` `spec/features/project-walkthroughs/declaration-format.md`
-// and returns either a typed definition or structured recoverable issues. It
-// never reads a project, opens a route, publishes or consumes activity
-// signals, records progress, runs SQL or checks, mutates Work, or renders UI.
+// The package is deliberately passive. It reads bytes supplied by a caller,
+// validates them against the normative owner tables in `datatug/backstage`
+// `spec/features/project-walkthroughs/declaration-format.md` and returns either
+// typed definitions or structured recoverable issues. It never reads a
+// project, opens a route, publishes or consumes activity signals, records
+// progress, runs SQL or checks, mutates Work, or renders UI. Owner authority
+// (project identity, package inventory, Case and challenge admission) enters
+// only through the explicit trusted ports in [ProjectAuthority] and
+// [TrainingOwnerContext].
 //
 // # Admission boundaries
 //
@@ -17,18 +21,30 @@
 //     `walkthroughs/<id>/walkthrough.json` ([DeclarationPath]).
 //   - The revision is the SHA-256 of the exact bytes supplied. It is never a
 //     hash of a reserialized object.
-//   - A declaration whose schema major is newer than /1 is reported as needing
-//     a newer DataTug ([Result.NewerClient]) and is not parsed. This package
-//     implements /1 only.
+//   - [ParseDeclaration] admits ordinary /1 only; a /2 document is reported as
+//     [Result.NewerClient] exactly as before the explicit /2 entry point
+//     existed. [ParseTrainingDeclaration] admits exactly /2 and reports a
+//     later major as [TrainingResult.NewerClient].
+//   - A structurally valid /2 parse is not a resolved admission. Package,
+//     Case, asset, challenge, project and source-pin authority require
+//     [ResolveTraining]; a refused resolution never exposes a bundle.
 //   - An unknown target or condition `kind` is a step-local newer-client
 //     boundary: the step is retained as [SupportNeedsNewer], its opaque body is
 //     neither exposed nor executed, and unrelated steps remain usable.
 //   - Unknown fields on known variants are fatal. `/1` rejects every
-//     /2-only top-level or step field. A /2 target/condition discriminator is
-//     treated as an unknown kind, not as a supported /1 variant.
+//     /2-only top-level or step field. Unknown step kinds and wrong /2 variant
+//     pairings reject the training package.
 //   - A refused declaration never yields a partially admitted executable
-//     definition: [Result.Definition] is nil whenever [Result.Accepted] is
-//     false.
+//     definition.
+//
+// # Source pins
+//
+// An asset reference is a safe project-root-relative path, a lowercase 64-hex
+// digest and a positive byte count; a package reference adds its ID and
+// revision. Supplied bytes are verified against the pin before any parse. A
+// content pin is one immutable Git commit (normalized lowercase) or one exact
+// content digest. No canonical project serialization is invented here: project
+// identity is an opaque value owned by the injected adapter.
 //
 // # Escaped surrogates
 //
@@ -42,11 +58,12 @@
 //
 // # Not in this package
 //
-// `datatug-walkthrough/2`, narrative sidecars, source pins, public registry
-// aliases, external checkpoint envelopes, localisation, navigation, progress
+// Narrative/catalogue JSON schemas, events, presentation and branches,
+// segment/chapter/event/reference closure, localisation, aggregate text
+// accounting, `/2` generation, seek and adapter handoffs, navigation, progress
 // storage, activity delivery, target existence checks and Walkthrough UI are
-// owned by later slices and other packages. The ordinary /1 user journey does
-// not exist merely because this contract does.
+// owned by later slices and other packages. The ordinary /1 user journey and
+// the training runtime do not exist merely because these contracts do.
 //
 //go:generate python3 testdata/generate_corpus.py
 package walkthrough
