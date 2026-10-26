@@ -1,0 +1,72 @@
+{
+  "schema": "datatug-training-package/1",
+  "id": "training-empty",
+  "revision": 1,
+  "assets": [
+    {
+      "id": "fixture-0",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-0.sqlite",
+      "sha256": "ecde05ff7907157200b5a3cc833b49812b15d97ac042878a41e7380b3924ff43",
+      "bytes": 10485760
+    },
+    {
+      "id": "fixture-1",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-1.sqlite",
+      "sha256": "5f6ea36c7b4b23b9bf8d6e48657295d405bae3b07ffcf43b09fa5f617ad760b0",
+      "bytes": 10485760
+    },
+    {
+      "id": "fixture-2",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-2.sqlite",
+      "sha256": "dae6e34c03719a1a0eb88112a9888f947020a69f6a839b0db29cb5990e5df6b6",
+      "bytes": 10485760
+    },
+    {
+      "id": "fixture-3",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-3.sqlite",
+      "sha256": "909b13b3cc6990612d0178f274e9bdea08f293162330f04cd68432b840a61dac",
+      "bytes": 10485760
+    },
+    {
+      "id": "fixture-4",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-4.sqlite",
+      "sha256": "080d3dd77d88c63d52a7fb5bcace3a678c409f89acd3c8234b05758767d4db5f",
+      "bytes": 10485760
+    },
+    {
+      "id": "fixture-5",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-5.sqlite",
+      "sha256": "82c7ac86438762f5c4eff3a9f4c26e13a239b84409a02c3e7639d74b3be7d87e",
+      "bytes": 10485760
+    },
+    {
+      "id": "fixture-6",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-6.sqlite",
+      "sha256": "3db151b0af4c40e5c6e7111997a20be3fd822afb6e07ef64dc75894d39014bd1",
+      "bytes": 10485760
+    }
+  ],
+  "fictionalActors": [],
+  "sources": [],
+  "cases": [],
+  "incidents": [],
+  "checks": [],
+  "queries": [],
+  "challenges": [],
+  "proposals": [],
+  "presentationTargets": []
+}

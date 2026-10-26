@@ -1,0 +1,24 @@
+{
+  "schema": "datatug-training-package/1",
+  "id": "training-empty",
+  "revision": 1,
+  "assets": [
+    {
+      "id": "oversize-fixture",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/oversize.sqlite",
+      "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+      "bytes": 10485761
+    }
+  ],
+  "fictionalActors": [],
+  "sources": [],
+  "cases": [],
+  "incidents": [],
+  "checks": [],
+  "queries": [],
+  "challenges": [],
+  "proposals": [],
+  "presentationTargets": []
+}

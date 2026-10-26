@@ -1,0 +1,820 @@
+{
+  "schema": "datatug-training-package/1",
+  "id": "training-empty",
+  "revision": 1,
+  "assets": [],
+  "fictionalActors": [],
+  "sources": [],
+  "cases": [],
+  "incidents": [],
+  "checks": [
+    {
+      "id": "check-000",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-001",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-002",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-003",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-004",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-005",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-006",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-007",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-008",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-009",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-010",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-011",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-012",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-013",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-014",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-015",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-016",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-017",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-018",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-019",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-020",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-021",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-022",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-023",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-024",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-025",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-026",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-027",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-028",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-029",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-030",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-031",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-032",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-033",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-034",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-035",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-036",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-037",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-038",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-039",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-040",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-041",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-042",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-043",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-044",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-045",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-046",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-047",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-048",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-049",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-050",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-051",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-052",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-053",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-054",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-055",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-056",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-057",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-058",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-059",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-060",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-061",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-062",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-063",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-064",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-065",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-066",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-067",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-068",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-069",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-070",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-071",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-072",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-073",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-074",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-075",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-076",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-077",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-078",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-079",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-080",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-081",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-082",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-083",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-084",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-085",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-086",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-087",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-088",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-089",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-090",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-091",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-092",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-093",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-094",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-095",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-096",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-097",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-098",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-099",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-100",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-101",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-102",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-103",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-104",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-105",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-106",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-107",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-108",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-109",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-110",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-111",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-112",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-113",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-114",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-115",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-116",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-117",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-118",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-119",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-120",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-121",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-122",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-123",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-124",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-125",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-126",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-127",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-128",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-129",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-130",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-131",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-132",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-133",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-134",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-135",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-136",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-137",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-138",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-139",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-140",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-141",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-142",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-143",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-144",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-145",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-146",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-147",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-148",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-149",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-150",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-151",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-152",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-153",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-154",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-155",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-156",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-157",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-158",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-159",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-160",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-161",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-162",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-163",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-164",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-165",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-166",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-167",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-168",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-169",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-170",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-171",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-172",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-173",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-174",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-175",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-176",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-177",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-178",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-179",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-180",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-181",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-182",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-183",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-184",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-185",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-186",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-187",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-188",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-189",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-190",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-191",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-192",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-193",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-194",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-195",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-196",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-197",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-198",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-199",
+      "definitionAssetId": "missing-asset"
+    },
+    {
+      "id": "check-200",
+      "definitionAssetId": "missing-asset"
+    }
+  ],
+  "queries": [],
+  "challenges": [],
+  "proposals": [],
+  "presentationTargets": []
+}

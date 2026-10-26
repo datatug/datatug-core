@@ -1,0 +1,258 @@
+{
+  "schema": "datatug-training-package/1",
+  "id": "training-full",
+  "revision": 7,
+  "assets": [
+    {
+      "id": "narrative-text",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/notes.txt",
+      "sha256": "18876321f3c08f22bb6cf77df31566f6aa1ecfe62ae1c45cc38cd78fdf632d64",
+      "bytes": 47
+    },
+    {
+      "id": "orders-records",
+      "kind": "evidence-records",
+      "mediaType": "application/json",
+      "path": "training/orders.json",
+      "sha256": "106eb5e00649d45ba0782c31d56a38121923d7365350e8acfdf7af48283386f6",
+      "bytes": 579
+    },
+    {
+      "id": "ops-log",
+      "kind": "evidence-log",
+      "mediaType": "application/x-ndjson",
+      "path": "training/ops.ndjson",
+      "sha256": "3ac616d1fb84b444be3ec3fa14c258a7df2b4321751c2c5c2128bef3d19aa33a",
+      "bytes": 217
+    },
+    {
+      "id": "retry-metadata",
+      "kind": "query-metadata",
+      "mediaType": "application/json",
+      "path": "training/retry.meta.json",
+      "sha256": "b72f7fa7244be1d59b860d68dfadd2c9d792b077f634184826328d313c0bde1c",
+      "bytes": 716
+    },
+    {
+      "id": "retry-body",
+      "kind": "query-body-sql",
+      "mediaType": "application/sql",
+      "path": "training/retry.sql",
+      "sha256": "f08d25d36447be01a8549899d30bbca2bfe8aaa390de909efa3692a9c586b4f0",
+      "bytes": 82
+    },
+    {
+      "id": "retry-check",
+      "kind": "check-definition",
+      "mediaType": "application/json",
+      "path": "training/retry-check.json",
+      "sha256": "3ffc16db029d252552e2333c28439743cbf8757b121a7b0b18e17bcae3a40997",
+      "bytes": 698
+    },
+    {
+      "id": "retry-manifest",
+      "kind": "challenge-manifest",
+      "mediaType": "application/json",
+      "path": "training/challenge.json",
+      "sha256": "3640dee0fecadf1c4c3f638a9be272462681dd44882185ab98e21cda52070465",
+      "bytes": 1707
+    },
+    {
+      "id": "retry-fixture",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/retry.sqlite",
+      "sha256": "9ff3d798c12ea39926f0ac6f0fee2ed80aab20c7211c2d1d3edcc35b64a52b8d",
+      "bytes": 45
+    },
+    {
+      "id": "retry-watch",
+      "kind": "watch-recommendation",
+      "mediaType": "application/json",
+      "path": "training/watch.json",
+      "sha256": "fb92e8caa8586368b965be67809de637026274dee919e953fd67f3c0666f1624",
+      "bytes": 404
+    }
+  ],
+  "fictionalActors": [
+    {
+      "id": "guide",
+      "name": "Guide"
+    },
+    {
+      "id": "analyst",
+      "name": "Fictional analyst 😀"
+    }
+  ],
+  "sources": [
+    {
+      "id": "training-fixture",
+      "fixtureAssetId": "retry-fixture"
+    }
+  ],
+  "cases": [
+    {
+      "id": "retry-case",
+      "title": "Retry case",
+      "status": "active",
+      "context": {
+        "status": {
+          "type": "string",
+          "value": "pending"
+        }
+      },
+      "incidentIds": [
+        "retry-incident"
+      ],
+      "evidenceIds": [
+        "narrative-text",
+        "orders-records",
+        "ops-log"
+      ],
+      "findings": [
+        {
+          "id": "first-finding",
+          "text": "Retries cluster by status.",
+          "status": "hypothesis",
+          "evidenceRefs": [
+            "orders-records",
+            "ops-log"
+          ]
+        },
+        {
+          "id": "second-finding",
+          "text": "Retry loop confirmed.",
+          "status": "confirmed"
+        }
+      ],
+      "timeline": [
+        {
+          "id": "log-seen",
+          "at": "2026-01-02T03:04:05Z",
+          "actorId": "guide",
+          "type": "evidence-revealed",
+          "ref": {
+            "kind": "evidence",
+            "id": "ops-log"
+          }
+        },
+        {
+          "id": "finding-seen",
+          "at": "2026-01-02T03:04:06Z",
+          "actorId": "analyst",
+          "type": "finding-recorded",
+          "ref": {
+            "kind": "finding",
+            "id": "first-finding"
+          }
+        },
+        {
+          "id": "check-seen",
+          "at": "2026-01-02T03:04:07Z",
+          "actorId": "guide",
+          "type": "check-observed",
+          "ref": {
+            "kind": "check",
+            "id": "retry-observation"
+          }
+        }
+      ]
+    }
+  ],
+  "incidents": [
+    {
+      "id": "retry-incident",
+      "title": "Retry storm",
+      "description": "Fictional retry storm.",
+      "status": "investigating",
+      "evidenceIds": [
+        "ops-log"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "retry-observation",
+      "definitionAssetId": "retry-check"
+    }
+  ],
+  "queries": [
+    {
+      "id": "retries/by-status",
+      "metadataAssetId": "retry-metadata",
+      "bodyAssetId": "retry-body",
+      "sourceId": "training-fixture"
+    }
+  ],
+  "challenges": [
+    {
+      "id": "retry-query",
+      "revision": 1,
+      "manifestAssetId": "retry-manifest",
+      "fixtures": [
+        {
+          "fixtureId": "base",
+          "assetId": "retry-fixture"
+        }
+      ]
+    }
+  ],
+  "proposals": [
+    {
+      "id": "query-proposal",
+      "kind": "query",
+      "definitionId": "retries/by-status",
+      "evidenceIds": [
+        "narrative-text"
+      ],
+      "rationale": "Keep the retry query."
+    },
+    {
+      "id": "check-proposal",
+      "kind": "check",
+      "definitionId": "retry-observation",
+      "evidenceIds": [
+        "orders-records"
+      ],
+      "rationale": "Keep the retry check."
+    },
+    {
+      "id": "watch-proposal",
+      "kind": "watch",
+      "definitionId": "retry-watch",
+      "evidenceIds": [
+        "ops-log"
+      ],
+      "rationale": "Watch the retry rate."
+    }
+  ],
+  "presentationTargets": [
+    {
+      "id": "case-view",
+      "kind": "case",
+      "refId": "retry-case"
+    },
+    {
+      "id": "incident-view",
+      "kind": "incident",
+      "refId": "retry-incident"
+    },
+    {
+      "id": "evidence-view",
+      "kind": "evidence",
+      "refId": "narrative-text"
+    },
+    {
+      "id": "check-view",
+      "kind": "check",
+      "refId": "retry-observation"
+    },
+    {
+      "id": "proposal-view",
+      "kind": "proposal",
+      "refId": "watch-proposal"
+    }
+  ]
+}

@@ -1,0 +1,528 @@
+{
+  "schema": "datatug-training-package/1",
+  "id": "training-empty",
+  "revision": 1,
+  "assets": [
+    {
+      "id": "fixture-0",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-0.sqlite",
+      "sha256": "ecde05ff7907157200b5a3cc833b49812b15d97ac042878a41e7380b3924ff43",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-1",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-1.sqlite",
+      "sha256": "5f6ea36c7b4b23b9bf8d6e48657295d405bae3b07ffcf43b09fa5f617ad760b0",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-2",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-2.sqlite",
+      "sha256": "dae6e34c03719a1a0eb88112a9888f947020a69f6a839b0db29cb5990e5df6b6",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-3",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-3.sqlite",
+      "sha256": "909b13b3cc6990612d0178f274e9bdea08f293162330f04cd68432b840a61dac",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-4",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-4.sqlite",
+      "sha256": "080d3dd77d88c63d52a7fb5bcace3a678c409f89acd3c8234b05758767d4db5f",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-5",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-5.sqlite",
+      "sha256": "82c7ac86438762f5c4eff3a9f4c26e13a239b84409a02c3e7639d74b3be7d87e",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-6",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-6.sqlite",
+      "sha256": "3db151b0af4c40e5c6e7111997a20be3fd822afb6e07ef64dc75894d39014bd1",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-7",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-7.sqlite",
+      "sha256": "874105e6222f0c91a38b9915abddec82c0119e4286ba56d2dc35411078152cb6",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-8",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-8.sqlite",
+      "sha256": "ef89773d42293f1d1e491a442abbb25437c3411a82dd6a1bee99fbaf43abcc8b",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-9",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-9.sqlite",
+      "sha256": "73c74d84f1a517905abf5052e022e862ad0cb699c9f5e2c3535580c9dff53973",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-10",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-10.sqlite",
+      "sha256": "71b3c8b68db6fe4b0a624f01cdfcefa9495d1cbc26b07a3b32389787f275d62f",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-11",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-11.sqlite",
+      "sha256": "1cf1da3a918b70122ae256749e40724477246f954187b2543d9a7658650aefc2",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-12",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-12.sqlite",
+      "sha256": "57c195e7967a3e7ce57147bb12c0197882ae7311f9096ea3446b7bf2bad3bcbd",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-13",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-13.sqlite",
+      "sha256": "530f52e5364e4652962364b295412cf6ad8eac0956ba363b49a9533934f3ecf8",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-14",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-14.sqlite",
+      "sha256": "d6ca8f702dbe308fd22176ec78dd6d5a31ff92d7d74f181383503feeb6657f40",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-15",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-15.sqlite",
+      "sha256": "6b9d4de0cfd618f0016b0be08a1d1060806dc28fb190ea84c014a7fab977cb38",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-16",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-16.sqlite",
+      "sha256": "2c4213e111a1831a7bf8619eef3aa08fe760598fecc6c3741bcfa5e1f0b94216",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-17",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-17.sqlite",
+      "sha256": "fb47d8012d783417d2b70c3eb87001b72e495ed94bfbc61a85bf88039f526d0e",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-18",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-18.sqlite",
+      "sha256": "467c25db8710c853b3fca499d5c4c24abe3e0339c1665ac4b1a4919f0a0b33db",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-19",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-19.sqlite",
+      "sha256": "971b5596b55e406af69f355ecba8bee2d7440d05087de910319776cc8e37f4b9",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-20",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-20.sqlite",
+      "sha256": "cb2c2dfff2bf211da3c622dd490edb2b7e177637f015629ebe48d88411f00ab2",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-21",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-21.sqlite",
+      "sha256": "8fb5ad1b8dbb292d3323ec48799f774615b6614e30bc36bd0a96fc1be914a502",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-22",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-22.sqlite",
+      "sha256": "3d6d0667e46968dd5ab10ad475bc3370b0cca9bcfd0d469e111104c229981ab8",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-23",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-23.sqlite",
+      "sha256": "1ce866c00fe2dd381b9ea957999ce7628cc7aeec87b2b80ddb17183bacf74d87",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-24",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-24.sqlite",
+      "sha256": "9ee6da9c612cae2d12366b31fc43a7408cd25bf326aa49925b6df64d30173647",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-25",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-25.sqlite",
+      "sha256": "1c859fb3b7af482a9e48b2e98480948e3c7d2d46fa829cfbe3f4254e604035e8",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-26",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-26.sqlite",
+      "sha256": "51890ff496ff13c270e0fa31af61c4cf73cb62d9778fa9433a720f9cbff81111",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-27",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-27.sqlite",
+      "sha256": "c031733b113109fc5a098c442aa1fd44b5dfb86f3c9a0de9e4df572352bd2772",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-28",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-28.sqlite",
+      "sha256": "76881a22041cbc3804ce70f454da017ca45bbe1cf9768188b2238b39d43423bc",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-29",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-29.sqlite",
+      "sha256": "4470f2aa9c01922869a677c83e2ebf4e6e2edaa0b5a51e21c1708ad56e00db14",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-30",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-30.sqlite",
+      "sha256": "ebf902a7f20b9fb7ba54783e789dad0ae699b6d93fb27b517f694623b59f5027",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-31",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-31.sqlite",
+      "sha256": "7ec8566fe859282e089f4175fb0f0d46dbcac93846e396a124ad9e0d2a9ebe67",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-32",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-32.sqlite",
+      "sha256": "479c257e14a4546103f55180f69cd1553851f72df819f7ec455112639963e4d8",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-33",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-33.sqlite",
+      "sha256": "cca90482d94cf6e1400f043b18b478a6a3c6973ec3b58737b71e3a039ff37be8",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-34",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-34.sqlite",
+      "sha256": "e6e96dbee00d4eb452a7d0267f8ce9ac361268143dae84670ad9b05ecb444e3d",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-35",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-35.sqlite",
+      "sha256": "896b9a330545e5060eaea570208539f2e60bd80179274b3de4cb98d3fc2dad36",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-36",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-36.sqlite",
+      "sha256": "727c912fcf7eb507a9f43f7beaa91ab9738ae3d7dceecbdb37fe1d39ebae485c",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-37",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-37.sqlite",
+      "sha256": "49380d3066f27e43898bc4bf70fdef6c9ae4fdf91120cdecf45058c2028d9854",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-38",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-38.sqlite",
+      "sha256": "f45e40225f039a572c1ba2df2bd590b7c92461e3ad689ec9731ca13dae060b7a",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-39",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-39.sqlite",
+      "sha256": "375ec7311088c1cdb5644d24fbc2aeeecb767156210da214abcfaf698d8ea9f5",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-40",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-40.sqlite",
+      "sha256": "dea35560759b9c76164912932d1faa6f2380def7314ed2b8f270d4881bf576e6",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-41",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-41.sqlite",
+      "sha256": "6e977782b336cb1a0b8ce26bb797a04e353b9cc3d2930fce5a45940b405f4efe",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-42",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-42.sqlite",
+      "sha256": "eff5853a7848de4e7a2446b5e595beec0af9ff93bec2316490bcaa9e97e8d72f",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-43",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-43.sqlite",
+      "sha256": "07b5a0ab012a488dbfc64176f6dbd81c985154f705f966f820d93c3558f805e1",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-44",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-44.sqlite",
+      "sha256": "ee7d6e431b5851adcf54314fd1d50f13816501f74a1525434df3fdfe2873b88f",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-45",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-45.sqlite",
+      "sha256": "ac271d18f7f6255a070b3a3d366aaf47b48836b8f7c624cc2ccde7401c3a242e",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-46",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-46.sqlite",
+      "sha256": "ade3298e74ea0e7c8917fd18f59454f7e0265f1152988ac23093aa733ca8f71f",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-47",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-47.sqlite",
+      "sha256": "bf8a3d14a64a5fcd62e8c09f76ffe2fc5cb2d68dca5095e8b0f2c7a51e52fcb2",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-48",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-48.sqlite",
+      "sha256": "e84ecb896457e7b705100862a9da0a76fd401c2cb582ed42af91a7da7829df80",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-49",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-49.sqlite",
+      "sha256": "0683ae6d49504a4101ee876ec5a1be5d1d3d41eb56e1a98b02be79c190039fd9",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-50",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-50.sqlite",
+      "sha256": "37f72ee1a4d9019e87898974be3cb7f64df9a48e2250071f3edd8e8d6ccbda76",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-51",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-51.sqlite",
+      "sha256": "ab293c775b6499c101056f44345742328a90eef596405b74cffde5ba7bca9e83",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-52",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-52.sqlite",
+      "sha256": "360221c90d760374c68b6c0a7b68a7355ddff11b33d8932a691d15972091840c",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-53",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-53.sqlite",
+      "sha256": "abb3eac8707d73f53fb2182ac97cfc29522a923231ec0c6c5f491923a337fef6",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-54",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-54.sqlite",
+      "sha256": "f5a496593af7803da09997c4f4193b2ccbb3dfa7a6a55e4d8129324600abdb29",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-55",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-55.sqlite",
+      "sha256": "b7f573e8afdf8175f2b0cb4d5b2a28f1c180659fb41b90c43c9b4d4e9d1e9732",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-56",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-56.sqlite",
+      "sha256": "51a50261c6dc597c1084d7faf2c5edc53623b0f740bcd915f73788321b71c9f4",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-57",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-57.sqlite",
+      "sha256": "29a8a7561da2372acfcf2fe5815e7d9b82421cf83569ca50db15bfe87972dda2",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-58",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-58.sqlite",
+      "sha256": "98bd75da5bbbabedee2a87c074a74cae269a2b9dbc9e86286548ae79f45b2f8d",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-59",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-59.sqlite",
+      "sha256": "de960d88208f20c42b9603886c37a405e6e69159b4341825800d15327de1c3f0",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-60",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-60.sqlite",
+      "sha256": "9ef268dab7e243a9c5b4629cc07aacdd24a33248648a4d0237c575399ca34e0a",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-61",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-61.sqlite",
+      "sha256": "9c2de8d5e9e8708ae9bcd96fc132383cedde6d8005b4861b16bcaed573ae8160",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-62",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-62.sqlite",
+      "sha256": "48ed6afdb8f1df62ccc9dc6e8e7bd8c6597b0b2c9e436c13771bea637f60c312",
+      "bytes": 1048576
+    },
+    {
+      "id": "fixture-63",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/fixture-63.sqlite",
+      "sha256": "d6a159b71e77c722f15c1de00624d6c9e7d67b368f30c4875921b1846f1f5b97",
+      "bytes": 1048576
+    }
+  ],
+  "fictionalActors": [],
+  "sources": [],
+  "cases": [],
+  "incidents": [],
+  "checks": [],
+  "queries": [],
+  "challenges": [],
+  "proposals": [],
+  "presentationTargets": []
+}

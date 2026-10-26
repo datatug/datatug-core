@@ -1,0 +1,46 @@
+{
+  "schema": "datatug-training-package/1",
+  "id": "training-empty",
+  "revision": 1,
+  "assets": [
+    {
+      "id": "check-a-asset",
+      "kind": "check-definition",
+      "mediaType": "application/json",
+      "path": "training/check-a.json",
+      "sha256": "ca1beb45dc87699c063770e01421312e5549e7ff9a9d3cdcec31d3d4c7a893a2",
+      "bytes": 232
+    },
+    {
+      "id": "check-b-asset",
+      "kind": "check-definition",
+      "mediaType": "application/json",
+      "path": "training/check-b.json",
+      "sha256": "313bbd22fb917e9d1d4377f7de0347fc072ca4b0017ae783fc9e162bcbdd4866",
+      "bytes": 232
+    }
+  ],
+  "fictionalActors": [
+    {
+      "id": "guide",
+      "name": "Guide"
+    }
+  ],
+  "sources": [],
+  "cases": [],
+  "incidents": [],
+  "checks": [
+    {
+      "id": "check-a",
+      "definitionAssetId": "check-a-asset"
+    },
+    {
+      "id": "check-b",
+      "definitionAssetId": "check-b-asset"
+    }
+  ],
+  "queries": [],
+  "challenges": [],
+  "proposals": [],
+  "presentationTargets": []
+}

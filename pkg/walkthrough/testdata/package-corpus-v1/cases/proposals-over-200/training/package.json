@@ -1,0 +1,1423 @@
+{
+  "schema": "datatug-training-package/1",
+  "id": "training-empty",
+  "revision": 1,
+  "assets": [],
+  "fictionalActors": [],
+  "sources": [],
+  "cases": [],
+  "incidents": [],
+  "checks": [],
+  "queries": [],
+  "challenges": [],
+  "proposals": [
+    {
+      "id": "proposal-000",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-001",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-002",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-003",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-004",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-005",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-006",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-007",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-008",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-009",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-010",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-011",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-012",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-013",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-014",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-015",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-016",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-017",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-018",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-019",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-020",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-021",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-022",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-023",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-024",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-025",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-026",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-027",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-028",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-029",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-030",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-031",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-032",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-033",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-034",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-035",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-036",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-037",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-038",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-039",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-040",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-041",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-042",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-043",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-044",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-045",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-046",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-047",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-048",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-049",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-050",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-051",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-052",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-053",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-054",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-055",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-056",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-057",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-058",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-059",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-060",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-061",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-062",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-063",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-064",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-065",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-066",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-067",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-068",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-069",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-070",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-071",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-072",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-073",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-074",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-075",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-076",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-077",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-078",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-079",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-080",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-081",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-082",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-083",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-084",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-085",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-086",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-087",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-088",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-089",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-090",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-091",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-092",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-093",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-094",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-095",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-096",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-097",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-098",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-099",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-100",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-101",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-102",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-103",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-104",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-105",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-106",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-107",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-108",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-109",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-110",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-111",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-112",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-113",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-114",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-115",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-116",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-117",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-118",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-119",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-120",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-121",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-122",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-123",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-124",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-125",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-126",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-127",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-128",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-129",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-130",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-131",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-132",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-133",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-134",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-135",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-136",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-137",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-138",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-139",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-140",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-141",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-142",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-143",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-144",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-145",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-146",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-147",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-148",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-149",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-150",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-151",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-152",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-153",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-154",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-155",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-156",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-157",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-158",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-159",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-160",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-161",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-162",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-163",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-164",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-165",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-166",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-167",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-168",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-169",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-170",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-171",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-172",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-173",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-174",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-175",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-176",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-177",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-178",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-179",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-180",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-181",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-182",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-183",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-184",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-185",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-186",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-187",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-188",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-189",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-190",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-191",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-192",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-193",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-194",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-195",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-196",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-197",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-198",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-199",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    },
+    {
+      "id": "proposal-200",
+      "kind": "query",
+      "definitionId": "q/0",
+      "evidenceIds": [],
+      "rationale": "r"
+    }
+  ],
+  "presentationTargets": []
+}

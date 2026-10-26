@@ -84,6 +84,9 @@ const (
 	// CodeIneligible means a registry entry or namespace may not be used here:
 	// a non-public scope or a reference/Test-only result.
 	CodeIneligible Code = "ineligible"
+	// CodeMissingAsset means a declared package asset's verified child bytes
+	// were not supplied. Nothing was read or fetched.
+	CodeMissingAsset Code = "missing_asset"
 )
 
 // Issue is one structured, recoverable declaration problem. Path is a JSON

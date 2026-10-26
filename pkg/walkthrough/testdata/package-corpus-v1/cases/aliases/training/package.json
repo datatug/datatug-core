@@ -1,0 +1,83 @@
+{
+  "schema": "datatug-training-package/1",
+  "id": "example-training",
+  "revision": 1,
+  "assets": [
+    {
+      "id": "sample",
+      "kind": "evidence-records",
+      "mediaType": "application/json",
+      "path": "training/empty-records.json",
+      "sha256": "c8de2b6cfaa5643f94477d542821845ff3c2db2d1d06ad19c7b288e19c9a31bd",
+      "bytes": 58
+    },
+    {
+      "id": "alias-one",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/a.txt",
+      "sha256": "6bb8ff13fb56597e774840f1538a9b87fa18e60b5c1be49173d80bea62afbb02",
+      "bytes": 11
+    },
+    {
+      "id": "alias-two",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/a.txt",
+      "sha256": "6bb8ff13fb56597e774840f1538a9b87fa18e60b5c1be49173d80bea62afbb02",
+      "bytes": 11
+    },
+    {
+      "id": "different-path",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/b.txt",
+      "sha256": "6bb8ff13fb56597e774840f1538a9b87fa18e60b5c1be49173d80bea62afbb02",
+      "bytes": 11
+    }
+  ],
+  "fictionalActors": [
+    {
+      "id": "narrator",
+      "name": "Fictional narrator"
+    }
+  ],
+  "sources": [],
+  "cases": [
+    {
+      "id": "example-case",
+      "title": "Example Case",
+      "status": "active",
+      "context": {},
+      "incidentIds": [],
+      "evidenceIds": [
+        "sample"
+      ],
+      "findings": [],
+      "timeline": [
+        {
+          "id": "introduced",
+          "at": "1970-01-01T00:00:00Z",
+          "actorId": "narrator",
+          "type": "evidence-revealed",
+          "ref": {
+            "kind": "evidence",
+            "id": "sample"
+          }
+        }
+      ]
+    }
+  ],
+  "incidents": [],
+  "checks": [],
+  "queries": [],
+  "challenges": [],
+  "proposals": [],
+  "presentationTargets": [
+    {
+      "id": "case-panel",
+      "kind": "case",
+      "refId": "example-case"
+    }
+  ]
+}
