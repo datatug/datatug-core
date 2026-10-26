@@ -126,6 +126,17 @@ func localeIssueView(issues []LocaleIssue) []localeCorpusIssue {
 	return view
 }
 
+func localeOperation(name string) func(string) LocaleResult {
+	switch name {
+	case "authored-admission":
+		return AdmitAuthoredLocale
+	case "visitor-normalization":
+		return NormalizeVisitorLocale
+	default:
+		return nil
+	}
+}
+
 func TestLocaleConformanceCorpus(t *testing.T) {
 	corpus := loadLocaleCorpus(t)
 	require.Equal(t, "walkthrough-locale-v1", corpus.CorpusVersion)
@@ -140,15 +151,11 @@ func TestLocaleConformanceCorpus(t *testing.T) {
 	for _, vector := range corpus.Vectors {
 		require.False(t, ids[vector.ID], "duplicate vector id %s", vector.ID)
 		ids[vector.ID] = true
-		var result LocaleResult
-		switch vector.Operation {
-		case "authored-admission":
-			result = AdmitAuthoredLocale(vector.Input)
-		case "visitor-normalization":
-			result = NormalizeVisitorLocale(vector.Input)
-		default:
+		operation := localeOperation(vector.Operation)
+		if operation == nil {
 			t.Fatalf("%s: unknown locale operation %q", vector.ID, vector.Operation)
 		}
+		result := operation(vector.Input)
 		require.Equal(t, vector.Want.Accepted, result.Accepted, vector.ID)
 		if vector.Want.Accepted {
 			require.Equal(t, vector.Want.Tag, result.Tag, vector.ID)
@@ -166,6 +173,27 @@ func TestLocaleConformanceCorpus(t *testing.T) {
 		require.ErrorAs(t, refusal, &localeRefusalError)
 		require.True(t, localeRefusalError.Recoverable(), vector.ID)
 		require.Equal(t, vector.Want.Issues[0].Code, LocaleErrorCode(refusal), vector.ID)
+	}
+}
+
+// TestLocaleAcceptedCanonicalIsIdempotent proves that every accepted corpus
+// vector resolves to a fixed point: feeding its canonical tag back through the
+// same explicit operation yields the same tag and primary language. This is the
+// shared guard against a mapping that changes a tag on every pass.
+func TestLocaleAcceptedCanonicalIsIdempotent(t *testing.T) {
+	corpus := loadLocaleCorpus(t)
+	for _, vector := range corpus.Vectors {
+		if !vector.Want.Accepted {
+			continue
+		}
+		operation := localeOperation(vector.Operation)
+		require.NotNil(t, operation, vector.ID)
+		first := operation(vector.Input)
+		require.True(t, first.Accepted, vector.ID)
+		second := operation(first.Tag)
+		require.True(t, second.Accepted, "%s: canonical %q refused", vector.ID, first.Tag)
+		require.Equal(t, first.Tag, second.Tag, vector.ID)
+		require.Equal(t, first.PrimaryLanguage, second.PrimaryLanguage, vector.ID)
 	}
 }
 
@@ -409,16 +437,133 @@ func TestLocaleUnsupportedSnapshotMessages(t *testing.T) {
 }
 
 func TestLocaleCanonicalOutputBound(t *testing.T) {
-	parts := localeParts{privateOnly: true}
-	for index := 0; index < 8; index++ {
-		parts.privateUse = append(parts.privateUse, "abcdefgh")
+	// 64 input characters whose registered heploc -> alalc97 substitution makes
+	// the canonical tag one character longer than the shared 64-character bound.
+	input := "ja-Latn-heploc-x-" + strings.Repeat("abcdefgh-", 5) + "ab"
+	require.Len(t, input, MaxLocaleCharacters)
+	for name, operation := range map[string]func(string) LocaleResult{
+		"authored": AdmitAuthoredLocale,
+		"visitor":  NormalizeVisitorLocale,
+	} {
+		result := operation(input)
+		require.False(t, result.Accepted, name)
+		require.Empty(t, result.Tag, name)
+		require.Equal(t, LocaleCodeTooLong, LocaleErrorCode(result.Err()), name)
 	}
-	result := resolveLocaleParts(parts, false)
-	require.False(t, result.Accepted)
-	require.Equal(t, LocaleCodeTooLong, LocaleErrorCode(result.Err()))
-	tag, ok := renderLocaleParts(parts)
-	require.False(t, ok)
-	require.Empty(t, tag)
+}
+
+// TestLocalePrivateRangeRequiresEqualSubtagLength guards the registered
+// private-use ranges: lexical comparison alone would admit qaaa and qaaabcd
+// through the three-character qaa..qtz language range. A candidate must have
+// the same length as both range endpoints, while visitor normalization still
+// preserves a well-formed unknown language subtag.
+func TestLocalePrivateRangeRequiresEqualSubtagLength(t *testing.T) {
+	operations := map[string]func(string) LocaleResult{
+		"authored": AdmitAuthoredLocale,
+		"visitor":  NormalizeVisitorLocale,
+	}
+	for name, operation := range operations {
+		for _, input := range []string{
+			"qaa", "qtz",
+			"en-Qaaa", "en-Qabx",
+			"en-AA", "en-QM", "en-QZ", "en-XA", "en-XZ", "en-ZZ",
+		} {
+			result := operation(input)
+			require.Truef(t, result.Accepted, "%s %s: %v", name, input, result.Issues)
+		}
+	}
+
+	require.True(t, localeRangeContains(localePrivateUseLanguageRanges, "qtz"))
+	require.False(t, localeRangeContains(localePrivateUseLanguageRanges, "qaaa"))
+	require.False(t, localeRangeContains(localePrivateUseLanguageRanges, "qaaabcd"))
+
+	for _, input := range []string{"qaaa", "qaab", "qaaabcd", "QAAA"} {
+		result := AdmitAuthoredLocale(input)
+		require.False(t, result.Accepted, input)
+		require.Empty(t, result.Tag, input)
+		require.Equal(t, LocaleCodeUnsupportedRegistryVersion, LocaleErrorCode(result.Err()), input)
+		require.Equal(t, strings.ToLower(input), result.Issues[0].Subtag, input)
+	}
+	for input, canonical := range map[string]string{
+		"qaaa":    "qaaa",
+		"qaab":    "qaab",
+		"qaaabcd": "qaaabcd",
+		"QAAA":    "qaaa",
+	} {
+		result := NormalizeVisitorLocale(input)
+		require.True(t, result.Accepted, input)
+		require.Equal(t, canonical, result.Tag, input)
+		require.Equal(t, canonical, result.PrimaryLanguage, input)
+	}
+}
+
+// TestLocaleCanonicalVariantCollisions proves that a Preferred-Value
+// substitution cannot silently create two identical canonical variants. The
+// collision is checked after substitution in both operations, and a valid
+// single substitution remains a fixed point.
+func TestLocaleCanonicalVariantCollisions(t *testing.T) {
+	operations := map[string]func(string) LocaleResult{
+		"authored": AdmitAuthoredLocale,
+		"visitor":  NormalizeVisitorLocale,
+	}
+	for name, operation := range operations {
+		for _, input := range []string{
+			"ja-Latn-heploc-alalc97",
+			"ja-Latn-alalc97-heploc",
+			"JA-latn-HEPLOC-alalc97",
+		} {
+			result := operation(input)
+			require.Falsef(t, result.Accepted, "%s %s", name, input)
+			require.Empty(t, result.Tag, "%s %s", name, input)
+			require.Equal(t, LocaleCodeDuplicateVariant, LocaleErrorCode(result.Err()), "%s %s", name, input)
+			require.Len(t, result.Issues, 1, "%s %s", name, input)
+			require.Equal(t, "alalc97", result.Issues[0].Subtag, "%s %s", name, input)
+			require.Contains(t, result.Issues[0].Message, "Preferred-Value", "%s %s", name, input)
+		}
+	}
+
+	for name, operation := range operations {
+		valid := operation("ja-Latn-heploc")
+		require.True(t, valid.Accepted, name)
+		require.Equal(t, "ja-Latn-alalc97", valid.Tag, name)
+		repeated := operation(valid.Tag)
+		require.True(t, repeated.Accepted, name)
+		require.Equal(t, valid.Tag, repeated.Tag, name)
+	}
+}
+
+// TestLocaleNonASCIIPrecedesLength fixes one refusal precedence in both
+// languages: a non-ASCII input is non_ascii regardless of its UTF-8 byte length
+// or UTF-16 code-unit length. Empty remains its own refusal and an
+// ASCII-only input beyond the bound remains too_long.
+func TestLocaleNonASCIIPrecedesLength(t *testing.T) {
+	cases := map[string]string{
+		"multibyte-33":            strings.Repeat("é", 33),
+		"multibyte-65":            strings.Repeat("é", 65),
+		"nonbmp-short":            "en-😀",
+		"nonbmp-long":             "en-" + strings.Repeat("😀", 20),
+		"ascii-64-then-multibyte": strings.Repeat("a", 64) + "é",
+		"utf16-64-utf8-65-mixed":  "en-" + strings.Repeat("a", 60) + "é",
+	}
+	operations := map[string]func(string) LocaleResult{
+		"authored": AdmitAuthoredLocale,
+		"visitor":  NormalizeVisitorLocale,
+	}
+	for name, input := range cases {
+		for operationName, operation := range operations {
+			result := operation(input)
+			require.Falsef(t, result.Accepted, "%s %s", operationName, name)
+			require.Equal(t, LocaleCodeNonASCII, LocaleErrorCode(result.Err()), "%s %s", operationName, name)
+			require.Empty(t, result.Tag, "%s %s", operationName, name)
+		}
+	}
+
+	for operationName, operation := range operations {
+		empty := operation("")
+		require.Equal(t, LocaleCodeEmpty, LocaleErrorCode(empty.Err()), operationName)
+		beyond := operation(strings.Repeat("a", MaxLocaleCharacters+1))
+		require.Equal(t, LocaleCodeTooLong, LocaleErrorCode(beyond.Err()), operationName)
+	}
 }
 
 func TestLocaleBoundaries(t *testing.T) {
@@ -436,17 +581,6 @@ func TestLocaleBoundaries(t *testing.T) {
 	require.True(t, alias.Accepted)
 	require.Equal(t, "en-GB-oxendict", alias.Tag)
 	require.LessOrEqual(t, len(alias.Tag), MaxLocaleCharacters)
-}
-
-func TestLocalePreferredScriptMapping(t *testing.T) {
-	// The pinned snapshot currently registers no script Preferred-Value, so
-	// exercise the generic mapping branch with an in-test table entry and
-	// restore the generated table afterwards.
-	localePreferredScripts["Test"] = "Latn"
-	t.Cleanup(func() { delete(localePreferredScripts, "Test") })
-	result := resolveLocaleParts(localeParts{language: "en", script: "Test"}, false)
-	require.True(t, result.Accepted)
-	require.Equal(t, "en-Latn", result.Tag)
 }
 
 func TestLocaleOperationsArePure(t *testing.T) {

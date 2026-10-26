@@ -150,12 +150,9 @@ func resolveLocale(input string, authored bool) LocaleResult {
 			Message: "explicit locale is empty; absence is a caller decision",
 		})
 	}
-	if len(input) > MaxLocaleCharacters {
-		return localeRefusal(LocaleIssue{
-			Code:    LocaleCodeTooLong,
-			Message: fmt.Sprintf("locale exceeds %d characters", MaxLocaleCharacters),
-		})
-	}
+	// ASCII is checked before the bound so both implementations agree that a
+	// multibyte or non-BMP input is non_ascii, whatever its UTF-8 byte length
+	// or UTF-16 code-unit length would otherwise suggest.
 	for index := 0; index < len(input); index++ {
 		if input[index] >= 0x80 {
 			return localeRefusal(LocaleIssue{
@@ -163,6 +160,12 @@ func resolveLocale(input string, authored bool) LocaleResult {
 				Message: "locale must contain only US-ASCII characters",
 			})
 		}
+	}
+	if len(input) > MaxLocaleCharacters {
+		return localeRefusal(LocaleIssue{
+			Code:    LocaleCodeTooLong,
+			Message: fmt.Sprintf("locale exceeds %d characters", MaxLocaleCharacters),
+		})
 	}
 
 	if record, ok := localeWholeTags[strings.ToLower(input)]; ok {
@@ -188,6 +191,9 @@ func resolveLocaleParts(parts localeParts, authored bool) LocaleResult {
 		return localeRefusal(*issue)
 	}
 	canonical := canonicalizeLocaleParts(parts)
+	if issue := validateCanonicalLocaleParts(canonical); issue != nil {
+		return localeRefusal(*issue)
+	}
 	tag, ok := renderLocaleParts(canonical)
 	if !ok {
 		return localeRefusal(LocaleIssue{
@@ -196,6 +202,28 @@ func resolveLocaleParts(parts localeParts, authored bool) LocaleResult {
 		})
 	}
 	return localeSuccess(tag, canonicalPrimaryLanguage(canonical))
+}
+
+// validateCanonicalLocaleParts rejects a canonical form that only becomes
+// invalid after Preferred-Value substitution. Variants keep their authored
+// order and are never deduplicated: if substitution makes two of them equal,
+// the whole tag is refused rather than silently rewritten into a different tag.
+func validateCanonicalLocaleParts(parts localeParts) *LocaleIssue {
+	seen := make(map[string]struct{}, len(parts.variants))
+	for _, variant := range parts.variants {
+		if _, duplicate := seen[variant]; duplicate {
+			return &LocaleIssue{
+				Code:   LocaleCodeDuplicateVariant,
+				Subtag: variant,
+				Message: fmt.Sprintf(
+					"variant subtag %q collides after Preferred-Value substitution",
+					variant,
+				),
+			}
+		}
+		seen[variant] = struct{}{}
+	}
+	return nil
 }
 
 func localeSuccess(tag, primary string) LocaleResult {
@@ -227,6 +255,12 @@ type localeRange struct{ low, high string }
 
 func localeRangeContains(ranges []localeRange, value string) bool {
 	for _, item := range ranges {
+		// Each registered range is a same-length family. Lexical comparison
+		// alone would admit a longer lookalike such as qaaa through qaa..qtz,
+		// so the candidate must match both endpoints in length first.
+		if len(value) != len(item.low) || len(value) != len(item.high) {
+			continue
+		}
 		if value >= item.low && value <= item.high {
 			return true
 		}
@@ -511,6 +545,17 @@ func unsupportedLocaleValue(kind, subtag string) *LocaleIssue {
 	}
 }
 
+// applyLocalePreferred returns the registered Preferred-Value for value, or
+// value itself when the table has none. All four subtag mappings share this
+// pure path, so the currently empty script table keeps its future semantics
+// without a separate untestable branch.
+func applyLocalePreferred(table map[string]string, value string) string {
+	if preferred, ok := table[value]; ok {
+		return preferred
+	}
+	return value
+}
+
 // canonicalizeLocaleParts applies whole-subtag Preferred-Value mappings,
 // contextual extlang replacement, extension-singleton ordering and ASCII case
 // conventions. Explicit scripts, variant order and the private-use tail are
@@ -526,28 +571,17 @@ func canonicalizeLocaleParts(parts localeParts) localeParts {
 		privateUse:  append([]string(nil), parts.privateUse...),
 		privateOnly: parts.privateOnly,
 	}
-	if preferred, ok := localePreferredLanguages[canonical.language]; ok {
-		canonical.language = preferred
-	}
+	canonical.language = applyLocalePreferred(localePreferredLanguages, canonical.language)
 	if canonical.extlang != "" {
 		if _, registered := localeExtlangPrefixes[canonical.extlang]; registered {
-			canonical.language = canonical.extlang
-			if preferred, ok := localePreferredLanguages[canonical.language]; ok {
-				canonical.language = preferred
-			}
+			canonical.language = applyLocalePreferred(localePreferredLanguages, canonical.extlang)
 			canonical.extlang = ""
 		}
 	}
-	if preferred, ok := localePreferredScripts[canonical.script]; ok {
-		canonical.script = preferred
-	}
-	if preferred, ok := localePreferredRegions[canonical.region]; ok {
-		canonical.region = preferred
-	}
+	canonical.script = applyLocalePreferred(localePreferredScripts, canonical.script)
+	canonical.region = applyLocalePreferred(localePreferredRegions, canonical.region)
 	for index, variant := range canonical.variants {
-		if preferred, ok := localePreferredVariants[variant]; ok {
-			canonical.variants[index] = preferred
-		}
+		canonical.variants[index] = applyLocalePreferred(localePreferredVariants, variant)
 	}
 	for index, extension := range parts.extensions {
 		copied := localeExtension{

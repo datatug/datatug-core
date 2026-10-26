@@ -2511,6 +2511,267 @@
           }
         ]
       }
+    },
+    {
+      "id": "aut-176",
+      "operation": "authored-admission",
+      "input": "qaaa",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "unsupported_registry_version",
+            "subtag": "qaaa",
+            "snapshot": "2026-09-17"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-177",
+      "operation": "visitor-normalization",
+      "input": "qaaa",
+      "want": {
+        "accepted": true,
+        "tag": "qaaa",
+        "primaryLanguage": "qaaa"
+      }
+    },
+    {
+      "id": "aut-178",
+      "operation": "authored-admission",
+      "input": "qaaabcd",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "unsupported_registry_version",
+            "subtag": "qaaabcd",
+            "snapshot": "2026-09-17"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-179",
+      "operation": "visitor-normalization",
+      "input": "qaaabcd",
+      "want": {
+        "accepted": true,
+        "tag": "qaaabcd",
+        "primaryLanguage": "qaaabcd"
+      }
+    },
+    {
+      "id": "aut-180",
+      "operation": "authored-admission",
+      "input": "QAAA",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "unsupported_registry_version",
+            "subtag": "qaaa",
+            "snapshot": "2026-09-17"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-181",
+      "operation": "visitor-normalization",
+      "input": "QAAA",
+      "want": {
+        "accepted": true,
+        "tag": "qaaa",
+        "primaryLanguage": "qaaa"
+      }
+    },
+    {
+      "id": "aut-182",
+      "operation": "authored-admission",
+      "input": "ja-Latn-heploc-alalc97",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "duplicate_variant",
+            "subtag": "alalc97"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-183",
+      "operation": "visitor-normalization",
+      "input": "ja-Latn-heploc-alalc97",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "duplicate_variant",
+            "subtag": "alalc97"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-184",
+      "operation": "authored-admission",
+      "input": "ja-Latn-alalc97-heploc",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "duplicate_variant",
+            "subtag": "alalc97"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-185",
+      "operation": "visitor-normalization",
+      "input": "ja-Latn-alalc97-heploc",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "duplicate_variant",
+            "subtag": "alalc97"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-186",
+      "operation": "authored-admission",
+      "input": "\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "non_ascii"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-187",
+      "operation": "visitor-normalization",
+      "input": "\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "non_ascii"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-188",
+      "operation": "authored-admission",
+      "input": "en-\ud83d\ude00",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "non_ascii"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-189",
+      "operation": "visitor-normalization",
+      "input": "en-\ud83d\ude00",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "non_ascii"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-190",
+      "operation": "authored-admission",
+      "input": "en-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\u00e9",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "non_ascii"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-191",
+      "operation": "visitor-normalization",
+      "input": "en-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\u00e9",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "non_ascii"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-192",
+      "operation": "authored-admission",
+      "input": "en-\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "non_ascii"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-193",
+      "operation": "visitor-normalization",
+      "input": "en-\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "non_ascii"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-194",
+      "operation": "authored-admission",
+      "input": "\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "non_ascii"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-195",
+      "operation": "visitor-normalization",
+      "input": "\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "non_ascii"
+          }
+        ]
+      }
     }
   ]
 }
