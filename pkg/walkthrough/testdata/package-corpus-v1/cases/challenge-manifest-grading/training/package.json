@@ -48,16 +48,16 @@
       "kind": "check-definition",
       "mediaType": "application/json",
       "path": "training/retry-check.json",
-      "sha256": "3ffc16db029d252552e2333c28439743cbf8757b121a7b0b18e17bcae3a40997",
-      "bytes": 698
+      "sha256": "e0fa708052599755e805abe314886393f94204506bf8f275a829554949a581c7",
+      "bytes": 787
     },
     {
       "id": "retry-manifest",
       "kind": "challenge-manifest",
       "mediaType": "application/json",
       "path": "training/challenge.json",
-      "sha256": "f84ed3e030219126c4da0ff1e58c8245394346b6c919da7bb0b3a2f731812532",
-      "bytes": 1707
+      "sha256": "599e0ec3f36af52e175f287e65478e9b01f5d7df09f6d770cf2dbd2c95d0cfa2",
+      "bytes": 2047
     },
     {
       "id": "retry-fixture",

@@ -9,6 +9,11 @@
       "type": "string",
       "cardinality": "scalar",
       "required": true
+    },
+    {
+      "name": "note",
+      "type": "string",
+      "cardinality": "scalar"
     }
   ],
   "steps": [],

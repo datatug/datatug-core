@@ -33,7 +33,10 @@
         "columns": [
           {
             "name": "status",
-            "type": "string"
+            "type": "string",
+            "primaryKey": true,
+            "notNull": true,
+            "collation": "NOCASE"
           },
           {
             "name": "attempts",
@@ -76,6 +79,18 @@
       }
     }
   ],
-  "hints": [],
-  "referenceSolutions": []
+  "hints": [
+    {
+      "id": "retry-hint",
+      "text": "Look at the attempts column."
+    }
+  ],
+  "referenceSolutions": [
+    {
+      "partId": "result",
+      "answer": {
+        "sql": "select status, count(*) from retries where attempts >= 3 group by status;"
+      }
+    }
+  ]
 }

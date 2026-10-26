@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/datatug/datatug-core/pkg/apicontract"
+	"github.com/datatug/datatug-core/pkg/challenge"
 	"github.com/datatug/datatug-core/pkg/detective"
 	"github.com/datatug/datatug-core/pkg/investigation"
 	"github.com/stretchr/testify/require"
@@ -790,6 +791,42 @@ func TestTrainingPackageProjectionCoversOptionalShapes(t *testing.T) {
 	require.Equal(t, "projection", projected["id"])
 	codecs := projected["codecs"].([]any)
 	require.Len(t, codecs, len(packageValue.Assets))
+}
+
+func TestTrainingPackageProjectionCoversOracleBranches(t *testing.T) {
+	manifest := &challenge.Manifest{
+		SchemaVersion:  challenge.SchemaVersion,
+		GradingVersion: challenge.GradingVersion,
+		ChallengeID:    "oracle-projection",
+		Revision:       1,
+		Title:          "Oracle projection",
+		Engine:         challenge.SupportedEngine,
+		Parts: []challenge.Part{
+			{ID: "nil-result", Title: "Result", Required: true, AnswerKind: challenge.AnswerSQL,
+				SQL: &challenge.SQLPart{Cases: []challenge.SQLCase{{Oracle: challenge.Oracle{Kind: challenge.OracleResult}}}}},
+			{ID: "nil-final", Title: "Final", AnswerKind: challenge.AnswerSQL,
+				SQL: &challenge.SQLPart{Cases: []challenge.SQLCase{{Oracle: challenge.Oracle{Kind: challenge.OracleFinalState}}}}},
+			{ID: "unknown", Title: "Unknown", AnswerKind: challenge.AnswerSQL,
+				SQL: &challenge.SQLPart{Cases: []challenge.SQLCase{{Oracle: challenge.Oracle{Kind: "future"}}}}},
+		},
+	}
+	packageValue := &AdmittedTrainingPackage{
+		Schema: PackageSchemaV1,
+		ID:     "oracle-projection",
+		Assets: []TrainingPackageAsset{{ID: "manifest", Kind: "challenge-manifest", Manifest: manifest}},
+	}
+	projected := packageValue.Projection()
+	codecs := projected["codecs"].([]any)
+	manifestProjection := codecs[0].(map[string]any)["manifest"].(map[string]any)
+	parts := manifestProjection["parts"].([]any)
+	require.Len(t, parts, 3)
+	require.Equal(t, map[string]any{"kind": challenge.OracleResult},
+		parts[0].(map[string]any)["sql"].(map[string]any)["cases"].([]any)[0].(map[string]any)["oracle"])
+	require.Equal(t, map[string]any{"kind": challenge.OracleFinalState},
+		parts[1].(map[string]any)["sql"].(map[string]any)["cases"].([]any)[0].(map[string]any)["oracle"])
+	require.Equal(t, map[string]any{"kind": "future"},
+		parts[2].(map[string]any)["sql"].(map[string]any)["cases"].([]any)[0].(map[string]any)["oracle"])
+	require.Nil(t, projectOracle(nil))
 }
 
 func TestTrainingPackageTrustedInventoryProjections(t *testing.T) {

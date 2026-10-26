@@ -33,13 +33,25 @@ def main() -> None:
         fail("corpus.json hash")
     if corpus.get("corpusVersion") != "training-package-corpus-v1":
         fail("corpus version")
+    for key, name in (("generatorSha256", "generate.py"),
+                      ("verifierSha256", "verify.py")):
+        expected = provenance.get(key)
+        if not expected:
+            fail(f"missing {key}")
+        if sha256((ROOT / name).read_bytes()) != expected:
+            fail(f"{name} hash")
     files = provenance.get("files", {})
+    file_bytes = provenance.get("fileBytes", {})
     if not files:
         fail("empty provenance file map")
+    if set(files) != set(file_bytes):
+        fail("provenance file/byte maps differ")
     for relative, expected in files.items():
         data = (ROOT / relative).read_bytes()
         if sha256(data) != expected:
             fail(f"file hash {relative}")
+        if len(data) != file_bytes[relative]:
+            fail(f"file length {relative}")
     for vector in corpus["vectors"]:
         case = ROOT / "cases" / vector["directory"]
         index = (case / vector["indexPath"]).read_bytes()

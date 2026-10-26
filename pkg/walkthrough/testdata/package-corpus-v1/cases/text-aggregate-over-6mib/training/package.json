@@ -772,12 +772,12 @@
       "bytes": 65536
     },
     {
-      "id": "text-096",
+      "id": "text-final-byte",
       "kind": "evidence-text",
       "mediaType": "text/plain",
-      "path": "training/text-096.txt",
-      "sha256": "5e4a5b114dbde69d9a8c31643c20d2abcc01a4f2103ba1f1a20c513515ec4c5d",
-      "bytes": 65536
+      "path": "training/text-final-byte.txt",
+      "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+      "bytes": 1
     }
   ],
   "fictionalActors": [],

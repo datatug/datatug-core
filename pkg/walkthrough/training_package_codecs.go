@@ -53,6 +53,63 @@ var (
 	typedValueFields       = map[string]bool{"type": true, "value": true}
 	inputValueSetFields    = map[string]bool{"type": true, "values": true}
 	inputValueRangeFields  = map[string]bool{"type": true, "start": true, "end": true}
+
+	// The challenge manifest is owned by the execution package. These maps
+	// mirror its actual wire DTO exactly so the package stage can enforce the
+	// owner's exact-case/unknown/null rules before native semantic validation.
+	manifestRootFields = map[string]bool{
+		"schemaVersion": true, "gradingVersion": true, "challengeId": true,
+		"revision": true, "title": true, "objective": true, "difficulty": true,
+		"dialect": true, "allowedOperation": true, "timing": true, "engine": true,
+		"fixtureSuite": true, "visibleSchema": true, "parts": true, "hints": true,
+		"referenceSolutions": true,
+	}
+	manifestEngineFields = map[string]bool{
+		"package": true, "version": true, "sqliteVersion": true,
+	}
+	manifestFixtureSuiteFields = map[string]bool{"id": true, "fixtures": true}
+	manifestFixtureFields      = map[string]bool{
+		"id": true, "label": true, "sha256": true, "bytes": true, "runs": true,
+	}
+	manifestVisibleSchemaFields = map[string]bool{"tables": true}
+	manifestVisibleTableFields  = map[string]bool{"name": true, "columns": true}
+	manifestVisibleColumnFields = map[string]bool{
+		"name": true, "type": true, "primaryKey": true, "notNull": true, "collation": true,
+	}
+	manifestPartFields = map[string]bool{
+		"id": true, "title": true, "required": true, "answerKind": true,
+		"sql": true, "structured": true, "checkDefinition": true,
+	}
+	manifestSQLPartFields      = map[string]bool{"cases": true}
+	manifestSQLCaseFields      = map[string]bool{"fixture": true, "oracle": true}
+	manifestResultOracleFields = map[string]bool{
+		"kind": true, "columns": true, "rows": true, "ordering": true,
+		"requireColumnNames": true, "numericTolerance": true,
+	}
+	manifestFinalStateFields = map[string]bool{"kind": true, "tables": true, "invariants": true}
+	manifestTableFields      = map[string]bool{"name": true, "columns": true, "rows": true}
+	manifestInvariantFields  = map[string]bool{
+		"id": true, "kind": true, "table": true, "groupBy": true, "column": true,
+		"description": true,
+	}
+	manifestResultColumnFields    = map[string]bool{"name": true, "type": true}
+	manifestStructuredFields      = map[string]bool{"fields": true, "expected": true}
+	manifestStructuredFieldFields = map[string]bool{
+		"id": true, "label": true, "cardinality": true, "required": true,
+		"minSelections": true, "maxSelections": true, "options": true,
+	}
+	manifestStructuredOptionFields = map[string]bool{"id": true, "label": true}
+	manifestStructuredAnswerFields = map[string]bool{"selections": true}
+	manifestCheckDefinitionFields  = map[string]bool{
+		"queryIds": true, "expectation": true, "cases": true,
+	}
+	manifestCheckCaseFields         = map[string]bool{"fixture": true, "expectedOutcome": true}
+	manifestHintFields              = map[string]bool{"id": true, "text": true}
+	manifestReferenceSolutionFields = map[string]bool{"partId": true, "answer": true}
+	manifestReferenceAnswerFields   = map[string]bool{
+		"sql": true, "structured": true, "checkDefinition": true,
+	}
+	manifestCheckDefinitionAnswerFields = map[string]bool{"queryId": true, "expectation": true}
 )
 
 // trainingScalarTypes is the closed evidence-records column discriminator set.
@@ -138,8 +195,12 @@ func (c *checker) parsePackageCodecs(pkg *AdmittedTrainingPackage, bytesByPath m
 				}
 			}
 		case "challenge-manifest":
-			if !utf8.Valid(data) {
-				c.report(CodeInvalidUTF8, path, "challenge manifest must be valid UTF-8")
+			root, ok := c.childJSON(data, path)
+			if !ok {
+				continue
+			}
+			c.validateChallengeManifestShape(root, path)
+			if len(c.issues) > 0 {
 				continue
 			}
 			manifest, err := challenge.LoadManifest(data)
@@ -774,6 +835,477 @@ func (c *checker) typedValue(value *jsonValue, path string) investigation.TypedV
 		return investigation.TypedValue{}
 	}
 	return typed
+}
+
+// validateChallengeManifestShape applies the package-wide exact-case,
+// duplicate, unknown-field, null and JSON-type rules to the whole native
+// challenge manifest before challenge.LoadManifest runs. Native validation
+// still owns every semantic, range and fixture-pin rule.
+func (c *checker) validateChallengeManifestShape(root *jsonValue, path string) {
+	c.rejectUnknown(root, path, manifestRootFields)
+	c.manifestStringField(root, path, "gradingVersion")
+	c.manifestStringField(root, path, "challengeId")
+	c.manifestStringField(root, path, "title")
+	c.manifestStringField(root, path, "objective")
+	c.manifestStringField(root, path, "difficulty")
+	c.manifestStringField(root, path, "dialect")
+	c.manifestStringField(root, path, "allowedOperation")
+	c.manifestStringField(root, path, "timing")
+	c.manifestIntegerField(root, path, "schemaVersion")
+	c.manifestIntegerField(root, path, "revision")
+	c.manifestEngine(root, path)
+	c.manifestFixtureSuite(root, path)
+	c.manifestVisibleSchema(root, path)
+	c.manifestParts(root, path)
+	c.manifestHints(root, path)
+	c.manifestReferenceSolutions(root, path)
+}
+
+func (c *checker) manifestStringField(object *jsonValue, path, name string) {
+	value, present := object.member(name)
+	if !present {
+		return
+	}
+	if value.kind != jsonString {
+		c.report(CodeInvalidType, pointerChild(path, name), "must be a string")
+	}
+}
+
+func (c *checker) manifestBoolField(object *jsonValue, path, name string) {
+	value, present := object.member(name)
+	if !present {
+		return
+	}
+	if value.kind != jsonBoolean {
+		c.report(CodeInvalidType, pointerChild(path, name), "must be a boolean")
+	}
+}
+
+func (c *checker) manifestIntegerField(object *jsonValue, path, name string) {
+	value, present := object.member(name)
+	if !present {
+		return
+	}
+	if value.kind != jsonNumber || !trainingIntegerPattern.MatchString(value.number) {
+		c.report(CodeInvalidValue, pointerChild(path, name),
+			"must be a canonical JSON integer")
+	}
+}
+
+func (c *checker) manifestArray(object *jsonValue, path, name string) ([]*jsonValue, bool) {
+	value, present := object.member(name)
+	if !present {
+		return nil, false
+	}
+	if value.kind != jsonArray {
+		c.report(CodeInvalidType, pointerChild(path, name), "must be an array")
+		return nil, false
+	}
+	return value.array, true
+}
+
+func (c *checker) manifestObjectField(object *jsonValue, path, name string) (*jsonValue, bool) {
+	value, present := object.member(name)
+	if !present {
+		return nil, false
+	}
+	if value.kind != jsonObject {
+		c.report(CodeInvalidType, pointerChild(path, name), "must be a JSON object")
+		return nil, false
+	}
+	return value, true
+}
+
+func (c *checker) manifestEngine(root *jsonValue, path string) {
+	object, present := c.manifestObjectField(root, path, "engine")
+	if !present {
+		return
+	}
+	enginePath := pointerChild(path, "engine")
+	c.rejectUnknown(object, enginePath, manifestEngineFields)
+	c.manifestStringField(object, enginePath, "package")
+	c.manifestStringField(object, enginePath, "version")
+	c.manifestStringField(object, enginePath, "sqliteVersion")
+}
+
+func (c *checker) manifestFixtureSuite(root *jsonValue, path string) {
+	object, present := c.manifestObjectField(root, path, "fixtureSuite")
+	if !present {
+		return
+	}
+	suitePath := pointerChild(path, "fixtureSuite")
+	c.rejectUnknown(object, suitePath, manifestFixtureSuiteFields)
+	c.manifestStringField(object, suitePath, "id")
+	fixtures, ok := c.manifestArray(object, suitePath, "fixtures")
+	if !ok {
+		return
+	}
+	for index, value := range fixtures {
+		fixturePath := pointerIndex(pointerChild(suitePath, "fixtures"), index)
+		if !c.requireObject(value, fixturePath) {
+			continue
+		}
+		c.rejectUnknown(value, fixturePath, manifestFixtureFields)
+		c.manifestStringField(value, fixturePath, "id")
+		c.manifestStringField(value, fixturePath, "label")
+		c.manifestStringField(value, fixturePath, "sha256")
+		c.manifestIntegerField(value, fixturePath, "bytes")
+		c.manifestIntegerField(value, fixturePath, "runs")
+	}
+}
+
+func (c *checker) manifestVisibleSchema(root *jsonValue, path string) {
+	object, present := c.manifestObjectField(root, path, "visibleSchema")
+	if !present {
+		return
+	}
+	schemaPath := pointerChild(path, "visibleSchema")
+	c.rejectUnknown(object, schemaPath, manifestVisibleSchemaFields)
+	tables, ok := c.manifestArray(object, schemaPath, "tables")
+	if !ok {
+		return
+	}
+	for tableIndex, table := range tables {
+		tablePath := pointerIndex(pointerChild(schemaPath, "tables"), tableIndex)
+		if !c.requireObject(table, tablePath) {
+			continue
+		}
+		c.rejectUnknown(table, tablePath, manifestVisibleTableFields)
+		c.manifestStringField(table, tablePath, "name")
+		columns, ok := c.manifestArray(table, tablePath, "columns")
+		if !ok {
+			continue
+		}
+		for columnIndex, column := range columns {
+			columnPath := pointerIndex(pointerChild(tablePath, "columns"), columnIndex)
+			if !c.requireObject(column, columnPath) {
+				continue
+			}
+			c.rejectUnknown(column, columnPath, manifestVisibleColumnFields)
+			c.manifestStringField(column, columnPath, "name")
+			c.manifestStringField(column, columnPath, "type")
+			c.manifestBoolField(column, columnPath, "primaryKey")
+			c.manifestBoolField(column, columnPath, "notNull")
+			c.manifestStringField(column, columnPath, "collation")
+		}
+	}
+}
+
+func (c *checker) manifestParts(root *jsonValue, path string) {
+	parts, ok := c.manifestArray(root, path, "parts")
+	if !ok {
+		return
+	}
+	for index, value := range parts {
+		partPath := pointerIndex(pointerChild(path, "parts"), index)
+		if !c.requireObject(value, partPath) {
+			continue
+		}
+		c.rejectUnknown(value, partPath, manifestPartFields)
+		c.manifestStringField(value, partPath, "id")
+		c.manifestStringField(value, partPath, "title")
+		c.manifestBoolField(value, partPath, "required")
+		c.manifestStringField(value, partPath, "answerKind")
+		if sqlPart, present := c.manifestObjectField(value, partPath, "sql"); present {
+			c.manifestSQLPart(sqlPart, pointerChild(partPath, "sql"))
+		}
+		if structured, present := c.manifestObjectField(value, partPath, "structured"); present {
+			c.manifestStructuredPart(structured, pointerChild(partPath, "structured"))
+		}
+		if checkDefinition, present := c.manifestObjectField(value, partPath, "checkDefinition"); present {
+			c.manifestCheckDefinition(checkDefinition, pointerChild(partPath, "checkDefinition"))
+		}
+	}
+}
+
+func (c *checker) manifestSQLPart(object *jsonValue, path string) {
+	c.rejectUnknown(object, path, manifestSQLPartFields)
+	cases, ok := c.manifestArray(object, path, "cases")
+	if !ok {
+		return
+	}
+	for index, value := range cases {
+		casePath := pointerIndex(pointerChild(path, "cases"), index)
+		if !c.requireObject(value, casePath) {
+			continue
+		}
+		c.rejectUnknown(value, casePath, manifestSQLCaseFields)
+		c.manifestStringField(value, casePath, "fixture")
+		oracle, present := c.manifestObjectField(value, casePath, "oracle")
+		if present {
+			c.manifestOracle(oracle, pointerChild(casePath, "oracle"))
+		}
+	}
+}
+
+func (c *checker) manifestOracle(object *jsonValue, path string) {
+	kindValue, present := object.member("kind")
+	if !present {
+		c.report(CodeMissingField, pointerChild(path, "kind"), "required field is missing")
+		return
+	}
+	if kindValue.kind != jsonString {
+		c.report(CodeInvalidType, pointerChild(path, "kind"), "must be a string")
+		return
+	}
+	switch kindValue.text {
+	case challenge.OracleResult:
+		c.rejectUnknown(object, path, manifestResultOracleFields)
+		c.manifestColumnsRows(object, path)
+		c.manifestStringField(object, path, "ordering")
+		c.manifestBoolField(object, path, "requireColumnNames")
+		c.manifestStringField(object, path, "numericTolerance")
+	case challenge.OracleFinalState:
+		c.rejectUnknown(object, path, manifestFinalStateFields)
+		c.manifestFinalState(object, path)
+	default:
+		c.report(CodeInvalidValue, pointerChild(path, "kind"),
+			"oracle kind must be %q or %q", challenge.OracleResult, challenge.OracleFinalState)
+	}
+}
+
+func (c *checker) manifestColumnsRows(object *jsonValue, path string) {
+	columns, ok := c.manifestArray(object, path, "columns")
+	if ok {
+		for index, value := range columns {
+			columnPath := pointerIndex(pointerChild(path, "columns"), index)
+			if !c.requireObject(value, columnPath) {
+				continue
+			}
+			c.rejectUnknown(value, columnPath, manifestResultColumnFields)
+			c.manifestStringField(value, columnPath, "name")
+			c.manifestStringField(value, columnPath, "type")
+		}
+	}
+	rows, ok := c.manifestArray(object, path, "rows")
+	if !ok {
+		return
+	}
+	for rowIndex, row := range rows {
+		rowPath := pointerIndex(pointerChild(path, "rows"), rowIndex)
+		if row.kind != jsonArray {
+			c.report(CodeInvalidType, rowPath, "must be an array")
+			continue
+		}
+		for cellIndex, cell := range row.array {
+			c.typedValue(cell, pointerIndex(rowPath, cellIndex))
+		}
+	}
+}
+
+func (c *checker) manifestFinalState(object *jsonValue, path string) {
+	tables, ok := c.manifestArray(object, path, "tables")
+	if ok {
+		for index, value := range tables {
+			tablePath := pointerIndex(pointerChild(path, "tables"), index)
+			if !c.requireObject(value, tablePath) {
+				continue
+			}
+			c.rejectUnknown(value, tablePath, manifestTableFields)
+			c.manifestStringField(value, tablePath, "name")
+			c.manifestColumnsRows(value, tablePath)
+		}
+	}
+	invariants, ok := c.manifestArray(object, path, "invariants")
+	if !ok {
+		return
+	}
+	for index, value := range invariants {
+		invariantPath := pointerIndex(pointerChild(path, "invariants"), index)
+		if !c.requireObject(value, invariantPath) {
+			continue
+		}
+		c.rejectUnknown(value, invariantPath, manifestInvariantFields)
+		c.manifestStringField(value, invariantPath, "id")
+		c.manifestStringField(value, invariantPath, "kind")
+		c.manifestStringField(value, invariantPath, "table")
+		c.manifestStringField(value, invariantPath, "column")
+		c.manifestStringField(value, invariantPath, "description")
+		groupBy, ok := c.manifestArray(value, invariantPath, "groupBy")
+		if !ok {
+			continue
+		}
+		for groupIndex, group := range groupBy {
+			if group.kind != jsonString {
+				c.report(CodeInvalidType,
+					pointerIndex(pointerChild(invariantPath, "groupBy"), groupIndex),
+					"must be a string")
+			}
+		}
+	}
+}
+
+func (c *checker) manifestStructuredPart(object *jsonValue, path string) {
+	c.rejectUnknown(object, path, manifestStructuredFields)
+	fields, ok := c.manifestArray(object, path, "fields")
+	if ok {
+		for index, value := range fields {
+			fieldPath := pointerIndex(pointerChild(path, "fields"), index)
+			if !c.requireObject(value, fieldPath) {
+				continue
+			}
+			c.rejectUnknown(value, fieldPath, manifestStructuredFieldFields)
+			c.manifestStringField(value, fieldPath, "id")
+			c.manifestStringField(value, fieldPath, "label")
+			c.manifestStringField(value, fieldPath, "cardinality")
+			c.manifestBoolField(value, fieldPath, "required")
+			c.manifestIntegerField(value, fieldPath, "minSelections")
+			c.manifestIntegerField(value, fieldPath, "maxSelections")
+			options, ok := c.manifestArray(value, fieldPath, "options")
+			if !ok {
+				continue
+			}
+			for optionIndex, option := range options {
+				optionPath := pointerIndex(pointerChild(fieldPath, "options"), optionIndex)
+				if !c.requireObject(option, optionPath) {
+					continue
+				}
+				c.rejectUnknown(option, optionPath, manifestStructuredOptionFields)
+				c.manifestStringField(option, optionPath, "id")
+				c.manifestStringField(option, optionPath, "label")
+			}
+		}
+	}
+	expected, present := c.manifestObjectField(object, path, "expected")
+	if present {
+		c.manifestStructuredAnswer(expected, pointerChild(path, "expected"))
+	}
+}
+
+func (c *checker) manifestStructuredAnswer(object *jsonValue, path string) {
+	c.rejectUnknown(object, path, manifestStructuredAnswerFields)
+	selections, present := object.member("selections")
+	if !present {
+		return
+	}
+	if selections.kind != jsonObject {
+		c.report(CodeInvalidType, pointerChild(path, "selections"), "must be a JSON object")
+		return
+	}
+	for _, member := range selections.object {
+		selectionPath := pointerChild(pointerChild(path, "selections"), member.key)
+		if member.value.kind != jsonArray {
+			c.report(CodeInvalidType, selectionPath, "must be an array of strings")
+			continue
+		}
+		for index, item := range member.value.array {
+			if item.kind != jsonString {
+				c.report(CodeInvalidType, pointerIndex(selectionPath, index), "must be a string")
+			}
+		}
+	}
+}
+
+func (c *checker) manifestCheckDefinition(object *jsonValue, path string) {
+	c.rejectUnknown(object, path, manifestCheckDefinitionFields)
+	queryIDs, ok := c.manifestArray(object, path, "queryIds")
+	if ok {
+		for index, queryID := range queryIDs {
+			if queryID.kind != jsonString {
+				c.report(CodeInvalidType, pointerIndex(pointerChild(path, "queryIds"), index), "must be a string")
+			}
+		}
+	}
+	if expectation, present := c.manifestObjectField(object, path, "expectation"); present {
+		c.manifestValidator(expectation, pointerChild(path, "expectation"))
+	}
+	cases, ok := c.manifestArray(object, path, "cases")
+	if !ok {
+		return
+	}
+	for index, value := range cases {
+		casePath := pointerIndex(pointerChild(path, "cases"), index)
+		if !c.requireObject(value, casePath) {
+			continue
+		}
+		c.rejectUnknown(value, casePath, manifestCheckCaseFields)
+		c.manifestStringField(value, casePath, "fixture")
+		c.manifestStringField(value, casePath, "expectedOutcome")
+	}
+}
+
+func (c *checker) manifestHints(root *jsonValue, path string) {
+	hints, ok := c.manifestArray(root, path, "hints")
+	if !ok {
+		return
+	}
+	for index, value := range hints {
+		hintPath := pointerIndex(pointerChild(path, "hints"), index)
+		if !c.requireObject(value, hintPath) {
+			continue
+		}
+		c.rejectUnknown(value, hintPath, manifestHintFields)
+		c.manifestStringField(value, hintPath, "id")
+		c.manifestStringField(value, hintPath, "text")
+	}
+}
+
+func (c *checker) manifestReferenceSolutions(root *jsonValue, path string) {
+	solutions, ok := c.manifestArray(root, path, "referenceSolutions")
+	if !ok {
+		return
+	}
+	for index, value := range solutions {
+		solutionPath := pointerIndex(pointerChild(path, "referenceSolutions"), index)
+		if !c.requireObject(value, solutionPath) {
+			continue
+		}
+		c.rejectUnknown(value, solutionPath, manifestReferenceSolutionFields)
+		c.manifestStringField(value, solutionPath, "partId")
+		answer, present := c.manifestObjectField(value, solutionPath, "answer")
+		if present {
+			c.manifestReferenceAnswer(answer, pointerChild(solutionPath, "answer"))
+		}
+	}
+}
+
+func (c *checker) manifestReferenceAnswer(object *jsonValue, path string) {
+	c.rejectUnknown(object, path, manifestReferenceAnswerFields)
+	c.manifestStringField(object, path, "sql")
+	if structured, present := c.manifestObjectField(object, path, "structured"); present {
+		c.manifestStructuredAnswer(structured, pointerChild(path, "structured"))
+	}
+	if checkDefinition, present := c.manifestObjectField(object, path, "checkDefinition"); present {
+		checkPath := pointerChild(path, "checkDefinition")
+		c.rejectUnknown(checkDefinition, checkPath, manifestCheckDefinitionAnswerFields)
+		c.manifestStringField(checkDefinition, checkPath, "queryId")
+		if expectation, present := c.manifestObjectField(checkDefinition, checkPath, "expectation"); present {
+			c.manifestValidator(expectation, pointerChild(checkPath, "expectation"))
+		}
+	}
+}
+
+// manifestValidator shape-checks one native detective.Validator wire object.
+// Callers pass an already type-checked object.
+func (c *checker) manifestValidator(value *jsonValue, path string) {
+	c.rejectUnknown(value, path, checkValidatorFields)
+	for _, name := range []string{
+		"id", "validatorId", "scope", "kind", "severity", "field", "otherField",
+		"checkId", "onUnavailable",
+	} {
+		c.manifestStringField(value, path, name)
+	}
+	if expected, present := value.member("expected"); present {
+		c.typedValue(expected, pointerChild(path, "expected"))
+	}
+	c.manifestBindings(value, path)
+}
+
+func (c *checker) manifestBindings(value *jsonValue, path string) {
+	bindings, ok := c.manifestArray(value, path, "bindings")
+	if !ok {
+		return
+	}
+	for index, binding := range bindings {
+		bindingPath := pointerIndex(pointerChild(path, "bindings"), index)
+		if !c.requireObject(binding, bindingPath) {
+			continue
+		}
+		c.rejectUnknown(binding, bindingPath, checkBindingFields)
+		for _, name := range []string{"input", "fromInput", "part", "fromColumn"} {
+			c.manifestStringField(binding, bindingPath, name)
+		}
+	}
 }
 
 // reportChallengeError maps a native challenge refusal onto this package's

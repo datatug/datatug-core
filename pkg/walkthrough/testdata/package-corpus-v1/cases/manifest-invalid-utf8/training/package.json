@@ -48,8 +48,8 @@
       "kind": "check-definition",
       "mediaType": "application/json",
       "path": "training/retry-check.json",
-      "sha256": "3ffc16db029d252552e2333c28439743cbf8757b121a7b0b18e17bcae3a40997",
-      "bytes": 698
+      "sha256": "e0fa708052599755e805abe314886393f94204506bf8f275a829554949a581c7",
+      "bytes": 787
     },
     {
       "id": "retry-manifest",

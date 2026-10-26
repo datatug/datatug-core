@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/datatug/datatug-core/pkg/apicontract"
 	"github.com/datatug/datatug-core/pkg/challenge"
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/detective"
@@ -17,14 +18,17 @@ import (
 // project-relative path is the canonical identity.
 type trainingPathPin struct {
 	path     string
-	kind     string
+	class    string
 	sha256   string
 	bytes    Integer
 	assetIDs []string
 }
 
-// packagePaths rejects self-reference, conflicting aliases and mixed-kind
-// aliases, and returns the unique canonical source+path set.
+// packagePaths rejects self-reference and conflicting pins, and returns the
+// unique canonical source+path set. Aliases sharing one path may use different
+// codecs as long as every alias independently validates; only a text/binary
+// accounting-class conflict rejects, because the owner defines exactly one
+// budget class per canonical raw buffer.
 func (c *checker) packagePaths(pkg *AdmittedTrainingPackage, reference PackageReference) map[string]*trainingPathPin {
 	paths := make(map[string]*trainingPathPin, len(pkg.Assets))
 	for index := range pkg.Assets {
@@ -35,25 +39,34 @@ func (c *checker) packagePaths(pkg *AdmittedTrainingPackage, reference PackageRe
 				"the package index is not one of its own assets")
 			continue
 		}
+		class := packageCodecKinds[asset.Kind]
 		existing, present := paths[asset.Reference.Path]
 		if !present {
 			paths[asset.Reference.Path] = &trainingPathPin{
 				path:     asset.Reference.Path,
-				kind:     asset.Kind,
+				class:    class,
 				sha256:   asset.Reference.SHA256,
 				bytes:    asset.Reference.Bytes,
 				assetIDs: []string{asset.ID},
 			}
 			continue
 		}
-		if existing.sha256 != asset.Reference.SHA256 || existing.bytes != asset.Reference.Bytes {
+		if existing.sha256 != asset.Reference.SHA256 {
 			c.report(CodeMismatch, pointerChild(path, "sha256"),
 				"conflicting pins for the same canonical source+path")
 			continue
 		}
-		if existing.kind != asset.Kind {
+		if existing.bytes != asset.Reference.Bytes {
+			c.report(CodeMismatch, pointerChild(path, "bytes"),
+				"conflicting byte lengths for the same canonical source+path")
+			continue
+		}
+		if existing.class != class {
+			// The same canonical buffer cannot be both text and binary under the
+			// owner's kind-owned budgets. Refuse the ambiguous accounting class
+			// explicitly instead of picking the first alias or counting twice.
 			c.report(CodeMismatch, pointerChild(path, "kind"),
-				"one canonical source+path may not be claimed by two codec kinds")
+				"one canonical source+path cannot mix text and binary codec classes")
 			continue
 		}
 		existing.assetIDs = append(existing.assetIDs, asset.ID)
@@ -75,8 +88,7 @@ func (c *checker) packageBudgets(pkg *AdmittedTrainingPackage, paths map[string]
 		seen[asset.Reference.Path] = true
 		pin := paths[asset.Reference.Path]
 		path := pointerIndex("/assets", index)
-		class := packageCodecKinds[asset.Kind]
-		switch class {
+		switch pin.class {
 		case "text":
 			bytes, ok := integerAsInt(string(pin.bytes), MaxTextAssetBytes)
 			if !ok {
@@ -116,7 +128,7 @@ func (c *checker) packageBudgets(pkg *AdmittedTrainingPackage, paths map[string]
 		pkg.Contributions = append(pkg.Contributions, TrainingAssetContribution{
 			Path:     pin.path,
 			SHA256:   pin.sha256,
-			Class:    packageCodecKinds[asset.Kind],
+			Class:    pin.class,
 			Bytes:    pin.bytes,
 			AssetIDs: append([]string{}, pin.assetIDs...),
 		})
@@ -253,6 +265,7 @@ func (c *checker) closeTrainingPackage(pkg *AdmittedTrainingPackage, bytesByPath
 	for _, trainingCase := range pkg.Cases {
 		closure.cases[trainingCase.ID] = true
 	}
+	closure.closeSources()
 	closure.closeCheckActors()
 	closure.closeChecks()
 	if len(c.issues) > 0 {
@@ -265,6 +278,20 @@ func (c *checker) closeTrainingPackage(pkg *AdmittedTrainingPackage, bytesByPath
 	closure.closeCases()
 	closure.closeIncidents()
 	closure.closePresentationTargets()
+}
+
+// closeSources validates every declared source binding independently of query
+// traversal. An unused source still has to resolve a challenge fixture.
+func (cl *trainingClosure) closeSources() {
+	for index := range cl.pkg.Sources {
+		source := &cl.pkg.Sources[index]
+		asset, present := cl.assetsByID[source.FixtureAssetID]
+		if !present || asset.Kind != "challenge-fixture" || !asset.Binary {
+			cl.c.report(CodeInvalidReference,
+				pointerChild(pointerIndex("/sources", index), "fixtureAssetId"),
+				"fixtureAssetId must resolve a challenge-fixture asset")
+		}
+	}
 }
 
 func (cl *trainingClosure) closeCheckActors() {
@@ -345,15 +372,9 @@ func (cl *trainingClosure) closeQueries() {
 				"bodyAssetId must resolve a nonempty query-body-sql asset")
 			continue
 		}
-		source, sourceOK := cl.sources[record.SourceID]
-		if !sourceOK {
+		if _, sourceOK := cl.sources[record.SourceID]; !sourceOK {
 			cl.c.report(CodeInvalidReference, pointerChild(path, "sourceId"),
 				"sourceId must resolve a declared fixture source")
-			continue
-		}
-		if fixture, ok := cl.assetsByID[source.FixtureAssetID]; !ok || !fixture.Binary {
-			cl.c.report(CodeInvalidReference, pointerChild(path, "sourceId"),
-				"a source must bind a challenge-fixture asset")
 			continue
 		}
 		if metadataAsset.Metadata.ID != record.ID {
@@ -617,8 +638,9 @@ func (cl *trainingClosure) closePresentationTargets() {
 }
 
 // TrustedPackageInventory returns this snapshot in the accepted a2
-// [PackageInventory] port shape. It establishes only the verified package,
-// asset and Case identity; it is not a live authority witness.
+// [PackageInventory] port shape. It is an intentionally reduced identity
+// projection: only the verified package, asset and Case identity are exposed.
+// It is not a live authority witness and not the complete conformance view.
 func (p *AdmittedTrainingPackage) TrustedPackageInventory() PackageInventory {
 	assets := make([]AssetReference, len(p.Assets))
 	for index := range p.Assets {
@@ -633,7 +655,8 @@ func (p *AdmittedTrainingPackage) TrustedPackageInventory() PackageInventory {
 
 // TrustedNarrativeInventory returns this snapshot in the accepted
 // [NarrativeInventory] owner shape so a later orchestration adapter can consume
-// it directly. It carries no fabricated owner verdict: the live
+// it directly. It is an intentionally reduced identity projection, not the
+// complete conformance view. It carries no fabricated owner verdict: the live
 // [NarrativeOwnerContext] must still admit every Check, proposal and
 // presentation target.
 func (p *AdmittedTrainingPackage) TrustedNarrativeInventory() NarrativeInventory {
@@ -664,9 +687,11 @@ func (p *AdmittedTrainingPackage) TrustedNarrativeInventory() NarrativeInventory
 	}
 }
 
-// Projection renders the deterministic, language-neutral typed view used by
-// the independent corpus. It exposes codec facts, pins and closure results but
-// never opaque project identity or executable state.
+// Projection renders the complete deterministic, language-neutral conformance
+// view used by the independent corpus. It exposes every admitted codec/native
+// field, pin and closure result but never opaque project identity or executable
+// state. Optional native fields follow the owner DTO's omitempty normalization.
+// Callers receive a fresh mutable tree; this is not a tamper-proof capability.
 func (p *AdmittedTrainingPackage) Projection() map[string]any {
 	assetsByID := make(map[string]*TrainingPackageAsset, len(p.Assets))
 	assets := make([]any, len(p.Assets))
@@ -839,18 +864,25 @@ func projectNativeCheck(check *detective.Check) map[string]any {
 	}
 	inputs := make([]any, len(check.Inputs))
 	for index, input := range check.Inputs {
-		inputs[index] = map[string]any{
+		entry := map[string]any{
 			"name": input.Name, "type": string(input.Type),
-			"cardinality": input.Cardinality, "required": input.Required,
+			"cardinality": input.Cardinality,
 		}
+		// required is a native omitempty boolean: false is the owner's
+		// normalized absence, so the projection must not invent a present false.
+		if input.Required {
+			entry["required"] = true
+		}
+		inputs[index] = entry
 	}
 	steps := make([]any, len(check.Steps))
 	for index := range check.Steps {
 		steps[index] = projectNativeStep(&check.Steps[index])
 	}
 	projected := map[string]any{
-		"id": check.ID, "version": strconv.FormatInt(check.Version, 10),
-		"inputs": inputs, "steps": steps,
+		"id": check.ID, "title": check.Title,
+		"version": strconv.FormatInt(check.Version, 10),
+		"inputs":  inputs, "steps": steps,
 		"updatedAt": check.UpdatedAt.Format(time.RFC3339),
 		"updatedBy": check.UpdatedBy,
 	}
@@ -944,15 +976,230 @@ func projectManifest(manifest *challenge.Manifest) map[string]any {
 	fixtures := make([]any, len(manifest.FixtureSuite.Fixtures))
 	for index, fixture := range manifest.FixtureSuite.Fixtures {
 		fixtures[index] = map[string]any{
-			"id": fixture.ID, "sha256": fixture.SHA256,
-			"bytes": fixture.Bytes, "runs": fixture.Runs,
+			"id": fixture.ID, "label": fixture.Label,
+			"sha256": fixture.SHA256, "bytes": fixture.Bytes, "runs": fixture.Runs,
+		}
+	}
+	tables := make([]any, len(manifest.VisibleSchema.Tables))
+	for tableIndex, table := range manifest.VisibleSchema.Tables {
+		columns := make([]any, len(table.Columns))
+		for columnIndex, column := range table.Columns {
+			projectedColumn := map[string]any{"name": column.Name, "type": column.Type}
+			if column.PrimaryKey {
+				projectedColumn["primaryKey"] = true
+			}
+			if column.NotNull {
+				projectedColumn["notNull"] = true
+			}
+			if column.Collation != "" {
+				projectedColumn["collation"] = column.Collation
+			}
+			columns[columnIndex] = projectedColumn
+		}
+		tables[tableIndex] = map[string]any{"name": table.Name, "columns": columns}
+	}
+	parts := make([]any, len(manifest.Parts))
+	for index := range manifest.Parts {
+		parts[index] = projectManifestPart(&manifest.Parts[index])
+	}
+	hints := make([]any, len(manifest.Hints))
+	for index, hint := range manifest.Hints {
+		hints[index] = map[string]any{"id": hint.ID, "text": hint.Text}
+	}
+	references := make([]any, len(manifest.ReferenceSolutions))
+	for index := range manifest.ReferenceSolutions {
+		references[index] = projectReferenceSolution(&manifest.ReferenceSolutions[index])
+	}
+	return map[string]any{
+		"schemaVersion":    manifest.SchemaVersion,
+		"gradingVersion":   manifest.GradingVersion,
+		"challengeId":      manifest.ChallengeID,
+		"revision":         manifest.Revision,
+		"title":            manifest.Title,
+		"objective":        manifest.Objective,
+		"difficulty":       manifest.Difficulty,
+		"dialect":          manifest.Dialect,
+		"allowedOperation": manifest.AllowedOperation,
+		"timing":           string(manifest.Timing),
+		"engine": map[string]any{
+			"package":       manifest.Engine.Package,
+			"version":       manifest.Engine.Version,
+			"sqliteVersion": manifest.Engine.SQLiteVersion,
+		},
+		"fixtureSuite": map[string]any{
+			"id": manifest.FixtureSuite.ID, "fixtures": fixtures,
+		},
+		"visibleSchema":      map[string]any{"tables": tables},
+		"parts":              parts,
+		"hints":              hints,
+		"referenceSolutions": references,
+	}
+}
+
+func projectManifestPart(part *challenge.Part) map[string]any {
+	projected := map[string]any{
+		"id": part.ID, "title": part.Title,
+		"required": part.Required, "answerKind": part.AnswerKind,
+	}
+	if part.SQL != nil {
+		cases := make([]any, len(part.SQL.Cases))
+		for index, item := range part.SQL.Cases {
+			cases[index] = map[string]any{
+				"fixture": item.Fixture, "oracle": projectOracle(&item.Oracle),
+			}
+		}
+		projected["sql"] = map[string]any{"cases": cases}
+	}
+	if part.Structured != nil {
+		projected["structured"] = projectStructuredPart(part.Structured)
+	}
+	if part.CheckDefinition != nil {
+		projected["checkDefinition"] = projectCheckDefinitionPart(part.CheckDefinition)
+	}
+	return projected
+}
+
+func projectOracle(oracle *challenge.Oracle) map[string]any {
+	if oracle == nil {
+		return nil
+	}
+	switch oracle.Kind {
+	case challenge.OracleResult:
+		result := oracle.Result
+		if result == nil {
+			return map[string]any{"kind": challenge.OracleResult}
+		}
+		projected := map[string]any{
+			"kind":     challenge.OracleResult,
+			"columns":  projectResultColumns(result.Columns),
+			"rows":     projectResultRows(result.Rows),
+			"ordering": result.Ordering,
+		}
+		if result.RequireColumnNames {
+			projected["requireColumnNames"] = true
+		}
+		if result.NumericTolerance != "" {
+			projected["numericTolerance"] = result.NumericTolerance
+		}
+		return projected
+	case challenge.OracleFinalState:
+		finalState := oracle.FinalState
+		if finalState == nil {
+			return map[string]any{"kind": challenge.OracleFinalState}
+		}
+		tables := make([]any, len(finalState.Tables))
+		for index, table := range finalState.Tables {
+			tables[index] = map[string]any{
+				"name":    table.Name,
+				"columns": projectResultColumns(table.Columns),
+				"rows":    projectResultRows(table.Rows),
+			}
+		}
+		projected := map[string]any{"kind": challenge.OracleFinalState, "tables": tables}
+		if len(finalState.Invariants) > 0 {
+			invariants := make([]any, len(finalState.Invariants))
+			for index, invariant := range finalState.Invariants {
+				invariants[index] = map[string]any{
+					"id": invariant.ID, "kind": invariant.Kind, "table": invariant.Table,
+					"groupBy": append([]string{}, invariant.GroupBy...),
+					"column":  invariant.Column, "description": invariant.Description,
+				}
+			}
+			projected["invariants"] = invariants
+		}
+		return projected
+	default:
+		return map[string]any{"kind": oracle.Kind}
+	}
+}
+
+func projectResultColumns(columns []apicontract.Column) []any {
+	projected := make([]any, len(columns))
+	for index, column := range columns {
+		projected[index] = map[string]any{"name": column.Name, "type": column.Type}
+	}
+	return projected
+}
+
+func projectResultRows(rows [][]apicontract.TypedValue) []any {
+	projected := make([]any, len(rows))
+	for rowIndex, row := range rows {
+		cells := make([]any, len(row))
+		for cellIndex := range row {
+			cells[cellIndex] = projectTypedValue(row[cellIndex])
+		}
+		projected[rowIndex] = cells
+	}
+	return projected
+}
+
+func projectStructuredPart(part *challenge.StructuredPart) map[string]any {
+	fields := make([]any, len(part.Fields))
+	for index, field := range part.Fields {
+		options := make([]any, len(field.Options))
+		for optionIndex, option := range field.Options {
+			options[optionIndex] = map[string]any{"id": option.ID, "label": option.Label}
+		}
+		projectedField := map[string]any{
+			"id": field.ID, "label": field.Label,
+			"cardinality": field.Cardinality, "required": field.Required,
+			"options": options,
+		}
+		if field.MinSelections != 0 {
+			projectedField["minSelections"] = field.MinSelections
+		}
+		if field.MaxSelections != 0 {
+			projectedField["maxSelections"] = field.MaxSelections
+		}
+		fields[index] = projectedField
+	}
+	return map[string]any{
+		"fields": fields,
+		"expected": map[string]any{
+			"selections": projectSelections(part.Expected.Selections),
+		},
+	}
+}
+
+func projectSelections(selections map[string][]string) map[string]any {
+	projected := make(map[string]any, len(selections))
+	for name, values := range selections {
+		projected[name] = append([]string{}, values...)
+	}
+	return projected
+}
+
+func projectCheckDefinitionPart(part *challenge.CheckDefinitionPart) map[string]any {
+	cases := make([]any, len(part.Cases))
+	for index, item := range part.Cases {
+		cases[index] = map[string]any{
+			"fixture": item.Fixture, "expectedOutcome": item.ExpectedOutcome,
 		}
 	}
 	return map[string]any{
-		"challengeId": manifest.ChallengeID,
-		"revision":    manifest.Revision,
-		"fixtures":    fixtures,
+		"queryIds":    append([]string{}, part.QueryIDs...),
+		"expectation": projectValidator(&part.Expectation),
+		"cases":       cases,
 	}
+}
+
+func projectReferenceSolution(solution *challenge.ReferenceSolution) map[string]any {
+	answer := map[string]any{}
+	if solution.Answer.SQL != "" {
+		answer["sql"] = solution.Answer.SQL
+	}
+	if solution.Answer.Structured != nil {
+		answer["structured"] = map[string]any{
+			"selections": projectSelections(solution.Answer.Structured.Selections),
+		}
+	}
+	if solution.Answer.CheckDefinition != nil {
+		answer["checkDefinition"] = map[string]any{
+			"queryId":     solution.Answer.CheckDefinition.QueryID,
+			"expectation": projectValidator(&solution.Answer.CheckDefinition.Expectation),
+		}
+	}
+	return map[string]any{"partId": solution.PartID, "answer": answer}
 }
 
 func projectWatch(watch *TrainingWatchRecommendation) map[string]any {

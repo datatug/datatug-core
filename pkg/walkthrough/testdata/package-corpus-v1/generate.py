@@ -151,7 +151,12 @@ CHECK = {
     "title": "Retry observation",
     "description": "Fictional retry check.",
     "version": 1,
-    "inputs": [{"name": "status", "type": "string", "cardinality": "scalar", "required": True}],
+    "inputs": [
+        {"name": "status", "type": "string", "cardinality": "scalar", "required": True},
+        # A second input omits the optional native `required` field so the
+        # complete projection can prove absence is not turned into false.
+        {"name": "note", "type": "string", "cardinality": "scalar"},
+    ],
     "steps": [{
         "id": "run",
         "kind": "query",
@@ -202,7 +207,8 @@ MANIFEST = {
         "tables": [{
             "name": "retries",
             "columns": [
-                {"name": "status", "type": "string"},
+                {"name": "status", "type": "string", "primaryKey": True,
+                 "notNull": True, "collation": "NOCASE"},
                 {"name": "attempts", "type": "integer"},
             ],
         }],
@@ -224,8 +230,15 @@ MANIFEST = {
             }],
         },
     }],
-    "hints": [],
-    "referenceSolutions": [],
+    "hints": [
+        {"id": "retry-hint", "text": "Look at the attempts column."},
+    ],
+    "referenceSolutions": [{
+        "partId": "result",
+        "answer": {
+            "sql": "select status, count(*) from retries where attempts >= 3 group by status;",
+        },
+    }],
 }
 
 WATCH = {
@@ -337,6 +350,172 @@ def full():
     return index, files
 
 
+def union_manifest():
+    """One manifest that exercises every native answer/oracle/reference union."""
+    fixture = b"SQLite format 3\x00fictional-union-fixture-bytes"
+    expectation = {
+        "id": "union-expectation",
+        "scope": "set",
+        "kind": "row-count",
+        "severity": "error",
+        "expected": {"type": "integer", "value": "1"},
+    }
+    manifest = {
+        "schemaVersion": 1,
+        "gradingVersion": "challenge-grading-v1",
+        "challengeId": "union-challenge",
+        "revision": 1,
+        "title": "Union challenge",
+        "objective": "Exercise every closed union.",
+        "difficulty": "advanced",
+        "dialect": "sqlite",
+        "allowedOperation": "write",
+        "timing": "optional",
+        "engine": {
+            "package": "@sqlite.org/sqlite-wasm",
+            "version": "3.54.1-build1",
+            "sqliteVersion": "3.54.1",
+        },
+        "fixtureSuite": {
+            "id": "union-suite",
+            "fixtures": [{
+                "id": "base",
+                "label": "Base fixture",
+                "sha256": sha256(fixture),
+                "bytes": len(fixture),
+                "runs": 2,
+            }],
+        },
+        "visibleSchema": {
+            "tables": [{
+                "name": "retries",
+                "columns": [
+                    {"name": "status", "type": "string", "primaryKey": True,
+                     "notNull": True, "collation": "RTRIM"},
+                    {"name": "attempts", "type": "integer"},
+                ],
+            }],
+        },
+        "parts": [
+            {
+                "id": "result",
+                "title": "Rows",
+                "required": True,
+                "answerKind": "sql",
+                "sql": {
+                    "cases": [{
+                        "fixture": "base",
+                        "oracle": {
+                            "kind": "result",
+                            "columns": [{"name": "status", "type": "string"}],
+                            "rows": [[{"type": "string", "value": "pending"}]],
+                            "ordering": "unordered",
+                            "requireColumnNames": True,
+                            "numericTolerance": "0.01",
+                        },
+                    }],
+                },
+            },
+            {
+                "id": "pick",
+                "title": "Pick",
+                "required": True,
+                "answerKind": "structured",
+                "structured": {
+                    "fields": [{
+                        "id": "choice",
+                        "label": "Choice",
+                        "cardinality": "multi",
+                        "required": True,
+                        "minSelections": 1,
+                        "maxSelections": 2,
+                        "options": [
+                            {"id": "a", "label": "A"},
+                            {"id": "b", "label": "B"},
+                        ],
+                    }],
+                    "expected": {"selections": {"choice": ["a"]}},
+                },
+            },
+            {
+                "id": "check",
+                "title": "Check",
+                "required": False,
+                "answerKind": "check-definition",
+                "checkDefinition": {
+                    "queryIds": ["union/query"],
+                    "expectation": expectation,
+                    "cases": [{"fixture": "base", "expectedOutcome": "pass"}],
+                },
+            },
+            {
+                "id": "state",
+                "title": "State",
+                "required": False,
+                "answerKind": "sql",
+                "sql": {
+                    "cases": [{
+                        "fixture": "base",
+                        "oracle": {
+                            "kind": "final-state",
+                            "tables": [{
+                                "name": "retries",
+                                "columns": [
+                                    {"name": "status", "type": "string"},
+                                    {"name": "attempts", "type": "integer"},
+                                ],
+                                "rows": [[
+                                    {"type": "string", "value": "pending"},
+                                    {"type": "integer", "value": "1"},
+                                ]],
+                            }],
+                            "invariants": [{
+                                "id": "keep-lowest",
+                                "kind": "group-min",
+                                "table": "retries",
+                                "groupBy": ["status"],
+                                "column": "attempts",
+                                "description": "Keep the lowest attempt count.",
+                            }],
+                        },
+                    }],
+                },
+            },
+        ],
+        "hints": [{"id": "union-hint", "text": "Every union is present."}],
+        "referenceSolutions": [
+            {"partId": "result", "answer": {"sql": "select status from retries;"}},
+            {"partId": "pick", "answer": {"structured": {"selections": {"choice": ["a"]}}}},
+            {"partId": "check", "answer": {
+                "checkDefinition": {
+                    "queryId": "union/query",
+                    "expectation": expectation,
+                },
+            }},
+            {"partId": "state", "answer": {"sql": "delete from retries;"}},
+        ],
+    }
+    manifest_body = dumps(manifest)
+    files = {
+        "training/union-challenge.json": manifest_body,
+        "training/union.sqlite": fixture,
+    }
+    index = base_index("training-unions", 1)
+    index["assets"] = [
+        asset("union-manifest", "challenge-manifest", "application/json",
+              "training/union-challenge.json", manifest_body),
+        asset("union-fixture", "challenge-fixture", "application/vnd.sqlite3",
+              "training/union.sqlite", fixture),
+    ]
+    index["challenges"] = [{
+        "id": "union-challenge",
+        "revision": 1,
+        "manifestAssetId": "union-manifest",
+        "fixtures": [{"fixtureId": "base", "assetId": "union-fixture"}],
+    }]
+    return index, files
+
+
 # ---------------------------------------------------------------------------
 # Expected projection mirror (authored from the owner tables).
 # ---------------------------------------------------------------------------
@@ -415,18 +594,23 @@ def p_step(step):
 
 
 def p_check(check):
+    inputs = []
+    for item in check["inputs"]:
+        projected_input = {
+            "name": item["name"],
+            "type": item["type"],
+            "cardinality": item["cardinality"],
+        }
+        # `required` is a native omitempty boolean: only a true value is
+        # projected, so an omitted optional field never becomes false.
+        if item.get("required"):
+            projected_input["required"] = True
+        inputs.append(projected_input)
     projected = {
         "id": check["id"],
+        "title": check["title"],
         "version": str(check["version"]),
-        "inputs": [
-            {
-                "name": item["name"],
-                "type": item["type"],
-                "cardinality": item["cardinality"],
-                "required": bool(item.get("required", False)),
-            }
-            for item in check["inputs"]
-        ],
+        "inputs": inputs,
         "steps": [p_step(item) for item in check["steps"]],
         "updatedAt": check["updatedAt"],
         "updatedBy": check["updatedBy"],
@@ -439,19 +623,172 @@ def p_check(check):
 
 
 def p_manifest(manifest):
+    engine = manifest["engine"]
+    fixtures = [
+        {
+            "id": item["id"],
+            "label": item["label"],
+            "sha256": item["sha256"],
+            "bytes": item["bytes"],
+            "runs": item["runs"],
+        }
+        for item in manifest["fixtureSuite"]["fixtures"]
+    ]
+    tables = []
+    for table in manifest["visibleSchema"]["tables"]:
+        columns = []
+        for column in table["columns"]:
+            projected_column = {"name": column["name"], "type": column["type"]}
+            if column.get("primaryKey"):
+                projected_column["primaryKey"] = True
+            if column.get("notNull"):
+                projected_column["notNull"] = True
+            if column.get("collation"):
+                projected_column["collation"] = column["collation"]
+            columns.append(projected_column)
+        tables.append({"name": table["name"], "columns": columns})
     return {
+        "schemaVersion": manifest["schemaVersion"],
+        "gradingVersion": manifest["gradingVersion"],
         "challengeId": manifest["challengeId"],
         "revision": manifest["revision"],
-        "fixtures": [
-            {
-                "id": item["id"],
-                "sha256": item["sha256"],
-                "bytes": item["bytes"],
-                "runs": item["runs"],
-            }
-            for item in manifest["fixtureSuite"]["fixtures"]
+        "title": manifest["title"],
+        "objective": manifest["objective"],
+        "difficulty": manifest["difficulty"],
+        "dialect": manifest["dialect"],
+        "allowedOperation": manifest["allowedOperation"],
+        "timing": manifest["timing"],
+        "engine": {
+            "package": engine["package"],
+            "version": engine["version"],
+            "sqliteVersion": engine["sqliteVersion"],
+        },
+        "fixtureSuite": {"id": manifest["fixtureSuite"]["id"], "fixtures": fixtures},
+        "visibleSchema": {"tables": tables},
+        "parts": [p_manifest_part(item) for item in manifest["parts"]],
+        "hints": [{"id": item["id"], "text": item["text"]} for item in manifest["hints"]],
+        "referenceSolutions": [
+            p_reference_solution(item) for item in manifest["referenceSolutions"]
         ],
     }
+
+
+def p_manifest_part(part):
+    projected = {
+        "id": part["id"],
+        "title": part["title"],
+        "required": part["required"],
+        "answerKind": part["answerKind"],
+    }
+    if "sql" in part:
+        projected["sql"] = {
+            "cases": [
+                {"fixture": item["fixture"], "oracle": p_oracle(item["oracle"])}
+                for item in part["sql"]["cases"]
+            ],
+        }
+    if "structured" in part:
+        projected["structured"] = p_structured_part(part["structured"])
+    if "checkDefinition" in part:
+        projected["checkDefinition"] = p_check_definition_part(part["checkDefinition"])
+    return projected
+
+
+def p_oracle(oracle):
+    if oracle["kind"] == "result":
+        projected = {
+            "kind": "result",
+            "columns": [
+                {"name": item["name"], "type": item["type"]}
+                for item in oracle["columns"]
+            ],
+            "rows": [[p_tv(cell) for cell in row] for row in oracle["rows"]],
+            "ordering": oracle["ordering"],
+        }
+        if oracle.get("requireColumnNames"):
+            projected["requireColumnNames"] = True
+        if oracle.get("numericTolerance"):
+            projected["numericTolerance"] = oracle["numericTolerance"]
+        return projected
+    if oracle["kind"] == "final-state":
+        projected = {
+            "kind": "final-state",
+            "tables": [
+                {
+                    "name": table["name"],
+                    "columns": [
+                        {"name": item["name"], "type": item["type"]}
+                        for item in table["columns"]
+                    ],
+                    "rows": [[p_tv(cell) for cell in row] for row in table["rows"]],
+                }
+                for table in oracle["tables"]
+            ],
+        }
+        if oracle.get("invariants"):
+            projected["invariants"] = [
+                {
+                    "id": item["id"],
+                    "kind": item["kind"],
+                    "table": item["table"],
+                    "groupBy": list(item["groupBy"]),
+                    "column": item["column"],
+                    "description": item["description"],
+                }
+                for item in oracle["invariants"]
+            ]
+        return projected
+    return {"kind": oracle["kind"]}
+
+
+def p_structured_part(part):
+    fields = []
+    for field in part["fields"]:
+        projected = {
+            "id": field["id"],
+            "label": field["label"],
+            "cardinality": field["cardinality"],
+            "required": field["required"],
+            "options": [{"id": item["id"], "label": item["label"]}
+                        for item in field["options"]],
+        }
+        if field.get("minSelections"):
+            projected["minSelections"] = field["minSelections"]
+        if field.get("maxSelections"):
+            projected["maxSelections"] = field["maxSelections"]
+        fields.append(projected)
+    return {
+        "fields": fields,
+        "expected": {"selections": dict(part["expected"]["selections"])},
+    }
+
+
+def p_check_definition_part(part):
+    return {
+        "queryIds": list(part["queryIds"]),
+        "expectation": p_validator(part["expectation"]),
+        "cases": [
+            {"fixture": item["fixture"], "expectedOutcome": item["expectedOutcome"]}
+            for item in part["cases"]
+        ],
+    }
+
+
+def p_reference_solution(solution):
+    answer = {}
+    if solution["answer"].get("sql"):
+        answer["sql"] = solution["answer"]["sql"]
+    if "structured" in solution["answer"]:
+        answer["structured"] = {
+            "selections": dict(solution["answer"]["structured"]["selections"]),
+        }
+    if "checkDefinition" in solution["answer"]:
+        answer["checkDefinition"] = {
+            "queryId": solution["answer"]["checkDefinition"]["queryId"],
+            "expectation": p_validator(
+                solution["answer"]["checkDefinition"]["expectation"]),
+        }
+    return {"partId": solution["partId"], "answer": answer}
 
 
 def p_watch(watch):
@@ -660,6 +997,7 @@ def expected_projection(index, files, ref, binding, codecs):
 
 VECTORS = []
 PROVENANCE = {}
+PROVENANCE_BYTES = {}
 
 
 def emit(case_id, description, index, files, want, *, raw_index=None,
@@ -674,9 +1012,11 @@ def emit(case_id, description, index, files, want, *, raw_index=None,
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
         PROVENANCE[f"cases/{case_id}/{relative}"] = sha256(data)
+        PROVENANCE_BYTES[f"cases/{case_id}/{relative}"] = len(data)
     (case_dir / index_path).parent.mkdir(parents=True, exist_ok=True)
     (case_dir / index_path).write_bytes(index_bytes)
     PROVENANCE[f"cases/{case_id}/{index_path}"] = sha256(index_bytes)
+    PROVENANCE_BYTES[f"cases/{case_id}/{index_path}"] = len(index_bytes)
     package_id = ref_id if ref_id is not None else index["id"]
     revision = str(ref_revision if ref_revision is not None else index["revision"])
     reference = {
@@ -777,6 +1117,13 @@ def main():
         {"admitted": True, "definition": {}})
     VECTORS[-1]["want"] = admitted_definition(index, files, emitted_ref, emitted_binding)
 
+    index, files = union_manifest()
+    ref, binding = emit(
+        "manifest-unions",
+        "A manifest projection keeps every native answer, oracle and reference union.",
+        index, files, {"admitted": True, "definition": {}})
+    VECTORS[-1]["want"] = admitted_definition(index, files, ref, binding)
+
     # --- Positive: aliases and different paths ---------------------------
     index, files = minimal()
     alias_body = b"alias text\n"
@@ -789,6 +1136,23 @@ def main():
     ])
     ref, binding = emit("aliases", "Identical source+path aliases and different paths.", index, files,
                         {"admitted": True, "definition": {}})
+    VECTORS[-1]["want"] = admitted_definition(index, files, ref, binding)
+
+    # A same-source+path alias may use a different text codec. Both aliases must
+    # independently validate; the unique raw buffer is counted once.
+    index, files = minimal()
+    shared_sql = b"select status from retries;\n"
+    files["training/shared.sql"] = shared_sql
+    index["assets"].extend([
+        asset("shared-body", "query-body-sql", "application/sql",
+              "training/shared.sql", shared_sql),
+        asset("shared-text", "evidence-text", "text/plain",
+              "training/shared.sql", shared_sql),
+    ])
+    ref, binding = emit(
+        "alias-cross-codec-text",
+        "One SQL buffer is valid as both query-body-sql and evidence-text.",
+        index, files, {"admitted": True, "definition": {}})
     VECTORS[-1]["want"] = admitted_definition(index, files, ref, binding)
 
     # --- Positive: count and size boundaries -----------------------------
@@ -908,13 +1272,32 @@ def main():
          refused("mismatch", "/assets/9/sha256"))
 
     index, files = full()
+    length_conflict = copy.deepcopy(index["assets"][0])
+    length_conflict["id"] = "narrative-alias-length-conflict"
+    length_conflict["bytes"] = 5
+    index["assets"].append(length_conflict)
+    emit("alias-length-conflict",
+         "A conflicting byte length at one canonical source+path rejects.",
+         index, files, refused("mismatch", "/assets/9/bytes"))
+
+    index, files = full()
     mixed = copy.deepcopy(index["assets"][0])
     mixed["id"] = "narrative-mixed-kind"
     mixed["kind"] = "evidence-records"
     mixed["mediaType"] = "application/json"
     index["assets"].append(mixed)
-    emit("alias-mixed-kind", "One source+path may not be claimed by two codec kinds.", index, files,
-         refused("mismatch", "/assets/9/kind"))
+    emit("alias-mixed-kind", "A different text codec still has to parse the shared body.",
+         index, files, refused("invalid_json", "/assets/9"))
+
+    index, files = full()
+    mixed_binary = copy.deepcopy(index["assets"][0])
+    mixed_binary["id"] = "narrative-mixed-binary"
+    mixed_binary["kind"] = "challenge-fixture"
+    mixed_binary["mediaType"] = "application/vnd.sqlite3"
+    index["assets"].append(mixed_binary)
+    emit("alias-mixed-class",
+         "One canonical buffer may not be both text and binary.",
+         index, files, refused("mismatch", "/assets/9/kind"))
 
     index, files = full()
     index["assets"].append(copy.deepcopy(index["assets"][0]))
@@ -1056,9 +1439,27 @@ def main():
     full_negative("incident-evidence", "Incident evidence references close locally.",
                   lambda i: i["incidents"][0].__setitem__("evidenceIds", ["missing"]),
                   code="invalid_reference", path="/incidents/0/evidenceIds")
-    full_negative("source-wrong-kind", "A source binds a challenge fixture only.",
+    full_negative("source-wrong-kind", "Every source, used or unused, binds a challenge fixture.",
                   lambda i: i["sources"][0].__setitem__("fixtureAssetId", "narrative-text"),
-                  code="invalid_reference", path="/queries/0/sourceId")
+                  code="invalid_reference", path="/sources/0/fixtureAssetId")
+    full_negative("source-unused-dangling", "An unused source still has to resolve its fixture.",
+                  lambda i: i["sources"].append(
+                      {"id": "ghost-source", "fixtureAssetId": "does-not-exist"}),
+                  code="invalid_reference", path="/sources/1/fixtureAssetId")
+    full_negative("source-unused-wrong-kind", "An unused source still has to bind a fixture kind.",
+                  lambda i: i["sources"].append(
+                      {"id": "ghost-source", "fixtureAssetId": "narrative-text"}),
+                  code="invalid_reference", path="/sources/1/fixtureAssetId")
+
+    index, files = full()
+    index["sources"].append(
+        {"id": "unused-fixture", "fixtureAssetId": "retry-fixture"})
+    ref, binding = emit(
+        "source-unused-valid",
+        "A valid unused source fixture binding is admitted and projected.",
+        index, files, {"admitted": True, "definition": {}})
+    VECTORS[-1]["want"] = admitted_definition(index, files, ref, binding)
+
     full_negative("source-missing", "A query source must be declared.",
                   lambda i: i["queries"][0].__setitem__("sourceId", "missing"),
                   code="invalid_reference", path="/queries/0/sourceId")
@@ -1134,6 +1535,69 @@ def main():
     full_negative("manifest-invalid-utf8", "A challenge manifest must be valid UTF-8.",
                   edit=invalid_utf8_asset("retry-manifest"),
                   code="invalid_utf8", path="/assets/6")
+
+    def manifest_with(mutator):
+        def apply(index, files):
+            manifest = copy.deepcopy(MANIFEST)
+            mutator(manifest)
+            body = dumps(manifest)
+            files["training/challenge.json"] = body
+            advance_bytes(index, "retry-manifest", body)
+        return apply
+
+    def manifest_raw(edit):
+        def apply(index, files):
+            body = edit(dumps(MANIFEST))
+            files["training/challenge.json"] = body
+            advance_bytes(index, "retry-manifest", body)
+        return apply
+
+    full_negative("manifest-root-case", "Root manifest keys keep exact casing.",
+                  edit=manifest_with(lambda m: m.__setitem__("Title", m.pop("title"))),
+                  code="unknown_field", path="/assets/6/Title")
+    full_negative("manifest-hints-null", "An explicit null hint array rejects.",
+                  edit=manifest_with(lambda m: m.__setitem__("hints", None)),
+                  code="invalid_type", path="/assets/6/hints")
+    full_negative("manifest-engine-case", "Nested manifest keys keep exact casing.",
+                  edit=manifest_with(lambda m: m["engine"].__setitem__(
+                      "Package", m["engine"].pop("package"))),
+                  code="unknown_field", path="/assets/6/engine/Package")
+    full_negative("manifest-fixture-null", "A null fixture label rejects.",
+                  edit=manifest_with(lambda m: m["fixtureSuite"]["fixtures"][0].__setitem__("label", None)),
+                  code="invalid_type", path="/assets/6/fixtureSuite/fixtures/0/label")
+    full_negative("manifest-column-null", "A null optional visible column field rejects.",
+                  edit=manifest_with(lambda m: m["visibleSchema"]["tables"][0]["columns"][0].__setitem__(
+                      "collation", None)),
+                  code="invalid_type",
+                  path="/assets/6/visibleSchema/tables/0/columns/0/collation")
+    full_negative("manifest-part-extra", "Nested manifest objects are closed.",
+                  edit=manifest_with(lambda m: m["parts"][0].__setitem__("extra", True)),
+                  code="unknown_field", path="/assets/6/parts/0/extra")
+    full_negative("manifest-part-required-null", "A null part required flag rejects.",
+                  edit=manifest_with(lambda m: m["parts"][0].__setitem__("required", None)),
+                  code="invalid_type", path="/assets/6/parts/0/required")
+    full_negative("manifest-integer-spelling", "Manifest integers are canonical JSON integers.",
+                  edit=manifest_with(lambda m: m["fixtureSuite"]["fixtures"][0].__setitem__("bytes", "12")),
+                  code="invalid_value", path="/assets/6/fixtureSuite/fixtures/0/bytes")
+    full_negative("manifest-oracle-extra", "Oracle objects are closed nested objects.",
+                  edit=manifest_with(lambda m: m["parts"][0]["sql"]["cases"][0]["oracle"].__setitem__(
+                      "extra", 1)),
+                  code="unknown_field", path="/assets/6/parts/0/sql/cases/0/oracle/extra")
+    full_negative("manifest-reference-solutions-null", "An explicit null reference list rejects.",
+                  edit=manifest_with(lambda m: m.__setitem__("referenceSolutions", None)),
+                  code="invalid_type", path="/assets/6/referenceSolutions")
+    full_negative("manifest-hint-text-null", "A null hint text rejects.",
+                  edit=manifest_with(lambda m: m["hints"][0].__setitem__("text", None)),
+                  code="invalid_type", path="/assets/6/hints/0/text")
+    full_negative("manifest-escaped-case", "An escaped spelling of a closed key is that key.",
+                  edit=manifest_raw(lambda body: body.replace(
+                      b'"title": "Retry query"', b'"\\u0054itle": "Retry query"', 1)),
+                  code="unknown_field", path="/assets/6/Title")
+    full_negative("manifest-escaped-duplicate", "An escaped duplicate decoded key rejects.",
+                  edit=manifest_raw(lambda body: body.replace(
+                      b'"title": "Retry query"',
+                      b'"title": "Retry query", "\\u0074itle": "Retry query"', 1)),
+                  code="duplicate_key", path="/assets/6/title")
 
     # --- Negatives: parameter bypasses ---------------------------------
     def metadata_with(mutator):
@@ -1539,38 +2003,45 @@ def main():
          refused("too_long", "/assets/0/bytes"))
 
     index = empty_index()
-    for number in range(97):
-        path = f"training/text-{number:03d}.txt"
-        index["assets"].append(asset(
-            f"text-{number:03d}", "evidence-text", "text/plain", path,
-            b"", pinned={"sha256": sha256(path.encode()), "bytes": 65536}))
-    emit("text-aggregate-over-6mib", "One byte over the 6 MiB package text budget.", index, {},
-         refused("too_large", ""))
-
-    index = empty_index()
     for number in range(96):
         path = f"training/text-{number:03d}.txt"
         index["assets"].append(asset(
             f"text-{number:03d}", "evidence-text", "text/plain", path,
             b"", pinned={"sha256": sha256(path.encode()), "bytes": 65536}))
-    emit("text-aggregate-at-6mib", "Exactly 6 MiB passes the budget, then needs its bytes.", index, {},
-         refused("missing_asset", "/assets"))
+    index["assets"].append(asset(
+        "text-final-byte", "evidence-text", "text/plain", "training/text-final-byte.txt",
+        b"", pinned={"sha256": sha256(b"x"), "bytes": 1}))
+    emit("text-aggregate-over-6mib",
+         "Exactly one byte over the 6 MiB aggregate text budget (preflight refusal).",
+         index, {}, refused("too_large", ""))
+
+    index = empty_index()
+    text_body = b"a" * 65536
+    files = {}
+    for number in range(96):
+        path = f"training/text-{number:03d}.txt"
+        files[path] = text_body
+        index["assets"].append(asset(
+            f"text-{number:03d}", "evidence-text", "text/plain", path, text_body))
+    ref, binding = emit("text-aggregate-at-6mib",
+                        "Exactly 6 MiB of supplied text is admitted end to end.",
+                        index, files, {"admitted": True, "definition": {}})
+    VECTORS[-1]["want"] = admitted_digest(index, files, ref, binding)
+
+    index = empty_index()
+    index["assets"] = [asset("exact-fixture", "challenge-fixture",
+                             "application/vnd.sqlite3", "training/exact.sqlite",
+                             b"", pinned={"sha256": sha256(b"x"), "bytes": 10485760})]
+    emit("fixture-at-10mib",
+         "Exactly 10 MiB passes the fixture bound, then needs its bytes (preflight only).",
+         index, {}, refused("missing_asset", "/assets"))
 
     index = empty_index()
     index["assets"] = [asset("oversize-fixture", "challenge-fixture",
                              "application/vnd.sqlite3", "training/oversize.sqlite",
                              b"", pinned={"sha256": sha256(b"x"), "bytes": 10485761})]
-    emit("fixture-over-10mib", "One byte over the existing fixture bound.", index, {},
+    emit("fixture-over-10mib", "Exactly one byte over the existing fixture bound.", index, {},
          refused("too_long", "/assets/0/bytes"))
-
-    index = empty_index()
-    for number in range(7):
-        path = f"training/fixture-{number}.sqlite"
-        index["assets"].append(asset(
-            f"fixture-{number}", "challenge-fixture", "application/vnd.sqlite3", path,
-            b"", pinned={"sha256": sha256(path.encode()), "bytes": 10485760}))
-    emit("binary-aggregate-over-64mib", "Unique binary declarations over 64 MiB reject.", index, {},
-         refused("too_large", ""))
 
     index = empty_index()
     for number in range(64):
@@ -1578,7 +2049,22 @@ def main():
         index["assets"].append(asset(
             f"fixture-{number}", "challenge-fixture", "application/vnd.sqlite3", path,
             b"", pinned={"sha256": sha256(path.encode()), "bytes": 1048576}))
-    emit("binary-aggregate-at-64mib", "Exactly 64 MiB passes the budget, then needs its bytes.",
+    index["assets"].append(asset(
+        "fixture-final-byte", "challenge-fixture", "application/vnd.sqlite3",
+        "training/fixture-final-byte.sqlite", b"",
+        pinned={"sha256": sha256(b"x"), "bytes": 1}))
+    emit("binary-aggregate-over-64mib",
+         "Exactly one byte over the unique binary aggregate budget (preflight refusal).",
+         index, {}, refused("too_large", ""))
+
+    index = empty_index()
+    for number in range(64):
+        path = f"training/fixture-{number}.sqlite"
+        index["assets"].append(asset(
+            f"fixture-{number}", "challenge-fixture", "application/vnd.sqlite3", path,
+            b"", pinned={"sha256": sha256(path.encode()), "bytes": 1048576}))
+    emit("binary-aggregate-at-64mib",
+         "Exactly 64 MiB passes preflight, then needs its bytes (not a transport-memory proof).",
          index, {}, refused("missing_asset", "/assets"))
 
     # --- Additional countable bounds and closed native refusals -----------
@@ -1660,7 +2146,10 @@ def main():
     provenance = {
         "corpusVersion": "training-package-corpus-v1",
         "corpusSha256": sha256(corpus_bytes),
+        "generatorSha256": sha256(pathlib.Path(__file__).read_bytes()),
+        "verifierSha256": sha256((ROOT / "verify.py").read_bytes()),
         "files": dict(sorted(PROVENANCE.items())),
+        "fileBytes": dict(sorted(PROVENANCE_BYTES.items())),
     }
     (ROOT / "provenance.json").write_bytes(
         (json.dumps(provenance, indent=1, sort_keys=True) + "\n").encode())

@@ -17,16 +17,19 @@ not production story content.
 
 ```
 corpus.json          versioned vectors with raw-file, binding and expected results
-provenance.json      SHA-256 of corpus.json and of every committed case file
+provenance.json      SHA-256, byte length and generator/verifier hashes for every committed file
 cases/<vector-id>/   raw package index and child files
 generate.py          deterministic authoring script (writes the two files above)
-verify.py            offline hash verification that does not need Go
+verify.py            offline hash/length verification that does not need Go
+check_tracked.py     proves every provenance path is a regular blob in the exact Git tree
 ```
 
 Every case directory contains `training/package.json` (the package index) plus
 the declared child files. A case that tests a missing or extra child may omit or
 add one. The test harness supplies every file under the case directory except the
-index.
+index. Ignored `.sqlite` fixtures are committed with an explicit narrow
+`git add -f`; `check_tracked.py` fails if any provenance path is untracked or its
+committed bytes or length differ.
 
 ## Vector schema
 
@@ -48,15 +51,36 @@ Each vector has:
 JSON for large boundary packages. `issues` is the exact ordered
 `{code, path}` refusal list. A `newerClient` vector has no issues.
 
+`Projection()` is the complete conformance projection: every admitted native
+Check field (including `title`) and every native challenge-manifest field,
+answer/oracle union, structured field/selection, hint, visible-column option and
+reference solution is projected using the owner DTO's `omitempty` normalization.
+Absent optional native fields therefore stay absent instead of becoming a
+present `false` or empty value. `TrustedPackageInventory()` and
+`TrustedNarrativeInventory()` are intentionally reduced identity projections
+for later ports; they are not the complete conformance oracle.
+
+Same-source+path aliases may use different text codecs (for example
+`query-body-sql` and `evidence-text` over one SQL buffer). Each alias parses
+independently, and the unique raw buffer contributes once. A text/binary class
+mix at one canonical path is refused explicitly because the owner defines one
+budget class per raw buffer; conflicting pins and invalid alias bodies also
+refuse. Every declared source, used or unused, must resolve a
+`challenge-fixture` asset.
+
 ## Offline verification (no Go)
 
 ```
 python3 pkg/walkthrough/testdata/package-corpus-v1/verify.py
+python3 pkg/walkthrough/testdata/package-corpus-v1/check_tracked.py [REF]
 ```
 
-This recomputes every raw-file hash, the corpus hash, each vector's index pin and
-the binding package digest, and fails on any drift. It does not evaluate package
-semantics, so it cannot become a second validator.
+`verify.py` recomputes every raw-file hash and length, the corpus hash, the
+generator/verifier hashes, each vector's index pin and the binding package
+digest, and fails on any drift. `check_tracked.py` proves each provenance path
+is a regular committed blob at `REF` (default `HEAD`) with the exact SHA-256 and
+length, and that the tracked corpus tree contains no unexpected files. Neither
+script evaluates package semantics, so neither can become a second validator.
 
 ## Go conformance
 

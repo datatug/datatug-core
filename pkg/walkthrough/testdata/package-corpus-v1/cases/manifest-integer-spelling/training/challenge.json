@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "gradingVersion": "challenge-grading-v1",
+  "challengeId": "retry-query",
+  "revision": 1,
+  "title": "Retry query",
+  "objective": "Find repeated requests by status.",
+  "difficulty": "intro",
+  "dialect": "sqlite",
+  "allowedOperation": "read",
+  "timing": "off",
+  "engine": {
+    "package": "@sqlite.org/sqlite-wasm",
+    "version": "3.54.1-build1",
+    "sqliteVersion": "3.54.1"
+  },
+  "fixtureSuite": {
+    "id": "retry-suite",
+    "fixtures": [
+      {
+        "id": "base",
+        "label": "Base fixture",
+        "sha256": "9ff3d798c12ea39926f0ac6f0fee2ed80aab20c7211c2d1d3edcc35b64a52b8d",
+        "bytes": "12",
+        "runs": 1
+      }
+    ]
+  },
+  "visibleSchema": {
+    "tables": [
+      {
+        "name": "retries",
+        "columns": [
+          {
+            "name": "status",
+            "type": "string",
+            "primaryKey": true,
+            "notNull": true,
+            "collation": "NOCASE"
+          },
+          {
+            "name": "attempts",
+            "type": "integer"
+          }
+        ]
+      }
+    ]
+  },
+  "parts": [
+    {
+      "id": "result",
+      "title": "Rows",
+      "required": true,
+      "answerKind": "sql",
+      "sql": {
+        "cases": [
+          {
+            "fixture": "base",
+            "oracle": {
+              "kind": "result",
+              "columns": [
+                {
+                  "name": "status",
+                  "type": "string"
+                }
+              ],
+              "rows": [
+                [
+                  {
+                    "type": "string",
+                    "value": "pending"
+                  }
+                ]
+              ],
+              "ordering": "unordered"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "hints": [
+    {
+      "id": "retry-hint",
+      "text": "Look at the attempts column."
+    }
+  ],
+  "referenceSolutions": [
+    {
+      "partId": "result",
+      "answer": {
+        "sql": "select status, count(*) from retries where attempts >= 3 group by status;"
+      }
+    }
+  ]
+}

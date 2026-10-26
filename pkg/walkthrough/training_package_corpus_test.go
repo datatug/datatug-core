@@ -62,9 +62,12 @@ type trainingPackageWant struct {
 }
 
 type trainingPackageProvenance struct {
-	CorpusVersion string            `json:"corpusVersion"`
-	CorpusSHA256  string            `json:"corpusSha256"`
-	Files         map[string]string `json:"files"`
+	CorpusVersion   string            `json:"corpusVersion"`
+	CorpusSHA256    string            `json:"corpusSha256"`
+	GeneratorSHA256 string            `json:"generatorSha256"`
+	VerifierSHA256  string            `json:"verifierSha256"`
+	Files           map[string]string `json:"files"`
+	FileBytes       map[string]int64  `json:"fileBytes"`
 }
 
 const trainingPackageCorpusDir = "package-corpus-v1"
@@ -192,27 +195,34 @@ func TestTrainingPackageCorpusProvenance(t *testing.T) {
 	require.Equal(t, "training-package-corpus-v1", provenance.CorpusVersion)
 	require.Equal(t, sha256Hex(raw), provenance.CorpusSHA256)
 	require.NotEmpty(t, provenance.Files)
+	require.Equal(t, len(provenance.Files), len(provenance.FileBytes))
+	for _, source := range []struct {
+		name string
+		hash string
+	}{{"generate.py", provenance.GeneratorSHA256}, {"verify.py", provenance.VerifierSHA256}} {
+		data, err := os.ReadFile(filepath.Join(root, source.name))
+		require.NoError(t, err)
+		require.Equal(t, sha256Hex(data), source.hash, source.name)
+	}
 	for relative, expected := range provenance.Files {
 		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(relative)))
 		require.NoError(t, err, relative)
 		require.Equal(t, expected, sha256Hex(data), relative)
+		require.Equal(t, int64(len(data)), provenance.FileBytes[relative], relative)
 	}
 }
 
 // TestTrainingPackageCallerMutation proves the admitted snapshot neither
-// aliases caller bytes nor changes when the caller edits its own buffers.
+// aliases caller bytes nor changes when the caller edits its own buffers or a
+// previously returned projection. It retains the original admitted object; it
+// deliberately does not re-admit a fresh package from disk.
 func TestTrainingPackageCallerMutation(t *testing.T) {
-	corpus := loadTrainingPackageCorpus(t)
-	var vector *trainingPackageVector
-	for index := range corpus.Vectors {
-		if corpus.Vectors[index].ID == "full" {
-			vector = &corpus.Vectors[index]
-			break
-		}
-	}
-	require.NotNil(t, vector)
-	input := trainingPackageInputFor(t, *vector)
-	before := jsonPlain(t, mustAdmit(t, input).Projection())
+	input := corpusInput(t, "full")
+	admitted := mustAdmit(t, input)
+	before := jsonPlain(t, admitted.Projection())
+	beforeTrusted := admitted.TrustedPackageInventory()
+	beforeNarrative := admitted.TrustedNarrativeInventory()
+
 	for index := range input.IndexBytes {
 		input.IndexBytes[index] = 'x'
 	}
@@ -221,8 +231,25 @@ func TestTrainingPackageCallerMutation(t *testing.T) {
 			input.Assets[index].Bytes[byteIndex] = 'y'
 		}
 	}
-	after := jsonPlain(t, mustAdmit(t, trainingPackageInputFor(t, *vector)).Projection())
-	require.Equal(t, before, after)
+	require.Equal(t, before, jsonPlain(t, admitted.Projection()))
+
+	// Complete and reduced projections are defensively rebuilt. Mutating a
+	// returned value cannot rewrite the retained admitted object, and the next
+	// projection from that same object is still the original one.
+	projection := admitted.Projection()
+	projection["id"] = "mutated"
+	projection["assets"].([]any)[0].(map[string]any)["kind"] = "mutated"
+	projection["codecs"].([]any)[0].(map[string]any)["text"] = "mutated"
+	trusted := admitted.TrustedPackageInventory()
+	trusted.Assets[0].Path = "mutated"
+	trusted.Cases[0] = "mutated"
+	narrative := admitted.TrustedNarrativeInventory()
+	narrative.Assets[0].AssetID = "mutated"
+	narrative.Cases[0] = "mutated"
+
+	require.Equal(t, before, jsonPlain(t, admitted.Projection()))
+	require.Equal(t, beforeTrusted, admitted.TrustedPackageInventory())
+	require.Equal(t, beforeNarrative, admitted.TrustedNarrativeInventory())
 }
 
 func mustAdmit(t *testing.T, input TrainingPackageInput) *AdmittedTrainingPackage {
