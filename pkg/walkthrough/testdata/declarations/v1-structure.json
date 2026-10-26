@@ -1,0 +1,148 @@
+{
+  "schema": "datatug-walkthrough/1",
+  "id": "tour",
+  "version": 1,
+  "title": "Walkthrough tour",
+  "chapters": [
+    {
+      "id": "find",
+      "title": "Chapter find",
+      "why": "Why find",
+      "steps": [
+        {
+          "id": "pick",
+          "title": "Step pick",
+          "why": "Why pick",
+          "target": {
+            "kind": "query",
+            "queryId": "customer-orders"
+          },
+          "done": {
+            "kind": "parameter-value",
+            "name": "CustomerID"
+          },
+          "capture": "customer"
+        },
+        {
+          "id": "guided-only",
+          "title": "Step guided-only",
+          "why": "Why guided-only",
+          "target": {
+            "kind": "check",
+            "checkId": "check-1"
+          },
+          "done": {
+            "kind": "acknowledged"
+          },
+          "modes": [
+            "guided"
+          ]
+        }
+      ],
+      "formerIds": [
+        "find-old"
+      ]
+    },
+    {
+      "id": "follow",
+      "title": "Chapter follow",
+      "why": "Why follow",
+      "steps": [
+        {
+          "id": "use-customer",
+          "title": "Step use-customer",
+          "why": "Why use-customer",
+          "target": {
+            "kind": "card",
+            "cardId": "customer",
+            "parameters": {
+              "CustomerID": {
+                "captured": "customer",
+                "default": "BOTTM"
+              }
+            }
+          },
+          "done": {
+            "kind": "route-reached"
+          }
+        }
+      ],
+      "requires": "signed-in",
+      "requiresReason": "Sign in to follow this customer.",
+      "continuesFrom": "find",
+      "readiness": {
+        "kind": "asset-exists",
+        "asset": "query",
+        "id": "customer-orders"
+      }
+    },
+    {
+      "id": "incident",
+      "title": "Chapter incident",
+      "why": "Why incident",
+      "steps": [
+        {
+          "id": "raise",
+          "title": "Step raise",
+          "why": "Why raise",
+          "target": {
+            "kind": "incident"
+          },
+          "done": {
+            "kind": "incident-open"
+          },
+          "capture": "incident",
+          "needs": "readiness"
+        }
+      ],
+      "requires": "training-copy",
+      "requiresReason": "Raising an incident writes to a project.",
+      "continuesFrom": "follow",
+      "readiness": {
+        "kind": "asset-exists",
+        "asset": "incident",
+        "id": "risk-1"
+      }
+    },
+    {
+      "id": "reuse",
+      "title": "Chapter reuse",
+      "why": "Why reuse",
+      "steps": [
+        {
+          "id": "ack",
+          "title": "Step ack",
+          "why": "Why ack",
+          "target": {
+            "kind": "incident",
+            "incident": {
+              "captured": "incident",
+              "default": null
+            }
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ],
+      "formerIds": [
+        "reuse-old",
+        "find-old-2"
+      ],
+      "continuesFrom": "incident"
+    }
+  ],
+  "summary": "A structure fixture.",
+  "finish": {
+    "target": {
+      "kind": "query",
+      "queryId": "next-steps",
+      "parameters": {
+        "CustomerID": {
+          "captured": "customer",
+          "default": "BOTTM"
+        }
+      }
+    }
+  }
+}

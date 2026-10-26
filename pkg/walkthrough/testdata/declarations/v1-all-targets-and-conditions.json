@@ -1,0 +1,204 @@
+{
+  "schema": "datatug-walkthrough/1",
+  "id": "tour",
+  "version": 1,
+  "title": "Walkthrough tour",
+  "chapters": [
+    {
+      "id": "all",
+      "title": "Chapter all",
+      "why": "Why all",
+      "steps": [
+        {
+          "id": "pick-customer",
+          "title": "Step pick-customer",
+          "why": "Why pick-customer",
+          "target": {
+            "kind": "query",
+            "queryId": "Customer Orders"
+          },
+          "done": {
+            "kind": "parameter-value",
+            "name": "CustomerID"
+          },
+          "capture": "customer"
+        },
+        {
+          "id": "table-record",
+          "title": "Step table-record",
+          "why": "Why table-record",
+          "target": {
+            "kind": "table-record",
+            "source": "northwind",
+            "table": "Café Order Details",
+            "key": {
+              "Order ID": 11045,
+              "Naïve Column": "Chai"
+            }
+          },
+          "done": {
+            "kind": "record-selected",
+            "field": "CustomerID",
+            "equals": "BOTTM"
+          }
+        },
+        {
+          "id": "query-parameters",
+          "title": "Step query-parameters",
+          "why": "Why query-parameters",
+          "target": {
+            "kind": "query",
+            "queryId": "customer-orders",
+            "parameters": {
+              "CustomerID": {
+                "captured": "customer",
+                "default": "BOTTM"
+              },
+              "Region": "North West"
+            }
+          },
+          "done": {
+            "kind": "query-run",
+            "minRows": 1
+          }
+        },
+        {
+          "id": "board",
+          "title": "Step board",
+          "why": "Why board",
+          "target": {
+            "kind": "board",
+            "boardId": "Orders At Risk",
+            "parameters": {
+              "region": "North West"
+            },
+            "tutorial": true
+          },
+          "done": {
+            "kind": "board-tutorial",
+            "untilCard": "risk-by-country"
+          }
+        },
+        {
+          "id": "card",
+          "title": "Step card",
+          "why": "Why card",
+          "target": {
+            "kind": "card",
+            "cardId": "Customer Card",
+            "parameters": {
+              "CustomerID": {
+                "captured": "customer",
+                "default": "BOTTM"
+              }
+            }
+          },
+          "done": {
+            "kind": "route-reached"
+          }
+        },
+        {
+          "id": "related",
+          "title": "Step related",
+          "why": "Why related",
+          "target": {
+            "kind": "related",
+            "source": "northwind",
+            "table": "Orders",
+            "key": {
+              "OrderID": 11045
+            },
+            "meaning": "order-to-shipping"
+          },
+          "done": {
+            "kind": "panel-open",
+            "panel": "related"
+          }
+        },
+        {
+          "id": "log-source",
+          "title": "Step log-source",
+          "why": "Why log-source",
+          "target": {
+            "kind": "log-source",
+            "source": "northwind",
+            "stream": "requests",
+            "filter": {
+              "Correlation ID": "abc-123"
+            }
+          },
+          "done": {
+            "kind": "filter-applied",
+            "field": "Correlation ID",
+            "equals": "abc-123"
+          }
+        },
+        {
+          "id": "provider",
+          "title": "Step provider",
+          "why": "Why provider",
+          "target": {
+            "kind": "public-data-provider",
+            "provider": "northwind"
+          },
+          "done": {
+            "kind": "asset-exists",
+            "asset": "meaning-mapping",
+            "id": "order-to-shipping"
+          }
+        },
+        {
+          "id": "incident-open",
+          "title": "Step incident-open",
+          "why": "Why incident-open",
+          "target": {
+            "kind": "incident"
+          },
+          "done": {
+            "kind": "incident-open"
+          },
+          "capture": "incident"
+        },
+        {
+          "id": "incident-target",
+          "title": "Step incident-target",
+          "why": "Why incident-target",
+          "target": {
+            "kind": "incident",
+            "incident": {
+              "captured": "incident",
+              "default": null
+            }
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "check",
+          "title": "Step check",
+          "why": "Why check",
+          "target": {
+            "kind": "check",
+            "checkId": "Orders Valid!"
+          },
+          "done": {
+            "kind": "check-run",
+            "outcome": "pass"
+          }
+        },
+        {
+          "id": "explanation",
+          "title": "Step explanation",
+          "why": "Why explanation",
+          "target": {
+            "kind": "none"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    }
+  ]
+}

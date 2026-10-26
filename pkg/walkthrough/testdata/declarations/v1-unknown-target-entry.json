@@ -1,0 +1,45 @@
+{
+  "schema": "datatug-walkthrough/1",
+  "id": "tour",
+  "version": 1,
+  "title": "Walkthrough tour",
+  "chapters": [
+    {
+      "id": "future",
+      "title": "Chapter future",
+      "why": "Why future",
+      "steps": [
+        {
+          "id": "future-entry",
+          "title": "Step future-entry",
+          "why": "Why future-entry",
+          "target": {
+            "kind": "future-target",
+            "opaque": {
+              "nested": [
+                1,
+                2,
+                3
+              ]
+            }
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "known",
+          "title": "Step known",
+          "why": "Why known",
+          "target": {
+            "kind": "check",
+            "checkId": "check-1"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    }
+  ]
+}

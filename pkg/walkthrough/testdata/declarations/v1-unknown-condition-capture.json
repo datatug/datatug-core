@@ -1,0 +1,49 @@
+{
+  "schema": "datatug-walkthrough/1",
+  "id": "tour",
+  "version": 1,
+  "title": "Walkthrough tour",
+  "chapters": [
+    {
+      "id": "future",
+      "title": "Chapter future",
+      "why": "Why future",
+      "steps": [
+        {
+          "id": "future-producer",
+          "title": "Step future-producer",
+          "why": "Why future-producer",
+          "target": {
+            "kind": "query",
+            "queryId": "q"
+          },
+          "done": {
+            "kind": "future-condition",
+            "future": {
+              "payload": true
+            }
+          },
+          "capture": "future-value"
+        },
+        {
+          "id": "defaulted",
+          "title": "Step defaulted",
+          "why": "Why defaulted",
+          "target": {
+            "kind": "card",
+            "cardId": "c",
+            "parameters": {
+              "CustomerID": {
+                "captured": "future-value",
+                "default": "fallback"
+              }
+            }
+          },
+          "done": {
+            "kind": "route-reached"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "schema": "datatug-walkthrough/1",
+  "id": "tour",
+  "version": 1,
+  "title": "Walkthrough tour",
+  "chapters": [
+    {
+      "id": "same",
+      "title": "Chapter same",
+      "why": "Why same",
+      "steps": [
+        {
+          "id": "one",
+          "title": "Step one",
+          "why": "Why one",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "other",
+      "title": "Chapter other",
+      "why": "Why other",
+      "steps": [
+        {
+          "id": "two",
+          "title": "Step two",
+          "why": "Why two",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ],
+      "formerIds": [
+        "same"
+      ]
+    }
+  ]
+}

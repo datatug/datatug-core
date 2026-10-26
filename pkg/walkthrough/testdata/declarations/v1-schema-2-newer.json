@@ -1,0 +1,7 @@
+{
+  "schema": "datatug-walkthrough/2",
+  "id": "tour",
+  "trainingPackage": {
+    "opaque": true
+  }
+}
