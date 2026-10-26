@@ -1,0 +1,41 @@
+{
+  "declarationFile": "narrative/declarations/minimal-at-limit.json",
+  "sidecarFile": "narrative/sidecars/minimal-at-limit.json",
+  "catalogueFiles": [
+    "en"
+  ],
+  "request": null,
+  "owner": {
+    "assets": [
+      {
+        "assetId": "evidence",
+        "kind": "evidence-text",
+        "path": "training/evidence.txt",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "bytes": "10"
+      },
+      {
+        "assetId": "owner-check-definition",
+        "kind": "check-definition",
+        "path": "training/check.json",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "bytes": "20"
+      }
+    ],
+    "cases": [
+      "case-one"
+    ],
+    "incidents": [
+      "incident-one"
+    ],
+    "checks": [],
+    "queries": [],
+    "proposals": [],
+    "presentationTargets": [],
+    "checkBindings": [],
+    "proposalBindings": [],
+    "targetBindings": [],
+    "mutateOnSecondRead": false,
+    "wrongPackageBinding": false
+  }
+}

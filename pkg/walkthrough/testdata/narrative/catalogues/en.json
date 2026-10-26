@@ -1,0 +1,1 @@
+{"schemaVersion":1,"locale":"en","messages":{"retry.explanation":"Repeated requests need an idempotency key."}}

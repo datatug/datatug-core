@@ -1,0 +1,63 @@
+{
+  "schema": "datatug-walkthrough/2",
+  "id": "training-demo",
+  "version": 1,
+  "title": "Retry investigation",
+  "trainingPackage": {
+    "id": "training-demo",
+    "revision": 1,
+    "path": "training/package.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "bytes": 100
+  },
+  "narrative": {
+    "path": "walkthroughs/training-demo/narrative.json",
+    "sha256": "35cd2d6b31fd7ed1556766fa51d5466e2dd514ffb4929f5349c6762a0042775a",
+    "bytes": 2195
+  },
+  "chapters": [
+    {
+      "id": "retries",
+      "title": "Inspect retries",
+      "why": "Find repeated requests.",
+      "steps": [
+        {
+          "id": "solve",
+          "kind": "challenge",
+          "title": "Inspect requests",
+          "why": "Validate the retry query.",
+          "target": {
+            "kind": "challenge",
+            "challengeId": "retry-query",
+            "revision": 1
+          },
+          "done": {
+            "kind": "challenge-passed",
+            "checkpoints": [
+              {
+                "id": "result",
+                "completion": "whole-challenge"
+              }
+            ]
+          }
+        },
+        {
+          "id": "discussion",
+          "kind": "scripted-dialogue",
+          "segmentId": "discussion",
+          "title": "Discuss",
+          "why": "Explain the result.",
+          "modes": [
+            "guided"
+          ],
+          "target": {
+            "kind": "none"
+          },
+          "done": {
+            "kind": "dialogue-finished"
+          }
+        }
+      ]
+    }
+  ]
+}

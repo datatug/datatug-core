@@ -1,0 +1,67 @@
+{
+  "declarationFile": "narrative/declarations/targets.json",
+  "sidecarFile": "narrative/sidecars/targets.json",
+  "catalogueFiles": [
+    "en"
+  ],
+  "request": null,
+  "owner": {
+    "assets": [
+      {
+        "assetId": "evidence",
+        "kind": "evidence-text",
+        "path": "training/evidence.txt",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "bytes": "10"
+      },
+      {
+        "assetId": "owner-check-definition",
+        "kind": "check-definition",
+        "path": "training/check.json",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "bytes": "20"
+      }
+    ],
+    "cases": [
+      "case-one"
+    ],
+    "incidents": [
+      "incident-one"
+    ],
+    "checks": [
+      "owner-check"
+    ],
+    "queries": [
+      "queries/retries"
+    ],
+    "proposals": [
+      "patch"
+    ],
+    "presentationTargets": [
+      "case-panel"
+    ],
+    "checkBindings": [],
+    "proposalBindings": [
+      {
+        "proposalId": "patch",
+        "kind": "query",
+        "definitionId": "queries/retries",
+        "evidenceIds": [
+          "evidence"
+        ],
+        "rationale": "Try the idempotency key."
+      }
+    ],
+    "targetBindings": [
+      {
+        "targetId": "case-panel",
+        "kind": "case",
+        "refId": "case-one",
+        "closureKind": "case",
+        "closureId": "case-one"
+      }
+    ],
+    "mutateOnSecondRead": false,
+    "wrongPackageBinding": false
+  }
+}

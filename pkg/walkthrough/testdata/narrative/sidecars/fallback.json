@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "training-demo",
+  "revision": 1,
+  "locale": "en",
+  "fallbackLocale": "en",
+  "messageCatalogues": [
+    {
+      "locale": "en",
+      "path": "walkthroughs/training-demo/messages.en.json",
+      "sha256": "e83f6779ddf7d2da312c67ba2ba9288af96b73e2afe891fefcfb348d3a9ef827",
+      "bytes": 111
+    },
+    {
+      "locale": "fr",
+      "path": "walkthroughs/training-demo/messages.fr.json",
+      "sha256": "6620667b928de8319fbb897d06dd0f82a660a35adf2c48b5b12d366ea001d314",
+      "bytes": 66
+    }
+  ],
+  "chapterRefs": [
+    "retries"
+  ],
+  "actors": [
+    {
+      "id": "guide",
+      "name": "Guide"
+    }
+  ],
+  "assets": [
+    {
+      "id": "photo",
+      "mediaType": "image/png",
+      "path": "training/photo.png",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 5
+    }
+  ],
+  "segments": [
+    {
+      "id": "discussion",
+      "chapterId": "retries",
+      "stepId": "discussion",
+      "eventIds": [
+        "await-result",
+        "explain"
+      ],
+      "prerequisiteContextEventIds": []
+    }
+  ],
+  "events": [
+    {
+      "id": "await-result",
+      "chapterId": "retries",
+      "type": "challenge.await_validation",
+      "payload": {
+        "stepId": "solve",
+        "checkpointId": "result"
+      }
+    },
+    {
+      "id": "explain",
+      "chapterId": "retries",
+      "type": "chat.message",
+      "payload": {
+        "actorId": "guide",
+        "messageKey": "retry.explanation",
+        "attachmentIds": [
+          "photo"
+        ]
+      },
+      "presentation": {
+        "delayBeforeMs": 10,
+        "pauseAfterMs": 20,
+        "typingSpeed": "fast",
+        "typingIndicator": true,
+        "transition": "fade"
+      }
+    }
+  ]
+}
