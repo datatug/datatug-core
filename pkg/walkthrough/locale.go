@@ -222,15 +222,6 @@ func (s localeSet) has(value string) bool {
 	return ok
 }
 
-func (s localeSet) all() []string {
-	values := make([]string, 0, len(s.values))
-	for value := range s.values {
-		values = append(values, value)
-	}
-	sort.Strings(values)
-	return values
-}
-
 // localeRange is one inclusive registered private-use range.
 type localeRange struct{ low, high string }
 

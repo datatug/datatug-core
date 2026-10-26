@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -242,16 +243,16 @@ func TestLocaleTablesAndProvenance(t *testing.T) {
 	require.Contains(t, string(extensionsRaw), "File-Date: "+LocaleExtensionsRegistryFileDate)
 
 	// Every runtime inventory must equal the committed table exactly.
-	require.Equal(t, tables.Languages, localeLanguages.all())
-	require.Equal(t, tables.Scripts, localeScripts.all())
-	require.Equal(t, tables.Regions, localeRegions.all())
-	require.Equal(t, tables.Variants, localeVariants.all())
+	require.Equal(t, tables.Languages, sortedLocaleSet(localeLanguages))
+	require.Equal(t, tables.Scripts, sortedLocaleSet(localeScripts))
+	require.Equal(t, tables.Regions, sortedLocaleSet(localeRegions))
+	require.Equal(t, tables.Variants, sortedLocaleSet(localeVariants))
 	require.Equal(t, tables.Extlangs, localeExtlangPrefixes)
 	require.Equal(t, tables.PreferredLanguages, localePreferredLanguages)
 	require.Equal(t, tables.PreferredScripts, localePreferredScripts)
 	require.Equal(t, tables.PreferredRegions, localePreferredRegions)
 	require.Equal(t, tables.PreferredVariants, localePreferredVariants)
-	require.Equal(t, tables.ExtensionSingletons, localeExtensionSingletons.all())
+	require.Equal(t, tables.ExtensionSingletons, sortedLocaleSet(localeExtensionSingletons))
 	require.Equal(t, tables.Grandfathered, generatedWholeTagTable(localeGrandfatheredRecords))
 	require.Equal(t, tables.Redundant, generatedWholeTagTable(localeRedundantRecords))
 	require.Equal(t, tables.PrivateUseRanges, generatedPrivateUseRanges())
@@ -282,6 +283,15 @@ func TestLocaleTablesAndProvenance(t *testing.T) {
 	require.True(t, localeExtensionSingletons.has("u"))
 	require.True(t, localeRangeContains(localePrivateUseLanguageRanges, "qtz"))
 	require.False(t, localeRangeContains(localePrivateUseLanguageRanges, "qzu"))
+}
+
+func sortedLocaleSet(set localeSet) []string {
+	values := make([]string, 0, len(set.values))
+	for value := range set.values {
+		values = append(values, value)
+	}
+	sort.Strings(values)
+	return values
 }
 
 func generatedWholeTagTable(records []localeWholeTagRecord) []localeWholeTagTable {
