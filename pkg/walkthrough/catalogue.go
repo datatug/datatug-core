@@ -38,7 +38,6 @@ func SelectNarrativeLocale(
 	fallbackLocale string,
 ) NarrativeLocaleResult {
 	c := newChecker(true)
-	declared := make([]string, 0, len(declaredLocales))
 	seen := make(map[string]bool, len(declaredLocales))
 	for index, raw := range declaredLocales {
 		result := AdmitAuthoredLocale(raw)
@@ -52,7 +51,6 @@ func SelectNarrativeLocale(
 			continue
 		}
 		seen[result.Tag] = true
-		declared = append(declared, result.Tag)
 	}
 
 	defaultResult := AdmitAuthoredLocale(defaultLocale)

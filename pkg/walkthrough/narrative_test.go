@@ -209,23 +209,6 @@ func sidecarBytesWith(
 }`, strings.Join(references, ","), strings.Repeat("b", 64), segments, events))
 }
 
-func sidecarBytesFixture(t *testing.T, catalogue []byte, extraEvents string, extraSegments string) []byte {
-	t.Helper()
-	events := defaultNarrativeEvents
-	if extraEvents != "" {
-		events += ",\n" + extraEvents
-	}
-	segments := defaultNarrativeSegments
-	if extraSegments != "" {
-		segments += ",\n" + extraSegments
-	}
-	return sidecarBytesWith(t, []catalogueFixture{{
-		locale: "en",
-		path:   "walkthroughs/training-demo/messages.en.json",
-		data:   catalogue,
-	}}, events, defaultNarrativeEventIDs, segments)
-}
-
 const defaultDeclarationSteps = `{"id":"solve","kind":"challenge","title":"Inspect requests","why":"Validate the retry query.","target":{"kind":"challenge","challengeId":"retry-query","revision":1},"done":{"kind":"challenge-passed","checkpoints":[{"id":"result","completion":"whole-challenge"}]}},
       {"id":"discussion","kind":"scripted-dialogue","segmentId":"discussion","title":"Discuss","why":"Explain the result.","modes":["guided"],"target":{"kind":"none"},"done":{"kind":"dialogue-finished"}}`
 
@@ -574,7 +557,7 @@ func TestParseMessageCatalogueBounds(t *testing.T) {
 		if index > 0 {
 			builder.WriteString(",")
 		}
-		builder.WriteString(fmt.Sprintf(`"k%d":"v"`, index))
+		fmt.Fprintf(&builder, `"k%d":"v"`, index)
 	}
 	builder.WriteString(`}}`)
 	result := ParseMessageCatalogue([]byte(builder.String()))
