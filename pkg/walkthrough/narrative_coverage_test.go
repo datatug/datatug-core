@@ -664,6 +664,41 @@ func TestAdmitNarrativeSegmentMismatchBranch(t *testing.T) {
 	require.Equal(t, "/segments/0", result.Issues[0].Path)
 }
 
+// Several declared scripted-dialogue steps may each lack a sidecar segment.
+// Those refusals all report at /segments, so admission must order them by
+// message instead of the missing-segment scan's map iteration order.
+func TestAdmitNarrativeMissingDialogueSegmentsDeterministicOrder(t *testing.T) {
+	catalogues := []catalogueFixture{{
+		locale: "en",
+		path:   "walkthroughs/training-demo/messages.en.json",
+		data:   catalogueBytesFixture(""),
+	}}
+	sidecar := sidecarBytesWith(t, catalogues, defaultNarrativeEvents,
+		defaultNarrativeEventIDs, defaultNarrativeSegments)
+	declaration := declarationBytesFixtureWithSteps(sidecar, defaultDeclarationSteps+`,
+      {"id":"debrief","kind":"scripted-dialogue","segmentId":"debrief","title":"Debrief","why":"Summarise the fix.","modes":["guided"],"target":{"kind":"none"},"done":{"kind":"dialogue-finished"}},
+      {"id":"wrapup","kind":"scripted-dialogue","segmentId":"wrapup","title":"Wrap up","why":"Close the investigation.","modes":["guided"],"target":{"kind":"none"},"done":{"kind":"dialogue-finished"}}`)
+	fixture := newNarrativeFixtureFromBytes(t, declaration, sidecar, catalogues)
+
+	expected := []Issue{
+		{
+			Code: CodeInvalidReference, Path: "/segments",
+			Message: "declared dialogue segment debrief has no sidecar segment",
+		},
+		{
+			Code: CodeInvalidReference, Path: "/segments",
+			Message: "declared dialogue segment wrapup has no sidecar segment",
+		},
+	}
+	for attempt := 0; attempt < 25; attempt++ {
+		result := AdmitNarrative(fixture.bundle, fixture.authority, fixture.owner,
+			admissionInputFor(t, fixture, fixture.sidecarBytes, fixture.catalogueBytes))
+		require.False(t, result.Admitted, "attempt %d", attempt)
+		require.Nil(t, result.Narrative, "attempt %d", attempt)
+		require.Equal(t, expected, result.Issues, "attempt %d", attempt)
+	}
+}
+
 func TestAdmitNarrativeBindingFailureBranches(t *testing.T) {
 	type mutation func(*narrativeFixture)
 	cases := []struct {

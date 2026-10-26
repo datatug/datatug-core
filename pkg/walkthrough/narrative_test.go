@@ -228,7 +228,14 @@ func sidecarBytesFixture(t *testing.T, catalogue []byte, extraEvents string, ext
 	}}, events, defaultNarrativeEventIDs, segments)
 }
 
+const defaultDeclarationSteps = `{"id":"solve","kind":"challenge","title":"Inspect requests","why":"Validate the retry query.","target":{"kind":"challenge","challengeId":"retry-query","revision":1},"done":{"kind":"challenge-passed","checkpoints":[{"id":"result","completion":"whole-challenge"}]}},
+      {"id":"discussion","kind":"scripted-dialogue","segmentId":"discussion","title":"Discuss","why":"Explain the result.","modes":["guided"],"target":{"kind":"none"},"done":{"kind":"dialogue-finished"}}`
+
 func declarationBytesFixture(narrative []byte) []byte {
+	return declarationBytesFixtureWithSteps(narrative, defaultDeclarationSteps)
+}
+
+func declarationBytesFixtureWithSteps(narrative []byte, steps string) []byte {
 	packageRef := packageReferenceFixture()
 	return []byte(fmt.Sprintf(`{
   "schema": "datatug-walkthrough/2",
@@ -242,12 +249,11 @@ func declarationBytesFixture(narrative []byte) []byte {
     "title": "Inspect retries",
     "why": "Find repeated requests.",
     "steps": [
-      {"id":"solve","kind":"challenge","title":"Inspect requests","why":"Validate the retry query.","target":{"kind":"challenge","challengeId":"retry-query","revision":1},"done":{"kind":"challenge-passed","checkpoints":[{"id":"result","completion":"whole-challenge"}]}},
-      {"id":"discussion","kind":"scripted-dialogue","segmentId":"discussion","title":"Discuss","why":"Explain the result.","modes":["guided"],"target":{"kind":"none"},"done":{"kind":"dialogue-finished"}}
+      %s
     ]
   }]
 }`, packageRef.ID, packageRef.Revision, packageRef.Path, packageRef.SHA256, packageRef.Bytes,
-		sha256Hex(narrative), len(narrative)))
+		sha256Hex(narrative), len(narrative), steps))
 }
 
 func newNarrativeFixture(t *testing.T) *narrativeFixture {
@@ -283,7 +289,16 @@ func newNarrativeFixtureCatalogues(
 ) *narrativeFixture {
 	t.Helper()
 	sidecar := sidecarBytesWith(t, catalogues, events, eventIDs, segments)
-	declaration := declarationBytesFixture(sidecar)
+	return newNarrativeFixtureFromBytes(t, declarationBytesFixture(sidecar), sidecar, catalogues)
+}
+
+func newNarrativeFixtureFromBytes(
+	t *testing.T,
+	declaration []byte,
+	sidecar []byte,
+	catalogues []catalogueFixture,
+) *narrativeFixture {
+	t.Helper()
 	parsed := ParseTrainingDeclaration("training-demo", declaration)
 	require.True(t, parsed.Accepted, "%v", parsed.Issues)
 
