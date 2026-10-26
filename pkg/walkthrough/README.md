@@ -147,6 +147,40 @@ reference/Test-labelled payload is an unknown-field refusal, never a match.
   survive exactly. Fractions, exponents, signs, zero and `null` refuse where a
   positive integer is required.
 
+## Shared locale profile
+
+`AdmitAuthoredLocale` and `NormalizeVisitorLocale` are separate pure entry
+points for the `/2` locale contract. Authored fields (sidecar defaults,
+catalogue references and catalogue documents) must use values registered in the
+pinned IANA snapshots, including the registered private-use ranges; an unknown
+but well-formed value is a recoverable `unsupported_registry_version` naming the
+snapshot. Visitor requests keep syntactically well-formed unknown values for the
+later exact / primary-language / fallback selector, while malformed syntax is a
+structured refusal rather than an ambient language.
+
+Both paths enforce the 64-character input and canonical-output bound, ASCII
+hyphen-separated grammar, duplicate-variant and duplicate-singleton rejection,
+grandfathered/private-use recognition, registered whole-tag and subtag
+`Preferred-Value` mappings, contextual extlang replacement, explicit script and
+private-tail preservation, and extension-block ordering by singleton. Extension
+payloads stay opaque. The returned `Tag` is the canonical comparison key, so
+aliases that collide (for example `iw-IL`/`he-IL`) can be rejected as duplicate
+catalogue tags. `PrimaryLanguage` is the genuine regular primary language, or
+empty for private-use-only and unreplaced irregular grandfathered tags; this
+package does not implement the later catalogue selector.
+
+The data lives in `testdata/locale/`: the exact official registry bytes, the
+checked-in table generator, `locale-tables.json`, its provenance and the
+independently authored expected-value corpus. Tests assert complete runtime
+inventory equality with the committed table and every registered grandfathered
+and redundant record. Regenerate only after an intentional pinned-snapshot
+change:
+
+```sh
+python3 pkg/walkthrough/testdata/locale/generate_locale_tables.py
+go test ./pkg/walkthrough
+```
+
 ## Corpus
 
 `testdata/corpus.json` is the canonical, language-neutral `/1` conformance
