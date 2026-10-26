@@ -1,0 +1,52 @@
+{
+  "schema": "datatug-walkthrough/1",
+  "id": "tour",
+  "version": 1,
+  "title": "Walkthrough tour",
+  "chapters": [
+    {
+      "id": "one",
+      "title": "Chapter one",
+      "why": "Why one",
+      "steps": [
+        {
+          "id": "future-target",
+          "title": "Step future-target",
+          "why": "Why future-target",
+          "target": {
+            "kind": "challenge",
+            "challengeId": "x",
+            "revision": 1
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "future-condition",
+          "title": "Step future-condition",
+          "why": "Why future-condition",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "dialogue-finished"
+          }
+        },
+        {
+          "id": "ordinary",
+          "title": "Step ordinary",
+          "why": "Why ordinary",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    }
+  ]
+}

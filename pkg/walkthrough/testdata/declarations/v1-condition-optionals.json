@@ -1,0 +1,93 @@
+{
+  "schema": "datatug-walkthrough/1",
+  "id": "tour",
+  "version": 1,
+  "title": "Walkthrough tour",
+  "chapters": [
+    {
+      "id": "optional",
+      "title": "Chapter optional",
+      "why": "Why optional",
+      "steps": [
+        {
+          "id": "parameter-set",
+          "title": "Step parameter-set",
+          "why": "Why parameter-set",
+          "target": {
+            "kind": "query",
+            "queryId": "q"
+          },
+          "done": {
+            "kind": "parameter-value",
+            "name": "p",
+            "equals": null
+          }
+        },
+        {
+          "id": "record-selected-empty",
+          "title": "Step record-selected-empty",
+          "why": "Why record-selected-empty",
+          "target": {
+            "kind": "table-record",
+            "source": "s",
+            "table": "t"
+          },
+          "done": {
+            "kind": "record-selected"
+          }
+        },
+        {
+          "id": "query-run-any",
+          "title": "Step query-run-any",
+          "why": "Why query-run-any",
+          "target": {
+            "kind": "query",
+            "queryId": "q2"
+          },
+          "done": {
+            "kind": "query-run"
+          }
+        },
+        {
+          "id": "check-run-any",
+          "title": "Step check-run-any",
+          "why": "Why check-run-any",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "check-run"
+          }
+        },
+        {
+          "id": "board-tutorial-complete",
+          "title": "Step board-tutorial-complete",
+          "why": "Why board-tutorial-complete",
+          "target": {
+            "kind": "board",
+            "boardId": "b",
+            "tutorial": true
+          },
+          "done": {
+            "kind": "board-tutorial"
+          }
+        },
+        {
+          "id": "filter-null",
+          "title": "Step filter-null",
+          "why": "Why filter-null",
+          "target": {
+            "kind": "log-source",
+            "source": "s"
+          },
+          "done": {
+            "kind": "filter-applied",
+            "field": "f",
+            "equals": null
+          }
+        }
+      ]
+    }
+  ]
+}

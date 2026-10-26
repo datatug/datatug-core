@@ -1,0 +1,49 @@
+{
+  "schema": "datatug-walkthrough/1",
+  "id": "tour",
+  "version": 1,
+  "title": "Walkthrough tour",
+  "chapters": [
+    {
+      "id": "one",
+      "title": "Chapter one",
+      "why": "Why one",
+      "steps": [
+        {
+          "id": "a",
+          "title": "Step a",
+          "why": "Why a",
+          "target": {
+            "kind": "query",
+            "queryId": "q"
+          },
+          "done": {
+            "kind": "parameter-value",
+            "name": "p"
+          },
+          "capture": "value"
+        },
+        {
+          "id": "b",
+          "title": "Step b",
+          "why": "Why b",
+          "target": {
+            "kind": "card",
+            "cardId": "c",
+            "parameters": {
+              "p": {
+                "captured": "value",
+                "default": [
+                  1
+                ]
+              }
+            }
+          },
+          "done": {
+            "kind": "route-reached"
+          }
+        }
+      ]
+    }
+  ]
+}

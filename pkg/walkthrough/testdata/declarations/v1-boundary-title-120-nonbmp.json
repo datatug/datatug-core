@@ -1,0 +1,27 @@
+{
+  "schema": "datatug-walkthrough/1",
+  "id": "tour",
+  "version": 1,
+  "title": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+  "chapters": [
+    {
+      "id": "start",
+      "title": "Chapter start",
+      "why": "Why start",
+      "steps": [
+        {
+          "id": "one",
+          "title": "Step one",
+          "why": "Why one",
+          "target": {
+            "kind": "check",
+            "checkId": "check-1"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    }
+  ]
+}

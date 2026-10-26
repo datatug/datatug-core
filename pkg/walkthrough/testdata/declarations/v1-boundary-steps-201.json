@@ -1,0 +1,2560 @@
+{
+  "schema": "datatug-walkthrough/1",
+  "id": "tour",
+  "version": 1,
+  "title": "Walkthrough tour",
+  "chapters": [
+    {
+      "id": "ch-01",
+      "title": "Chapter ch-01",
+      "why": "Why ch-01",
+      "steps": [
+        {
+          "id": "s-01-01",
+          "title": "Step s-01-01",
+          "why": "Why s-01-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-01-02",
+          "title": "Step s-01-02",
+          "why": "Why s-01-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-01-03",
+          "title": "Step s-01-03",
+          "why": "Why s-01-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-01-04",
+          "title": "Step s-01-04",
+          "why": "Why s-01-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-01-05",
+          "title": "Step s-01-05",
+          "why": "Why s-01-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-01-06",
+          "title": "Step s-01-06",
+          "why": "Why s-01-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-01-07",
+          "title": "Step s-01-07",
+          "why": "Why s-01-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-01-08",
+          "title": "Step s-01-08",
+          "why": "Why s-01-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-01-09",
+          "title": "Step s-01-09",
+          "why": "Why s-01-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-01-10",
+          "title": "Step s-01-10",
+          "why": "Why s-01-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-01-11",
+          "title": "Step s-01-11",
+          "why": "Why s-01-11",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ch-02",
+      "title": "Chapter ch-02",
+      "why": "Why ch-02",
+      "steps": [
+        {
+          "id": "s-02-01",
+          "title": "Step s-02-01",
+          "why": "Why s-02-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-02-02",
+          "title": "Step s-02-02",
+          "why": "Why s-02-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-02-03",
+          "title": "Step s-02-03",
+          "why": "Why s-02-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-02-04",
+          "title": "Step s-02-04",
+          "why": "Why s-02-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-02-05",
+          "title": "Step s-02-05",
+          "why": "Why s-02-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-02-06",
+          "title": "Step s-02-06",
+          "why": "Why s-02-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-02-07",
+          "title": "Step s-02-07",
+          "why": "Why s-02-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-02-08",
+          "title": "Step s-02-08",
+          "why": "Why s-02-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-02-09",
+          "title": "Step s-02-09",
+          "why": "Why s-02-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-02-10",
+          "title": "Step s-02-10",
+          "why": "Why s-02-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ch-03",
+      "title": "Chapter ch-03",
+      "why": "Why ch-03",
+      "steps": [
+        {
+          "id": "s-03-01",
+          "title": "Step s-03-01",
+          "why": "Why s-03-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-03-02",
+          "title": "Step s-03-02",
+          "why": "Why s-03-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-03-03",
+          "title": "Step s-03-03",
+          "why": "Why s-03-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-03-04",
+          "title": "Step s-03-04",
+          "why": "Why s-03-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-03-05",
+          "title": "Step s-03-05",
+          "why": "Why s-03-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-03-06",
+          "title": "Step s-03-06",
+          "why": "Why s-03-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-03-07",
+          "title": "Step s-03-07",
+          "why": "Why s-03-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-03-08",
+          "title": "Step s-03-08",
+          "why": "Why s-03-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-03-09",
+          "title": "Step s-03-09",
+          "why": "Why s-03-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-03-10",
+          "title": "Step s-03-10",
+          "why": "Why s-03-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ch-04",
+      "title": "Chapter ch-04",
+      "why": "Why ch-04",
+      "steps": [
+        {
+          "id": "s-04-01",
+          "title": "Step s-04-01",
+          "why": "Why s-04-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-04-02",
+          "title": "Step s-04-02",
+          "why": "Why s-04-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-04-03",
+          "title": "Step s-04-03",
+          "why": "Why s-04-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-04-04",
+          "title": "Step s-04-04",
+          "why": "Why s-04-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-04-05",
+          "title": "Step s-04-05",
+          "why": "Why s-04-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-04-06",
+          "title": "Step s-04-06",
+          "why": "Why s-04-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-04-07",
+          "title": "Step s-04-07",
+          "why": "Why s-04-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-04-08",
+          "title": "Step s-04-08",
+          "why": "Why s-04-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-04-09",
+          "title": "Step s-04-09",
+          "why": "Why s-04-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-04-10",
+          "title": "Step s-04-10",
+          "why": "Why s-04-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ch-05",
+      "title": "Chapter ch-05",
+      "why": "Why ch-05",
+      "steps": [
+        {
+          "id": "s-05-01",
+          "title": "Step s-05-01",
+          "why": "Why s-05-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-05-02",
+          "title": "Step s-05-02",
+          "why": "Why s-05-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-05-03",
+          "title": "Step s-05-03",
+          "why": "Why s-05-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-05-04",
+          "title": "Step s-05-04",
+          "why": "Why s-05-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-05-05",
+          "title": "Step s-05-05",
+          "why": "Why s-05-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-05-06",
+          "title": "Step s-05-06",
+          "why": "Why s-05-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-05-07",
+          "title": "Step s-05-07",
+          "why": "Why s-05-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-05-08",
+          "title": "Step s-05-08",
+          "why": "Why s-05-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-05-09",
+          "title": "Step s-05-09",
+          "why": "Why s-05-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-05-10",
+          "title": "Step s-05-10",
+          "why": "Why s-05-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ch-06",
+      "title": "Chapter ch-06",
+      "why": "Why ch-06",
+      "steps": [
+        {
+          "id": "s-06-01",
+          "title": "Step s-06-01",
+          "why": "Why s-06-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-06-02",
+          "title": "Step s-06-02",
+          "why": "Why s-06-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-06-03",
+          "title": "Step s-06-03",
+          "why": "Why s-06-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-06-04",
+          "title": "Step s-06-04",
+          "why": "Why s-06-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-06-05",
+          "title": "Step s-06-05",
+          "why": "Why s-06-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-06-06",
+          "title": "Step s-06-06",
+          "why": "Why s-06-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-06-07",
+          "title": "Step s-06-07",
+          "why": "Why s-06-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-06-08",
+          "title": "Step s-06-08",
+          "why": "Why s-06-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-06-09",
+          "title": "Step s-06-09",
+          "why": "Why s-06-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-06-10",
+          "title": "Step s-06-10",
+          "why": "Why s-06-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ch-07",
+      "title": "Chapter ch-07",
+      "why": "Why ch-07",
+      "steps": [
+        {
+          "id": "s-07-01",
+          "title": "Step s-07-01",
+          "why": "Why s-07-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-07-02",
+          "title": "Step s-07-02",
+          "why": "Why s-07-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-07-03",
+          "title": "Step s-07-03",
+          "why": "Why s-07-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-07-04",
+          "title": "Step s-07-04",
+          "why": "Why s-07-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-07-05",
+          "title": "Step s-07-05",
+          "why": "Why s-07-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-07-06",
+          "title": "Step s-07-06",
+          "why": "Why s-07-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-07-07",
+          "title": "Step s-07-07",
+          "why": "Why s-07-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-07-08",
+          "title": "Step s-07-08",
+          "why": "Why s-07-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-07-09",
+          "title": "Step s-07-09",
+          "why": "Why s-07-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-07-10",
+          "title": "Step s-07-10",
+          "why": "Why s-07-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ch-08",
+      "title": "Chapter ch-08",
+      "why": "Why ch-08",
+      "steps": [
+        {
+          "id": "s-08-01",
+          "title": "Step s-08-01",
+          "why": "Why s-08-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-08-02",
+          "title": "Step s-08-02",
+          "why": "Why s-08-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-08-03",
+          "title": "Step s-08-03",
+          "why": "Why s-08-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-08-04",
+          "title": "Step s-08-04",
+          "why": "Why s-08-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-08-05",
+          "title": "Step s-08-05",
+          "why": "Why s-08-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-08-06",
+          "title": "Step s-08-06",
+          "why": "Why s-08-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-08-07",
+          "title": "Step s-08-07",
+          "why": "Why s-08-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-08-08",
+          "title": "Step s-08-08",
+          "why": "Why s-08-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-08-09",
+          "title": "Step s-08-09",
+          "why": "Why s-08-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-08-10",
+          "title": "Step s-08-10",
+          "why": "Why s-08-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ch-09",
+      "title": "Chapter ch-09",
+      "why": "Why ch-09",
+      "steps": [
+        {
+          "id": "s-09-01",
+          "title": "Step s-09-01",
+          "why": "Why s-09-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-09-02",
+          "title": "Step s-09-02",
+          "why": "Why s-09-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-09-03",
+          "title": "Step s-09-03",
+          "why": "Why s-09-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-09-04",
+          "title": "Step s-09-04",
+          "why": "Why s-09-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-09-05",
+          "title": "Step s-09-05",
+          "why": "Why s-09-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-09-06",
+          "title": "Step s-09-06",
+          "why": "Why s-09-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-09-07",
+          "title": "Step s-09-07",
+          "why": "Why s-09-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-09-08",
+          "title": "Step s-09-08",
+          "why": "Why s-09-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-09-09",
+          "title": "Step s-09-09",
+          "why": "Why s-09-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-09-10",
+          "title": "Step s-09-10",
+          "why": "Why s-09-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ch-10",
+      "title": "Chapter ch-10",
+      "why": "Why ch-10",
+      "steps": [
+        {
+          "id": "s-10-01",
+          "title": "Step s-10-01",
+          "why": "Why s-10-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-10-02",
+          "title": "Step s-10-02",
+          "why": "Why s-10-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-10-03",
+          "title": "Step s-10-03",
+          "why": "Why s-10-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-10-04",
+          "title": "Step s-10-04",
+          "why": "Why s-10-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-10-05",
+          "title": "Step s-10-05",
+          "why": "Why s-10-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-10-06",
+          "title": "Step s-10-06",
+          "why": "Why s-10-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-10-07",
+          "title": "Step s-10-07",
+          "why": "Why s-10-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-10-08",
+          "title": "Step s-10-08",
+          "why": "Why s-10-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-10-09",
+          "title": "Step s-10-09",
+          "why": "Why s-10-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-10-10",
+          "title": "Step s-10-10",
+          "why": "Why s-10-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ch-11",
+      "title": "Chapter ch-11",
+      "why": "Why ch-11",
+      "steps": [
+        {
+          "id": "s-11-01",
+          "title": "Step s-11-01",
+          "why": "Why s-11-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-11-02",
+          "title": "Step s-11-02",
+          "why": "Why s-11-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-11-03",
+          "title": "Step s-11-03",
+          "why": "Why s-11-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-11-04",
+          "title": "Step s-11-04",
+          "why": "Why s-11-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-11-05",
+          "title": "Step s-11-05",
+          "why": "Why s-11-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-11-06",
+          "title": "Step s-11-06",
+          "why": "Why s-11-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-11-07",
+          "title": "Step s-11-07",
+          "why": "Why s-11-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-11-08",
+          "title": "Step s-11-08",
+          "why": "Why s-11-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-11-09",
+          "title": "Step s-11-09",
+          "why": "Why s-11-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-11-10",
+          "title": "Step s-11-10",
+          "why": "Why s-11-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ch-12",
+      "title": "Chapter ch-12",
+      "why": "Why ch-12",
+      "steps": [
+        {
+          "id": "s-12-01",
+          "title": "Step s-12-01",
+          "why": "Why s-12-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-12-02",
+          "title": "Step s-12-02",
+          "why": "Why s-12-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-12-03",
+          "title": "Step s-12-03",
+          "why": "Why s-12-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-12-04",
+          "title": "Step s-12-04",
+          "why": "Why s-12-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-12-05",
+          "title": "Step s-12-05",
+          "why": "Why s-12-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-12-06",
+          "title": "Step s-12-06",
+          "why": "Why s-12-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-12-07",
+          "title": "Step s-12-07",
+          "why": "Why s-12-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-12-08",
+          "title": "Step s-12-08",
+          "why": "Why s-12-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-12-09",
+          "title": "Step s-12-09",
+          "why": "Why s-12-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-12-10",
+          "title": "Step s-12-10",
+          "why": "Why s-12-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ch-13",
+      "title": "Chapter ch-13",
+      "why": "Why ch-13",
+      "steps": [
+        {
+          "id": "s-13-01",
+          "title": "Step s-13-01",
+          "why": "Why s-13-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-13-02",
+          "title": "Step s-13-02",
+          "why": "Why s-13-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-13-03",
+          "title": "Step s-13-03",
+          "why": "Why s-13-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-13-04",
+          "title": "Step s-13-04",
+          "why": "Why s-13-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-13-05",
+          "title": "Step s-13-05",
+          "why": "Why s-13-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-13-06",
+          "title": "Step s-13-06",
+          "why": "Why s-13-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-13-07",
+          "title": "Step s-13-07",
+          "why": "Why s-13-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-13-08",
+          "title": "Step s-13-08",
+          "why": "Why s-13-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-13-09",
+          "title": "Step s-13-09",
+          "why": "Why s-13-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-13-10",
+          "title": "Step s-13-10",
+          "why": "Why s-13-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ch-14",
+      "title": "Chapter ch-14",
+      "why": "Why ch-14",
+      "steps": [
+        {
+          "id": "s-14-01",
+          "title": "Step s-14-01",
+          "why": "Why s-14-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-14-02",
+          "title": "Step s-14-02",
+          "why": "Why s-14-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-14-03",
+          "title": "Step s-14-03",
+          "why": "Why s-14-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-14-04",
+          "title": "Step s-14-04",
+          "why": "Why s-14-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-14-05",
+          "title": "Step s-14-05",
+          "why": "Why s-14-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-14-06",
+          "title": "Step s-14-06",
+          "why": "Why s-14-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-14-07",
+          "title": "Step s-14-07",
+          "why": "Why s-14-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-14-08",
+          "title": "Step s-14-08",
+          "why": "Why s-14-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-14-09",
+          "title": "Step s-14-09",
+          "why": "Why s-14-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-14-10",
+          "title": "Step s-14-10",
+          "why": "Why s-14-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ch-15",
+      "title": "Chapter ch-15",
+      "why": "Why ch-15",
+      "steps": [
+        {
+          "id": "s-15-01",
+          "title": "Step s-15-01",
+          "why": "Why s-15-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-15-02",
+          "title": "Step s-15-02",
+          "why": "Why s-15-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-15-03",
+          "title": "Step s-15-03",
+          "why": "Why s-15-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-15-04",
+          "title": "Step s-15-04",
+          "why": "Why s-15-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-15-05",
+          "title": "Step s-15-05",
+          "why": "Why s-15-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-15-06",
+          "title": "Step s-15-06",
+          "why": "Why s-15-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-15-07",
+          "title": "Step s-15-07",
+          "why": "Why s-15-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-15-08",
+          "title": "Step s-15-08",
+          "why": "Why s-15-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-15-09",
+          "title": "Step s-15-09",
+          "why": "Why s-15-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-15-10",
+          "title": "Step s-15-10",
+          "why": "Why s-15-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ch-16",
+      "title": "Chapter ch-16",
+      "why": "Why ch-16",
+      "steps": [
+        {
+          "id": "s-16-01",
+          "title": "Step s-16-01",
+          "why": "Why s-16-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-16-02",
+          "title": "Step s-16-02",
+          "why": "Why s-16-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-16-03",
+          "title": "Step s-16-03",
+          "why": "Why s-16-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-16-04",
+          "title": "Step s-16-04",
+          "why": "Why s-16-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-16-05",
+          "title": "Step s-16-05",
+          "why": "Why s-16-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-16-06",
+          "title": "Step s-16-06",
+          "why": "Why s-16-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-16-07",
+          "title": "Step s-16-07",
+          "why": "Why s-16-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-16-08",
+          "title": "Step s-16-08",
+          "why": "Why s-16-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-16-09",
+          "title": "Step s-16-09",
+          "why": "Why s-16-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-16-10",
+          "title": "Step s-16-10",
+          "why": "Why s-16-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ch-17",
+      "title": "Chapter ch-17",
+      "why": "Why ch-17",
+      "steps": [
+        {
+          "id": "s-17-01",
+          "title": "Step s-17-01",
+          "why": "Why s-17-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-17-02",
+          "title": "Step s-17-02",
+          "why": "Why s-17-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-17-03",
+          "title": "Step s-17-03",
+          "why": "Why s-17-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-17-04",
+          "title": "Step s-17-04",
+          "why": "Why s-17-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-17-05",
+          "title": "Step s-17-05",
+          "why": "Why s-17-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-17-06",
+          "title": "Step s-17-06",
+          "why": "Why s-17-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-17-07",
+          "title": "Step s-17-07",
+          "why": "Why s-17-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-17-08",
+          "title": "Step s-17-08",
+          "why": "Why s-17-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-17-09",
+          "title": "Step s-17-09",
+          "why": "Why s-17-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-17-10",
+          "title": "Step s-17-10",
+          "why": "Why s-17-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ch-18",
+      "title": "Chapter ch-18",
+      "why": "Why ch-18",
+      "steps": [
+        {
+          "id": "s-18-01",
+          "title": "Step s-18-01",
+          "why": "Why s-18-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-18-02",
+          "title": "Step s-18-02",
+          "why": "Why s-18-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-18-03",
+          "title": "Step s-18-03",
+          "why": "Why s-18-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-18-04",
+          "title": "Step s-18-04",
+          "why": "Why s-18-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-18-05",
+          "title": "Step s-18-05",
+          "why": "Why s-18-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-18-06",
+          "title": "Step s-18-06",
+          "why": "Why s-18-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-18-07",
+          "title": "Step s-18-07",
+          "why": "Why s-18-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-18-08",
+          "title": "Step s-18-08",
+          "why": "Why s-18-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-18-09",
+          "title": "Step s-18-09",
+          "why": "Why s-18-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-18-10",
+          "title": "Step s-18-10",
+          "why": "Why s-18-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ch-19",
+      "title": "Chapter ch-19",
+      "why": "Why ch-19",
+      "steps": [
+        {
+          "id": "s-19-01",
+          "title": "Step s-19-01",
+          "why": "Why s-19-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-19-02",
+          "title": "Step s-19-02",
+          "why": "Why s-19-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-19-03",
+          "title": "Step s-19-03",
+          "why": "Why s-19-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-19-04",
+          "title": "Step s-19-04",
+          "why": "Why s-19-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-19-05",
+          "title": "Step s-19-05",
+          "why": "Why s-19-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-19-06",
+          "title": "Step s-19-06",
+          "why": "Why s-19-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-19-07",
+          "title": "Step s-19-07",
+          "why": "Why s-19-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-19-08",
+          "title": "Step s-19-08",
+          "why": "Why s-19-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-19-09",
+          "title": "Step s-19-09",
+          "why": "Why s-19-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-19-10",
+          "title": "Step s-19-10",
+          "why": "Why s-19-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ch-20",
+      "title": "Chapter ch-20",
+      "why": "Why ch-20",
+      "steps": [
+        {
+          "id": "s-20-01",
+          "title": "Step s-20-01",
+          "why": "Why s-20-01",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-20-02",
+          "title": "Step s-20-02",
+          "why": "Why s-20-02",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-20-03",
+          "title": "Step s-20-03",
+          "why": "Why s-20-03",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-20-04",
+          "title": "Step s-20-04",
+          "why": "Why s-20-04",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-20-05",
+          "title": "Step s-20-05",
+          "why": "Why s-20-05",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-20-06",
+          "title": "Step s-20-06",
+          "why": "Why s-20-06",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-20-07",
+          "title": "Step s-20-07",
+          "why": "Why s-20-07",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-20-08",
+          "title": "Step s-20-08",
+          "why": "Why s-20-08",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-20-09",
+          "title": "Step s-20-09",
+          "why": "Why s-20-09",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        },
+        {
+          "id": "s-20-10",
+          "title": "Step s-20-10",
+          "why": "Why s-20-10",
+          "target": {
+            "kind": "check",
+            "checkId": "c"
+          },
+          "done": {
+            "kind": "acknowledged"
+          }
+        }
+      ]
+    }
+  ]
+}
