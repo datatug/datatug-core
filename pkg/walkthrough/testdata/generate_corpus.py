@@ -1655,19 +1655,56 @@ refuse(
 
 
 def main():
-    if os.path.isdir(DECLARATIONS):
-        shutil.rmtree(DECLARATIONS)
-    os.makedirs(DECLARATIONS)
-    corpus = {"corpusVersion": CORPUS_VERSION, "vectors": []}
-    provenance = {"corpusVersion": CORPUS_VERSION, "files": {}}
+    write_corpus(
+        CORPUS_VERSION,
+        CASES,
+        "corpus.json",
+        "provenance.json",
+        os.path.join("declarations"),
+    )
+    with open(os.path.join(HERE, "corpus.json"), "rb") as handle:
+        base_sha = hashlib.sha256(handle.read()).hexdigest()
+    write_corpus(
+        CORPUS_VERSION_V2,
+        TRAINING_CASES,
+        "corpus-v2.json",
+        "provenance-v2.json",
+        os.path.join("declarations-v2"),
+        extra={
+            "baseCorpusVersion": CORPUS_VERSION,
+            "baseCorpusSha256": base_sha,
+        },
+    )
+    print(f"wrote {len(CASES)} ordinary vectors and {len(TRAINING_CASES)} training vectors")
+
+
+PROJECTORS = {
+    "declaration": None,
+    "training-declaration": None,
+    "checkpoint-envelope": None,
+    "story-registry-entry": None,
+}
+
+
+def write_corpus(corpus_version, cases, corpus_name, provenance_name, declarations_dir, extra=None):
+    directory = os.path.join(HERE, declarations_dir)
+    if os.path.isdir(directory):
+        shutil.rmtree(directory)
+    os.makedirs(directory)
+    corpus = {"corpusVersion": corpus_version, "vectors": []}
+    provenance = {"corpusVersion": corpus_version}
+    if extra:
+        provenance.update(extra)
+    provenance["files"] = {}
     seen = set()
-    for case in CASES:
+    for case in cases:
         if case["id"] in seen:
             raise SystemExit(f"duplicate case id {case['id']}")
         seen.add(case["id"])
+        operation = case.get("operation", "declaration")
         fixture = case["fixture"]
         data = fixture if isinstance(fixture, bytes) else pretty(fixture)
-        relative = os.path.join("declarations", case["id"] + ".json")
+        relative = os.path.join(declarations_dir, case["id"] + ".json")
         path = os.path.join(HERE, relative)
         with open(path, "wb") as handle:
             handle.write(data)
@@ -1676,9 +1713,9 @@ def main():
         vector = {
             "id": case["id"],
             "description": case["description"],
-            "operation": "declaration",
+            "operation": operation,
             "inputFile": relative,
-            "directoryId": case["directory"],
+            "directoryId": case.get("directory", ""),
         }
         want = {"accepted": False, "newerClient": False}
         if "issues" in case:
@@ -1697,22 +1734,1631 @@ def main():
                 {
                     "accepted": True,
                     "digest": digest,
-                    "definition": pv_declaration(parsed),
+                    "definition": project(operation, parsed),
                 }
             )
         if "digest" not in want:
             want["digest"] = digest
         vector["want"] = want
         corpus["vectors"].append(vector)
-    with open(os.path.join(HERE, "corpus.json"), "w", encoding="utf-8") as handle:
+    corpus_path = os.path.join(HERE, corpus_name)
+    with open(corpus_path, "w", encoding="utf-8") as handle:
         json.dump(corpus, handle, indent=2, ensure_ascii=False)
         handle.write("\n")
-    with open(os.path.join(HERE, "corpus.json"), "rb") as handle:
+    with open(corpus_path, "rb") as handle:
         provenance["corpusSha256"] = hashlib.sha256(handle.read()).hexdigest()
-    with open(os.path.join(HERE, "provenance.json"), "w", encoding="utf-8") as handle:
+    with open(os.path.join(HERE, provenance_name), "w", encoding="utf-8") as handle:
         json.dump(provenance, handle, indent=2, ensure_ascii=False)
         handle.write("\n")
-    print(f"wrote {len(corpus['vectors'])} vectors")
+
+
+def project(operation, parsed):
+    if operation == "declaration":
+        return pv_declaration(parsed)
+    if operation == "training-declaration":
+        return pv2_declaration(parsed)
+    if operation == "checkpoint-envelope":
+        return pv2_envelope(parsed)
+    if operation == "story-registry-entry":
+        return pv2_registry(parsed)
+    raise SystemExit(f"unknown corpus operation {operation}")
+
+
+# ---------------------------------------------------------------------------
+# Training /2 declarations, public registry shapes and checkpoint envelopes.
+# These vectors select the explicit /2 entry points only; the original v1
+# vectors keep selecting ordinary /1 admission unchanged.
+# ---------------------------------------------------------------------------
+
+CORPUS_VERSION_V2 = "walkthrough-contracts-v2"
+SCHEMA_V2 = "datatug-walkthrough/2"
+DECLARATIONS_V2 = os.path.join(HERE, "declarations-v2")
+
+TARGET_KINDS_V2 = set(TARGET_KINDS) | {"challenge", "training-case"}
+CONDITION_KINDS_V2 = set(CONDITION_KINDS) | {"dialogue-finished", "challenge-passed"}
+
+PACKAGE = {
+    "id": "training-demo",
+    "revision": 1,
+    "path": "training/package.json",
+    "sha256": "a" * 64,
+    "bytes": 100,
+}
+NARRATIVE = {
+    "path": "walkthroughs/training-demo/narrative.json",
+    "sha256": "b" * 64,
+    "bytes": 879,
+}
+CHALLENGE = {"kind": "challenge", "challengeId": "retry-query", "revision": 1}
+
+
+def pv2_asset(value):
+    return {"path": value["path"], "sha256": value["sha256"], "bytes": str(value["bytes"])}
+
+
+def pv2_package(value):
+    return {
+        "id": value["id"],
+        "revision": str(value["revision"]),
+        **pv2_asset(value),
+    }
+
+
+def pv2_pin(value):
+    if value["kind"] == "git":
+        return {"kind": "git", "commit": value["commit"].lower()}
+    return {"kind": "digest", "sha256": value["sha256"]}
+
+
+def pv2_target(target):
+    kind = target["kind"]
+    if kind == "challenge":
+        return {
+            "kind": kind,
+            "support": "supported",
+            "challengeId": target["challengeId"],
+            "revision": str(target["revision"]),
+        }
+    if kind == "training-case":
+        return {
+            "kind": kind,
+            "support": "supported",
+            "manifestCaseId": target["manifestCaseId"],
+            "trainingPackage": pv2_package(target["trainingPackage"]),
+        }
+    return pv_target(target)
+
+
+def pv2_condition(condition):
+    kind = condition["kind"]
+    if kind == "dialogue-finished":
+        return {"kind": kind, "support": "supported"}
+    if kind == "challenge-passed":
+        return {
+            "kind": kind,
+            "support": "supported",
+            "checkpoints": [
+                {"id": checkpoint["id"], "completion": checkpoint["completion"]}
+                for checkpoint in condition["checkpoints"]
+            ],
+        }
+    return pv_condition(condition)
+
+
+def pv2_exit(exit_value):
+    if exit_value is None:
+        return {"kind": "index"}
+    if "target" in exit_value:
+        return {"kind": "target", "target": pv2_target(exit_value["target"])}
+    return pv_exit(exit_value)
+
+
+def pv2_step(step_value):
+    target = step_value["target"]
+    done = step_value["done"]
+    supported = target["kind"] in TARGET_KINDS_V2 and done["kind"] in CONDITION_KINDS_V2
+    return {
+        "id": step_value["id"],
+        "kind": step_value.get("kind", "standard"),
+        "segmentId": step_value.get("segmentId", ""),
+        "modes": step_value.get("modes", MODES_DEFAULT),
+        "support": "supported" if supported else "needs-newer",
+        "capture": step_value.get("capture", ""),
+        "needs": step_value.get("needs", ""),
+        "target": pv2_target(target),
+        "done": pv2_condition(done),
+    }
+
+
+def pv2_chapter(chapter_value):
+    steps = [pv2_step(item) for item in chapter_value["steps"]]
+    entry = ""
+    for step_value in chapter_value["steps"]:
+        if "explore" in step_value.get("modes", MODES_DEFAULT):
+            entry = step_value["id"]
+            break
+    return {
+        "id": chapter_value["id"],
+        "formerIds": chapter_value.get("formerIds", []),
+        "requires": chapter_value.get("requires", "anonymous"),
+        "requiresReason": chapter_value.get("requiresReason", ""),
+        "continuesFrom": chapter_value.get("continuesFrom", ""),
+        "readiness": (
+            None
+            if "readiness" not in chapter_value
+            else pv2_condition(chapter_value["readiness"])
+        ),
+        "entryStepId": entry,
+        "steps": steps,
+    }
+
+
+def pv2_declaration(value):
+    return {
+        "id": value["id"],
+        "version": str(value["version"]),
+        "summary": value.get("summary", ""),
+        "trainingPackage": pv2_package(value["trainingPackage"]),
+        "narrative": pv2_asset(value["narrative"]),
+        "chapters": [pv2_chapter(item) for item in value["chapters"]],
+        "finish": pv2_exit(value.get("finish")),
+    }
+
+
+def pv2_envelope(value):
+    return {
+        "projectPresent": True,
+        "authorityGeneration": str(value["authorityGeneration"]),
+        "contentPin": pv2_pin(value["contentPin"]),
+        "declarationSha256": value["declarationSha256"].lower(),
+        "narrativeSha256": value["narrativeSha256"].lower(),
+        "trainingPackageSha256": value["trainingPackageSha256"].lower(),
+        "walkthroughId": value["walkthroughId"],
+        "chapterId": value["chapterId"],
+        "stepId": value["stepId"],
+        "challengeId": value["challengeId"],
+        "challengeRevision": str(value["challengeRevision"]),
+        "checkpointId": value["checkpointId"],
+        "attemptId": value["attemptId"],
+        "submissionGeneration": str(value["submissionGeneration"]),
+        "outcome": value["outcome"],
+        "complete": value["complete"],
+        "assisted": value["assisted"],
+    }
+
+
+def pv2_registry(value):
+    return {
+        "storyId": value["storyId"],
+        "revision": str(value["revision"]),
+        "projectUrl": value["projectUrl"],
+        "walkthroughId": value["walkthroughId"],
+        "contentPin": pv2_pin(value["contentPin"]),
+        "declarationSha256": value["declarationSha256"].lower(),
+    }
+
+
+TRAINING_CASES = []
+
+
+def accept2(case_id, description, fixture, directory=None):
+    TRAINING_CASES.append(
+        {
+            "id": case_id,
+            "description": description,
+            "operation": "training-declaration",
+            "fixture": fixture,
+            "directory": directory or fixture["id"],
+        }
+    )
+
+
+def refuse2(case_id, description, fixture, issues, directory="training-demo"):
+    TRAINING_CASES.append(
+        {
+            "id": case_id,
+            "description": description,
+            "operation": "training-declaration",
+            "fixture": fixture,
+            "directory": directory,
+            "issues": issues,
+        }
+    )
+
+
+def newer2(case_id, description, fixture):
+    TRAINING_CASES.append(
+        {
+            "id": case_id,
+            "description": description,
+            "operation": "training-declaration",
+            "fixture": fixture,
+            "directory": fixture["id"],
+            "newer": True,
+        }
+    )
+
+
+def shape_case(case_id, description, operation, fixture, issues=None):
+    case = {
+        "id": case_id,
+        "description": description,
+        "operation": operation,
+        "fixture": fixture,
+        "directory": "",
+    }
+    if issues is not None:
+        case["issues"] = issues
+    TRAINING_CASES.append(case)
+
+
+def challenge_step(step_id="solve", **extra):
+    value = {
+        "id": step_id,
+        "kind": "challenge",
+        "title": f"Step {step_id}",
+        "why": f"Why {step_id}",
+        "target": copy.deepcopy(CHALLENGE),
+        "done": {
+            "kind": "challenge-passed",
+            "checkpoints": [{"id": "result", "completion": "whole-challenge"}],
+        },
+    }
+    value.update(extra)
+    return value
+
+
+def dialogue_step(step_id="discussion", **extra):
+    value = {
+        "id": step_id,
+        "kind": "scripted-dialogue",
+        "segmentId": step_id,
+        "title": f"Step {step_id}",
+        "why": f"Why {step_id}",
+        "modes": ["guided"],
+        "target": {"kind": "none"},
+        "done": {"kind": "dialogue-finished"},
+    }
+    value.update(extra)
+    return value
+
+
+def standard_step(step_id="inspect", target=None, done=None, **extra):
+    value = {
+        "id": step_id,
+        "title": f"Step {step_id}",
+        "why": f"Why {step_id}",
+        "target": copy.deepcopy(target)
+        if target is not None
+        else {"kind": "check", "checkId": "check-1"},
+        "done": copy.deepcopy(done)
+        if done is not None
+        else {"kind": "acknowledged"},
+    }
+    value.update(extra)
+    return value
+
+
+def training_chapter(chapter_id="retries", steps=None, **extra):
+    value = {
+        "id": chapter_id,
+        "title": f"Chapter {chapter_id}",
+        "why": f"Why {chapter_id}",
+        "steps": copy.deepcopy(steps)
+        if steps is not None
+        else [challenge_step(), dialogue_step()],
+    }
+    value.update(extra)
+    return value
+
+
+def training_declaration(decl_id="training-demo", chapters=None, **extra):
+    value = {
+        "schema": SCHEMA_V2,
+        "id": decl_id,
+        "version": 1,
+        "title": f"Walkthrough {decl_id}",
+        "trainingPackage": copy.deepcopy(PACKAGE),
+        "narrative": copy.deepcopy(NARRATIVE),
+        "chapters": copy.deepcopy(chapters)
+        if chapters is not None
+        else [training_chapter()],
+    }
+    value.update(extra)
+    return value
+
+
+def mutate2(**changes):
+    value = training_declaration()
+    value.update(changes)
+    return value
+
+
+def mutate2_step(step_index, **changes):
+    value = training_declaration()
+    value["chapters"][0]["steps"][step_index].update(changes)
+    return value
+
+
+def mutate2_target(**changes):
+    value = training_declaration()
+    value["chapters"][0]["steps"][0]["target"].update(changes)
+    return value
+
+
+def mutate2_done(**changes):
+    value = training_declaration()
+    value["chapters"][0]["steps"][0]["done"].update(changes)
+    return value
+
+
+def mutate2_package(**changes):
+    value = training_declaration()
+    value["trainingPackage"].update(changes)
+    return value
+
+
+def mutate2_narrative(**changes):
+    value = training_declaration()
+    value["narrative"].update(changes)
+    return value
+
+
+# --- accepted training declarations ----------------------------------------
+
+accept2(
+    "v2-minimal",
+    "A structurally valid /2 declaration: challenge and guided dialogue steps, pinned package and narrative.",
+    training_declaration(),
+)
+accept2(
+    "v2-standard-training-case",
+    "An ordinary standard step may present a training Case whose package reference equals the top reference.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[
+                    standard_step(
+                        "open-case",
+                        {
+                            "kind": "training-case",
+                            "manifestCaseId": "case-1",
+                            "trainingPackage": copy.deepcopy(PACKAGE),
+                        },
+                        {"kind": "route-reached"},
+                    )
+                ]
+            )
+        ]
+    ),
+)
+accept2(
+    "v2-ordinary-fields",
+    "All ordinary /1 fields remain admissible in a /2 declaration.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                "find",
+                [
+                    standard_step(
+                        "pick",
+                        {"kind": "query", "queryId": "customer-orders"},
+                        {"kind": "parameter-value", "name": "CustomerID"},
+                        capture="customer",
+                    ),
+                    standard_step(
+                        "open",
+                        {"kind": "check", "checkId": "check-1"},
+                        {"kind": "check-run"},
+                    ),
+                ],
+            )
+        ]
+    ),
+)
+accept2(
+    "v2-unknown-target-step-local",
+    "An unknown target kind inside a challenge step stays step-local newer-client, without a fatal pairing error.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[challenge_step(target={"kind": "future-challenge"})]
+            )
+        ]
+    ),
+)
+accept2(
+    "v2-unknown-condition-step-local",
+    "An unknown condition kind inside a dialogue step stays step-local newer-client.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[
+                    challenge_step(),
+                    dialogue_step(done={"kind": "future-dialogue"}),
+                ]
+            )
+        ]
+    ),
+)
+accept2(
+    "v2-challenge-id-64",
+    "A 64-character challenge slug is checked by the challenge contract, not the 48-character walkthrough grammar.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[
+                    challenge_step(
+                        target={
+                            "kind": "challenge",
+                            "challengeId": "a" * 64,
+                            "revision": 1,
+                        }
+                    )
+                ]
+            )
+        ]
+    ),
+)
+accept2(
+    "v2-revision-1000000",
+    "The challenge revision upper bound 1000000 is admitted.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[
+                    challenge_step(
+                        target={
+                            "kind": "challenge",
+                            "challengeId": "retry-query",
+                            "revision": 1000000,
+                        }
+                    )
+                ]
+            )
+        ]
+    ),
+)
+accept2(
+    "v2-large-integers",
+    "2^53, the uint64 boundary and a far larger byte length survive as exact lexemes with no machine-integer cap.",
+    training_declaration(
+        version=9007199254740992,
+        trainingPackage={
+            "id": "training-demo",
+            "revision": 18446744073709551615,
+            "path": "training/package.json",
+            "sha256": "c" * 64,
+            "bytes": 9007199254740993,
+        },
+        narrative={
+            "path": "walkthroughs/training-demo/narrative.json",
+            "sha256": "d" * 64,
+            "bytes": 10 ** 30,
+        },
+        chapters=[
+            training_chapter(
+                steps=[
+                    challenge_step(
+                        target={
+                            "kind": "challenge",
+                            "challengeId": "retry-query",
+                            "revision": 1000000,
+                        }
+                    ),
+                    dialogue_step(),
+                ]
+            )
+        ],
+    ),
+)
+accept2(
+    "v2-checkpoint-same-id-across-chapters",
+    "Checkpoint ids are unique within a chapter, not across the whole walkthrough.",
+    training_declaration(
+        chapters=[
+            training_chapter("first", [challenge_step("solve-first")]),
+            training_chapter("second", [challenge_step("solve-second")]),
+        ]
+    ),
+)
+accept2(
+    "v2-finish-challenge-target",
+    "A finish exit may use the /2 challenge target registry.",
+    training_declaration(
+        finish={
+            "target": {
+                "kind": "challenge",
+                "challengeId": "retry-query",
+                "revision": 1,
+            }
+        }
+    ),
+)
+
+# --- refused training declarations -----------------------------------------
+
+missing_package = training_declaration()
+del missing_package["trainingPackage"]
+refuse2(
+    "v2-missing-package",
+    "The top-level trainingPackage reference is required.",
+    missing_package,
+    [("missing_field", "/trainingPackage")],
+)
+
+missing_narrative = training_declaration()
+del missing_narrative["narrative"]
+refuse2(
+    "v2-missing-narrative",
+    "The top-level narrative asset reference is required.",
+    missing_narrative,
+    [("missing_field", "/narrative")],
+)
+
+refuse2(
+    "v2-unknown-top-field",
+    "An unknown top-level field rejects; /2 does not ignore typos.",
+    mutate2(extra=True),
+    [("unknown_field", "/extra")],
+)
+refuse2(
+    "v2-unknown-step-kind",
+    "The /2 step kind registry is closed.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[challenge_step(kind="future-step"), dialogue_step()]
+            )
+        ]
+    ),
+    [("invalid_value", "/chapters/0/steps/0/kind")],
+)
+refuse2(
+    "v2-standard-segment-id",
+    "A standard step cannot carry a dialogue segmentId.",
+    training_declaration(
+        chapters=[
+            training_chapter(steps=[standard_step("inspect", segmentId="segment")])
+        ]
+    ),
+    [("invalid_value", "/chapters/0/steps/0/segmentId")],
+)
+missing_segment = training_declaration()
+del missing_segment["chapters"][0]["steps"][1]["segmentId"]
+refuse2(
+    "v2-dialogue-missing-segment",
+    "A scripted-dialogue step requires its sidecar segmentId.",
+    missing_segment,
+    [("missing_field", "/chapters/0/steps/1/segmentId")],
+)
+refuse2(
+    "v2-dialogue-target-not-none",
+    "A scripted-dialogue target must be none.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[
+                    challenge_step(),
+                    dialogue_step(target={"kind": "query", "queryId": "q"}),
+                ]
+            )
+        ]
+    ),
+    [("invalid_value", "/chapters/0/steps/1/target/kind")],
+)
+refuse2(
+    "v2-dialogue-wrong-done",
+    "A scripted-dialogue step ends only with dialogue-finished.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[
+                    challenge_step(),
+                    dialogue_step(done={"kind": "route-reached"}),
+                ]
+            )
+        ]
+    ),
+    [("invalid_value", "/chapters/0/steps/1/done/kind")],
+)
+refuse2(
+    "v2-dialogue-capture",
+    "A scripted-dialogue step cannot capture.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[challenge_step(), dialogue_step(capture="incident")]
+            )
+        ]
+    ),
+    [("capture_not_allowed", "/chapters/0/steps/1/capture")],
+)
+refuse2(
+    "v2-dialogue-needs",
+    "A scripted-dialogue step cannot declare needs.",
+    training_declaration(
+        chapters=[
+            training_chapter("find", [standard_step("pick")]),
+            training_chapter(
+                "retries",
+                [challenge_step(), dialogue_step(needs="readiness")],
+                continuesFrom="find",
+                readiness={"kind": "asset-exists", "asset": "query", "id": "q"},
+            ),
+        ]
+    ),
+    [("invalid_value", "/chapters/1/steps/1/needs")],
+)
+refuse2(
+    "v2-challenge-segment-id",
+    "A challenge step cannot carry a dialogue segmentId.",
+    training_declaration(
+        chapters=[training_chapter(steps=[challenge_step(segmentId="segment")])]
+    ),
+    [("invalid_value", "/chapters/0/steps/0/segmentId")],
+)
+refuse2(
+    "v2-challenge-wrong-target",
+    "A challenge step target must be a challenge target.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[
+                    challenge_step(target={"kind": "query", "queryId": "q"})
+                ]
+            )
+        ]
+    ),
+    [("invalid_value", "/chapters/0/steps/0/target/kind")],
+)
+refuse2(
+    "v2-challenge-wrong-done",
+    "A challenge step done must be challenge-passed.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[challenge_step(done={"kind": "route-reached"})]
+            )
+        ]
+    ),
+    [("invalid_value", "/chapters/0/steps/0/done/kind")],
+)
+refuse2(
+    "v2-standard-challenge-target",
+    "A challenge target requires a challenge step.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[standard_step("inspect", copy.deepcopy(CHALLENGE))]
+            )
+        ]
+    ),
+    [("invalid_value", "/chapters/0/steps/0/target/kind")],
+)
+refuse2(
+    "v2-standard-challenge-passed",
+    "A challenge-passed condition requires a challenge step.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[
+                    standard_step(
+                        "inspect",
+                        done={
+                            "kind": "challenge-passed",
+                            "checkpoints": [
+                                {"id": "result", "completion": "whole-challenge"}
+                            ],
+                        },
+                    )
+                ]
+            )
+        ]
+    ),
+    [("invalid_value", "/chapters/0/steps/0/done/kind")],
+)
+refuse2(
+    "v2-challenge-capture",
+    "A challenge step cannot capture.",
+    training_declaration(
+        chapters=[
+            training_chapter(steps=[challenge_step(capture="incident")])
+        ]
+    ),
+    [("capture_not_allowed", "/chapters/0/steps/0/capture")],
+)
+refuse2(
+    "v2-checkpoints-missing",
+    "challenge-passed requires its one checkpoint mapping.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[challenge_step(done={"kind": "challenge-passed"})]
+            )
+        ]
+    ),
+    [("missing_field", "/chapters/0/steps/0/done/checkpoints")],
+)
+refuse2(
+    "v2-checkpoints-two",
+    "Exactly one checkpoint mapping is admitted per challenge step.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[
+                    challenge_step(
+                        done={
+                            "kind": "challenge-passed",
+                            "checkpoints": [
+                                {"id": "result", "completion": "whole-challenge"},
+                                {"id": "other", "completion": "whole-challenge"},
+                            ],
+                        }
+                    ),
+                    dialogue_step(),
+                ]
+            )
+        ]
+    ),
+    [("too_many", "/chapters/0/steps/0/done/checkpoints")],
+)
+refuse2(
+    "v2-checkpoints-empty",
+    "An empty checkpoint mapping array is refused.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[
+                    challenge_step(
+                        done={"kind": "challenge-passed", "checkpoints": []}
+                    ),
+                    dialogue_step(),
+                ]
+            )
+        ]
+    ),
+    [("too_many", "/chapters/0/steps/0/done/checkpoints")],
+)
+refuse2(
+    "v2-checkpoints-not-array",
+    "checkpoints must be an array.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[
+                    challenge_step(
+                        done={"kind": "challenge-passed", "checkpoints": {}}
+                    ),
+                    dialogue_step(),
+                ]
+            )
+        ]
+    ),
+    [("invalid_type", "/chapters/0/steps/0/done/checkpoints")],
+)
+refuse2(
+    "v2-checkpoint-extra-field",
+    "A checkpoint mapping has exactly id and completion.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[
+                    challenge_step(
+                        done={
+                            "kind": "challenge-passed",
+                            "checkpoints": [
+                                {
+                                    "id": "result",
+                                    "completion": "whole-challenge",
+                                    "extra": True,
+                                }
+                            ],
+                        }
+                    ),
+                    dialogue_step(),
+                ]
+            )
+        ]
+    ),
+    [("unknown_field", "/chapters/0/steps/0/done/checkpoints/0/extra")],
+)
+refuse2(
+    "v2-checkpoint-completion-part",
+    "Only whole-challenge completion is representable; part-level mappings are not invented.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[
+                    challenge_step(
+                        done={
+                            "kind": "challenge-passed",
+                            "checkpoints": [
+                                {"id": "result", "completion": "part"}
+                            ],
+                        }
+                    ),
+                    dialogue_step(),
+                ]
+            )
+        ]
+    ),
+    [("invalid_value", "/chapters/0/steps/0/done/checkpoints/0/completion")],
+)
+refuse2(
+    "v2-checkpoint-missing-id",
+    "A checkpoint mapping requires its walkthrough-owned id.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[
+                    challenge_step(
+                        done={
+                            "kind": "challenge-passed",
+                            "checkpoints": [
+                                {"completion": "whole-challenge"}
+                            ],
+                        }
+                    ),
+                    dialogue_step(),
+                ]
+            )
+        ]
+    ),
+    [("missing_field", "/chapters/0/steps/0/done/checkpoints/0/id")],
+)
+refuse2(
+    "v2-checkpoint-duplicate-in-chapter",
+    "A checkpoint id repeated within one chapter rejects.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[challenge_step("solve"), challenge_step("solve-again")]
+            )
+        ]
+    ),
+    [("duplicate_id", "/chapters/0/steps/1/done/checkpoints/0/id")],
+)
+refuse2(
+    "v2-training-case-package-mismatch",
+    "A training-case package reference must equal the top reference field for field.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[
+                    standard_step(
+                        "open-case",
+                        {
+                            "kind": "training-case",
+                            "manifestCaseId": "case-1",
+                            "trainingPackage": {
+                                "id": "other-package",
+                                "revision": 1,
+                                "path": "training/package.json",
+                                "sha256": "a" * 64,
+                                "bytes": 100,
+                            },
+                        },
+                        {"kind": "route-reached"},
+                    )
+                ]
+            )
+        ]
+    ),
+    [("mismatch", "/chapters/0/steps/0/target/trainingPackage/id")],
+)
+refuse2(
+    "v2-training-case-missing-package",
+    "A training-case target requires its package reference.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[
+                    standard_step(
+                        "open-case",
+                        {"kind": "training-case", "manifestCaseId": "case-1"},
+                        {"kind": "route-reached"},
+                    )
+                ]
+            )
+        ]
+    ),
+    [("missing_field", "/chapters/0/steps/0/target/trainingPackage")],
+)
+refuse2(
+    "v2-challenge-id-uppercase",
+    "A challenge id is a lowercase slug.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[challenge_step(target={"kind": "challenge", "challengeId": "Retry", "revision": 1})]
+            )
+        ]
+    ),
+    [("invalid_value", "/chapters/0/steps/0/target/challengeId")],
+)
+refuse2(
+    "v2-challenge-id-65",
+    "A 65-character challenge id exceeds the owner contract.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[
+                    challenge_step(
+                        target={
+                            "kind": "challenge",
+                            "challengeId": "a" * 65,
+                            "revision": 1,
+                        }
+                    )
+                ]
+            )
+        ]
+    ),
+    [("invalid_value", "/chapters/0/steps/0/target/challengeId")],
+)
+refuse2(
+    "v2-challenge-id-leading-digit",
+    "A challenge id starts with a letter.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[challenge_step(target={"kind": "challenge", "challengeId": "1retry", "revision": 1})]
+            )
+        ]
+    ),
+    [("invalid_value", "/chapters/0/steps/0/target/challengeId")],
+)
+refuse2(
+    "v2-revision-1000001",
+    "A challenge revision above 1000000 is refused by the owner contract.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[challenge_step(target={"kind": "challenge", "challengeId": "retry-query", "revision": 1000001})]
+            )
+        ]
+    ),
+    [("invalid_value", "/chapters/0/steps/0/target/revision")],
+)
+refuse2(
+    "v2-revision-zero",
+    "A challenge revision is at least 1.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[challenge_step(target={"kind": "challenge", "challengeId": "retry-query", "revision": 0})]
+            )
+        ]
+    ),
+    [("invalid_value", "/chapters/0/steps/0/target/revision")],
+)
+refuse2(
+    "v2-revision-fraction",
+    "A challenge revision is an integer.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[challenge_step(target={"kind": "challenge", "challengeId": "retry-query", "revision": 1.5})]
+            )
+        ]
+    ),
+    [("invalid_value", "/chapters/0/steps/0/target/revision")],
+)
+refuse2(
+    "v2-revision-exponent",
+    "A challenge revision is not an exponent spelling.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[challenge_step(target={"kind": "challenge", "challengeId": "retry-query", "revision": 1e3})]
+            )
+        ]
+    ),
+    [("invalid_value", "/chapters/0/steps/0/target/revision")],
+)
+refuse2(
+    "v2-revision-negative",
+    "A challenge revision is positive.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[challenge_step(target={"kind": "challenge", "challengeId": "retry-query", "revision": -1})]
+            )
+        ]
+    ),
+    [("invalid_value", "/chapters/0/steps/0/target/revision")],
+)
+refuse2(
+    "v2-revision-null",
+    "A challenge revision is a number, not null.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[challenge_step(target={"kind": "challenge", "challengeId": "retry-query", "revision": None})]
+            )
+        ]
+    ),
+    [("invalid_type", "/chapters/0/steps/0/target/revision")],
+)
+refuse2(
+    "v2-package-path-absolute",
+    "An asset path is project-root-relative, never absolute.",
+    mutate2_package(path="/training/package.json"),
+    [("invalid_path", "/trainingPackage/path")],
+)
+refuse2(
+    "v2-package-path-dotdot",
+    "An asset path has no .. segment.",
+    mutate2_package(path="training/../package.json"),
+    [("invalid_path", "/trainingPackage/path")],
+)
+refuse2(
+    "v2-package-path-dot",
+    "An asset path has no . segment.",
+    mutate2_package(path="training/./package.json"),
+    [("invalid_path", "/trainingPackage/path")],
+)
+refuse2(
+    "v2-package-path-backslash",
+    "An asset path has no backslash.",
+    mutate2_package(path="training\\package.json"),
+    [("invalid_path", "/trainingPackage/path")],
+)
+refuse2(
+    "v2-package-path-scheme",
+    "An asset path has no URL scheme.",
+    mutate2_package(path="https://example.com/package.json"),
+    [("invalid_path", "/trainingPackage/path")],
+)
+refuse2(
+    "v2-package-path-query",
+    "An asset path has no query or fragment.",
+    mutate2_package(path="training/package.json?v=1"),
+    [("invalid_path", "/trainingPackage/path")],
+)
+refuse2(
+    "v2-package-path-trailing-slash",
+    "An asset path has no empty segment.",
+    mutate2_package(path="training/"),
+    [("invalid_path", "/trainingPackage/path")],
+)
+refuse2(
+    "v2-narrative-path-dot",
+    "The narrative asset path follows the same safe path rules.",
+    mutate2_narrative(path="./narrative.json"),
+    [("invalid_path", "/narrative/path")],
+)
+refuse2(
+    "v2-package-sha-uppercase",
+    "An asset digest is 64 lowercase hexadecimal characters.",
+    mutate2_package(sha256="A" * 64),
+    [("invalid_value", "/trainingPackage/sha256")],
+)
+refuse2(
+    "v2-package-bytes-zero",
+    "An asset byte count is positive.",
+    mutate2_package(bytes=0),
+    [("invalid_value", "/trainingPackage/bytes")],
+)
+refuse2(
+    "v2-package-revision-zero",
+    "A package revision is positive.",
+    mutate2_package(revision=0),
+    [("invalid_value", "/trainingPackage/revision")],
+)
+refuse2(
+    "v2-package-extra-field",
+    "A package reference has exactly its five fields.",
+    mutate2_package(extra=True),
+    [("unknown_field", "/trainingPackage/extra")],
+)
+missing_package_id = training_declaration()
+del missing_package_id["trainingPackage"]["id"]
+refuse2(
+    "v2-package-missing-id",
+    "A package reference requires its id.",
+    missing_package_id,
+    [("missing_field", "/trainingPackage/id")],
+)
+missing_narrative_bytes = training_declaration()
+del missing_narrative_bytes["narrative"]["bytes"]
+refuse2(
+    "v2-narrative-missing-bytes",
+    "An asset reference requires its byte length.",
+    missing_narrative_bytes,
+    [("missing_field", "/narrative/bytes")],
+)
+refuse2(
+    "v2-schema-v1-in-training",
+    "The explicit /2 entry point does not down-convert an ordinary /1 declaration.",
+    mutate2(schema="datatug-walkthrough/1"),
+    [("invalid_value", "/schema")],
+)
+refuse2(
+    "v2-schema-0",
+    "Schema major 0 is not later than /2.",
+    mutate2(schema="datatug-walkthrough/0"),
+    [("invalid_value", "/schema")],
+)
+newer2(
+    "v2-schema-3-newer",
+    "A later /2+1 schema major needs a newer client.",
+    mutate2(schema="datatug-walkthrough/3"),
+)
+newer2(
+    "v2-schema-99-newer",
+    "A far later schema major needs a newer client.",
+    mutate2(schema="datatug-walkthrough/99"),
+)
+refuse2(
+    "v2-dialogue-entry-target",
+    "A chapter's first Explore step must not be a none-target dialogue.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[
+                    dialogue_step(modes=["guided", "explore"]),
+                    challenge_step(),
+                ]
+            )
+        ]
+    ),
+    [("invalid_entry_target", "/chapters/0/steps/0/target")],
+)
+refuse2(
+    "v2-missing-explore-entry",
+    "Every /2 chapter still requires a navigable Explore entry.",
+    training_declaration(
+        chapters=[training_chapter(steps=[dialogue_step()])]
+    ),
+    [("missing_explore_entry", "/chapters/0/steps")],
+)
+
+# --- checkpoint envelope shapes --------------------------------------------
+
+PROJECT_REF = {
+    "storeId": "github.com",
+    "projectId": "datatug-demo-project@datatug@demo-project-1",
+    "branch": "main",
+}
+ENVELOPE_COMMIT = "0123456789abcdef0123456789abcdef01234567"
+
+
+def envelope(**overrides):
+    value = {
+        "project": copy.deepcopy(PROJECT_REF),
+        "authorityGeneration": 1,
+        "contentPin": {"kind": "git", "commit": ENVELOPE_COMMIT},
+        "declarationSha256": "c" * 64,
+        "narrativeSha256": "b" * 64,
+        "trainingPackageSha256": "a" * 64,
+        "walkthroughId": "training-demo",
+        "chapterId": "retries",
+        "stepId": "solve",
+        "challengeId": "retry-query",
+        "challengeRevision": 1,
+        "checkpointId": "result",
+        "attemptId": "attempt-1",
+        "submissionGeneration": 1,
+        "outcome": "passed",
+        "complete": True,
+        "assisted": False,
+    }
+    value.update(overrides)
+    return value
+
+
+def mutate_envelope(**changes):
+    value = envelope()
+    value.update(changes)
+    return value
+
+
+def envelope_case(case_id, description, fixture, issues=None):
+    shape_case(case_id, description, "checkpoint-envelope", fixture, issues)
+
+
+envelope_case(
+    "envelope-valid",
+    "A fully consistent passed and complete validation envelope with independent assistance.",
+    envelope(assisted=True),
+)
+envelope_case(
+    "envelope-hex-case",
+    "Repeated digests and a Git commit are accepted in either hex case and normalized lowercase.",
+    envelope(
+        contentPin={"kind": "git", "commit": ENVELOPE_COMMIT.upper()},
+        declarationSha256="C" * 64,
+        narrativeSha256="B" * 64,
+        trainingPackageSha256="A" * 64,
+    ),
+)
+envelope_case(
+    "envelope-attempt-min-1",
+    "A one-character attempt id is the minimum.",
+    envelope(attemptId="x"),
+)
+envelope_case(
+    "envelope-attempt-max-128",
+    "A 128-character printable ASCII attempt id is the maximum.",
+    envelope(attemptId="a" * 128),
+)
+envelope_case(
+    "envelope-attempt-empty",
+    "An empty attempt id is refused.",
+    envelope(attemptId=""),
+    [("invalid_value", "/attemptId")],
+)
+envelope_case(
+    "envelope-attempt-129",
+    "A 129-character attempt id exceeds the owner bound.",
+    envelope(attemptId="a" * 129),
+    [("invalid_value", "/attemptId")],
+)
+envelope_case(
+    "envelope-attempt-control",
+    "A control character is not printable ASCII.",
+    envelope(attemptId="line\nbreak"),
+    [("invalid_value", "/attemptId")],
+)
+envelope_case(
+    "envelope-attempt-non-ascii",
+    "A non-ASCII attempt id is refused.",
+    envelope(attemptId="attempté"),
+    [("invalid_value", "/attemptId")],
+)
+envelope_case(
+    "envelope-authority-2-53",
+    "2^53 survives exactly as an authority generation lexeme.",
+    envelope(authorityGeneration=9007199254740992),
+)
+envelope_case(
+    "envelope-authority-uint64",
+    "The uint64 boundary survives exactly as an authority generation lexeme.",
+    envelope(authorityGeneration=18446744073709551615),
+)
+envelope_case(
+    "envelope-authority-huge",
+    "A far larger authority generation lexeme is not truncated.",
+    envelope(authorityGeneration=10 ** 30),
+)
+envelope_case(
+    "envelope-authority-zero",
+    "An authority generation is positive.",
+    envelope(authorityGeneration=0),
+    [("invalid_value", "/authorityGeneration")],
+)
+envelope_case(
+    "envelope-authority-negative",
+    "An authority generation is positive.",
+    envelope(authorityGeneration=-1),
+    [("invalid_value", "/authorityGeneration")],
+)
+envelope_case(
+    "envelope-authority-fraction",
+    "An authority generation is an integer.",
+    envelope(authorityGeneration=1.5),
+    [("invalid_value", "/authorityGeneration")],
+)
+envelope_case(
+    "envelope-authority-exponent",
+    "An authority generation is not an exponent spelling.",
+    envelope(authorityGeneration=1e3),
+    [("invalid_value", "/authorityGeneration")],
+)
+envelope_case(
+    "envelope-authority-null",
+    "An authority generation is a number, not null.",
+    envelope(authorityGeneration=None),
+    [("invalid_type", "/authorityGeneration")],
+)
+envelope_case(
+    "envelope-submission-2-53",
+    "A submission generation uses the same lossless positive-integer rule.",
+    envelope(submissionGeneration=9007199254740992),
+)
+envelope_case(
+    "envelope-challenge-revision-1000001",
+    "A challenge revision above the owner bound is refused.",
+    envelope(challengeRevision=1000001),
+    [("invalid_value", "/challengeRevision")],
+)
+envelope_case(
+    "envelope-challenge-revision-zero",
+    "A challenge revision is at least 1.",
+    envelope(challengeRevision=0),
+    [("invalid_value", "/challengeRevision")],
+)
+envelope_case(
+    "envelope-outcome-invalid",
+    "The outcome registry is closed.",
+    envelope(outcome="skipped"),
+    [("invalid_value", "/outcome")],
+)
+envelope_case(
+    "envelope-passed-incomplete",
+    "A passed outcome with complete false is an inconsistent summary.",
+    envelope(complete=False),
+    [("inconsistent_summary", "/complete")],
+)
+envelope_case(
+    "envelope-failed-complete",
+    "A non-passed outcome with complete true is an inconsistent summary.",
+    envelope(outcome="failed", complete=True, assisted=True),
+    [("inconsistent_summary", "/complete")],
+)
+envelope_case(
+    "envelope-reference-namespace",
+    "A reference-only result is not this envelope type; a namespace label is an unknown field.",
+    envelope(namespace="reference"),
+    [("unknown_field", "/namespace")],
+)
+envelope_case(
+    "envelope-test-namespace",
+    "A Test-mode result is not this envelope type.",
+    envelope(mode="test"),
+    [("unknown_field", "/mode")],
+)
+envelope_case(
+    "envelope-extra-sql",
+    "No SQL, rows, evidence or transcript may travel in the envelope.",
+    envelope(sql="select 1"),
+    [("unknown_field", "/sql")],
+)
+envelope_case(
+    "envelope-missing-project",
+    "The project reference is required.",
+    {key: value for key, value in envelope().items() if key != "project"},
+    [("missing_field", "/project")],
+)
+envelope_case(
+    "envelope-null-project",
+    "The project reference is not null.",
+    envelope(project=None),
+    [("invalid_type", "/project")],
+)
+envelope_case(
+    "envelope-digest-short",
+    "Each repeated digest is a full 64-hex digest.",
+    envelope(declarationSha256="abc"),
+    [("invalid_value", "/declarationSha256")],
+)
+envelope_case(
+    "envelope-pin-branch",
+    "A content pin is one exact immutable pin, never a branch name.",
+    envelope(contentPin={"kind": "git", "commit": "main"}),
+    [("invalid_value", "/contentPin/commit")],
+)
+envelope_case(
+    "envelope-pin-uppercase-digest",
+    "A digest pin is lowercase as the owner specifies.",
+    envelope(contentPin={"kind": "digest", "sha256": "A" * 64}),
+    [("invalid_value", "/contentPin/sha256")],
+)
+envelope_case(
+    "envelope-complete-missing",
+    "Every envelope field is required.",
+    {key: value for key, value in envelope().items() if key != "complete"},
+    [("missing_field", "/complete")],
+)
+envelope_case(
+    "envelope-assisted-missing",
+    "Assistance is an explicit required field.",
+    {key: value for key, value in envelope().items() if key != "assisted"},
+    [("missing_field", "/assisted")],
+)
+envelope_case(
+    "envelope-walkthrough-id-uppercase",
+    "Envelope identifiers use the walkthrough ID grammar.",
+    envelope(walkthroughId="Training-Demo"),
+    [("invalid_value", "/walkthroughId")],
+)
+
+# --- additional structural boundaries --------------------------------------
+
+refuse2(
+    "v2-step-kind-not-string",
+    "A /2 step kind is a string.",
+    training_declaration(
+        chapters=[training_chapter(steps=[challenge_step(kind=1)])]
+    ),
+    [("invalid_type", "/chapters/0/steps/0/kind")],
+)
+refuse2(
+    "v2-package-not-object",
+    "A package reference is a JSON object.",
+    mutate2(trainingPackage="training/package.json"),
+    [("invalid_type", "/trainingPackage")],
+)
+refuse2(
+    "v2-narrative-not-object",
+    "An asset reference is a JSON object.",
+    mutate2(narrative=[]),
+    [("invalid_type", "/narrative")],
+)
+refuse2(
+    "v2-package-path-not-string",
+    "An asset path is a string.",
+    mutate2_package(path=1),
+    [("invalid_type", "/trainingPackage/path")],
+)
+missing_package_sha = training_declaration()
+del missing_package_sha["trainingPackage"]["sha256"]
+refuse2(
+    "v2-package-sha-missing",
+    "A package reference requires its digest.",
+    missing_package_sha,
+    [("missing_field", "/trainingPackage/sha256")],
+)
+refuse2(
+    "v2-challenge-id-missing",
+    "A challenge target requires its challenge id.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[challenge_step(target={"kind": "challenge", "revision": 1})]
+            )
+        ]
+    ),
+    [("missing_field", "/chapters/0/steps/0/target/challengeId")],
+)
+refuse2(
+    "v2-checkpoint-not-object",
+    "A checkpoint mapping is a JSON object.",
+    training_declaration(
+        chapters=[
+            training_chapter(
+                steps=[
+                    challenge_step(
+                        done={"kind": "challenge-passed", "checkpoints": ["result"]}
+                    ),
+                    dialogue_step(),
+                ]
+            )
+        ]
+    ),
+    [("invalid_type", "/chapters/0/steps/0/done/checkpoints/0")],
+)
+envelope_case(
+    "envelope-pin-not-object",
+    "A content pin is a JSON object.",
+    envelope(contentPin="git"),
+    [("invalid_type", "/contentPin")],
+)
+envelope_case(
+    "envelope-pin-missing-kind",
+    "A content pin requires its kind.",
+    envelope(contentPin={"commit": ENVELOPE_COMMIT}),
+    [("missing_field", "/contentPin/kind")],
+)
+envelope_case(
+    "envelope-pin-kind-not-string",
+    "A content pin kind is a string.",
+    envelope(contentPin={"kind": 1}),
+    [("invalid_type", "/contentPin/kind")],
+)
+envelope_case(
+    "envelope-pin-git-missing-commit",
+    "A Git content pin requires its commit.",
+    envelope(contentPin={"kind": "git"}),
+    [("missing_field", "/contentPin/commit")],
+)
+envelope_case(
+    "envelope-pin-unknown-kind",
+    "A content pin kind is git or digest.",
+    envelope(contentPin={"kind": "future", "sha256": "e" * 64}),
+    [("invalid_value", "/contentPin/kind")],
+)
+envelope_case(
+    "envelope-missing-content-pin",
+    "The content pin is required.",
+    {key: value for key, value in envelope().items() if key != "contentPin"},
+    [("missing_field", "/contentPin")],
+)
+envelope_case(
+    "envelope-missing-attempt",
+    "The attempt id is required.",
+    {key: value for key, value in envelope().items() if key != "attemptId"},
+    [("missing_field", "/attemptId")],
+)
+envelope_case(
+    "envelope-complete-not-boolean",
+    "Whole-attempt completion is a boolean.",
+    envelope(complete="true"),
+    [("invalid_type", "/complete")],
+)
+envelope_case(
+    "envelope-missing-declaration-sha",
+    "Every repeated digest is required.",
+    {key: value for key, value in envelope().items() if key != "declarationSha256"},
+    [("missing_field", "/declarationSha256")],
+)
+
+# --- public story registry entry shapes ------------------------------------
+
+REGISTRY_URL = "/project/github.com/datatug/datatug-demo-project/demo-project-1"
+
+
+def registry(**overrides):
+    value = {
+        "storyId": "phantom-orders",
+        "revision": 1,
+        "projectUrl": REGISTRY_URL,
+        "walkthroughId": "training-demo",
+        "contentPin": {"kind": "git", "commit": ENVELOPE_COMMIT},
+        "declarationSha256": "c" * 64,
+    }
+    value.update(overrides)
+    return value
+
+
+def registry_case(case_id, description, fixture, issues=None):
+    shape_case(case_id, description, "story-registry-entry", fixture, issues)
+
+
+registry_case(
+    "registry-valid",
+    "A closed registry entry shape with a Git commit pin.",
+    registry(),
+)
+registry_case(
+    "registry-hex-case",
+    "The repeated declaration digest accepts either hex case and normalizes lowercase.",
+    registry(declarationSha256="C" * 64, contentPin={"kind": "git", "commit": ENVELOPE_COMMIT.upper()}),
+)
+registry_case(
+    "registry-digest-pin",
+    "A cloud/local registry entry pins an exact content digest.",
+    registry(contentPin={"kind": "digest", "sha256": "e" * 64}),
+)
+registry_case(
+    "registry-extra-field",
+    "A registry entry has exactly its six fields.",
+    registry(extra=True),
+    [("unknown_field", "/extra")],
+)
+registry_case(
+    "registry-story-id-invalid",
+    "A story id uses the walkthrough ID grammar.",
+    registry(storyId="Phantom"),
+    [("invalid_value", "/storyId")],
+)
+registry_case(
+    "registry-revision-zero",
+    "A story revision is positive.",
+    registry(revision=0),
+    [("invalid_value", "/revision")],
+)
+registry_case(
+    "registry-revision-2-53",
+    "A story revision is a lossless positive integer lexeme.",
+    registry(revision=9007199254740992),
+)
+registry_case(
+    "registry-project-url-empty",
+    "A project URL must not be empty.",
+    registry(projectUrl=""),
+    [("invalid_value", "/projectUrl")],
+)
+registry_case(
+    "registry-missing-content-pin",
+    "A registry entry requires its content pin.",
+    {key: value for key, value in registry().items() if key != "contentPin"},
+    [("missing_field", "/contentPin")],
+)
+registry_case(
+    "registry-walkthrough-id-49",
+    "A walkthrough id is at most 48 characters.",
+    registry(walkthroughId="a" * 49),
+    [("invalid_value", "/walkthroughId")],
+)
+registry_case(
+    "registry-declaration-sha-short",
+    "A declaration digest is a full 64-hex digest.",
+    registry(declarationSha256="abc"),
+    [("invalid_value", "/declarationSha256")],
+)
 
 
 if __name__ == "__main__":

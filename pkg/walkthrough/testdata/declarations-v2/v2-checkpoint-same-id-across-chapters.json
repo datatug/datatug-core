@@ -1,0 +1,74 @@
+{
+  "schema": "datatug-walkthrough/2",
+  "id": "training-demo",
+  "version": 1,
+  "title": "Walkthrough training-demo",
+  "trainingPackage": {
+    "id": "training-demo",
+    "revision": 1,
+    "path": "training/package.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "bytes": 100
+  },
+  "narrative": {
+    "path": "walkthroughs/training-demo/narrative.json",
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "bytes": 879
+  },
+  "chapters": [
+    {
+      "id": "first",
+      "title": "Chapter first",
+      "why": "Why first",
+      "steps": [
+        {
+          "id": "solve-first",
+          "kind": "challenge",
+          "title": "Step solve-first",
+          "why": "Why solve-first",
+          "target": {
+            "kind": "challenge",
+            "challengeId": "retry-query",
+            "revision": 1
+          },
+          "done": {
+            "kind": "challenge-passed",
+            "checkpoints": [
+              {
+                "id": "result",
+                "completion": "whole-challenge"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "second",
+      "title": "Chapter second",
+      "why": "Why second",
+      "steps": [
+        {
+          "id": "solve-second",
+          "kind": "challenge",
+          "title": "Step solve-second",
+          "why": "Why solve-second",
+          "target": {
+            "kind": "challenge",
+            "challengeId": "retry-query",
+            "revision": 1
+          },
+          "done": {
+            "kind": "challenge-passed",
+            "checkpoints": [
+              {
+                "id": "result",
+                "completion": "whole-challenge"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

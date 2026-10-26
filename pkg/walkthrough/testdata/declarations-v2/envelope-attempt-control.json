@@ -1,0 +1,26 @@
+{
+  "project": {
+    "storeId": "github.com",
+    "projectId": "datatug-demo-project@datatug@demo-project-1",
+    "branch": "main"
+  },
+  "authorityGeneration": 1,
+  "contentPin": {
+    "kind": "git",
+    "commit": "0123456789abcdef0123456789abcdef01234567"
+  },
+  "declarationSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "narrativeSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "trainingPackageSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "walkthroughId": "training-demo",
+  "chapterId": "retries",
+  "stepId": "solve",
+  "challengeId": "retry-query",
+  "challengeRevision": 1,
+  "checkpointId": "result",
+  "attemptId": "line\nbreak",
+  "submissionGeneration": 1,
+  "outcome": "passed",
+  "complete": true,
+  "assisted": false
+}

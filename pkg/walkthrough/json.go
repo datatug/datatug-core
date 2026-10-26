@@ -29,6 +29,11 @@ type jsonValue struct {
 	text   string
 	array  []*jsonValue
 	object []jsonMember
+	// raw is the exact input span of this value. It exists so an opaque value
+	// (the external checkpoint envelope's owner-resolved project reference) can
+	// be handed to its owning adapter exactly as written instead of this package
+	// inventing a canonical serialization for another owner's type.
+	raw []byte
 }
 
 type jsonMember struct {
@@ -52,6 +57,7 @@ type jsonParser struct {
 
 type jsonFrame struct {
 	kind       jsonKind
+	start      int
 	items      []*jsonValue
 	members    []jsonMember
 	keys       map[string]bool
@@ -112,26 +118,27 @@ outer:
 			return nil, &Issue{Code: CodeInvalidJSON, Path: pointerPath(segments), Message: "unexpected end of JSON"}
 		}
 
+		start := parser.pos
 		switch parser.peek() {
 		case '{':
-			frame := &jsonFrame{kind: jsonObject, keys: make(map[string]bool)}
+			frame := &jsonFrame{kind: jsonObject, start: start, keys: make(map[string]bool)}
 			parser.pos++
 			parser.skipSpace()
 			if parser.peek() == '}' {
 				parser.pos++
-				attachJSON(&stack, &root, &jsonValue{kind: jsonObject})
+				attachJSON(&stack, &root, &jsonValue{kind: jsonObject, raw: parser.data[start:parser.pos]})
 			} else {
 				stack = append(stack, frame)
 				expectKey = true
 				continue
 			}
 		case '[':
-			frame := &jsonFrame{kind: jsonArray}
+			frame := &jsonFrame{kind: jsonArray, start: start}
 			parser.pos++
 			parser.skipSpace()
 			if parser.peek() == ']' {
 				parser.pos++
-				attachJSON(&stack, &root, &jsonValue{kind: jsonArray})
+				attachJSON(&stack, &root, &jsonValue{kind: jsonArray, raw: parser.data[start:parser.pos]})
 			} else {
 				stack = append(stack, frame)
 				segments = append(segments, "0")
@@ -144,13 +151,14 @@ outer:
 				issue.Path = pointerPath(segments)
 				return nil, issue
 			}
-			attachJSON(&stack, &root, &jsonValue{kind: jsonString, text: text})
+			attachJSON(&stack, &root, &jsonValue{kind: jsonString, text: text, raw: parser.data[start:parser.pos]})
 		case 't':
 			literalValue, issue := parser.literal("true", jsonBoolean, true)
 			if issue != nil {
 				issue.Path = pointerPath(segments)
 				return nil, issue
 			}
+			literalValue.raw = parser.data[start:parser.pos]
 			attachJSON(&stack, &root, literalValue)
 		case 'f':
 			literalValue, issue := parser.literal("false", jsonBoolean, false)
@@ -158,6 +166,7 @@ outer:
 				issue.Path = pointerPath(segments)
 				return nil, issue
 			}
+			literalValue.raw = parser.data[start:parser.pos]
 			attachJSON(&stack, &root, literalValue)
 		case 'n':
 			literalValue, issue := parser.literal("null", jsonNull, false)
@@ -165,6 +174,7 @@ outer:
 				issue.Path = pointerPath(segments)
 				return nil, issue
 			}
+			literalValue.raw = parser.data[start:parser.pos]
 			attachJSON(&stack, &root, literalValue)
 		default:
 			if parser.peek() == '-' || (parser.peek() >= '0' && parser.peek() <= '9') {
@@ -173,6 +183,7 @@ outer:
 					issue.Path = pointerPath(segments)
 					return nil, issue
 				}
+				numberValue.raw = parser.data[start:parser.pos]
 				attachJSON(&stack, &root, numberValue)
 			} else {
 				return nil, &Issue{Code: CodeInvalidJSON, Path: pointerPath(segments), Message: "unexpected character in JSON"}
@@ -205,7 +216,7 @@ outer:
 					if len(segments) > 0 {
 						segments = segments[:len(segments)-1]
 					}
-					attachJSON(&stack, &root, &jsonValue{kind: jsonArray, array: frame.items})
+					attachJSON(&stack, &root, &jsonValue{kind: jsonArray, array: frame.items, raw: parser.data[frame.start:parser.pos]})
 					continue
 				default:
 					return nil, &Issue{Code: CodeInvalidJSON, Path: pointerPath(segments), Message: "expected ',' or ']' in an array"}
@@ -225,7 +236,7 @@ outer:
 				if len(segments) > 0 {
 					segments = segments[:len(segments)-1]
 				}
-				attachJSON(&stack, &root, &jsonValue{kind: jsonObject, object: frame.members})
+				attachJSON(&stack, &root, &jsonValue{kind: jsonObject, object: frame.members, raw: parser.data[frame.start:parser.pos]})
 				continue
 			default:
 				return nil, &Issue{Code: CodeInvalidJSON, Path: pointerPath(segments), Message: "expected ',' or '}' in an object"}

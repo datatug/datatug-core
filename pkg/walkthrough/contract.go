@@ -2,9 +2,24 @@ package walkthrough
 
 import "sort"
 
-// SchemaV1 is the only schema this package admits. Any other major is reported
-// as needing a newer DataTug rather than parsed.
+// SchemaV1 is the ordinary schema this package admits through
+// [ParseDeclaration]. Any other major is reported as needing a newer DataTug
+// rather than parsed.
 const SchemaV1 = "datatug-walkthrough/1"
+
+// SchemaV2 is the opt-in training extension admitted only through
+// [ParseTrainingDeclaration]. The ordinary entry point keeps reporting it as a
+// newer-client declaration.
+const SchemaV2 = "datatug-walkthrough/2"
+
+// MaxAttemptIDLen is the owner limit for the external checkpoint envelope's
+// opaque execution-owned attempt id: 1..128 printable ASCII characters.
+const MaxAttemptIDLen = 128
+
+// CompletionWholeChallenge is the only checkpoint completion kind this version
+// admits. Part-level, multiple or alternative mappings require a separately
+// reviewed owning contract.
+const CompletionWholeChallenge = "whole-challenge"
 
 // Ordinary /1 bounds from the normative owner declaration table.
 const (
@@ -130,6 +145,22 @@ type CheckTarget struct {
 	CheckID string
 }
 
+// ChallengeTarget is the exact published challenge revision this step targets.
+// The id/revision follow the challenge-execution owner contract, not the
+// shorter walkthrough ID grammar.
+type ChallengeTarget struct {
+	ChallengeID string
+	Revision    Integer
+}
+
+// TrainingCaseTarget is existing generic Case presentation through a training
+// adapter. TrainingPackage must equal the declaration's top-level package
+// reference field for field.
+type TrainingCaseTarget struct {
+	ManifestCaseID  string
+	TrainingPackage PackageReference
+}
+
 // Target is one closed-registry target variant. Exactly the pointer matching
 // Kind is populated for a supported kind; an unknown kind has Supported false
 // and no variant data.
@@ -146,6 +177,8 @@ type Target struct {
 	Incident           *IncidentTarget
 	Check              *CheckTarget
 	None               *struct{}
+	Challenge          *ChallengeTarget
+	TrainingCase       *TrainingCaseTarget
 }
 
 // ParameterValueCondition observes a query, board or card parameter.
@@ -193,20 +226,40 @@ type BoardTutorialCondition struct {
 	UntilCard string
 }
 
+// CheckpointMapping is the walkthrough-owned whole-challenge checkpoint
+// mapping. Completion is always "whole-challenge"; part-level or
+// narrative-defined mappings are not representable.
+type CheckpointMapping struct {
+	ID         string
+	Completion string
+}
+
+// DialogueFinishedCondition is presentation-step completion of the pinned Play
+// segment. It never awards a challenge pass.
+type DialogueFinishedCondition struct{}
+
+// ChallengePassedCondition observes whole-attempt completion of the step's exact
+// challenge target. It carries exactly one walkthrough-owned checkpoint mapping.
+type ChallengePassedCondition struct {
+	Checkpoints []CheckpointMapping
+}
+
 // Condition is one closed-registry completion condition. Exactly the pointer
 // matching Kind is populated for a supported kind; an unknown kind has
 // Supported false and no variant data.
 type Condition struct {
-	Kind           string
-	Supported      bool
-	ParameterValue *ParameterValueCondition
-	RecordSelected *RecordSelectedCondition
-	QueryRun       *QueryRunCondition
-	PanelOpen      *PanelOpenCondition
-	FilterApplied  *FilterAppliedCondition
-	CheckRun       *CheckRunCondition
-	AssetExists    *AssetExistsCondition
-	BoardTutorial  *BoardTutorialCondition
+	Kind             string
+	Supported        bool
+	ParameterValue   *ParameterValueCondition
+	RecordSelected   *RecordSelectedCondition
+	QueryRun         *QueryRunCondition
+	PanelOpen        *PanelOpenCondition
+	FilterApplied    *FilterAppliedCondition
+	CheckRun         *CheckRunCondition
+	AssetExists      *AssetExistsCondition
+	BoardTutorial    *BoardTutorialCondition
+	DialogueFinished *DialogueFinishedCondition
+	ChallengePassed  *ChallengePassedCondition
 }
 
 // Exit is the walkthrough finish (or a chapter's next exit). Exactly one
@@ -218,18 +271,21 @@ type Exit struct {
 	Target      *Target
 }
 
-// Step is one ordered walkthrough step.
+// Step is one ordered walkthrough step. Kind and SegmentID exist only in the
+// /2 training profile; ordinary /1 steps leave Kind empty.
 type Step struct {
-	ID      string
-	Title   string
-	Why     string
-	Hint    string
-	Modes   []string
-	Target  Target
-	Done    Condition
-	Capture string
-	Needs   string
-	Support Support
+	ID        string
+	Kind      string
+	SegmentID string
+	Title     string
+	Why       string
+	Hint      string
+	Modes     []string
+	Target    Target
+	Done      Condition
+	Capture   string
+	Needs     string
+	Support   Support
 }
 
 // Chapter is one ordered chapter. EntryStepID is the first Explore step whose
@@ -258,6 +314,22 @@ type Declaration struct {
 	Chapters []Chapter
 	Finish   Exit
 	Revision string
+}
+
+// TrainingDeclaration is a structurally valid datatug-walkthrough/2
+// declaration. It is not a resolved admission: package, Case, challenge and
+// source-context authority are established by [ResolveTraining].
+type TrainingDeclaration struct {
+	Schema          string
+	ID              string
+	Version         Integer
+	Title           string
+	Summary         string
+	TrainingPackage PackageReference
+	Narrative       AssetReference
+	Chapters        []Chapter
+	Finish          Exit
+	Revision        string
 }
 
 // DeclarationPath returns the exact project-relative location of a
@@ -317,7 +389,53 @@ func (d *Declaration) Projection() map[string]any {
 	}
 }
 
+// Projection renders the stable, language-neutral normalized view of a /2
+// declaration used by the shared conformance corpus. It extends the ordinary
+// projection with the package and narrative references, the step kind, the
+// dialogue segment id and the checkpoint mapping.
+func (d *TrainingDeclaration) Projection() map[string]any {
+	chapters := make([]any, len(d.Chapters))
+	for index := range d.Chapters {
+		chapters[index] = projectTrainingChapter(d.Chapters[index])
+	}
+	return map[string]any{
+		"id":              d.ID,
+		"version":         string(d.Version),
+		"summary":         d.Summary,
+		"trainingPackage": projectPackageReference(d.TrainingPackage),
+		"narrative":       projectAssetReference(d.Narrative),
+		"chapters":        chapters,
+		"finish":          projectExit(d.Finish),
+	}
+}
+
+func projectAssetReference(ref AssetReference) map[string]any {
+	return map[string]any{
+		"path":   ref.Path,
+		"sha256": ref.SHA256,
+		"bytes":  string(ref.Bytes),
+	}
+}
+
+func projectPackageReference(ref PackageReference) map[string]any {
+	return map[string]any{
+		"id":       ref.ID,
+		"revision": string(ref.Revision),
+		"path":     ref.Path,
+		"sha256":   ref.SHA256,
+		"bytes":    string(ref.Bytes),
+	}
+}
+
 func projectChapter(chapter Chapter) map[string]any {
+	return projectChapterWith(chapter, projectStep)
+}
+
+func projectTrainingChapter(chapter Chapter) map[string]any {
+	return projectChapterWith(chapter, projectTrainingStep)
+}
+
+func projectChapterWith(chapter Chapter, projectStep func(Step) map[string]any) map[string]any {
 	former := append([]string{}, chapter.FormerIDs...)
 	steps := make([]any, len(chapter.Steps))
 	for index := range chapter.Steps {
@@ -350,6 +468,13 @@ func projectStep(step Step) map[string]any {
 		"target":  projectTarget(step.Target),
 		"done":    projectCondition(step.Done),
 	}
+}
+
+func projectTrainingStep(step Step) map[string]any {
+	projected := projectStep(step)
+	projected["kind"] = step.Kind
+	projected["segmentId"] = step.SegmentID
+	return projected
 }
 
 func projectTarget(target Target) map[string]any {
@@ -391,6 +516,12 @@ func projectTarget(target Target) map[string]any {
 		}
 	case target.Check != nil:
 		projected["checkId"] = target.Check.CheckID
+	case target.Challenge != nil:
+		projected["challengeId"] = target.Challenge.ChallengeID
+		projected["revision"] = string(target.Challenge.Revision)
+	case target.TrainingCase != nil:
+		projected["manifestCaseId"] = target.TrainingCase.ManifestCaseID
+		projected["trainingPackage"] = projectPackageReference(target.TrainingCase.TrainingPackage)
 	}
 	return projected
 }
@@ -429,6 +560,15 @@ func projectCondition(condition Condition) map[string]any {
 		projected["id"] = condition.AssetExists.ID
 	case condition.BoardTutorial != nil:
 		projected["untilCard"] = condition.BoardTutorial.UntilCard
+	case condition.ChallengePassed != nil:
+		checkpoints := make([]any, len(condition.ChallengePassed.Checkpoints))
+		for index, checkpoint := range condition.ChallengePassed.Checkpoints {
+			checkpoints[index] = map[string]any{
+				"id":         checkpoint.ID,
+				"completion": checkpoint.Completion,
+			}
+		}
+		projected["checkpoints"] = checkpoints
 	}
 	return projected
 }
