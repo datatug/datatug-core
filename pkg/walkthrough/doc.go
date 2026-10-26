@@ -72,11 +72,16 @@
 // # Not in this package
 //
 // Narrative/catalogue JSON schemas, events, presentation and branches,
-// segment/chapter/event/reference closure, localisation, aggregate text
-// accounting, `/2` generation, seek and adapter handoffs, navigation, progress
-// storage, activity delivery, target existence checks and Walkthrough UI are
-// owned by later slices and other packages. The ordinary /1 user journey and
-// the training runtime do not exist merely because these contracts do.
+// segment/chapter/event/reference closure, catalogue selection and
+// localisation catalogues, aggregate text accounting, `/2` generation, seek
+// and adapter handoffs, navigation, progress storage, activity delivery,
+// target existence checks and Walkthrough UI are owned by later slices and
+// other packages. The pure locale admission/canonicalization profile in
+// [AdmitAuthoredLocale] and [NormalizeVisitorLocale] returns canonical data
+// only; the exact/primary/fallback catalogue selector remains later work.
+// The ordinary /1 user journey and the training runtime do not exist merely
+// because these contracts do.
 //
 //go:generate python3 testdata/generate_corpus.py
+//go:generate python3 testdata/locale/generate_locale_tables.py
 package walkthrough

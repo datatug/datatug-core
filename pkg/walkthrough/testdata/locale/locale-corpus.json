@@ -1,0 +1,2516 @@
+{
+  "corpusVersion": "walkthrough-locale-v1",
+  "profile": "datatug-bcp47-profile/1",
+  "languageRegistry": {
+    "url": "https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry",
+    "fileDate": "2026-09-17",
+    "sha256": "755fad43283be7b41ebe3c89ad054b6eaf928f404f9c0edb74799e0eab74beb1"
+  },
+  "extensionsRegistry": {
+    "url": "https://www.iana.org/assignments/language-tag-extensions-registry/language-tag-extensions-registry",
+    "fileDate": "2014-04-02",
+    "sha256": "fdf7764455c493c245a9b3b5b9cd3938391f0637302c3e943fde86aee652e376"
+  },
+  "note": "Expected values are authored from RFC 5646 section 4.5 and the pinned IANA records; neither implementation nor any host Intl/ICU API produced them.",
+  "grandfathered": [
+    {
+      "tag": "art-lojban",
+      "canonical": "jbo",
+      "primaryLanguage": "jbo"
+    },
+    {
+      "tag": "cel-gaulish",
+      "canonical": "cel-gaulish",
+      "primaryLanguage": "cel"
+    },
+    {
+      "tag": "en-GB-oed",
+      "canonical": "en-GB-oxendict",
+      "primaryLanguage": "en"
+    },
+    {
+      "tag": "i-ami",
+      "canonical": "ami",
+      "primaryLanguage": "ami"
+    },
+    {
+      "tag": "i-bnn",
+      "canonical": "bnn",
+      "primaryLanguage": "bnn"
+    },
+    {
+      "tag": "i-default",
+      "canonical": "i-default",
+      "primaryLanguage": ""
+    },
+    {
+      "tag": "i-enochian",
+      "canonical": "i-enochian",
+      "primaryLanguage": ""
+    },
+    {
+      "tag": "i-hak",
+      "canonical": "hak",
+      "primaryLanguage": "hak"
+    },
+    {
+      "tag": "i-klingon",
+      "canonical": "tlh",
+      "primaryLanguage": "tlh"
+    },
+    {
+      "tag": "i-lux",
+      "canonical": "lb",
+      "primaryLanguage": "lb"
+    },
+    {
+      "tag": "i-mingo",
+      "canonical": "i-mingo",
+      "primaryLanguage": ""
+    },
+    {
+      "tag": "i-navajo",
+      "canonical": "nv",
+      "primaryLanguage": "nv"
+    },
+    {
+      "tag": "i-pwn",
+      "canonical": "pwn",
+      "primaryLanguage": "pwn"
+    },
+    {
+      "tag": "i-tao",
+      "canonical": "tao",
+      "primaryLanguage": "tao"
+    },
+    {
+      "tag": "i-tay",
+      "canonical": "tay",
+      "primaryLanguage": "tay"
+    },
+    {
+      "tag": "i-tsu",
+      "canonical": "tsu",
+      "primaryLanguage": "tsu"
+    },
+    {
+      "tag": "no-bok",
+      "canonical": "nb",
+      "primaryLanguage": "nb"
+    },
+    {
+      "tag": "no-nyn",
+      "canonical": "nn",
+      "primaryLanguage": "nn"
+    },
+    {
+      "tag": "sgn-BE-FR",
+      "canonical": "sfb",
+      "primaryLanguage": "sfb"
+    },
+    {
+      "tag": "sgn-BE-NL",
+      "canonical": "vgt",
+      "primaryLanguage": "vgt"
+    },
+    {
+      "tag": "sgn-CH-DE",
+      "canonical": "sgg",
+      "primaryLanguage": "sgg"
+    },
+    {
+      "tag": "zh-guoyu",
+      "canonical": "cmn",
+      "primaryLanguage": "cmn"
+    },
+    {
+      "tag": "zh-hakka",
+      "canonical": "hak",
+      "primaryLanguage": "hak"
+    },
+    {
+      "tag": "zh-min",
+      "canonical": "zh-min",
+      "primaryLanguage": "zh"
+    },
+    {
+      "tag": "zh-min-nan",
+      "canonical": "nan",
+      "primaryLanguage": "nan"
+    },
+    {
+      "tag": "zh-xiang",
+      "canonical": "hsn",
+      "primaryLanguage": "hsn"
+    }
+  ],
+  "redundant": [
+    {
+      "tag": "az-Arab",
+      "canonical": "az-Arab",
+      "primaryLanguage": "az"
+    },
+    {
+      "tag": "az-Cyrl",
+      "canonical": "az-Cyrl",
+      "primaryLanguage": "az"
+    },
+    {
+      "tag": "az-Latn",
+      "canonical": "az-Latn",
+      "primaryLanguage": "az"
+    },
+    {
+      "tag": "be-Latn",
+      "canonical": "be-Latn",
+      "primaryLanguage": "be"
+    },
+    {
+      "tag": "bs-Cyrl",
+      "canonical": "bs-Cyrl",
+      "primaryLanguage": "bs"
+    },
+    {
+      "tag": "bs-Latn",
+      "canonical": "bs-Latn",
+      "primaryLanguage": "bs"
+    },
+    {
+      "tag": "de-1901",
+      "canonical": "de-1901",
+      "primaryLanguage": "de"
+    },
+    {
+      "tag": "de-1996",
+      "canonical": "de-1996",
+      "primaryLanguage": "de"
+    },
+    {
+      "tag": "de-AT-1901",
+      "canonical": "de-AT-1901",
+      "primaryLanguage": "de"
+    },
+    {
+      "tag": "de-AT-1996",
+      "canonical": "de-AT-1996",
+      "primaryLanguage": "de"
+    },
+    {
+      "tag": "de-CH-1901",
+      "canonical": "de-CH-1901",
+      "primaryLanguage": "de"
+    },
+    {
+      "tag": "de-CH-1996",
+      "canonical": "de-CH-1996",
+      "primaryLanguage": "de"
+    },
+    {
+      "tag": "de-DE-1901",
+      "canonical": "de-DE-1901",
+      "primaryLanguage": "de"
+    },
+    {
+      "tag": "de-DE-1996",
+      "canonical": "de-DE-1996",
+      "primaryLanguage": "de"
+    },
+    {
+      "tag": "en-boont",
+      "canonical": "en-boont",
+      "primaryLanguage": "en"
+    },
+    {
+      "tag": "en-scouse",
+      "canonical": "en-scouse",
+      "primaryLanguage": "en"
+    },
+    {
+      "tag": "es-419",
+      "canonical": "es-419",
+      "primaryLanguage": "es"
+    },
+    {
+      "tag": "iu-Cans",
+      "canonical": "iu-Cans",
+      "primaryLanguage": "iu"
+    },
+    {
+      "tag": "iu-Latn",
+      "canonical": "iu-Latn",
+      "primaryLanguage": "iu"
+    },
+    {
+      "tag": "mn-Cyrl",
+      "canonical": "mn-Cyrl",
+      "primaryLanguage": "mn"
+    },
+    {
+      "tag": "mn-Mong",
+      "canonical": "mn-Mong",
+      "primaryLanguage": "mn"
+    },
+    {
+      "tag": "sgn-BR",
+      "canonical": "bzs",
+      "primaryLanguage": "bzs"
+    },
+    {
+      "tag": "sgn-CO",
+      "canonical": "csn",
+      "primaryLanguage": "csn"
+    },
+    {
+      "tag": "sgn-DE",
+      "canonical": "gsg",
+      "primaryLanguage": "gsg"
+    },
+    {
+      "tag": "sgn-DK",
+      "canonical": "dsl",
+      "primaryLanguage": "dsl"
+    },
+    {
+      "tag": "sgn-ES",
+      "canonical": "ssp",
+      "primaryLanguage": "ssp"
+    },
+    {
+      "tag": "sgn-FR",
+      "canonical": "fsl",
+      "primaryLanguage": "fsl"
+    },
+    {
+      "tag": "sgn-GB",
+      "canonical": "bfi",
+      "primaryLanguage": "bfi"
+    },
+    {
+      "tag": "sgn-GR",
+      "canonical": "gss",
+      "primaryLanguage": "gss"
+    },
+    {
+      "tag": "sgn-IE",
+      "canonical": "isg",
+      "primaryLanguage": "isg"
+    },
+    {
+      "tag": "sgn-IT",
+      "canonical": "ise",
+      "primaryLanguage": "ise"
+    },
+    {
+      "tag": "sgn-JP",
+      "canonical": "jsl",
+      "primaryLanguage": "jsl"
+    },
+    {
+      "tag": "sgn-MX",
+      "canonical": "mfs",
+      "primaryLanguage": "mfs"
+    },
+    {
+      "tag": "sgn-NI",
+      "canonical": "ncs",
+      "primaryLanguage": "ncs"
+    },
+    {
+      "tag": "sgn-NL",
+      "canonical": "dse",
+      "primaryLanguage": "dse"
+    },
+    {
+      "tag": "sgn-NO",
+      "canonical": "nsl",
+      "primaryLanguage": "nsl"
+    },
+    {
+      "tag": "sgn-PT",
+      "canonical": "psr",
+      "primaryLanguage": "psr"
+    },
+    {
+      "tag": "sgn-SE",
+      "canonical": "swl",
+      "primaryLanguage": "swl"
+    },
+    {
+      "tag": "sgn-US",
+      "canonical": "ase",
+      "primaryLanguage": "ase"
+    },
+    {
+      "tag": "sgn-ZA",
+      "canonical": "sfs",
+      "primaryLanguage": "sfs"
+    },
+    {
+      "tag": "sl-nedis",
+      "canonical": "sl-nedis",
+      "primaryLanguage": "sl"
+    },
+    {
+      "tag": "sl-rozaj",
+      "canonical": "sl-rozaj",
+      "primaryLanguage": "sl"
+    },
+    {
+      "tag": "sr-Cyrl",
+      "canonical": "sr-Cyrl",
+      "primaryLanguage": "sr"
+    },
+    {
+      "tag": "sr-Latn",
+      "canonical": "sr-Latn",
+      "primaryLanguage": "sr"
+    },
+    {
+      "tag": "tg-Arab",
+      "canonical": "tg-Arab",
+      "primaryLanguage": "tg"
+    },
+    {
+      "tag": "tg-Cyrl",
+      "canonical": "tg-Cyrl",
+      "primaryLanguage": "tg"
+    },
+    {
+      "tag": "uz-Cyrl",
+      "canonical": "uz-Cyrl",
+      "primaryLanguage": "uz"
+    },
+    {
+      "tag": "uz-Latn",
+      "canonical": "uz-Latn",
+      "primaryLanguage": "uz"
+    },
+    {
+      "tag": "yi-Latn",
+      "canonical": "yi-Latn",
+      "primaryLanguage": "yi"
+    },
+    {
+      "tag": "zh-cmn",
+      "canonical": "cmn",
+      "primaryLanguage": "cmn"
+    },
+    {
+      "tag": "zh-cmn-Hans",
+      "canonical": "cmn-Hans",
+      "primaryLanguage": "cmn"
+    },
+    {
+      "tag": "zh-cmn-Hant",
+      "canonical": "cmn-Hant",
+      "primaryLanguage": "cmn"
+    },
+    {
+      "tag": "zh-gan",
+      "canonical": "gan",
+      "primaryLanguage": "gan"
+    },
+    {
+      "tag": "zh-Hans",
+      "canonical": "zh-Hans",
+      "primaryLanguage": "zh"
+    },
+    {
+      "tag": "zh-Hans-CN",
+      "canonical": "zh-Hans-CN",
+      "primaryLanguage": "zh"
+    },
+    {
+      "tag": "zh-Hans-HK",
+      "canonical": "zh-Hans-HK",
+      "primaryLanguage": "zh"
+    },
+    {
+      "tag": "zh-Hans-MO",
+      "canonical": "zh-Hans-MO",
+      "primaryLanguage": "zh"
+    },
+    {
+      "tag": "zh-Hans-SG",
+      "canonical": "zh-Hans-SG",
+      "primaryLanguage": "zh"
+    },
+    {
+      "tag": "zh-Hans-TW",
+      "canonical": "zh-Hans-TW",
+      "primaryLanguage": "zh"
+    },
+    {
+      "tag": "zh-Hant",
+      "canonical": "zh-Hant",
+      "primaryLanguage": "zh"
+    },
+    {
+      "tag": "zh-Hant-CN",
+      "canonical": "zh-Hant-CN",
+      "primaryLanguage": "zh"
+    },
+    {
+      "tag": "zh-Hant-HK",
+      "canonical": "zh-Hant-HK",
+      "primaryLanguage": "zh"
+    },
+    {
+      "tag": "zh-Hant-MO",
+      "canonical": "zh-Hant-MO",
+      "primaryLanguage": "zh"
+    },
+    {
+      "tag": "zh-Hant-SG",
+      "canonical": "zh-Hant-SG",
+      "primaryLanguage": "zh"
+    },
+    {
+      "tag": "zh-Hant-TW",
+      "canonical": "zh-Hant-TW",
+      "primaryLanguage": "zh"
+    },
+    {
+      "tag": "zh-wuu",
+      "canonical": "wuu",
+      "primaryLanguage": "wuu"
+    },
+    {
+      "tag": "zh-yue",
+      "canonical": "yue",
+      "primaryLanguage": "yue"
+    }
+  ],
+  "vectors": [
+    {
+      "id": "aut-000",
+      "operation": "authored-admission",
+      "input": "iw-IL",
+      "want": {
+        "accepted": true,
+        "tag": "he-IL",
+        "primaryLanguage": "he"
+      }
+    },
+    {
+      "id": "aut-001",
+      "operation": "authored-admission",
+      "input": "in-ID",
+      "want": {
+        "accepted": true,
+        "tag": "id-ID",
+        "primaryLanguage": "id"
+      }
+    },
+    {
+      "id": "aut-002",
+      "operation": "authored-admission",
+      "input": "ji",
+      "want": {
+        "accepted": true,
+        "tag": "yi",
+        "primaryLanguage": "yi"
+      }
+    },
+    {
+      "id": "aut-003",
+      "operation": "authored-admission",
+      "input": "jw",
+      "want": {
+        "accepted": true,
+        "tag": "jv",
+        "primaryLanguage": "jv"
+      }
+    },
+    {
+      "id": "aut-004",
+      "operation": "authored-admission",
+      "input": "mo",
+      "want": {
+        "accepted": true,
+        "tag": "ro",
+        "primaryLanguage": "ro"
+      }
+    },
+    {
+      "id": "aut-005",
+      "operation": "authored-admission",
+      "input": "sh",
+      "want": {
+        "accepted": true,
+        "tag": "sh",
+        "primaryLanguage": "sh"
+      }
+    },
+    {
+      "id": "aut-006",
+      "operation": "authored-admission",
+      "input": "cmn",
+      "want": {
+        "accepted": true,
+        "tag": "cmn",
+        "primaryLanguage": "cmn"
+      }
+    },
+    {
+      "id": "aut-007",
+      "operation": "authored-admission",
+      "input": "zh-cmn",
+      "want": {
+        "accepted": true,
+        "tag": "cmn",
+        "primaryLanguage": "cmn"
+      }
+    },
+    {
+      "id": "aut-008",
+      "operation": "authored-admission",
+      "input": "zh-cmn-Hans-CN",
+      "want": {
+        "accepted": true,
+        "tag": "cmn-Hans-CN",
+        "primaryLanguage": "cmn"
+      }
+    },
+    {
+      "id": "aut-009",
+      "operation": "authored-admission",
+      "input": "zh-yue-Hant",
+      "want": {
+        "accepted": true,
+        "tag": "yue-Hant",
+        "primaryLanguage": "yue"
+      }
+    },
+    {
+      "id": "aut-010",
+      "operation": "authored-admission",
+      "input": "ar-ajp",
+      "want": {
+        "accepted": true,
+        "tag": "apc",
+        "primaryLanguage": "apc"
+      }
+    },
+    {
+      "id": "aut-011",
+      "operation": "authored-admission",
+      "input": "ms-min",
+      "want": {
+        "accepted": true,
+        "tag": "min",
+        "primaryLanguage": "min"
+      }
+    },
+    {
+      "id": "aut-012",
+      "operation": "authored-admission",
+      "input": "en-Latn-US",
+      "want": {
+        "accepted": true,
+        "tag": "en-Latn-US",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "aut-013",
+      "operation": "authored-admission",
+      "input": "sr-Latn-RS",
+      "want": {
+        "accepted": true,
+        "tag": "sr-Latn-RS",
+        "primaryLanguage": "sr"
+      }
+    },
+    {
+      "id": "aut-014",
+      "operation": "authored-admission",
+      "input": "en-BU",
+      "want": {
+        "accepted": true,
+        "tag": "en-MM",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "aut-015",
+      "operation": "authored-admission",
+      "input": "de-DD",
+      "want": {
+        "accepted": true,
+        "tag": "de-DE",
+        "primaryLanguage": "de"
+      }
+    },
+    {
+      "id": "aut-016",
+      "operation": "authored-admission",
+      "input": "ja-Latn-heploc",
+      "want": {
+        "accepted": true,
+        "tag": "ja-Latn-alalc97",
+        "primaryLanguage": "ja"
+      }
+    },
+    {
+      "id": "aut-017",
+      "operation": "authored-admission",
+      "input": "de-DE-1901-1996",
+      "want": {
+        "accepted": true,
+        "tag": "de-DE-1901-1996",
+        "primaryLanguage": "de"
+      }
+    },
+    {
+      "id": "aut-018",
+      "operation": "authored-admission",
+      "input": "fr-1901",
+      "want": {
+        "accepted": true,
+        "tag": "fr-1901",
+        "primaryLanguage": "fr"
+      }
+    },
+    {
+      "id": "aut-019",
+      "operation": "authored-admission",
+      "input": "de-CH-1901",
+      "want": {
+        "accepted": true,
+        "tag": "de-CH-1901",
+        "primaryLanguage": "de"
+      }
+    },
+    {
+      "id": "aut-021",
+      "operation": "authored-admission",
+      "input": "en-u-ca-gregory-t-en-us",
+      "want": {
+        "accepted": true,
+        "tag": "en-t-en-us-u-ca-gregory",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "aut-022",
+      "operation": "authored-admission",
+      "input": "en-u-CA-GREGORY-x-Foo",
+      "want": {
+        "accepted": true,
+        "tag": "en-u-ca-gregory-x-foo",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "aut-023",
+      "operation": "authored-admission",
+      "input": "en-x-a-x-b",
+      "want": {
+        "accepted": true,
+        "tag": "en-x-a-x-b",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "aut-024",
+      "operation": "authored-admission",
+      "input": "x-Company",
+      "want": {
+        "accepted": true,
+        "tag": "x-company",
+        "primaryLanguage": ""
+      }
+    },
+    {
+      "id": "aut-025",
+      "operation": "authored-admission",
+      "input": "X-COMPANY",
+      "want": {
+        "accepted": true,
+        "tag": "x-company",
+        "primaryLanguage": ""
+      }
+    },
+    {
+      "id": "aut-026",
+      "operation": "authored-admission",
+      "input": "qaa",
+      "want": {
+        "accepted": true,
+        "tag": "qaa",
+        "primaryLanguage": "qaa"
+      }
+    },
+    {
+      "id": "aut-027",
+      "operation": "authored-admission",
+      "input": "qtz",
+      "want": {
+        "accepted": true,
+        "tag": "qtz",
+        "primaryLanguage": "qtz"
+      }
+    },
+    {
+      "id": "aut-028",
+      "operation": "authored-admission",
+      "input": "en-Qaaa",
+      "want": {
+        "accepted": true,
+        "tag": "en-Qaaa",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "aut-029",
+      "operation": "authored-admission",
+      "input": "en-Qabx",
+      "want": {
+        "accepted": true,
+        "tag": "en-Qabx",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "aut-030",
+      "operation": "authored-admission",
+      "input": "en-AA",
+      "want": {
+        "accepted": true,
+        "tag": "en-AA",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "aut-031",
+      "operation": "authored-admission",
+      "input": "en-QM",
+      "want": {
+        "accepted": true,
+        "tag": "en-QM",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "aut-032",
+      "operation": "authored-admission",
+      "input": "en-XZ",
+      "want": {
+        "accepted": true,
+        "tag": "en-XZ",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "aut-033",
+      "operation": "authored-admission",
+      "input": "en-ZZ",
+      "want": {
+        "accepted": true,
+        "tag": "en-ZZ",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "aut-034",
+      "operation": "authored-admission",
+      "input": "I-DEFAULT",
+      "want": {
+        "accepted": true,
+        "tag": "i-default",
+        "primaryLanguage": ""
+      }
+    },
+    {
+      "id": "aut-035",
+      "operation": "authored-admission",
+      "input": "I-KLINGON",
+      "want": {
+        "accepted": true,
+        "tag": "tlh",
+        "primaryLanguage": "tlh"
+      }
+    },
+    {
+      "id": "aut-036",
+      "operation": "authored-admission",
+      "input": "EN-gb-OED",
+      "want": {
+        "accepted": true,
+        "tag": "en-GB-oxendict",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "aut-037",
+      "operation": "authored-admission",
+      "input": "cel-gaulish",
+      "want": {
+        "accepted": true,
+        "tag": "cel-gaulish",
+        "primaryLanguage": "cel"
+      }
+    },
+    {
+      "id": "aut-038",
+      "operation": "authored-admission",
+      "input": "zh-min",
+      "want": {
+        "accepted": true,
+        "tag": "zh-min",
+        "primaryLanguage": "zh"
+      }
+    },
+    {
+      "id": "vis-039",
+      "operation": "visitor-normalization",
+      "input": "iw-IL",
+      "want": {
+        "accepted": true,
+        "tag": "he-IL",
+        "primaryLanguage": "he"
+      }
+    },
+    {
+      "id": "vis-040",
+      "operation": "visitor-normalization",
+      "input": "in-ID",
+      "want": {
+        "accepted": true,
+        "tag": "id-ID",
+        "primaryLanguage": "id"
+      }
+    },
+    {
+      "id": "vis-041",
+      "operation": "visitor-normalization",
+      "input": "ji",
+      "want": {
+        "accepted": true,
+        "tag": "yi",
+        "primaryLanguage": "yi"
+      }
+    },
+    {
+      "id": "vis-042",
+      "operation": "visitor-normalization",
+      "input": "jw",
+      "want": {
+        "accepted": true,
+        "tag": "jv",
+        "primaryLanguage": "jv"
+      }
+    },
+    {
+      "id": "vis-043",
+      "operation": "visitor-normalization",
+      "input": "mo",
+      "want": {
+        "accepted": true,
+        "tag": "ro",
+        "primaryLanguage": "ro"
+      }
+    },
+    {
+      "id": "vis-044",
+      "operation": "visitor-normalization",
+      "input": "sh",
+      "want": {
+        "accepted": true,
+        "tag": "sh",
+        "primaryLanguage": "sh"
+      }
+    },
+    {
+      "id": "vis-045",
+      "operation": "visitor-normalization",
+      "input": "cmn",
+      "want": {
+        "accepted": true,
+        "tag": "cmn",
+        "primaryLanguage": "cmn"
+      }
+    },
+    {
+      "id": "vis-046",
+      "operation": "visitor-normalization",
+      "input": "zh-cmn",
+      "want": {
+        "accepted": true,
+        "tag": "cmn",
+        "primaryLanguage": "cmn"
+      }
+    },
+    {
+      "id": "vis-047",
+      "operation": "visitor-normalization",
+      "input": "zh-cmn-Hans-CN",
+      "want": {
+        "accepted": true,
+        "tag": "cmn-Hans-CN",
+        "primaryLanguage": "cmn"
+      }
+    },
+    {
+      "id": "vis-048",
+      "operation": "visitor-normalization",
+      "input": "zh-yue-Hant",
+      "want": {
+        "accepted": true,
+        "tag": "yue-Hant",
+        "primaryLanguage": "yue"
+      }
+    },
+    {
+      "id": "vis-049",
+      "operation": "visitor-normalization",
+      "input": "ar-ajp",
+      "want": {
+        "accepted": true,
+        "tag": "apc",
+        "primaryLanguage": "apc"
+      }
+    },
+    {
+      "id": "vis-050",
+      "operation": "visitor-normalization",
+      "input": "ms-min",
+      "want": {
+        "accepted": true,
+        "tag": "min",
+        "primaryLanguage": "min"
+      }
+    },
+    {
+      "id": "vis-051",
+      "operation": "visitor-normalization",
+      "input": "en-Latn-US",
+      "want": {
+        "accepted": true,
+        "tag": "en-Latn-US",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-052",
+      "operation": "visitor-normalization",
+      "input": "sr-Latn-RS",
+      "want": {
+        "accepted": true,
+        "tag": "sr-Latn-RS",
+        "primaryLanguage": "sr"
+      }
+    },
+    {
+      "id": "vis-053",
+      "operation": "visitor-normalization",
+      "input": "en-BU",
+      "want": {
+        "accepted": true,
+        "tag": "en-MM",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-054",
+      "operation": "visitor-normalization",
+      "input": "de-DD",
+      "want": {
+        "accepted": true,
+        "tag": "de-DE",
+        "primaryLanguage": "de"
+      }
+    },
+    {
+      "id": "vis-055",
+      "operation": "visitor-normalization",
+      "input": "ja-Latn-heploc",
+      "want": {
+        "accepted": true,
+        "tag": "ja-Latn-alalc97",
+        "primaryLanguage": "ja"
+      }
+    },
+    {
+      "id": "vis-056",
+      "operation": "visitor-normalization",
+      "input": "de-DE-1901-1996",
+      "want": {
+        "accepted": true,
+        "tag": "de-DE-1901-1996",
+        "primaryLanguage": "de"
+      }
+    },
+    {
+      "id": "vis-057",
+      "operation": "visitor-normalization",
+      "input": "fr-1901",
+      "want": {
+        "accepted": true,
+        "tag": "fr-1901",
+        "primaryLanguage": "fr"
+      }
+    },
+    {
+      "id": "vis-058",
+      "operation": "visitor-normalization",
+      "input": "de-CH-1901",
+      "want": {
+        "accepted": true,
+        "tag": "de-CH-1901",
+        "primaryLanguage": "de"
+      }
+    },
+    {
+      "id": "vis-059",
+      "operation": "visitor-normalization",
+      "input": "en-b-warble-a-babble-x-Foo",
+      "want": {
+        "accepted": true,
+        "tag": "en-a-babble-b-warble-x-foo",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-060",
+      "operation": "visitor-normalization",
+      "input": "en-u-ca-gregory-t-en-us",
+      "want": {
+        "accepted": true,
+        "tag": "en-t-en-us-u-ca-gregory",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-061",
+      "operation": "visitor-normalization",
+      "input": "en-u-CA-GREGORY-x-Foo",
+      "want": {
+        "accepted": true,
+        "tag": "en-u-ca-gregory-x-foo",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-062",
+      "operation": "visitor-normalization",
+      "input": "en-x-a-x-b",
+      "want": {
+        "accepted": true,
+        "tag": "en-x-a-x-b",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-063",
+      "operation": "visitor-normalization",
+      "input": "x-Company",
+      "want": {
+        "accepted": true,
+        "tag": "x-company",
+        "primaryLanguage": ""
+      }
+    },
+    {
+      "id": "vis-064",
+      "operation": "visitor-normalization",
+      "input": "X-COMPANY",
+      "want": {
+        "accepted": true,
+        "tag": "x-company",
+        "primaryLanguage": ""
+      }
+    },
+    {
+      "id": "vis-065",
+      "operation": "visitor-normalization",
+      "input": "qaa",
+      "want": {
+        "accepted": true,
+        "tag": "qaa",
+        "primaryLanguage": "qaa"
+      }
+    },
+    {
+      "id": "vis-066",
+      "operation": "visitor-normalization",
+      "input": "qtz",
+      "want": {
+        "accepted": true,
+        "tag": "qtz",
+        "primaryLanguage": "qtz"
+      }
+    },
+    {
+      "id": "vis-067",
+      "operation": "visitor-normalization",
+      "input": "en-Qaaa",
+      "want": {
+        "accepted": true,
+        "tag": "en-Qaaa",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-068",
+      "operation": "visitor-normalization",
+      "input": "en-Qabx",
+      "want": {
+        "accepted": true,
+        "tag": "en-Qabx",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-069",
+      "operation": "visitor-normalization",
+      "input": "en-AA",
+      "want": {
+        "accepted": true,
+        "tag": "en-AA",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-070",
+      "operation": "visitor-normalization",
+      "input": "en-QM",
+      "want": {
+        "accepted": true,
+        "tag": "en-QM",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-071",
+      "operation": "visitor-normalization",
+      "input": "en-XZ",
+      "want": {
+        "accepted": true,
+        "tag": "en-XZ",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-072",
+      "operation": "visitor-normalization",
+      "input": "en-ZZ",
+      "want": {
+        "accepted": true,
+        "tag": "en-ZZ",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-073",
+      "operation": "visitor-normalization",
+      "input": "I-DEFAULT",
+      "want": {
+        "accepted": true,
+        "tag": "i-default",
+        "primaryLanguage": ""
+      }
+    },
+    {
+      "id": "vis-074",
+      "operation": "visitor-normalization",
+      "input": "I-KLINGON",
+      "want": {
+        "accepted": true,
+        "tag": "tlh",
+        "primaryLanguage": "tlh"
+      }
+    },
+    {
+      "id": "vis-075",
+      "operation": "visitor-normalization",
+      "input": "EN-gb-OED",
+      "want": {
+        "accepted": true,
+        "tag": "en-GB-oxendict",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-076",
+      "operation": "visitor-normalization",
+      "input": "cel-gaulish",
+      "want": {
+        "accepted": true,
+        "tag": "cel-gaulish",
+        "primaryLanguage": "cel"
+      }
+    },
+    {
+      "id": "vis-077",
+      "operation": "visitor-normalization",
+      "input": "zh-min",
+      "want": {
+        "accepted": true,
+        "tag": "zh-min",
+        "primaryLanguage": "zh"
+      }
+    },
+    {
+      "id": "aut-078",
+      "operation": "authored-admission",
+      "input": "en-GB-oxendict",
+      "want": {
+        "accepted": true,
+        "tag": "en-GB-oxendict",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-079",
+      "operation": "visitor-normalization",
+      "input": "en-GB-oxendict",
+      "want": {
+        "accepted": true,
+        "tag": "en-GB-oxendict",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "aut-080",
+      "operation": "authored-admission",
+      "input": "",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "empty_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-081",
+      "operation": "authored-admission",
+      "input": " en-US",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-082",
+      "operation": "authored-admission",
+      "input": "en-US ",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-083",
+      "operation": "authored-admission",
+      "input": "en\tUS",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-084",
+      "operation": "authored-admission",
+      "input": "en_US",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-085",
+      "operation": "authored-admission",
+      "input": "en--US",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-086",
+      "operation": "authored-admission",
+      "input": "-en",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-087",
+      "operation": "authored-admission",
+      "input": "en-",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-088",
+      "operation": "authored-admission",
+      "input": "e",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-089",
+      "operation": "authored-admission",
+      "input": "123",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-090",
+      "operation": "authored-admission",
+      "input": "en-\u00dcS",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "non_ascii"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-091",
+      "operation": "authored-admission",
+      "input": "en-1234-abc",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-092",
+      "operation": "authored-admission",
+      "input": "i-foo",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-093",
+      "operation": "authored-admission",
+      "input": "x",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-094",
+      "operation": "authored-admission",
+      "input": "en-x",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-095",
+      "operation": "authored-admission",
+      "input": "en-u",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-096",
+      "operation": "authored-admission",
+      "input": "en-u-a",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-097",
+      "operation": "authored-admission",
+      "input": "en-u-abcdefghi",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-098",
+      "operation": "authored-admission",
+      "input": "en-Latn-Cyrl",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-099",
+      "operation": "authored-admission",
+      "input": "en-US-GB",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-100",
+      "operation": "authored-admission",
+      "input": "en-abcdefghi",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-101",
+      "operation": "authored-admission",
+      "input": "en-abcde-abcde",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "duplicate_variant",
+            "subtag": "abcde"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-102",
+      "operation": "authored-admission",
+      "input": "de-DE-1901-1901",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "duplicate_variant",
+            "subtag": "1901"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-103",
+      "operation": "authored-admission",
+      "input": "en-a-bbb-a-ccc",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "duplicate_singleton",
+            "subtag": "a"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-104",
+      "operation": "authored-admission",
+      "input": "en-u-ca-u-nu",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "duplicate_singleton",
+            "subtag": "u"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-105",
+      "operation": "authored-admission",
+      "input": "zh-cmn-yue",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "reserved_extlang_position",
+            "subtag": "yue"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-106",
+      "operation": "authored-admission",
+      "input": "en-xyz-abc",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "reserved_extlang_position",
+            "subtag": "abc"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-107",
+      "operation": "authored-admission",
+      "input": "en-cmn",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "extlang_prefix_mismatch",
+            "subtag": "cmn"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-108",
+      "operation": "authored-admission",
+      "input": "en-min",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "extlang_prefix_mismatch",
+            "subtag": "min"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-109",
+      "operation": "authored-admission",
+      "input": "root-abc",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-110",
+      "operation": "visitor-normalization",
+      "input": "",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "empty_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-111",
+      "operation": "visitor-normalization",
+      "input": " en-US",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-112",
+      "operation": "visitor-normalization",
+      "input": "en-US ",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-113",
+      "operation": "visitor-normalization",
+      "input": "en\tUS",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-114",
+      "operation": "visitor-normalization",
+      "input": "en_US",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-115",
+      "operation": "visitor-normalization",
+      "input": "en--US",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-116",
+      "operation": "visitor-normalization",
+      "input": "-en",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-117",
+      "operation": "visitor-normalization",
+      "input": "en-",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-118",
+      "operation": "visitor-normalization",
+      "input": "e",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-119",
+      "operation": "visitor-normalization",
+      "input": "123",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-120",
+      "operation": "visitor-normalization",
+      "input": "en-\u00dcS",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "non_ascii"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-121",
+      "operation": "visitor-normalization",
+      "input": "en-1234-abc",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-122",
+      "operation": "visitor-normalization",
+      "input": "i-foo",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-123",
+      "operation": "visitor-normalization",
+      "input": "x",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-124",
+      "operation": "visitor-normalization",
+      "input": "en-x",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-125",
+      "operation": "visitor-normalization",
+      "input": "en-u",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-126",
+      "operation": "visitor-normalization",
+      "input": "en-u-a",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-127",
+      "operation": "visitor-normalization",
+      "input": "en-u-abcdefghi",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-128",
+      "operation": "visitor-normalization",
+      "input": "en-Latn-Cyrl",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-129",
+      "operation": "visitor-normalization",
+      "input": "en-US-GB",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-130",
+      "operation": "visitor-normalization",
+      "input": "en-abcdefghi",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-131",
+      "operation": "visitor-normalization",
+      "input": "en-abcde-abcde",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "duplicate_variant",
+            "subtag": "abcde"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-132",
+      "operation": "visitor-normalization",
+      "input": "de-DE-1901-1901",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "duplicate_variant",
+            "subtag": "1901"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-133",
+      "operation": "visitor-normalization",
+      "input": "en-a-bbb-a-ccc",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "duplicate_singleton",
+            "subtag": "a"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-134",
+      "operation": "visitor-normalization",
+      "input": "en-u-ca-u-nu",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "duplicate_singleton",
+            "subtag": "u"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-135",
+      "operation": "visitor-normalization",
+      "input": "zh-cmn-yue",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "reserved_extlang_position",
+            "subtag": "yue"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-136",
+      "operation": "visitor-normalization",
+      "input": "en-xyz-abc",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "reserved_extlang_position",
+            "subtag": "abc"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-137",
+      "operation": "visitor-normalization",
+      "input": "en-cmn",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "extlang_prefix_mismatch",
+            "subtag": "cmn"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-138",
+      "operation": "visitor-normalization",
+      "input": "en-min",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "extlang_prefix_mismatch",
+            "subtag": "min"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-139",
+      "operation": "visitor-normalization",
+      "input": "root-abc",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-140",
+      "operation": "authored-admission",
+      "input": "zz",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "unsupported_registry_version",
+            "subtag": "zz",
+            "snapshot": "2026-09-17"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-141",
+      "operation": "authored-admission",
+      "input": "en-Abcd",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "unsupported_registry_version",
+            "subtag": "Abcd",
+            "snapshot": "2026-09-17"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-142",
+      "operation": "authored-admission",
+      "input": "en-AB",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "unsupported_registry_version",
+            "subtag": "AB",
+            "snapshot": "2026-09-17"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-143",
+      "operation": "authored-admission",
+      "input": "en-abcde",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "unsupported_registry_version",
+            "subtag": "abcde",
+            "snapshot": "2026-09-17"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-144",
+      "operation": "authored-admission",
+      "input": "en-xyz",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "unsupported_registry_version",
+            "subtag": "xyz",
+            "snapshot": "2026-09-17"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-145",
+      "operation": "authored-admission",
+      "input": "en-abc",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "unsupported_registry_version",
+            "subtag": "abc",
+            "snapshot": "2026-09-17"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-146",
+      "operation": "authored-admission",
+      "input": "en-a-bbb",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "unsupported_registry_version",
+            "subtag": "a",
+            "snapshot": "2014-04-02"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-147",
+      "operation": "authored-admission",
+      "input": "root",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "unsupported_registry_version",
+            "subtag": "root",
+            "snapshot": "2026-09-17"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-148",
+      "operation": "authored-admission",
+      "input": "en-Qaby",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "unsupported_registry_version",
+            "subtag": "Qaby",
+            "snapshot": "2026-09-17"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-149",
+      "operation": "authored-admission",
+      "input": "en-AB",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "unsupported_registry_version",
+            "subtag": "AB",
+            "snapshot": "2026-09-17"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-150",
+      "operation": "visitor-normalization",
+      "input": "zz",
+      "want": {
+        "accepted": true,
+        "tag": "zz",
+        "primaryLanguage": "zz"
+      }
+    },
+    {
+      "id": "vis-151",
+      "operation": "visitor-normalization",
+      "input": "en-Abcd",
+      "want": {
+        "accepted": true,
+        "tag": "en-Abcd",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-152",
+      "operation": "visitor-normalization",
+      "input": "en-AB",
+      "want": {
+        "accepted": true,
+        "tag": "en-AB",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-153",
+      "operation": "visitor-normalization",
+      "input": "en-abcde",
+      "want": {
+        "accepted": true,
+        "tag": "en-abcde",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-154",
+      "operation": "visitor-normalization",
+      "input": "en-xyz",
+      "want": {
+        "accepted": true,
+        "tag": "en-xyz",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-155",
+      "operation": "visitor-normalization",
+      "input": "en-abc",
+      "want": {
+        "accepted": true,
+        "tag": "en-abc",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-156",
+      "operation": "visitor-normalization",
+      "input": "en-a-bbb",
+      "want": {
+        "accepted": true,
+        "tag": "en-a-bbb",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-157",
+      "operation": "visitor-normalization",
+      "input": "root",
+      "want": {
+        "accepted": true,
+        "tag": "root",
+        "primaryLanguage": "root"
+      }
+    },
+    {
+      "id": "aut-158",
+      "operation": "authored-admission",
+      "input": "x-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh",
+      "want": {
+        "accepted": true,
+        "tag": "x-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh",
+        "primaryLanguage": ""
+      }
+    },
+    {
+      "id": "aut-159",
+      "operation": "authored-admission",
+      "input": "x-abcdefg-abcdefg-abcdefg-abcdefg-abcdefg-abcdefg-abcdefg-abcdefg",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "too_long"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-160",
+      "operation": "visitor-normalization",
+      "input": "x-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh",
+      "want": {
+        "accepted": true,
+        "tag": "x-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh",
+        "primaryLanguage": ""
+      }
+    },
+    {
+      "id": "vis-161",
+      "operation": "visitor-normalization",
+      "input": "x-abcdefg-abcdefg-abcdefg-abcdefg-abcdefg-abcdefg-abcdefg-abcdefg",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "too_long"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-162",
+      "operation": "visitor-normalization",
+      "input": "en-US",
+      "want": {
+        "accepted": true,
+        "tag": "en-US",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-163",
+      "operation": "visitor-normalization",
+      "input": "zh-Hant-TW",
+      "want": {
+        "accepted": true,
+        "tag": "zh-Hant-TW",
+        "primaryLanguage": "zh"
+      }
+    },
+    {
+      "id": "vis-164",
+      "operation": "visitor-normalization",
+      "input": "x-request",
+      "want": {
+        "accepted": true,
+        "tag": "x-request",
+        "primaryLanguage": ""
+      }
+    },
+    {
+      "id": "aut-x165",
+      "operation": "authored-admission",
+      "input": "en-x-abcdefghi",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-x166",
+      "operation": "authored-admission",
+      "input": "x-abcdefghi",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-x167",
+      "operation": "authored-admission",
+      "input": "en-0",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-x168",
+      "operation": "visitor-normalization",
+      "input": "en-x-abcdefghi",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-x169",
+      "operation": "visitor-normalization",
+      "input": "x-abcdefghi",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-x170",
+      "operation": "visitor-normalization",
+      "input": "en-0",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "malformed_locale"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vis-x171",
+      "operation": "visitor-normalization",
+      "input": "qzu",
+      "want": {
+        "accepted": true,
+        "tag": "qzu",
+        "primaryLanguage": "qzu"
+      }
+    },
+    {
+      "id": "aut-x172",
+      "operation": "authored-admission",
+      "input": "qzu",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "unsupported_registry_version",
+            "subtag": "qzu",
+            "snapshot": "2026-09-17"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aut-x173",
+      "operation": "authored-admission",
+      "input": "en-u-ca-gregory",
+      "want": {
+        "accepted": true,
+        "tag": "en-u-ca-gregory",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "vis-x174",
+      "operation": "visitor-normalization",
+      "input": "en-a-bbb-c-ddd",
+      "want": {
+        "accepted": true,
+        "tag": "en-a-bbb-c-ddd",
+        "primaryLanguage": "en"
+      }
+    },
+    {
+      "id": "aut-x175",
+      "operation": "authored-admission",
+      "input": "en-a-bbb-c-ddd",
+      "want": {
+        "accepted": false,
+        "issues": [
+          {
+            "code": "unsupported_registry_version",
+            "subtag": "a",
+            "snapshot": "2014-04-02"
+          }
+        ]
+      }
+    }
+  ]
+}
