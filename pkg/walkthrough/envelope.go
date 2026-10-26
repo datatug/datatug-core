@@ -146,6 +146,12 @@ func AdmitStoryChapter(
 		return registryRefusal(CodePinMismatch, "",
 			"the registry content pin is not one exact immutable pin")
 	}
+	// A digest source pins the exact declaration bytes: a shape-valid entry
+	// whose digest pin and declaration digest disagree is not an admitted alias.
+	if entry.ContentPin.Kind == PinDigest && entry.ContentPin.SHA256 != entry.DeclarationSHA256 {
+		return registryRefusal(CodePinMismatch, "",
+			"a digest content pin must equal the declaration digest")
+	}
 	binding, err := authority.BindProject(entry.ProjectURL)
 	if err != nil {
 		return registryRefusal(CodeNotAdmitted, "", err.Error())
@@ -276,7 +282,9 @@ func ParseCheckpointEnvelope(data []byte) EnvelopeResult {
 		if project.kind == jsonNull {
 			checker.report(CodeInvalidType, "/project", "must not be null")
 		} else {
-			draft.ProjectRaw = project.raw
+			// Copy the exact input span: the caller's buffer must not be able to
+			// change the draft (or anything later admitted from it) afterwards.
+			draft.ProjectRaw = append([]byte(nil), project.raw...)
 		}
 	} else {
 		checker.report(CodeMissingField, "/project", "required field is missing")
@@ -344,7 +352,15 @@ func AdmitCheckpointEnvelope(draft EnvelopeDraft, authority ProjectAuthority) En
 	if authority == nil {
 		return envelopeRefusal(CodeMissingContext, "", "a trusted project authority is required")
 	}
-	identity, err := authority.AdmitProject(draft.ProjectRaw)
+	// A digest source's content pin is the exact declaration digest, so the two
+	// fields must agree before this shape can become an admitted envelope.
+	if draft.ContentPin.Kind == PinDigest && draft.ContentPin.SHA256 != draft.DeclarationSHA256 {
+		return envelopeRefusal(CodePinMismatch, "/contentPin",
+			"a digest content pin must equal the declaration digest")
+	}
+	// The adapter receives its own copy of the project span and can never mutate
+	// the draft or the admitted envelope.
+	identity, err := authority.AdmitProject(append([]byte(nil), draft.ProjectRaw...))
 	if err != nil {
 		return envelopeRefusal(CodeNotAdmitted, "/project", err.Error())
 	}
@@ -352,7 +368,20 @@ func AdmitCheckpointEnvelope(draft EnvelopeDraft, authority ProjectAuthority) En
 		return envelopeRefusal(CodeNotAdmitted, "/project",
 			"the project authority did not return an identity")
 	}
-	return EnvelopeAdmission{Envelope: &CheckpointEnvelope{Project: identity, EnvelopeDraft: draft}}
+	// ProjectIdentity.Value is opaque and snapshotting it is the trusted owner
+	// adapter's responsibility; every contract-owned field is cloned here.
+	return EnvelopeAdmission{Envelope: &CheckpointEnvelope{
+		Project:       identity,
+		EnvelopeDraft: cloneEnvelopeDraft(draft),
+	}}
+}
+
+// cloneEnvelopeDraft returns an independent snapshot of a parsed envelope
+// draft. The project span is the only caller-owned buffer.
+func cloneEnvelopeDraft(source EnvelopeDraft) EnvelopeDraft {
+	snapshot := source
+	snapshot.ProjectRaw = append([]byte(nil), source.ProjectRaw...)
+	return snapshot
 }
 
 // MatchVerdict is a pure matching decision. Consuming, retaining for revisit,
@@ -452,6 +481,9 @@ func ValidateActiveWait(wait ActiveWait) []Issue {
 	}
 	if !wait.ContentPin.Valid() {
 		report(CodePinMismatch, "", "the active wait content pin is not one exact immutable pin")
+	}
+	if wait.ContentPin.Kind == PinDigest && wait.ContentPin.SHA256 != wait.DeclarationSHA256 {
+		report(CodePinMismatch, "", "a digest content pin must equal the declaration digest")
 	}
 	for _, digest := range []string{
 		wait.DeclarationSHA256, wait.NarrativeSHA256, wait.TrainingPackageSHA256,

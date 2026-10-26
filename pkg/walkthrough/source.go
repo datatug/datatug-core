@@ -261,35 +261,47 @@ func ResolveTraining(
 		return unresolved(CodeDigestMismatch, "",
 			"the resolved declaration digest does not match the declaration bytes")
 	}
+	// A digest source pins the exact declaration bytes, so its content digest
+	// must be the parsed declaration digest itself rather than a second,
+	// independently supplied value.
+	if source.ContentPin.Kind == PinDigest && source.ContentPin.SHA256 != declaration.Revision {
+		return unresolved(CodePinMismatch, "",
+			"a digest content pin must equal the exact declaration digest")
+	}
 
-	inventory, err := owners.AdmitPackage(declaration.TrainingPackage)
+	// Take an independent snapshot before asking any owner to admit anything:
+	// the parsed declaration stays caller-owned and mutable, while the admitted
+	// bundle must never borrow it.
+	snapshot := cloneTrainingDeclaration(declaration)
+
+	inventory, err := owners.AdmitPackage(snapshot.TrainingPackage)
 	if err != nil {
 		return unresolved(CodeNotAdmitted, "/trainingPackage", err.Error())
 	}
-	if !inventory.Ref.Equal(declaration.TrainingPackage) {
+	if !inventory.Ref.Equal(snapshot.TrainingPackage) {
 		return unresolved(CodeMismatch, "/trainingPackage",
 			"the admitted package does not equal the declared package reference")
 	}
-	if err := owners.AdmitAsset(declaration.Narrative); err != nil {
+	if err := owners.AdmitAsset(snapshot.Narrative); err != nil {
 		return unresolved(CodeNotAdmitted, "/narrative", err.Error())
 	}
 
 	bundle := &AdmittedTraining{
-		Declaration:           declaration,
+		Declaration:           snapshot,
 		Project:               source.Project,
 		ContentPin:            source.ContentPin,
-		DeclarationSHA256:     declaration.Revision,
-		Narrative:             declaration.Narrative,
-		NarrativeSHA256:       declaration.Narrative.SHA256,
-		Package:               declaration.TrainingPackage,
-		TrainingPackageSHA256: declaration.TrainingPackage.SHA256,
-		WalkthroughID:         declaration.ID,
+		DeclarationSHA256:     snapshot.Revision,
+		Narrative:             snapshot.Narrative,
+		NarrativeSHA256:       snapshot.Narrative.SHA256,
+		Package:               snapshot.TrainingPackage,
+		TrainingPackageSHA256: snapshot.TrainingPackage.SHA256,
+		WalkthroughID:         snapshot.ID,
 	}
-	for _, chapter := range declaration.Chapters {
+	for _, chapter := range snapshot.Chapters {
 		bundle.Chapters = append(bundle.Chapters, chapter.ID)
 	}
 	issues := make([]Issue, 0)
-	for chapterIndex, chapter := range declaration.Chapters {
+	for chapterIndex, chapter := range snapshot.Chapters {
 		for stepIndex, step := range chapter.Steps {
 			path := pointerIndex(pointerChild(pointerIndex("/chapters", chapterIndex), "steps"), stepIndex)
 			if target := step.Target.TrainingCase; target != nil {
@@ -568,4 +580,220 @@ func isHex(value string, length int) bool {
 		}
 	}
 	return true
+}
+
+// ---------------------------------------------------------------------------
+// Defensive snapshots of contract-owned admission inputs.
+// ---------------------------------------------------------------------------
+
+// cloneTrainingDeclaration returns an independent deep snapshot of a
+// structurally valid /2 declaration. A parsed declaration stays caller-owned
+// and mutable; an admitted bundle must never change when the caller edits it.
+//
+// ProjectIdentity is deliberately not part of this snapshot: its Value is
+// opaque to this package and snapshotting it remains the trusted owner
+// adapter's responsibility.
+func cloneTrainingDeclaration(source *TrainingDeclaration) *TrainingDeclaration {
+	if source == nil {
+		return nil
+	}
+	snapshot := *source
+	snapshot.Chapters = make([]Chapter, len(source.Chapters))
+	for index := range source.Chapters {
+		snapshot.Chapters[index] = cloneChapter(source.Chapters[index])
+	}
+	snapshot.Finish = cloneExit(source.Finish)
+	return &snapshot
+}
+
+func cloneChapter(source Chapter) Chapter {
+	snapshot := source
+	snapshot.FormerIDs = cloneStrings(source.FormerIDs)
+	if source.Readiness != nil {
+		readiness := cloneCondition(*source.Readiness)
+		snapshot.Readiness = &readiness
+	}
+	snapshot.Steps = make([]Step, len(source.Steps))
+	for index := range source.Steps {
+		snapshot.Steps[index] = cloneStep(source.Steps[index])
+	}
+	return snapshot
+}
+
+func cloneStep(source Step) Step {
+	snapshot := source
+	snapshot.Modes = cloneStrings(source.Modes)
+	snapshot.Target = cloneTarget(source.Target)
+	snapshot.Done = cloneCondition(source.Done)
+	return snapshot
+}
+
+func cloneTarget(source Target) Target {
+	snapshot := source
+	if source.TableRecord != nil {
+		value := *source.TableRecord
+		value.Key = cloneNamedValues(source.TableRecord.Key)
+		snapshot.TableRecord = &value
+	}
+	if source.Query != nil {
+		value := *source.Query
+		value.Parameters = cloneNamedValues(source.Query.Parameters)
+		snapshot.Query = &value
+	}
+	if source.Board != nil {
+		value := *source.Board
+		value.Parameters = cloneNamedValues(source.Board.Parameters)
+		snapshot.Board = &value
+	}
+	if source.Card != nil {
+		value := *source.Card
+		value.Parameters = cloneNamedValues(source.Card.Parameters)
+		snapshot.Card = &value
+	}
+	if source.Related != nil {
+		value := *source.Related
+		value.Key = cloneNamedValues(source.Related.Key)
+		snapshot.Related = &value
+	}
+	if source.LogSource != nil {
+		value := *source.LogSource
+		value.Filter = cloneNamedValues(source.LogSource.Filter)
+		snapshot.LogSource = &value
+	}
+	if source.PublicDataProvider != nil {
+		value := *source.PublicDataProvider
+		snapshot.PublicDataProvider = &value
+	}
+	if source.Incident != nil {
+		value := *source.Incident
+		if source.Incident.Incident != nil {
+			incident := cloneValue(*source.Incident.Incident)
+			value.Incident = &incident
+		}
+		snapshot.Incident = &value
+	}
+	if source.Check != nil {
+		value := *source.Check
+		snapshot.Check = &value
+	}
+	if source.None != nil {
+		snapshot.None = &struct{}{}
+	}
+	if source.Challenge != nil {
+		value := *source.Challenge
+		snapshot.Challenge = &value
+	}
+	if source.TrainingCase != nil {
+		value := *source.TrainingCase
+		snapshot.TrainingCase = &value
+	}
+	return snapshot
+}
+
+func cloneCondition(source Condition) Condition {
+	snapshot := source
+	if source.ParameterValue != nil {
+		value := *source.ParameterValue
+		value.Equals = cloneScalar(source.ParameterValue.Equals)
+		snapshot.ParameterValue = &value
+	}
+	if source.RecordSelected != nil {
+		value := *source.RecordSelected
+		value.Equals = cloneScalar(source.RecordSelected.Equals)
+		snapshot.RecordSelected = &value
+	}
+	if source.QueryRun != nil {
+		value := *source.QueryRun
+		if source.QueryRun.MinRows != nil {
+			minRows := *source.QueryRun.MinRows
+			value.MinRows = &minRows
+		}
+		snapshot.QueryRun = &value
+	}
+	if source.PanelOpen != nil {
+		value := *source.PanelOpen
+		snapshot.PanelOpen = &value
+	}
+	if source.FilterApplied != nil {
+		value := *source.FilterApplied
+		value.Equals = cloneScalar(source.FilterApplied.Equals)
+		snapshot.FilterApplied = &value
+	}
+	if source.CheckRun != nil {
+		value := *source.CheckRun
+		snapshot.CheckRun = &value
+	}
+	if source.AssetExists != nil {
+		value := *source.AssetExists
+		snapshot.AssetExists = &value
+	}
+	if source.BoardTutorial != nil {
+		value := *source.BoardTutorial
+		snapshot.BoardTutorial = &value
+	}
+	if source.DialogueFinished != nil {
+		snapshot.DialogueFinished = &DialogueFinishedCondition{}
+	}
+	if source.ChallengePassed != nil {
+		value := *source.ChallengePassed
+		value.Checkpoints = cloneCheckpoints(source.ChallengePassed.Checkpoints)
+		snapshot.ChallengePassed = &value
+	}
+	return snapshot
+}
+
+func cloneExit(source Exit) Exit {
+	snapshot := source
+	if source.Target != nil {
+		target := cloneTarget(*source.Target)
+		snapshot.Target = &target
+	}
+	return snapshot
+}
+
+func cloneValue(source Value) Value {
+	snapshot := source
+	snapshot.Literal = cloneScalar(source.Literal)
+	snapshot.Default = cloneScalar(source.Default)
+	return snapshot
+}
+
+func cloneScalar(source *Scalar) *Scalar {
+	if source == nil {
+		return nil
+	}
+	snapshot := *source
+	return &snapshot
+}
+
+func cloneNamedValues(source []NamedValue) []NamedValue {
+	if source == nil {
+		return nil
+	}
+	snapshot := make([]NamedValue, len(source))
+	for index := range source {
+		snapshot[index] = NamedValue{
+			Name:  source[index].Name,
+			Value: cloneValue(source[index].Value),
+		}
+	}
+	return snapshot
+}
+
+func cloneCheckpoints(source []CheckpointMapping) []CheckpointMapping {
+	if source == nil {
+		return nil
+	}
+	snapshot := make([]CheckpointMapping, len(source))
+	copy(snapshot, source)
+	return snapshot
+}
+
+func cloneStrings(source []string) []string {
+	if source == nil {
+		return nil
+	}
+	snapshot := make([]string, len(source))
+	copy(snapshot, source)
+	return snapshot
 }

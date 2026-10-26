@@ -43,8 +43,21 @@
 // digest and a positive byte count; a package reference adds its ID and
 // revision. Supplied bytes are verified against the pin before any parse. A
 // content pin is one immutable Git commit (normalized lowercase) or one exact
-// content digest. No canonical project serialization is invented here: project
-// identity is an opaque value owned by the injected adapter.
+// content digest. A digest pin identifies the exact declaration bytes, so
+// wherever it binds (resolution, registry admission, envelope admission and an
+// active wait) it must equal the parsed declaration digest itself; a
+// shape-valid record whose two digest fields disagree is never admitted. No
+// canonical project serialization is invented here: project identity is an
+// opaque value owned by the injected adapter, which also owns its snapshot.
+//
+// # Defensive snapshots
+//
+// A parsed declaration, registry entry or envelope draft stays caller-owned and
+// mutable. Admission takes an independent deep snapshot of every
+// contract-owned input (chapters, steps, target/condition mappings, references,
+// pins and the envelope's exact project byte span) and returns projections that
+// never alias the caller's structures. Only the opaque project identity value
+// itself remains the trusted owner adapter's snapshot responsibility.
 //
 // # Escaped surrogates
 //

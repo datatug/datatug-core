@@ -78,12 +78,21 @@ declared walkthrough identity used by registry admission.
   (positive canonical lexeme). `PackageReference` adds `id` and `revision`.
   `VerifyBytes` checks the exact length and SHA-256 before any parse.
 - `ContentPin` is exactly one `{kind: git, commit: <40 hex>}` (normalized
-  lowercase) or `{kind: digest, sha256: <64 lowercase hex>}`.
+  lowercase) or `{kind: digest, sha256: <64 lowercase hex>}`. A digest pin
+  identifies the exact declaration bytes, so it must equal the parsed
+  declaration digest at every binding point: `ResolveTraining`,
+  registry admission, envelope admission and an active wait refuse a
+  shape-valid record whose digest pin and declaration digest disagree.
 - `ProjectIdentity` is opaque. This package never interprets it, never builds
   a canonical project serialization and never compares identities itself:
   `ProjectAuthority` supplies `BindProject`/`AdmitProject`/`EqualProject`.
   Production adapters reuse the owning project-context normalization; test
-  doubles prove wiring only.
+  doubles prove wiring only. Snapshotting the opaque identity value stays the
+  owner adapter's responsibility.
+- Admission takes an independent snapshot of every contract-owned input. A
+  parsed declaration remains caller-owned and mutable, but an admitted bundle
+  never aliases it, and the envelope owns a copy of the exact project byte
+  span it was parsed from.
 - `TrainingOwnerContext` supplies the admitted package inventory, asset
   admission and the exact owner-validated challenge manifest. There is no
   fallback to an ordinary service, no invented package document and no trusted
@@ -100,14 +109,15 @@ Private/unknown scope refuses, and a historical pin mismatch never falls back
 to latest.
 
 `ParseCheckpointEnvelope` reads exactly the owner fields, including the opaque
-`project` value (handed to the adapter as the exact input bytes). Inconsistent
-`outcome`/`complete` summaries refuse. `AdmitCheckpointEnvelope` resolves the
-project through the owner adapter. `MatchCheckpointEnvelope` and
-`MatchRetainedCompletion` return only a `consume`/`revisit`/`no-match`
-decision: consuming once, pause/scheduling, retained completion storage and
-authority lifecycle remain runtime owner work. There is no namespace field on
-the validation envelope, so a reference/Test-labelled payload is an
-unknown-field refusal, never a match.
+`project` value (copied at parse and handed to the adapter as the exact input
+bytes). Inconsistent `outcome`/`complete` summaries refuse.
+`AdmitCheckpointEnvelope` resolves the project through the owner adapter and
+retains an independent copy of the project span; an inconsistent digest pin
+refuses. `MatchCheckpointEnvelope` and `MatchRetainedCompletion` return only a
+`consume`/`revisit`/`no-match` decision: consuming once, pause/scheduling,
+retained completion storage and authority lifecycle remain runtime owner work.
+There is no namespace field on the validation envelope, so a
+reference/Test-labelled payload is an unknown-field refusal, never a match.
 
 ## Boundaries
 
