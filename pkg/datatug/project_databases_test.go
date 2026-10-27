@@ -33,3 +33,13 @@ func TestProjectDatabases(t *testing.T) {
 	}
 	require.Error(t, append(good, good...).Validate())
 }
+
+func TestProjectDatabasesValidationFailures(t *testing.T) {
+	bad := ProjectDatabases{{ID: "invalid/id"}}
+	require.Error(t, (&Project{Databases: bad}).Validate())
+	require.Error(t, (ProjectFile{Databases: bad}).Validate())
+	require.Error(t, (&ProjectFile{}).MergePreservedMetadata(ProjectFile{Databases: bad}))
+	require.Error(t, (&ProjectFile{Databases: bad}).MergePreservedMetadata(ProjectFile{}))
+	require.Error(t, make(ProjectDatabases, 501).Validate())
+	require.Error(t, (ProjectDatabases{{ID: "valid", ConnectionID: "bad/id"}}).Validate())
+}
