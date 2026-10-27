@@ -2073,11 +2073,82 @@ def main():
          "An unused Check promoted-validator reference has no declared closed source.",
          index, files, refused("invalid_reference", "/assets/9"))
 
+    # An unused definition's native id need not be unique: the owner makes
+    # checks[].id package-unique and ties a declared definition's native id to
+    # that record, and nothing else. The definition still gains no authority,
+    # and a declared Check that depends on the shared id keeps closing against
+    # the declared definition instead of being replaced by the unused one.
     index, files = full()
-    add_orphan_check(index, files, orphan_check(check_id="retry-observation"))
-    emit("orphan-check-duplicate-id",
-         "An unused Check definition may not duplicate a declared package Check id.",
-         index, files, refused("duplicate_id", "/assets/9"))
+    summary_check = {
+        "id": "retry-summary", "title": "Retry summary", "version": 1,
+        "inputs": [{"name": "status", "type": "string", "cardinality": "scalar",
+                    "required": True}],
+        "steps": [{
+            "id": "run", "kind": "check", "checkId": "retry-observation",
+            "bindings": [{"input": "status", "fromInput": "status"}],
+        }],
+        "updatedAt": "2026-01-02T03:04:05Z", "updatedBy": "guide",
+    }
+    summary_body = dumps(summary_check)
+    files["training/retry-summary.json"] = summary_body
+    index["assets"].append(asset("retry-summary-check", "check-definition",
+                                 "application/json", "training/retry-summary.json",
+                                 summary_body))
+    index["checks"].append({"id": "retry-summary",
+                            "definitionAssetId": "retry-summary-check"})
+    duplicate_unused = {
+        "id": "retry-observation", "title": "Unused retry observation", "version": 1,
+        "inputs": [{"name": "region", "type": "string", "cardinality": "scalar",
+                    "required": True}],
+        "steps": [
+            {"id": "run", "kind": "query", "queryId": "retries/by-status"},
+            {"id": "reuse", "kind": "check", "checkId": "retry-summary",
+             "bindings": [{"input": "status", "fromInput": "region"}]},
+        ],
+        "updatedAt": "2026-01-02T03:04:05Z", "updatedBy": "guide",
+    }
+    duplicate_body = dumps(duplicate_unused)
+    files["training/orphan-check.json"] = duplicate_body
+    index["assets"].append(asset("orphan-check", "check-definition",
+                                 "application/json", "training/orphan-check.json",
+                                 duplicate_body))
+    ref, binding = emit(
+        "orphan-check-duplicate-id",
+        "An unused Check definition whose native id duplicates a declared package "
+        "Check is admitted without inventory authority, closes its own query and "
+        "Check children, and never replaces the declared definition.",
+        index, files, {"admitted": True, "definition": {}})
+    VECTORS[-1]["want"] = admitted_definition(index, files, ref, binding)
+
+    # A declared queries[] record that no Check, proposal or manifest consumes
+    # is still a declared query: it keeps its metadata/body/source closure and
+    # its hydrated native QueryDef.
+    index, files = full()
+    unused_metadata = {
+        "id": "retries/unused", "title": "Unused retries", "type": "SQL",
+        "connectionId": "training-fixture", "parameters": [],
+    }
+    unused_metadata_body = dumps(unused_metadata)
+    files["training/unused.meta.json"] = unused_metadata_body
+    index["assets"].append(asset("unused-metadata", "query-metadata",
+                                 "application/json", "training/unused.meta.json",
+                                 unused_metadata_body))
+    unused_sql = b"select status from retries;\n"
+    files["training/unused.sql"] = unused_sql
+    index["assets"].append(asset("unused-body", "query-body-sql", "application/sql",
+                                 "training/unused.sql", unused_sql))
+    index["queries"].append({
+        "id": "retries/unused",
+        "metadataAssetId": "unused-metadata",
+        "bodyAssetId": "unused-body",
+        "sourceId": "training-fixture",
+    })
+    ref, binding = emit(
+        "unused-query-valid",
+        "A declared query that no Check, proposal or manifest consumes is admitted "
+        "with its closed identity and hydrated native definition.",
+        index, files, {"admitted": True, "definition": {}})
+    VECTORS[-1]["want"] = admitted_definition(index, files, ref, binding)
 
     # --- Native timestamp precision -------------------------------------
     def check_with(mutator):

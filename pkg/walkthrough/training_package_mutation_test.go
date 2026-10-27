@@ -964,3 +964,104 @@ func nativeCheckProjection(t *testing.T, projection any) map[string]any {
 	t.Fatal("no check-definition codec projection")
 	return nil
 }
+
+func codecByAssetID(t *testing.T, projection map[string]any, assetID string) map[string]any {
+	t.Helper()
+	codecs, ok := projection["codecs"].([]any)
+	require.True(t, ok)
+	for _, raw := range codecs {
+		codec, ok := raw.(map[string]any)
+		require.True(t, ok)
+		if codec["assetId"] == assetID {
+			return codec
+		}
+	}
+	require.FailNow(t, "codec not projected", assetID)
+	return nil
+}
+
+// TestTrainingPackageUnusedCheckIdentity locks admission for an unused Check
+// definition that reuses a declared native Check id. The owner keeps
+// checks[].id package-unique and ties a declared definition's native id to that
+// record; nothing makes an unused definition's native id unique, so it is
+// validated as itself and must not replace the declared definition in the
+// dependency graph or gain inventory authority.
+func TestTrainingPackageUnusedCheckIdentity(t *testing.T) {
+	input := corpusInput(t, "orphan-check-duplicate-id")
+	admitted := mustAdmit(t, input)
+
+	projection := admitted.Projection()
+	checks, ok := projection["checks"].([]any)
+	require.True(t, ok)
+	require.Len(t, checks, 2)
+	require.Equal(t, "retry-observation", checks[0].(map[string]any)["id"])
+	require.Equal(t, "retry-check", checks[0].(map[string]any)["definitionAssetId"])
+	require.Equal(t, "retry-summary", checks[1].(map[string]any)["id"])
+	require.Equal(t, []string{"retry-observation", "retry-summary"},
+		admitted.TrustedNarrativeInventory().Checks)
+
+	// The unused definition is projected from its own asset as itself.
+	unused, ok := codecByAssetID(t, projection, "orphan-check")["check"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, "retry-observation", unused["id"])
+	require.Equal(t, "Unused retry observation", unused["title"])
+
+	// A declared Check that depends on the shared id closes against the declared
+	// definition: its bindings may target a declared-only optional input...
+	declaredChild := corpusInput(t, "orphan-check-duplicate-id")
+	mutateAssetJSON(t, &declaredChild, "retry-summary-check", func(check map[string]any) {
+		check["steps"].([]any)[0].(map[string]any)["bindings"] = []any{
+			map[string]any{"input": "status", "fromInput": "status"},
+			map[string]any{"input": "note", "fromInput": "status"},
+		}
+	})
+	mustAdmit(t, declaredChild)
+
+	// ...and may not target an input only the unused definition declares.
+	unusedChild := corpusInput(t, "orphan-check-duplicate-id")
+	mutateAssetJSON(t, &unusedChild, "retry-summary-check", func(check map[string]any) {
+		check["steps"].([]any)[0].(map[string]any)["bindings"] =
+			[]any{map[string]any{"input": "region", "fromInput": "status"}}
+	})
+	result := AdmitTrainingPackage(unusedChild)
+	require.False(t, result.Admitted)
+	require.Len(t, result.Issues, 1)
+	require.Equal(t, CodeInvalidValue, result.Issues[0].Code)
+	require.Equal(t, "/checks", result.Issues[0].Path)
+
+	// The unused definition's own child references stay closed: a changed Check
+	// dependency id and a changed binding type both refuse at its own asset.
+	brokenChild := corpusInput(t, "orphan-check-duplicate-id")
+	mutateAssetJSON(t, &brokenChild, "orphan-check", func(check map[string]any) {
+		check["steps"].([]any)[1].(map[string]any)["checkId"] = "missing-check"
+	})
+	result = AdmitTrainingPackage(brokenChild)
+	require.False(t, result.Admitted)
+	require.Len(t, result.Issues, 1)
+	require.Equal(t, CodeInvalidReference, result.Issues[0].Code)
+	require.Equal(t, "/assets/10", result.Issues[0].Path)
+
+	brokenBinding := corpusInput(t, "orphan-check-duplicate-id")
+	mutateAssetJSON(t, &brokenBinding, "orphan-check", func(check map[string]any) {
+		check["inputs"].([]any)[0].(map[string]any)["type"] = "integer"
+	})
+	result = AdmitTrainingPackage(brokenBinding)
+	require.False(t, result.Admitted)
+	require.Len(t, result.Issues, 1)
+	require.Equal(t, CodeInvalidValue, result.Issues[0].Code)
+	require.Equal(t, "/assets/10", result.Issues[0].Path)
+
+	// The private validation alias never collides with a declared id, even when
+	// the package already declares the alias spelling itself.
+	aliasTaken := corpusInput(t, "orphan-check-duplicate-id")
+	mutateIndex(t, &aliasTaken, func(index map[string]any) {
+		index["checks"].([]any)[1].(map[string]any)["id"] = "package-unused-check"
+	})
+	mutateAssetJSON(t, &aliasTaken, "retry-summary-check", func(check map[string]any) {
+		check["id"] = "package-unused-check"
+	})
+	mutateAssetJSON(t, &aliasTaken, "orphan-check", func(check map[string]any) {
+		check["steps"].([]any)[1].(map[string]any)["checkId"] = "package-unused-check"
+	})
+	mustAdmit(t, aliasTaken)
+}

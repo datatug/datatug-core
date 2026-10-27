@@ -76,12 +76,20 @@
       "bytes": 404
     },
     {
+      "id": "retry-summary-check",
+      "kind": "check-definition",
+      "mediaType": "application/json",
+      "path": "training/retry-summary.json",
+      "sha256": "1c17491f26d2396dff1f0f91c5a5a39401a77f34d09e5554da902a578bfa5277",
+      "bytes": 487
+    },
+    {
       "id": "orphan-check",
       "kind": "check-definition",
       "mediaType": "application/json",
       "path": "training/orphan-check.json",
-      "sha256": "ba6ca5b374e0d8bfe99f2963712d29b573458a09d18cfffead53cf5a36e7fedc",
-      "bytes": 263
+      "sha256": "4a454a642fe19095a8728eaa655078617cbaaa2bfc3c89e563c06b847f5b2eff",
+      "bytes": 592
     }
   ],
   "fictionalActors": [
@@ -184,6 +192,10 @@
     {
       "id": "retry-observation",
       "definitionAssetId": "retry-check"
+    },
+    {
+      "id": "retry-summary",
+      "definitionAssetId": "retry-summary-check"
     }
   ],
   "queries": [

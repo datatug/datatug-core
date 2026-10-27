@@ -399,7 +399,10 @@ func (cl *trainingClosure) closeChecks() {
 // unused asset never creates a checks[] entry or a trusted Check binding: a
 // Check reference anywhere in the package still requires the declared inventory,
 // and an unused definition's own query/Check/validator references must resolve
-// in it too.
+// in it too. The owner makes checks[].id package-unique and requires a declared
+// definition's native id to equal it; nothing makes the native Check id of an
+// unused asset unique, so a duplicate native id is admitted and validated as
+// itself.
 func (cl *trainingClosure) closeCheckDefinitions() {
 	bound := make(map[string]bool, len(cl.pkg.Checks))
 	for index := range cl.pkg.Checks {
@@ -416,11 +419,6 @@ func (cl *trainingClosure) closeCheckDefinitions() {
 		}
 		check := asset.Check
 		path := pointerIndex("/assets", index)
-		if _, duplicate := declared[check.ID]; duplicate {
-			cl.c.report(CodeDuplicateID, path,
-				"a Check definition id must not duplicate a declared package Check")
-			continue
-		}
 		unresolved := false
 		for _, step := range check.Steps {
 			switch step.Kind {
@@ -443,12 +441,24 @@ func (cl *trainingClosure) closeCheckDefinitions() {
 		}
 		// Native graph validation closes bindings, validator references and
 		// cycles. The catalog holds the declared package Checks plus this one
-		// definition, so a dependency on an undeclared Check still refuses.
+		// definition, so a dependency on an undeclared Check still refuses and
+		// a dependency on a declared Check is closed against that declared
+		// definition, never against this unused one.
 		graph := make(map[string]detective.Check, len(declared)+1)
 		for id, item := range declared {
 			graph[id] = item
 		}
-		graph[check.ID] = *check
+		// Every graph key must equal its Check id. An unused definition has no
+		// inventory identity, so a native id that duplicates a declared Check
+		// is validated under a private alias: the declared definition stays in
+		// the graph instead of being overwritten, and the alias is never
+		// stored, projected or granted inventory authority. The native codec
+		// already validated the definition's own real id.
+		unused := *check
+		if _, duplicate := graph[check.ID]; duplicate {
+			unused.ID = unusedCheckGraphID(graph)
+		}
+		graph[unused.ID] = unused
 		err := detective.ValidateCatalog(detective.Catalog{
 			Checks:          graph,
 			Validators:      map[string]detective.PublishedValidator{},
@@ -461,6 +471,22 @@ func (cl *trainingClosure) closeCheckDefinitions() {
 			}
 			cl.c.report(code, path,
 				"native catalog graph validation refused an unused Check definition")
+		}
+	}
+}
+
+// unusedCheckGraphID returns a private graph key for an unused Check definition
+// whose native id duplicates a declared package Check. It is only ever used as
+// a local graph key so native validation can close the unused definition's own
+// steps without replacing the declared definition it shares an id with.
+func unusedCheckGraphID(graph map[string]detective.Check) string {
+	for suffix := 0; ; suffix++ {
+		candidate := "package-unused-check"
+		if suffix > 0 {
+			candidate = "package-unused-check-" + strconv.Itoa(suffix)
+		}
+		if _, taken := graph[candidate]; !taken {
+			return candidate
 		}
 	}
 }

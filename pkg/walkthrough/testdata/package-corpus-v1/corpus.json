@@ -9823,15 +9823,15 @@
   },
   {
    "id": "orphan-check-duplicate-id",
-   "description": "An unused Check definition may not duplicate a declared package Check id.",
+   "description": "An unused Check definition whose native id duplicates a declared package Check is admitted without inventory authority, closes its own query and Check children, and never replaces the declared definition.",
    "directory": "orphan-check-duplicate-id",
    "indexPath": "training/package.json",
    "reference": {
     "id": "training-full",
     "revision": "7",
     "path": "training/package.json",
-    "sha256": "8707a290927fb62da62a19052a47e0b89ade33213a4f0b6d29d57b2fee2fa101",
-    "bytes": "6390"
+    "sha256": "b985a909c728b91ec01b92ddd1df0f6433ae265f6d6b2681da9e977b7dc76dd7",
+    "bytes": "6750"
    },
    "binding": {
     "project": "project-alpha",
@@ -9841,18 +9841,1604 @@
     },
     "declarationSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "narrativeSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    "packageSha256": "8707a290927fb62da62a19052a47e0b89ade33213a4f0b6d29d57b2fee2fa101",
+    "packageSha256": "b985a909c728b91ec01b92ddd1df0f6433ae265f6d6b2681da9e977b7dc76dd7",
     "scenarioId": "training-full",
     "scenarioRevision": "7"
    },
    "want": {
-    "admitted": false,
-    "issues": [
-     {
-      "code": "duplicate_id",
-      "path": "/assets/9"
-     }
-    ]
+    "admitted": true,
+    "definition": {
+     "schema": "datatug-training-package/1",
+     "id": "training-full",
+     "revision": "7",
+     "package": {
+      "id": "training-full",
+      "revision": "7",
+      "path": "training/package.json",
+      "sha256": "b985a909c728b91ec01b92ddd1df0f6433ae265f6d6b2681da9e977b7dc76dd7",
+      "bytes": "6750"
+     },
+     "binding": {
+      "contentPin": {
+       "kind": "git",
+       "commit": "0123456789abcdef0123456789abcdef01234567"
+      },
+      "declarationSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "narrativeSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "packageSha256": "b985a909c728b91ec01b92ddd1df0f6433ae265f6d6b2681da9e977b7dc76dd7",
+      "scenarioId": "training-full",
+      "scenarioRevision": "7"
+     },
+     "assets": [
+      {
+       "id": "narrative-text",
+       "kind": "evidence-text",
+       "mediaType": "text/plain",
+       "path": "training/notes.txt",
+       "sha256": "18876321f3c08f22bb6cf77df31566f6aa1ecfe62ae1c45cc38cd78fdf632d64",
+       "bytes": "47"
+      },
+      {
+       "id": "orders-records",
+       "kind": "evidence-records",
+       "mediaType": "application/json",
+       "path": "training/orders.json",
+       "sha256": "106eb5e00649d45ba0782c31d56a38121923d7365350e8acfdf7af48283386f6",
+       "bytes": "579"
+      },
+      {
+       "id": "ops-log",
+       "kind": "evidence-log",
+       "mediaType": "application/x-ndjson",
+       "path": "training/ops.ndjson",
+       "sha256": "3ac616d1fb84b444be3ec3fa14c258a7df2b4321751c2c5c2128bef3d19aa33a",
+       "bytes": "217"
+      },
+      {
+       "id": "retry-metadata",
+       "kind": "query-metadata",
+       "mediaType": "application/json",
+       "path": "training/retry.meta.json",
+       "sha256": "30d767d787e982bd121300d454dc43619f235e91c7db7b0c1011cd85faf43c77",
+       "bytes": "601"
+      },
+      {
+       "id": "retry-body",
+       "kind": "query-body-sql",
+       "mediaType": "application/sql",
+       "path": "training/retry.sql",
+       "sha256": "f08d25d36447be01a8549899d30bbca2bfe8aaa390de909efa3692a9c586b4f0",
+       "bytes": "82"
+      },
+      {
+       "id": "retry-check",
+       "kind": "check-definition",
+       "mediaType": "application/json",
+       "path": "training/retry-check.json",
+       "sha256": "e0fa708052599755e805abe314886393f94204506bf8f275a829554949a581c7",
+       "bytes": "787"
+      },
+      {
+       "id": "retry-manifest",
+       "kind": "challenge-manifest",
+       "mediaType": "application/json",
+       "path": "training/challenge.json",
+       "sha256": "1e6914892b8bbf33237e5e4ecbb5aca256965795a44d0d742b95fca7a4c653b6",
+       "bytes": "2047"
+      },
+      {
+       "id": "retry-fixture",
+       "kind": "challenge-fixture",
+       "mediaType": "application/vnd.sqlite3",
+       "path": "training/retry.sqlite",
+       "sha256": "9ff3d798c12ea39926f0ac6f0fee2ed80aab20c7211c2d1d3edcc35b64a52b8d",
+       "bytes": "45"
+      },
+      {
+       "id": "retry-watch",
+       "kind": "watch-recommendation",
+       "mediaType": "application/json",
+       "path": "training/watch.json",
+       "sha256": "fb92e8caa8586368b965be67809de637026274dee919e953fd67f3c0666f1624",
+       "bytes": "404"
+      },
+      {
+       "id": "retry-summary-check",
+       "kind": "check-definition",
+       "mediaType": "application/json",
+       "path": "training/retry-summary.json",
+       "sha256": "1c17491f26d2396dff1f0f91c5a5a39401a77f34d09e5554da902a578bfa5277",
+       "bytes": "487"
+      },
+      {
+       "id": "orphan-check",
+       "kind": "check-definition",
+       "mediaType": "application/json",
+       "path": "training/orphan-check.json",
+       "sha256": "4a454a642fe19095a8728eaa655078617cbaaa2bfc3c89e563c06b847f5b2eff",
+       "bytes": "592"
+      }
+     ],
+     "codecs": [
+      {
+       "assetId": "narrative-text",
+       "kind": "evidence-text",
+       "text": "Retry storm notes: requests repeat per status.\n"
+      },
+      {
+       "assetId": "orders-records",
+       "kind": "evidence-records",
+       "records": {
+        "columns": [
+         {
+          "name": "order_id",
+          "type": "integer"
+         },
+         {
+          "name": "status",
+          "type": "string"
+         },
+         {
+          "name": "seen_at",
+          "type": "datetime"
+         },
+         {
+          "name": "note",
+          "type": "null"
+         }
+        ],
+        "rows": [
+         [
+          {
+           "type": "integer",
+           "value": "11045"
+          },
+          {
+           "type": "string",
+           "value": "pending"
+          },
+          {
+           "type": "datetime",
+           "value": "2026-01-02T03:04:05Z"
+          },
+          {
+           "type": "null",
+           "value": null
+          }
+         ]
+        ]
+       }
+      },
+      {
+       "assetId": "ops-log",
+       "kind": "evidence-log",
+       "log": [
+        {
+         "id": "line-1",
+         "at": "2026-01-02T03:04:05Z",
+         "actorId": "guide",
+         "kind": "order-seen",
+         "message": "First retry."
+        },
+        {
+         "id": "line-2",
+         "at": "2026-01-02T03:05:05Z",
+         "actorId": "analyst",
+         "kind": "retry-seen",
+         "message": "Second retry."
+        }
+       ]
+      },
+      {
+       "assetId": "retry-metadata",
+       "kind": "query-metadata",
+       "metadata": {
+        "id": "retries/by-status",
+        "title": "Retries by status",
+        "type": "SQL",
+        "connectionId": "training-fixture",
+        "parameters": [
+         {
+          "id": "status",
+          "type": "string",
+          "title": "Status",
+          "isRequired": true,
+          "defaultValue": {
+           "type": "string",
+           "value": "pending"
+          }
+         },
+         {
+          "id": "attempts",
+          "type": "integer",
+          "defaultValue": {
+           "type": "integer",
+           "value": "3"
+          }
+         },
+         {
+          "id": "ratio",
+          "type": "number",
+          "defaultValue": {
+           "type": "number",
+           "value": 2.5
+          }
+         },
+         {
+          "id": "strict",
+          "type": "boolean",
+          "defaultValue": {
+           "type": "boolean",
+           "value": false
+          }
+         },
+         {
+          "id": "optional",
+          "type": "string"
+         }
+        ]
+       }
+      },
+      {
+       "assetId": "retry-body",
+       "kind": "query-body-sql",
+       "text": "select status, count(*) from retries where attempts >= @attempts group by status;\n"
+      },
+      {
+       "assetId": "retry-check",
+       "kind": "check-definition",
+       "check": {
+        "id": "retry-observation",
+        "title": "Retry observation",
+        "version": "1",
+        "inputs": [
+         {
+          "name": "status",
+          "type": "string",
+          "cardinality": "scalar",
+          "required": true
+         },
+         {
+          "name": "note",
+          "type": "string",
+          "cardinality": "scalar"
+         }
+        ],
+        "steps": [
+         {
+          "id": "run",
+          "kind": "query",
+          "queryId": "retries/by-status",
+          "onUnavailable": "warn",
+          "validators": [
+           {
+            "id": "status-present",
+            "scope": "row",
+            "kind": "non-null",
+            "severity": "error",
+            "field": "status"
+           }
+          ]
+         }
+        ],
+        "updatedAt": "2026-01-02T03:04:05Z",
+        "updatedBy": "guide",
+        "description": "Fictional retry check.",
+        "createdAt": "2026-01-01T00:00:00Z"
+       }
+      },
+      {
+       "assetId": "retry-manifest",
+       "kind": "challenge-manifest",
+       "manifest": {
+        "schemaVersion": 1,
+        "gradingVersion": "challenge-grading-v1",
+        "challengeId": "retry-query",
+        "revision": 1,
+        "title": "Retry query",
+        "objective": "Find repeated requests by status.",
+        "difficulty": "intro",
+        "dialect": "sqlite",
+        "allowedOperation": "read",
+        "timing": "off",
+        "engine": {
+         "package": "@sqlite.org/sqlite-wasm",
+         "version": "3.54.1-build1",
+         "sqliteVersion": "3.54.1"
+        },
+        "fixtureSuite": {
+         "id": "retry-suite",
+         "fixtures": [
+          {
+           "id": "base",
+           "label": "Base fixture",
+           "sha256": "9ff3d798c12ea39926f0ac6f0fee2ed80aab20c7211c2d1d3edcc35b64a52b8d",
+           "bytes": 45,
+           "runs": 1
+          }
+         ]
+        },
+        "visibleSchema": {
+         "tables": [
+          {
+           "name": "retries",
+           "columns": [
+            {
+             "name": "status",
+             "type": "string",
+             "primaryKey": true,
+             "notNull": true,
+             "collation": "NOCASE"
+            },
+            {
+             "name": "attempts",
+             "type": "integer"
+            }
+           ]
+          }
+         ]
+        },
+        "parts": [
+         {
+          "id": "result",
+          "title": "Rows",
+          "required": true,
+          "answerKind": "sql",
+          "sql": {
+           "cases": [
+            {
+             "fixture": "base",
+             "oracle": {
+              "kind": "result",
+              "columns": [
+               {
+                "name": "status",
+                "type": "string"
+               }
+              ],
+              "rows": [
+               [
+                {
+                 "type": "string",
+                 "value": "pending"
+                }
+               ]
+              ],
+              "ordering": "unordered"
+             }
+            }
+           ]
+          }
+         }
+        ],
+        "hints": [
+         {
+          "id": "retry-hint",
+          "text": "Look at the attempts column."
+         }
+        ],
+        "referenceSolutions": [
+         {
+          "partId": "result",
+          "answer": {
+           "sql": "select status, count(*) from retries where attempts >= 3 group by status;"
+          }
+         }
+        ]
+       }
+      },
+      {
+       "assetId": "retry-fixture",
+       "kind": "challenge-fixture",
+       "binary": true
+      },
+      {
+       "assetId": "retry-watch",
+       "kind": "watch-recommendation",
+       "watch": {
+        "title": "Alert when retries appear",
+        "checkId": "retry-observation",
+        "checkVersion": "1",
+        "inputs": {
+         "status": {
+          "scalar": {
+           "type": "string",
+           "value": "pending"
+          }
+         }
+        },
+        "intervalSeconds": "300",
+        "trigger": "becomes_true",
+        "initialObservation": "baseline",
+        "mode": "one_shot",
+        "cooldownSeconds": "0",
+        "recovery": false
+       }
+      },
+      {
+       "assetId": "retry-summary-check",
+       "kind": "check-definition",
+       "check": {
+        "id": "retry-summary",
+        "title": "Retry summary",
+        "version": "1",
+        "inputs": [
+         {
+          "name": "status",
+          "type": "string",
+          "cardinality": "scalar",
+          "required": true
+         }
+        ],
+        "steps": [
+         {
+          "id": "run",
+          "kind": "check",
+          "checkId": "retry-observation",
+          "bindings": [
+           {
+            "input": "status",
+            "fromInput": "status"
+           }
+          ]
+         }
+        ],
+        "updatedAt": "2026-01-02T03:04:05Z",
+        "updatedBy": "guide"
+       }
+      },
+      {
+       "assetId": "orphan-check",
+       "kind": "check-definition",
+       "check": {
+        "id": "retry-observation",
+        "title": "Unused retry observation",
+        "version": "1",
+        "inputs": [
+         {
+          "name": "region",
+          "type": "string",
+          "cardinality": "scalar",
+          "required": true
+         }
+        ],
+        "steps": [
+         {
+          "id": "run",
+          "kind": "query",
+          "queryId": "retries/by-status"
+         },
+         {
+          "id": "reuse",
+          "kind": "check",
+          "checkId": "retry-summary",
+          "bindings": [
+           {
+            "input": "status",
+            "fromInput": "region"
+           }
+          ]
+         }
+        ],
+        "updatedAt": "2026-01-02T03:04:05Z",
+        "updatedBy": "guide"
+       }
+      }
+     ],
+     "fictionalActors": [
+      {
+       "id": "guide",
+       "name": "Guide"
+      },
+      {
+       "id": "analyst",
+       "name": "Fictional analyst 😀"
+      }
+     ],
+     "sources": [
+      {
+       "id": "training-fixture",
+       "fixtureAssetId": "retry-fixture"
+      }
+     ],
+     "cases": [
+      {
+       "id": "retry-case",
+       "title": "Retry case",
+       "status": "active",
+       "context": {
+        "status": {
+         "scalar": {
+          "type": "string",
+          "value": "pending"
+         }
+        }
+       },
+       "incidentIds": [
+        "retry-incident"
+       ],
+       "evidenceIds": [
+        "narrative-text",
+        "orders-records",
+        "ops-log"
+       ],
+       "findings": [
+        {
+         "id": "first-finding",
+         "text": "Retries cluster by status.",
+         "status": "hypothesis",
+         "evidenceRefs": [
+          "orders-records",
+          "ops-log"
+         ]
+        },
+        {
+         "id": "second-finding",
+         "text": "Retry loop confirmed.",
+         "status": "confirmed"
+        }
+       ],
+       "timeline": [
+        {
+         "id": "log-seen",
+         "at": "2026-01-02T03:04:05Z",
+         "actorId": "guide",
+         "type": "evidence-revealed",
+         "ref": {
+          "kind": "evidence",
+          "id": "ops-log"
+         }
+        },
+        {
+         "id": "finding-seen",
+         "at": "2026-01-02T03:04:06Z",
+         "actorId": "analyst",
+         "type": "finding-recorded",
+         "ref": {
+          "kind": "finding",
+          "id": "first-finding"
+         }
+        },
+        {
+         "id": "check-seen",
+         "at": "2026-01-02T03:04:07Z",
+         "actorId": "guide",
+         "type": "check-observed",
+         "ref": {
+          "kind": "check",
+          "id": "retry-observation"
+         }
+        }
+       ]
+      }
+     ],
+     "incidents": [
+      {
+       "id": "retry-incident",
+       "title": "Retry storm",
+       "description": "Fictional retry storm.",
+       "status": "investigating",
+       "evidenceIds": [
+        "ops-log"
+       ]
+      }
+     ],
+     "checks": [
+      {
+       "id": "retry-observation",
+       "definitionAssetId": "retry-check"
+      },
+      {
+       "id": "retry-summary",
+       "definitionAssetId": "retry-summary-check"
+      }
+     ],
+     "queries": [
+      {
+       "id": "retries/by-status",
+       "metadataAssetId": "retry-metadata",
+       "bodyAssetId": "retry-body",
+       "sourceId": "training-fixture",
+       "hydrated": {
+        "id": "retries/by-status",
+        "type": "SQL",
+        "text": "select status, count(*) from retries where attempts >= @attempts group by status;\n",
+        "connectionId": "training-fixture",
+        "parameters": [
+         {
+          "id": "status",
+          "type": "string",
+          "title": "Status",
+          "isRequired": true,
+          "defaultValue": "pending"
+         },
+         {
+          "id": "attempts",
+          "type": "integer",
+          "defaultValue": "3"
+         },
+         {
+          "id": "ratio",
+          "type": "number",
+          "defaultValue": 2.5
+         },
+         {
+          "id": "strict",
+          "type": "boolean",
+          "defaultValue": false
+         },
+         {
+          "id": "optional",
+          "type": "string"
+         }
+        ]
+       }
+      }
+     ],
+     "challenges": [
+      {
+       "id": "retry-query",
+       "revision": "1",
+       "manifestAssetId": "retry-manifest",
+       "fixtures": [
+        {
+         "fixtureId": "base",
+         "assetId": "retry-fixture",
+         "path": "training/retry.sqlite",
+         "sha256": "9ff3d798c12ea39926f0ac6f0fee2ed80aab20c7211c2d1d3edcc35b64a52b8d",
+         "bytes": "45"
+        }
+       ]
+      }
+     ],
+     "proposals": [
+      {
+       "id": "query-proposal",
+       "kind": "query",
+       "definitionId": "retries/by-status",
+       "evidenceIds": [
+        "narrative-text"
+       ],
+       "rationale": "Keep the retry query."
+      },
+      {
+       "id": "check-proposal",
+       "kind": "check",
+       "definitionId": "retry-observation",
+       "evidenceIds": [
+        "orders-records"
+       ],
+       "rationale": "Keep the retry check."
+      },
+      {
+       "id": "watch-proposal",
+       "kind": "watch",
+       "definitionId": "retry-watch",
+       "evidenceIds": [
+        "ops-log"
+       ],
+       "rationale": "Watch the retry rate."
+      }
+     ],
+     "presentationTargets": [
+      {
+       "id": "case-view",
+       "kind": "case",
+       "refId": "retry-case"
+      },
+      {
+       "id": "incident-view",
+       "kind": "incident",
+       "refId": "retry-incident"
+      },
+      {
+       "id": "evidence-view",
+       "kind": "evidence",
+       "refId": "narrative-text"
+      },
+      {
+       "id": "check-view",
+       "kind": "check",
+       "refId": "retry-observation"
+      },
+      {
+       "id": "proposal-view",
+       "kind": "proposal",
+       "refId": "watch-proposal"
+      }
+     ],
+     "textBytes": "5843",
+     "binaryBytes": "45",
+     "contributions": [
+      {
+       "path": "training/notes.txt",
+       "sha256": "18876321f3c08f22bb6cf77df31566f6aa1ecfe62ae1c45cc38cd78fdf632d64",
+       "class": "text",
+       "bytes": "47",
+       "assetIds": [
+        "narrative-text"
+       ]
+      },
+      {
+       "path": "training/orders.json",
+       "sha256": "106eb5e00649d45ba0782c31d56a38121923d7365350e8acfdf7af48283386f6",
+       "class": "text",
+       "bytes": "579",
+       "assetIds": [
+        "orders-records"
+       ]
+      },
+      {
+       "path": "training/ops.ndjson",
+       "sha256": "3ac616d1fb84b444be3ec3fa14c258a7df2b4321751c2c5c2128bef3d19aa33a",
+       "class": "text",
+       "bytes": "217",
+       "assetIds": [
+        "ops-log"
+       ]
+      },
+      {
+       "path": "training/retry.meta.json",
+       "sha256": "30d767d787e982bd121300d454dc43619f235e91c7db7b0c1011cd85faf43c77",
+       "class": "text",
+       "bytes": "601",
+       "assetIds": [
+        "retry-metadata"
+       ]
+      },
+      {
+       "path": "training/retry.sql",
+       "sha256": "f08d25d36447be01a8549899d30bbca2bfe8aaa390de909efa3692a9c586b4f0",
+       "class": "text",
+       "bytes": "82",
+       "assetIds": [
+        "retry-body"
+       ]
+      },
+      {
+       "path": "training/retry-check.json",
+       "sha256": "e0fa708052599755e805abe314886393f94204506bf8f275a829554949a581c7",
+       "class": "text",
+       "bytes": "787",
+       "assetIds": [
+        "retry-check"
+       ]
+      },
+      {
+       "path": "training/challenge.json",
+       "sha256": "1e6914892b8bbf33237e5e4ecbb5aca256965795a44d0d742b95fca7a4c653b6",
+       "class": "text",
+       "bytes": "2047",
+       "assetIds": [
+        "retry-manifest"
+       ]
+      },
+      {
+       "path": "training/retry.sqlite",
+       "sha256": "9ff3d798c12ea39926f0ac6f0fee2ed80aab20c7211c2d1d3edcc35b64a52b8d",
+       "class": "binary",
+       "bytes": "45",
+       "assetIds": [
+        "retry-fixture"
+       ]
+      },
+      {
+       "path": "training/watch.json",
+       "sha256": "fb92e8caa8586368b965be67809de637026274dee919e953fd67f3c0666f1624",
+       "class": "text",
+       "bytes": "404",
+       "assetIds": [
+        "retry-watch"
+       ]
+      },
+      {
+       "path": "training/retry-summary.json",
+       "sha256": "1c17491f26d2396dff1f0f91c5a5a39401a77f34d09e5554da902a578bfa5277",
+       "class": "text",
+       "bytes": "487",
+       "assetIds": [
+        "retry-summary-check"
+       ]
+      },
+      {
+       "path": "training/orphan-check.json",
+       "sha256": "4a454a642fe19095a8728eaa655078617cbaaa2bfc3c89e563c06b847f5b2eff",
+       "class": "text",
+       "bytes": "592",
+       "assetIds": [
+        "orphan-check"
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "unused-query-valid",
+   "description": "A declared query that no Check, proposal or manifest consumes is admitted with its closed identity and hydrated native definition.",
+   "directory": "unused-query-valid",
+   "indexPath": "training/package.json",
+   "reference": {
+    "id": "training-full",
+    "revision": "7",
+    "path": "training/package.json",
+    "sha256": "b609709a0d8b466d28b605aa5a4df0b571217db3fa962bd9a8c052a9988b838f",
+    "bytes": "6799"
+   },
+   "binding": {
+    "project": "project-alpha",
+    "contentPin": {
+     "kind": "git",
+     "commit": "0123456789abcdef0123456789abcdef01234567"
+    },
+    "declarationSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "narrativeSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "packageSha256": "b609709a0d8b466d28b605aa5a4df0b571217db3fa962bd9a8c052a9988b838f",
+    "scenarioId": "training-full",
+    "scenarioRevision": "7"
+   },
+   "want": {
+    "admitted": true,
+    "definition": {
+     "schema": "datatug-training-package/1",
+     "id": "training-full",
+     "revision": "7",
+     "package": {
+      "id": "training-full",
+      "revision": "7",
+      "path": "training/package.json",
+      "sha256": "b609709a0d8b466d28b605aa5a4df0b571217db3fa962bd9a8c052a9988b838f",
+      "bytes": "6799"
+     },
+     "binding": {
+      "contentPin": {
+       "kind": "git",
+       "commit": "0123456789abcdef0123456789abcdef01234567"
+      },
+      "declarationSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "narrativeSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "packageSha256": "b609709a0d8b466d28b605aa5a4df0b571217db3fa962bd9a8c052a9988b838f",
+      "scenarioId": "training-full",
+      "scenarioRevision": "7"
+     },
+     "assets": [
+      {
+       "id": "narrative-text",
+       "kind": "evidence-text",
+       "mediaType": "text/plain",
+       "path": "training/notes.txt",
+       "sha256": "18876321f3c08f22bb6cf77df31566f6aa1ecfe62ae1c45cc38cd78fdf632d64",
+       "bytes": "47"
+      },
+      {
+       "id": "orders-records",
+       "kind": "evidence-records",
+       "mediaType": "application/json",
+       "path": "training/orders.json",
+       "sha256": "106eb5e00649d45ba0782c31d56a38121923d7365350e8acfdf7af48283386f6",
+       "bytes": "579"
+      },
+      {
+       "id": "ops-log",
+       "kind": "evidence-log",
+       "mediaType": "application/x-ndjson",
+       "path": "training/ops.ndjson",
+       "sha256": "3ac616d1fb84b444be3ec3fa14c258a7df2b4321751c2c5c2128bef3d19aa33a",
+       "bytes": "217"
+      },
+      {
+       "id": "retry-metadata",
+       "kind": "query-metadata",
+       "mediaType": "application/json",
+       "path": "training/retry.meta.json",
+       "sha256": "30d767d787e982bd121300d454dc43619f235e91c7db7b0c1011cd85faf43c77",
+       "bytes": "601"
+      },
+      {
+       "id": "retry-body",
+       "kind": "query-body-sql",
+       "mediaType": "application/sql",
+       "path": "training/retry.sql",
+       "sha256": "f08d25d36447be01a8549899d30bbca2bfe8aaa390de909efa3692a9c586b4f0",
+       "bytes": "82"
+      },
+      {
+       "id": "retry-check",
+       "kind": "check-definition",
+       "mediaType": "application/json",
+       "path": "training/retry-check.json",
+       "sha256": "e0fa708052599755e805abe314886393f94204506bf8f275a829554949a581c7",
+       "bytes": "787"
+      },
+      {
+       "id": "retry-manifest",
+       "kind": "challenge-manifest",
+       "mediaType": "application/json",
+       "path": "training/challenge.json",
+       "sha256": "1e6914892b8bbf33237e5e4ecbb5aca256965795a44d0d742b95fca7a4c653b6",
+       "bytes": "2047"
+      },
+      {
+       "id": "retry-fixture",
+       "kind": "challenge-fixture",
+       "mediaType": "application/vnd.sqlite3",
+       "path": "training/retry.sqlite",
+       "sha256": "9ff3d798c12ea39926f0ac6f0fee2ed80aab20c7211c2d1d3edcc35b64a52b8d",
+       "bytes": "45"
+      },
+      {
+       "id": "retry-watch",
+       "kind": "watch-recommendation",
+       "mediaType": "application/json",
+       "path": "training/watch.json",
+       "sha256": "fb92e8caa8586368b965be67809de637026274dee919e953fd67f3c0666f1624",
+       "bytes": "404"
+      },
+      {
+       "id": "unused-metadata",
+       "kind": "query-metadata",
+       "mediaType": "application/json",
+       "path": "training/unused.meta.json",
+       "sha256": "d285b89d2ca56aa7963674ed5d0fe8f30b4b2c835efbef754a39d38ceb3df1b1",
+       "bytes": "133"
+      },
+      {
+       "id": "unused-body",
+       "kind": "query-body-sql",
+       "mediaType": "application/sql",
+       "path": "training/unused.sql",
+       "sha256": "a62dc3fe9e10a2091941353e98c0d782fc4a4792adf1953b0c960065fd81c051",
+       "bytes": "28"
+      }
+     ],
+     "codecs": [
+      {
+       "assetId": "narrative-text",
+       "kind": "evidence-text",
+       "text": "Retry storm notes: requests repeat per status.\n"
+      },
+      {
+       "assetId": "orders-records",
+       "kind": "evidence-records",
+       "records": {
+        "columns": [
+         {
+          "name": "order_id",
+          "type": "integer"
+         },
+         {
+          "name": "status",
+          "type": "string"
+         },
+         {
+          "name": "seen_at",
+          "type": "datetime"
+         },
+         {
+          "name": "note",
+          "type": "null"
+         }
+        ],
+        "rows": [
+         [
+          {
+           "type": "integer",
+           "value": "11045"
+          },
+          {
+           "type": "string",
+           "value": "pending"
+          },
+          {
+           "type": "datetime",
+           "value": "2026-01-02T03:04:05Z"
+          },
+          {
+           "type": "null",
+           "value": null
+          }
+         ]
+        ]
+       }
+      },
+      {
+       "assetId": "ops-log",
+       "kind": "evidence-log",
+       "log": [
+        {
+         "id": "line-1",
+         "at": "2026-01-02T03:04:05Z",
+         "actorId": "guide",
+         "kind": "order-seen",
+         "message": "First retry."
+        },
+        {
+         "id": "line-2",
+         "at": "2026-01-02T03:05:05Z",
+         "actorId": "analyst",
+         "kind": "retry-seen",
+         "message": "Second retry."
+        }
+       ]
+      },
+      {
+       "assetId": "retry-metadata",
+       "kind": "query-metadata",
+       "metadata": {
+        "id": "retries/by-status",
+        "title": "Retries by status",
+        "type": "SQL",
+        "connectionId": "training-fixture",
+        "parameters": [
+         {
+          "id": "status",
+          "type": "string",
+          "title": "Status",
+          "isRequired": true,
+          "defaultValue": {
+           "type": "string",
+           "value": "pending"
+          }
+         },
+         {
+          "id": "attempts",
+          "type": "integer",
+          "defaultValue": {
+           "type": "integer",
+           "value": "3"
+          }
+         },
+         {
+          "id": "ratio",
+          "type": "number",
+          "defaultValue": {
+           "type": "number",
+           "value": 2.5
+          }
+         },
+         {
+          "id": "strict",
+          "type": "boolean",
+          "defaultValue": {
+           "type": "boolean",
+           "value": false
+          }
+         },
+         {
+          "id": "optional",
+          "type": "string"
+         }
+        ]
+       }
+      },
+      {
+       "assetId": "retry-body",
+       "kind": "query-body-sql",
+       "text": "select status, count(*) from retries where attempts >= @attempts group by status;\n"
+      },
+      {
+       "assetId": "retry-check",
+       "kind": "check-definition",
+       "check": {
+        "id": "retry-observation",
+        "title": "Retry observation",
+        "version": "1",
+        "inputs": [
+         {
+          "name": "status",
+          "type": "string",
+          "cardinality": "scalar",
+          "required": true
+         },
+         {
+          "name": "note",
+          "type": "string",
+          "cardinality": "scalar"
+         }
+        ],
+        "steps": [
+         {
+          "id": "run",
+          "kind": "query",
+          "queryId": "retries/by-status",
+          "onUnavailable": "warn",
+          "validators": [
+           {
+            "id": "status-present",
+            "scope": "row",
+            "kind": "non-null",
+            "severity": "error",
+            "field": "status"
+           }
+          ]
+         }
+        ],
+        "updatedAt": "2026-01-02T03:04:05Z",
+        "updatedBy": "guide",
+        "description": "Fictional retry check.",
+        "createdAt": "2026-01-01T00:00:00Z"
+       }
+      },
+      {
+       "assetId": "retry-manifest",
+       "kind": "challenge-manifest",
+       "manifest": {
+        "schemaVersion": 1,
+        "gradingVersion": "challenge-grading-v1",
+        "challengeId": "retry-query",
+        "revision": 1,
+        "title": "Retry query",
+        "objective": "Find repeated requests by status.",
+        "difficulty": "intro",
+        "dialect": "sqlite",
+        "allowedOperation": "read",
+        "timing": "off",
+        "engine": {
+         "package": "@sqlite.org/sqlite-wasm",
+         "version": "3.54.1-build1",
+         "sqliteVersion": "3.54.1"
+        },
+        "fixtureSuite": {
+         "id": "retry-suite",
+         "fixtures": [
+          {
+           "id": "base",
+           "label": "Base fixture",
+           "sha256": "9ff3d798c12ea39926f0ac6f0fee2ed80aab20c7211c2d1d3edcc35b64a52b8d",
+           "bytes": 45,
+           "runs": 1
+          }
+         ]
+        },
+        "visibleSchema": {
+         "tables": [
+          {
+           "name": "retries",
+           "columns": [
+            {
+             "name": "status",
+             "type": "string",
+             "primaryKey": true,
+             "notNull": true,
+             "collation": "NOCASE"
+            },
+            {
+             "name": "attempts",
+             "type": "integer"
+            }
+           ]
+          }
+         ]
+        },
+        "parts": [
+         {
+          "id": "result",
+          "title": "Rows",
+          "required": true,
+          "answerKind": "sql",
+          "sql": {
+           "cases": [
+            {
+             "fixture": "base",
+             "oracle": {
+              "kind": "result",
+              "columns": [
+               {
+                "name": "status",
+                "type": "string"
+               }
+              ],
+              "rows": [
+               [
+                {
+                 "type": "string",
+                 "value": "pending"
+                }
+               ]
+              ],
+              "ordering": "unordered"
+             }
+            }
+           ]
+          }
+         }
+        ],
+        "hints": [
+         {
+          "id": "retry-hint",
+          "text": "Look at the attempts column."
+         }
+        ],
+        "referenceSolutions": [
+         {
+          "partId": "result",
+          "answer": {
+           "sql": "select status, count(*) from retries where attempts >= 3 group by status;"
+          }
+         }
+        ]
+       }
+      },
+      {
+       "assetId": "retry-fixture",
+       "kind": "challenge-fixture",
+       "binary": true
+      },
+      {
+       "assetId": "retry-watch",
+       "kind": "watch-recommendation",
+       "watch": {
+        "title": "Alert when retries appear",
+        "checkId": "retry-observation",
+        "checkVersion": "1",
+        "inputs": {
+         "status": {
+          "scalar": {
+           "type": "string",
+           "value": "pending"
+          }
+         }
+        },
+        "intervalSeconds": "300",
+        "trigger": "becomes_true",
+        "initialObservation": "baseline",
+        "mode": "one_shot",
+        "cooldownSeconds": "0",
+        "recovery": false
+       }
+      },
+      {
+       "assetId": "unused-metadata",
+       "kind": "query-metadata",
+       "metadata": {
+        "id": "retries/unused",
+        "title": "Unused retries",
+        "type": "SQL",
+        "connectionId": "training-fixture",
+        "parameters": []
+       }
+      },
+      {
+       "assetId": "unused-body",
+       "kind": "query-body-sql",
+       "text": "select status from retries;\n"
+      }
+     ],
+     "fictionalActors": [
+      {
+       "id": "guide",
+       "name": "Guide"
+      },
+      {
+       "id": "analyst",
+       "name": "Fictional analyst 😀"
+      }
+     ],
+     "sources": [
+      {
+       "id": "training-fixture",
+       "fixtureAssetId": "retry-fixture"
+      }
+     ],
+     "cases": [
+      {
+       "id": "retry-case",
+       "title": "Retry case",
+       "status": "active",
+       "context": {
+        "status": {
+         "scalar": {
+          "type": "string",
+          "value": "pending"
+         }
+        }
+       },
+       "incidentIds": [
+        "retry-incident"
+       ],
+       "evidenceIds": [
+        "narrative-text",
+        "orders-records",
+        "ops-log"
+       ],
+       "findings": [
+        {
+         "id": "first-finding",
+         "text": "Retries cluster by status.",
+         "status": "hypothesis",
+         "evidenceRefs": [
+          "orders-records",
+          "ops-log"
+         ]
+        },
+        {
+         "id": "second-finding",
+         "text": "Retry loop confirmed.",
+         "status": "confirmed"
+        }
+       ],
+       "timeline": [
+        {
+         "id": "log-seen",
+         "at": "2026-01-02T03:04:05Z",
+         "actorId": "guide",
+         "type": "evidence-revealed",
+         "ref": {
+          "kind": "evidence",
+          "id": "ops-log"
+         }
+        },
+        {
+         "id": "finding-seen",
+         "at": "2026-01-02T03:04:06Z",
+         "actorId": "analyst",
+         "type": "finding-recorded",
+         "ref": {
+          "kind": "finding",
+          "id": "first-finding"
+         }
+        },
+        {
+         "id": "check-seen",
+         "at": "2026-01-02T03:04:07Z",
+         "actorId": "guide",
+         "type": "check-observed",
+         "ref": {
+          "kind": "check",
+          "id": "retry-observation"
+         }
+        }
+       ]
+      }
+     ],
+     "incidents": [
+      {
+       "id": "retry-incident",
+       "title": "Retry storm",
+       "description": "Fictional retry storm.",
+       "status": "investigating",
+       "evidenceIds": [
+        "ops-log"
+       ]
+      }
+     ],
+     "checks": [
+      {
+       "id": "retry-observation",
+       "definitionAssetId": "retry-check"
+      }
+     ],
+     "queries": [
+      {
+       "id": "retries/by-status",
+       "metadataAssetId": "retry-metadata",
+       "bodyAssetId": "retry-body",
+       "sourceId": "training-fixture",
+       "hydrated": {
+        "id": "retries/by-status",
+        "type": "SQL",
+        "text": "select status, count(*) from retries where attempts >= @attempts group by status;\n",
+        "connectionId": "training-fixture",
+        "parameters": [
+         {
+          "id": "status",
+          "type": "string",
+          "title": "Status",
+          "isRequired": true,
+          "defaultValue": "pending"
+         },
+         {
+          "id": "attempts",
+          "type": "integer",
+          "defaultValue": "3"
+         },
+         {
+          "id": "ratio",
+          "type": "number",
+          "defaultValue": 2.5
+         },
+         {
+          "id": "strict",
+          "type": "boolean",
+          "defaultValue": false
+         },
+         {
+          "id": "optional",
+          "type": "string"
+         }
+        ]
+       }
+      },
+      {
+       "id": "retries/unused",
+       "metadataAssetId": "unused-metadata",
+       "bodyAssetId": "unused-body",
+       "sourceId": "training-fixture",
+       "hydrated": {
+        "id": "retries/unused",
+        "type": "SQL",
+        "text": "select status from retries;\n",
+        "connectionId": "training-fixture",
+        "parameters": []
+       }
+      }
+     ],
+     "challenges": [
+      {
+       "id": "retry-query",
+       "revision": "1",
+       "manifestAssetId": "retry-manifest",
+       "fixtures": [
+        {
+         "fixtureId": "base",
+         "assetId": "retry-fixture",
+         "path": "training/retry.sqlite",
+         "sha256": "9ff3d798c12ea39926f0ac6f0fee2ed80aab20c7211c2d1d3edcc35b64a52b8d",
+         "bytes": "45"
+        }
+       ]
+      }
+     ],
+     "proposals": [
+      {
+       "id": "query-proposal",
+       "kind": "query",
+       "definitionId": "retries/by-status",
+       "evidenceIds": [
+        "narrative-text"
+       ],
+       "rationale": "Keep the retry query."
+      },
+      {
+       "id": "check-proposal",
+       "kind": "check",
+       "definitionId": "retry-observation",
+       "evidenceIds": [
+        "orders-records"
+       ],
+       "rationale": "Keep the retry check."
+      },
+      {
+       "id": "watch-proposal",
+       "kind": "watch",
+       "definitionId": "retry-watch",
+       "evidenceIds": [
+        "ops-log"
+       ],
+       "rationale": "Watch the retry rate."
+      }
+     ],
+     "presentationTargets": [
+      {
+       "id": "case-view",
+       "kind": "case",
+       "refId": "retry-case"
+      },
+      {
+       "id": "incident-view",
+       "kind": "incident",
+       "refId": "retry-incident"
+      },
+      {
+       "id": "evidence-view",
+       "kind": "evidence",
+       "refId": "narrative-text"
+      },
+      {
+       "id": "check-view",
+       "kind": "check",
+       "refId": "retry-observation"
+      },
+      {
+       "id": "proposal-view",
+       "kind": "proposal",
+       "refId": "watch-proposal"
+      }
+     ],
+     "textBytes": "4925",
+     "binaryBytes": "45",
+     "contributions": [
+      {
+       "path": "training/notes.txt",
+       "sha256": "18876321f3c08f22bb6cf77df31566f6aa1ecfe62ae1c45cc38cd78fdf632d64",
+       "class": "text",
+       "bytes": "47",
+       "assetIds": [
+        "narrative-text"
+       ]
+      },
+      {
+       "path": "training/orders.json",
+       "sha256": "106eb5e00649d45ba0782c31d56a38121923d7365350e8acfdf7af48283386f6",
+       "class": "text",
+       "bytes": "579",
+       "assetIds": [
+        "orders-records"
+       ]
+      },
+      {
+       "path": "training/ops.ndjson",
+       "sha256": "3ac616d1fb84b444be3ec3fa14c258a7df2b4321751c2c5c2128bef3d19aa33a",
+       "class": "text",
+       "bytes": "217",
+       "assetIds": [
+        "ops-log"
+       ]
+      },
+      {
+       "path": "training/retry.meta.json",
+       "sha256": "30d767d787e982bd121300d454dc43619f235e91c7db7b0c1011cd85faf43c77",
+       "class": "text",
+       "bytes": "601",
+       "assetIds": [
+        "retry-metadata"
+       ]
+      },
+      {
+       "path": "training/retry.sql",
+       "sha256": "f08d25d36447be01a8549899d30bbca2bfe8aaa390de909efa3692a9c586b4f0",
+       "class": "text",
+       "bytes": "82",
+       "assetIds": [
+        "retry-body"
+       ]
+      },
+      {
+       "path": "training/retry-check.json",
+       "sha256": "e0fa708052599755e805abe314886393f94204506bf8f275a829554949a581c7",
+       "class": "text",
+       "bytes": "787",
+       "assetIds": [
+        "retry-check"
+       ]
+      },
+      {
+       "path": "training/challenge.json",
+       "sha256": "1e6914892b8bbf33237e5e4ecbb5aca256965795a44d0d742b95fca7a4c653b6",
+       "class": "text",
+       "bytes": "2047",
+       "assetIds": [
+        "retry-manifest"
+       ]
+      },
+      {
+       "path": "training/retry.sqlite",
+       "sha256": "9ff3d798c12ea39926f0ac6f0fee2ed80aab20c7211c2d1d3edcc35b64a52b8d",
+       "class": "binary",
+       "bytes": "45",
+       "assetIds": [
+        "retry-fixture"
+       ]
+      },
+      {
+       "path": "training/watch.json",
+       "sha256": "fb92e8caa8586368b965be67809de637026274dee919e953fd67f3c0666f1624",
+       "class": "text",
+       "bytes": "404",
+       "assetIds": [
+        "retry-watch"
+       ]
+      },
+      {
+       "path": "training/unused.meta.json",
+       "sha256": "d285b89d2ca56aa7963674ed5d0fe8f30b4b2c835efbef754a39d38ceb3df1b1",
+       "class": "text",
+       "bytes": "133",
+       "assetIds": [
+        "unused-metadata"
+       ]
+      },
+      {
+       "path": "training/unused.sql",
+       "sha256": "a62dc3fe9e10a2091941353e98c0d782fc4a4792adf1953b0c960065fd81c051",
+       "class": "text",
+       "bytes": "28",
+       "assetIds": [
+        "unused-body"
+       ]
+      }
+     ]
+    }
    }
   },
   {

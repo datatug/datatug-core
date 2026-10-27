@@ -64,12 +64,23 @@ used or unused, must resolve a `challenge-fixture` asset.
 Unused definitions are admitted only when they are fully closed. Every
 `check-definition` asset keeps native Check semantics and package-local
 query/Check/catalog closure even when no `checks[]` record binds it, and it never
-gains inventory authority. A `query-metadata` asset must be bound by a declared
-`queries[]` record and a `challenge-manifest` asset by a declared `challenges[]`
-record, because those records are the only place the format binds a metadata
-identity or a fixture id to bytes. Manifest `checkDefinition.queryIds` references
-close against the package `queries[]` inventory; the reference answer selects one
-of those same ids natively.
+gains inventory authority. The owner makes `checks[].id` package-unique and ties a
+declared definition's native Check id to that record; nothing makes an unused
+definition's native id unique, so an unused definition may reuse a declared native
+id and is then validated as itself instead of replacing the declared definition in
+the dependency graph. A declared `queries[]` record that no Check, proposal or
+manifest consumes is still admitted with its closed identity and hydrated native
+definition.
+
+A `query-metadata` asset must be bound by a declared `queries[]` record and a
+`challenge-manifest` asset by a declared `challenges[]` record, and manifest
+`checkDefinition.queryIds` references close against the package `queries[]`
+inventory (the reference answer selects one of those same ids natively). Those
+reverse bindings are required by the accepted package-closure repair: an
+identity-bearing metadata/manifest asset and a manifest saved-query reference are
+typed references that must resolve. They are **not yet listed in the owner
+document's closure table**, so Apps parity must treat them as pending owner
+clarification, not as a settled owner contract.
 
 `Projection()` is the complete conformance projection: every admitted native
 Check field (including `title` and the full-precision `updatedAt` encoded the way
