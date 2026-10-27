@@ -151,6 +151,9 @@ func modelFixture(t *testing.T, root, alias, commit string, records, components 
 }
 func newFixture(t *testing.T) (*fixture, Config) {
 	root := t.TempDir()
+	if resolved, err := filepath.EvalSymlinks(root); err == nil {
+		root = resolved
+	}
 	ca, cb, old := strings.Repeat("a", 40), strings.Repeat("b", 40), strings.Repeat("c", 40)
 	ida := revisionID("model", "modelspec://github.com/example/a/A", ca)
 	idb := revisionID("model", "modelspec://github.com/example/b/B", cb)
