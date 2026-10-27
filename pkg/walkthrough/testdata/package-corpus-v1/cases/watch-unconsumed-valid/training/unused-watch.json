@@ -1,0 +1,21 @@
+{
+  "title": "Alert when retries appear",
+  "checkId": "retry-observation",
+  "checkVersion": "1",
+  "inputs": {
+    "status": {
+      "type": "string",
+      "value": "pending"
+    }
+  },
+  "schedule": {
+    "intervalSeconds": 300
+  },
+  "trigger": "becomes_true",
+  "initialObservation": "baseline",
+  "mode": "one_shot",
+  "notificationPolicy": {
+    "cooldownSeconds": 0,
+    "recovery": false
+  }
+}

@@ -76,7 +76,7 @@
       "bytes": 404
     },
     {
-      "id": "narrative-mixed-binary",
+      "id": "narrative-text-fixture",
       "kind": "challenge-fixture",
       "mediaType": "application/vnd.sqlite3",
       "path": "training/notes.txt",

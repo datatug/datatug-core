@@ -16,19 +16,43 @@ import (
 // trainingPathPin is one unique canonical source+path declaration. Package
 // assets all resolve against the same declaring source pin, so a safe
 // project-relative path is the canonical identity.
+//
+// The pin is a physical entry: one immutable digest and byte length plus every
+// asset ID declared over it. Text and fixture are logical quota memberships
+// derived from the aliases' kinds, not physical copies. An alias pair such as
+// evidence-text over challenge-fixture bytes makes the same physical entry a
+// member of both logical subsets; the owner's quotas stay separate, so the
+// entry's bytes count once toward each applicable subset and never twice
+// toward one.
 type trainingPathPin struct {
-	path     string
-	class    string
-	sha256   string
-	bytes    Integer
-	assetIDs []string
+	path         string
+	text         bool
+	fixture      bool
+	textIndex    int
+	fixtureIndex int
+	sha256       string
+	bytes        Integer
+	assetIDs     []string
+}
+
+// class names the logical quota memberships of this physical entry.
+func (pin *trainingPathPin) class() string {
+	switch {
+	case pin.text && pin.fixture:
+		return "text+binary"
+	case pin.fixture:
+		return "binary"
+	default:
+		return "text"
+	}
 }
 
 // packagePaths rejects self-reference and conflicting pins, and returns the
 // unique canonical source+path set. Aliases sharing one path may use different
-// codecs as long as every alias independently validates; only a text/binary
-// accounting-class conflict rejects, because the owner defines exactly one
-// budget class per canonical raw buffer.
+// codecs as long as every alias independently validates; the owner only
+// requires identical digest and byte length at one source+path, so a text alias
+// and a challenge-fixture alias over the same buffer are valid when each one
+// passes its own media/body/native validation.
 func (c *checker) packagePaths(pkg *AdmittedTrainingPackage, reference PackageReference) map[string]*trainingPathPin {
 	paths := make(map[string]*trainingPathPin, len(pkg.Assets))
 	for index := range pkg.Assets {
@@ -39,43 +63,49 @@ func (c *checker) packagePaths(pkg *AdmittedTrainingPackage, reference PackageRe
 				"the package index is not one of its own assets")
 			continue
 		}
-		class := packageCodecKinds[asset.Kind]
 		existing, present := paths[asset.Reference.Path]
 		if !present {
-			paths[asset.Reference.Path] = &trainingPathPin{
-				path:     asset.Reference.Path,
-				class:    class,
-				sha256:   asset.Reference.SHA256,
-				bytes:    asset.Reference.Bytes,
-				assetIDs: []string{asset.ID},
+			existing = &trainingPathPin{
+				path:         asset.Reference.Path,
+				textIndex:    -1,
+				fixtureIndex: -1,
+				sha256:       asset.Reference.SHA256,
+				bytes:        asset.Reference.Bytes,
+				assetIDs:     []string{asset.ID},
+			}
+			paths[asset.Reference.Path] = existing
+		} else {
+			if existing.sha256 != asset.Reference.SHA256 {
+				c.report(CodeMismatch, pointerChild(path, "sha256"),
+					"conflicting pins for the same canonical source+path")
+				continue
+			}
+			if existing.bytes != asset.Reference.Bytes {
+				c.report(CodeMismatch, pointerChild(path, "bytes"),
+					"conflicting byte lengths for the same canonical source+path")
+				continue
+			}
+			existing.assetIDs = append(existing.assetIDs, asset.ID)
+		}
+		if packageCodecKinds[asset.Kind] == "binary" {
+			existing.fixture = true
+			if existing.fixtureIndex < 0 {
+				existing.fixtureIndex = index
 			}
 			continue
 		}
-		if existing.sha256 != asset.Reference.SHA256 {
-			c.report(CodeMismatch, pointerChild(path, "sha256"),
-				"conflicting pins for the same canonical source+path")
-			continue
+		existing.text = true
+		if existing.textIndex < 0 {
+			existing.textIndex = index
 		}
-		if existing.bytes != asset.Reference.Bytes {
-			c.report(CodeMismatch, pointerChild(path, "bytes"),
-				"conflicting byte lengths for the same canonical source+path")
-			continue
-		}
-		if existing.class != class {
-			// The same canonical buffer cannot be both text and binary under the
-			// owner's kind-owned budgets. Refuse the ambiguous accounting class
-			// explicitly instead of picking the first alias or counting twice.
-			c.report(CodeMismatch, pointerChild(path, "kind"),
-				"one canonical source+path cannot mix text and binary codec classes")
-			continue
-		}
-		existing.assetIDs = append(existing.assetIDs, asset.ID)
 	}
 	return paths
 }
 
 // packageBudgets preflights every declared text and binary pin before any
-// child byte is consumed. Kind decides the class; mediaType never does.
+// child byte is consumed. Kind decides the class; mediaType never does. One
+// physical source+path entry with both a text alias and a fixture alias obeys
+// both logical rules while its bytes are summed once per applicable subset.
 func (c *checker) packageBudgets(pkg *AdmittedTrainingPackage, paths map[string]*trainingPathPin) []Issue {
 	seen := make(map[string]bool, len(paths))
 	textTotal := int64(0)
@@ -87,24 +117,23 @@ func (c *checker) packageBudgets(pkg *AdmittedTrainingPackage, paths map[string]
 		}
 		seen[asset.Reference.Path] = true
 		pin := paths[asset.Reference.Path]
-		path := pointerIndex("/assets", index)
-		switch pin.class {
-		case "text":
+		if pin.text {
 			bytes, ok := integerAsInt(string(pin.bytes), MaxTextAssetBytes)
 			if !ok {
-				c.report(CodeTooLong, pointerChild(path, "bytes"),
+				c.report(CodeTooLong, pointerChild(pointerIndex("/assets", pin.textIndex), "bytes"),
 					"a text asset may be at most 64 KiB")
-				continue
+			} else {
+				textTotal += bytes
 			}
-			textTotal += bytes
-		default:
+		}
+		if pin.fixture {
 			bytes, ok := integerAsInt(string(pin.bytes), MaxChallengeFixtureBytes)
 			if !ok {
-				c.report(CodeTooLong, pointerChild(path, "bytes"),
+				c.report(CodeTooLong, pointerChild(pointerIndex("/assets", pin.fixtureIndex), "bytes"),
 					"a challenge fixture may be at most 10 MiB")
-				continue
+			} else {
+				binaryTotal += bytes
 			}
-			binaryTotal += bytes
 		}
 	}
 	if textTotal > MaxPackageTextBytes {
@@ -128,7 +157,7 @@ func (c *checker) packageBudgets(pkg *AdmittedTrainingPackage, paths map[string]
 		pkg.Contributions = append(pkg.Contributions, TrainingAssetContribution{
 			Path:     pin.path,
 			SHA256:   pin.sha256,
-			Class:    pin.class,
+			Class:    pin.class(),
 			Bytes:    pin.bytes,
 			AssetIDs: append([]string{}, pin.assetIDs...),
 		})
@@ -271,7 +300,12 @@ func (c *checker) closeTrainingPackage(pkg *AdmittedTrainingPackage, bytesByPath
 	if len(c.issues) > 0 {
 		return
 	}
+	closure.closeCheckDefinitions()
+	if len(c.issues) > 0 {
+		return
+	}
 	closure.closeQueries()
+	closure.closeUnboundDefinitions()
 	closure.closeWatches()
 	closure.closeChallenges()
 	closure.closeProposals()
@@ -353,6 +387,115 @@ func (cl *trainingClosure) closeChecks() {
 			code = CodeInvalidReference
 		}
 		cl.c.report(code, "/checks", "native catalog graph validation refused the package Checks")
+	}
+}
+
+// closeCheckDefinitions closes every check-definition asset that no checks[]
+// record binds. closeChecks already closed the declared definitions; an unused
+// definition is still a native Check the package admits and projects, so it has
+// to satisfy the same native semantics and package-local closure.
+//
+// The traversal is validation only. Discovering a native Check id inside an
+// unused asset never creates a checks[] entry or a trusted Check binding: a
+// Check reference anywhere in the package still requires the declared inventory,
+// and an unused definition's own query/Check/validator references must resolve
+// in it too.
+func (cl *trainingClosure) closeCheckDefinitions() {
+	bound := make(map[string]bool, len(cl.pkg.Checks))
+	for index := range cl.pkg.Checks {
+		bound[cl.pkg.Checks[index].DefinitionAssetID] = true
+	}
+	declared := make(map[string]detective.Check, len(cl.nativeChecks))
+	for id, check := range cl.nativeChecks {
+		declared[id] = *check
+	}
+	for index := range cl.pkg.Assets {
+		asset := &cl.pkg.Assets[index]
+		if asset.Kind != "check-definition" || asset.Check == nil || bound[asset.ID] {
+			continue
+		}
+		check := asset.Check
+		path := pointerIndex("/assets", index)
+		if _, duplicate := declared[check.ID]; duplicate {
+			cl.c.report(CodeDuplicateID, path,
+				"a Check definition id must not duplicate a declared package Check")
+			continue
+		}
+		unresolved := false
+		for _, step := range check.Steps {
+			switch step.Kind {
+			case "query":
+				if !cl.queries[step.QueryID] {
+					cl.c.report(CodeInvalidReference, path,
+						"a Check query step must resolve a declared package query")
+					unresolved = true
+				}
+			case "check":
+				if !cl.checks[step.CheckID] {
+					cl.c.report(CodeInvalidReference, path,
+						"a Check dependency must resolve a declared package Check")
+					unresolved = true
+				}
+			}
+		}
+		if unresolved {
+			continue
+		}
+		// Native graph validation closes bindings, validator references and
+		// cycles. The catalog holds the declared package Checks plus this one
+		// definition, so a dependency on an undeclared Check still refuses.
+		graph := make(map[string]detective.Check, len(declared)+1)
+		for id, item := range declared {
+			graph[id] = item
+		}
+		graph[check.ID] = *check
+		err := detective.ValidateCatalog(detective.Catalog{
+			Checks:          graph,
+			Validators:      map[string]detective.PublishedValidator{},
+			QueryValidators: map[string]detective.QueryValidators{},
+		})
+		if err != nil {
+			code := CodeInvalidValue
+			if errors.Is(err, detective.ErrNotFound) {
+				code = CodeInvalidReference
+			}
+			cl.c.report(code, path,
+				"native catalog graph validation refused an unused Check definition")
+		}
+	}
+}
+
+// closeUnboundDefinitions refuses the two native definitions whose owner rules
+// cannot be closed without an inventory record. A query-metadata asset is only
+// meaningful as the metadata of one declared query (its identity and connection
+// are compared against that record), and a challenge manifest's fixture suite
+// can only be proved through the declared challenge's fixture bindings. The
+// format has no other mapping, so an unbound one is an unresolved reference and
+// never a guessed filename, equal hash or ordinary loader fallback.
+func (cl *trainingClosure) closeUnboundDefinitions() {
+	metadataBound := make(map[string]bool, len(cl.pkg.Queries))
+	for index := range cl.pkg.Queries {
+		metadataBound[cl.pkg.Queries[index].MetadataAssetID] = true
+	}
+	manifestBound := make(map[string]bool, len(cl.pkg.Challenges))
+	for index := range cl.pkg.Challenges {
+		manifestBound[cl.pkg.Challenges[index].ManifestAssetID] = true
+	}
+	for index := range cl.pkg.Assets {
+		asset := &cl.pkg.Assets[index]
+		path := pointerIndex("/assets", index)
+		switch asset.Kind {
+		case "query-metadata":
+			if asset.Metadata != nil && !metadataBound[asset.ID] {
+				cl.c.report(CodeInvalidReference, path,
+					"a query-metadata asset must be bound by a declared query record")
+			}
+		case "challenge-manifest":
+			if asset.Manifest != nil && !manifestBound[asset.ID] {
+				cl.c.report(CodeInvalidReference, path,
+					"a challenge-manifest asset must be bound by a declared challenge record")
+			}
+		}
 	}
 }
 
@@ -475,6 +618,10 @@ func (cl *trainingClosure) closeChallenges() {
 				"the manifest revision must equal the inventory revision")
 			continue
 		}
+		cl.closeManifestQueries(path, manifest)
+		if len(cl.c.issues) > 0 {
+			continue
+		}
 		// Native Open owns fixture-suite equality: it rejects missing and extra
 		// fixtures and verifies every actual byte length and hash against the
 		// manifest pins. This loop only resolves each declared fixture asset.
@@ -498,6 +645,29 @@ func (cl *trainingClosure) closeChallenges() {
 		// executable capability.
 		if _, err := challenge.Open(manifestBytes, fixtures); err != nil {
 			cl.c.reportChallengeError(path, err)
+		}
+	}
+}
+
+// closeManifestQueries closes a manifest's own saved-query references. A
+// check-definition part names the package queries a learner may select, and the
+// reference answer selects one of those same ids (native validation already
+// requires that), so closing the part ids closes both. Native manifest
+// validation remains the shape authority; this is package inventory closure
+// only and never resolves an ordinary saved query.
+func (cl *trainingClosure) closeManifestQueries(path string, manifest *challenge.Manifest) {
+	for partIndex := range manifest.Parts {
+		part := &manifest.Parts[partIndex]
+		if part.CheckDefinition == nil {
+			continue
+		}
+		partPath := pointerIndex(pointerChild(path, "parts"), partIndex)
+		queries := pointerChild(pointerChild(partPath, "checkDefinition"), "queryIds")
+		for queryIndex, queryID := range part.CheckDefinition.QueryIDs {
+			if !cl.queries[queryID] {
+				cl.c.report(CodeInvalidReference, pointerIndex(queries, queryIndex),
+					"a manifest saved-query reference must resolve a declared package query")
+			}
 		}
 	}
 }
@@ -883,7 +1053,10 @@ func projectNativeCheck(check *detective.Check) map[string]any {
 		"id": check.ID, "title": check.Title,
 		"version": strconv.FormatInt(check.Version, 10),
 		"inputs":  inputs, "steps": steps,
-		"updatedAt": check.UpdatedAt.Format(time.RFC3339),
+		// updatedAt is the native time.Time. RFC3339Nano is the native JSON
+		// encoding, so every admitted fractional second and the authored offset
+		// survive projection instead of being truncated to whole seconds.
+		"updatedAt": check.UpdatedAt.Format(time.RFC3339Nano),
 		"updatedBy": check.UpdatedBy,
 	}
 	if check.Description != "" {

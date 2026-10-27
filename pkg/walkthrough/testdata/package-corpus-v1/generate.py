@@ -15,6 +15,7 @@ import copy
 import hashlib
 import json
 import pathlib
+import re
 import shutil
 
 ROOT = pathlib.Path(__file__).resolve().parent
@@ -496,9 +497,20 @@ def union_manifest():
         ],
     }
     manifest_body = dumps(manifest)
+    union_metadata = {
+        "id": "union/query",
+        "title": "Union query",
+        "type": "SQL",
+        "connectionId": "union-source",
+        "parameters": [],
+    }
+    metadata_body = dumps(union_metadata)
+    query_body = b"select status from retries;\n"
     files = {
         "training/union-challenge.json": manifest_body,
         "training/union.sqlite": fixture,
+        "training/union.meta.json": metadata_body,
+        "training/union.sql": query_body,
     }
     index = base_index("training-unions", 1)
     index["assets"] = [
@@ -506,7 +518,21 @@ def union_manifest():
               "training/union-challenge.json", manifest_body),
         asset("union-fixture", "challenge-fixture", "application/vnd.sqlite3",
               "training/union.sqlite", fixture),
+        asset("union-metadata", "query-metadata", "application/json",
+              "training/union.meta.json", metadata_body),
+        asset("union-body", "query-body-sql", "application/sql",
+              "training/union.sql", query_body),
     ]
+    # The manifest's check-definition part names a saved query the learner may
+    # select, and its reference answer selects that same id, so the package has
+    # to declare the query it closes against.
+    index["sources"] = [{"id": "union-source", "fixtureAssetId": "union-fixture"}]
+    index["queries"] = [{
+        "id": "union/query",
+        "metadataAssetId": "union-metadata",
+        "bodyAssetId": "union-body",
+        "sourceId": "union-source",
+    }]
     index["challenges"] = [{
         "id": "union-challenge",
         "revision": 1,
@@ -519,6 +545,28 @@ def union_manifest():
 # ---------------------------------------------------------------------------
 # Expected projection mirror (authored from the owner tables).
 # ---------------------------------------------------------------------------
+
+NATIVE_TIMESTAMP = re.compile(
+    r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$")
+
+
+def native_timestamp(text):
+    """Render an RFC3339 instant the way the native time value encodes it.
+
+    The native Check stores `updatedAt` as a time value whose JSON encoding is
+    RFC3339 with a fractional second only when it is non-zero and without
+    trailing fractional zeros; a zero numeric offset encodes as `Z`. Authored
+    optional strings such as `createdAt` are projected verbatim.
+    """
+    match = NATIVE_TIMESTAMP.match(text)
+    if match is None:
+        raise ValueError(f"not an RFC3339 timestamp: {text}")
+    seconds, fraction, offset = match.groups()
+    fraction = (fraction or "").rstrip("0")
+    if offset in ("+00:00", "-00:00"):
+        offset = "Z"
+    return seconds + (f".{fraction}" if fraction else "") + offset
+
 
 def p_tv(value):
     kind = value["type"]
@@ -612,7 +660,7 @@ def p_check(check):
         "version": str(check["version"]),
         "inputs": inputs,
         "steps": [p_step(item) for item in check["steps"]],
-        "updatedAt": check["updatedAt"],
+        "updatedAt": native_timestamp(check["updatedAt"]),
         "updatedBy": check["updatedBy"],
     }
     if "description" in check:
@@ -864,8 +912,6 @@ def expected_projection(index, files, ref, binding, codecs):
     assets = []
     contributions = []
     seen = {}
-    text_bytes = 0
-    binary_bytes = 0
     for entry in index["assets"]:
         assets.append({
             "id": entry["id"], "kind": entry["kind"], "mediaType": entry["mediaType"],
@@ -874,17 +920,29 @@ def expected_projection(index, files, ref, binding, codecs):
         path = entry["path"]
         if path in seen:
             seen[path]["assetIds"].append(entry["id"])
+            seen[path]["classes"].add(contribution_class(entry["kind"]))
             continue
-        contribution = {
-            "path": path, "sha256": entry["sha256"], "class": contribution_class(entry["kind"]),
-            "bytes": str(entry["bytes"]), "assetIds": [entry["id"]],
+        seen[path] = {
+            "assetIds": [entry["id"]],
+            "classes": {contribution_class(entry["kind"])},
         }
-        seen[path] = contribution
-        contributions.append(contribution)
-        if contribution_class(entry["kind"]) == "text":
-            text_bytes += entry["bytes"]
-        else:
-            binary_bytes += entry["bytes"]
+        contributions.append({
+            "path": path, "sha256": entry["sha256"], "class": None,
+            "bytes": str(entry["bytes"]), "assetIds": seen[path]["assetIds"],
+        })
+    # One physical source+path entry is summed once per logical subset it
+    # belongs to. The owner keeps the text and binary quotas separate, so a
+    # mixed entry occupies one buffer and charges its bytes to both subsets.
+    text_bytes = 0
+    binary_bytes = 0
+    for contribution in contributions:
+        classes = seen[contribution["path"]]["classes"]
+        contribution["class"] = "+".join(
+            name for name in ("text", "binary") if name in classes)
+        if "text" in classes:
+            text_bytes += int(contribution["bytes"])
+        if "binary" in classes:
+            binary_bytes += int(contribution["bytes"])
     codec_list = [codecs[entry["id"]] for entry in index["assets"]]
     cases = []
     for case in index["cases"]:
@@ -1289,15 +1347,66 @@ def main():
     emit("alias-mixed-kind", "A different text codec still has to parse the shared body.",
          index, files, refused("invalid_json", "/assets/9"))
 
+    # A same-source+path alias may also pair a text codec with the fixture
+    # codec. The owner only requires identical digest and length at one
+    # source+path and validates each alias independently; the unique physical
+    # buffer then belongs to both logical subsets without being counted twice in
+    # either one.
     index, files = full()
-    mixed_binary = copy.deepcopy(index["assets"][0])
-    mixed_binary["id"] = "narrative-mixed-binary"
-    mixed_binary["kind"] = "challenge-fixture"
-    mixed_binary["mediaType"] = "application/vnd.sqlite3"
-    index["assets"].append(mixed_binary)
-    emit("alias-mixed-class",
-         "One canonical buffer may not be both text and binary.",
-         index, files, refused("mismatch", "/assets/9/kind"))
+    shared_text = files["training/notes.txt"]
+    index["assets"].append(asset("narrative-text-fixture", "challenge-fixture",
+                                 "application/vnd.sqlite3", "training/notes.txt", shared_text))
+    ref, binding = emit(
+        "alias-mixed-class",
+        "One text buffer is valid as both evidence text and a challenge fixture.",
+        index, files, {"admitted": True, "definition": {}})
+    VECTORS[-1]["want"] = admitted_definition(index, files, ref, binding)
+
+    # The same pair in the opposite declaration order must produce the same
+    # admission, the same physical contribution and the same logical totals.
+    index, files = full()
+    shared_text = files["training/notes.txt"]
+    index["assets"].insert(0, asset("narrative-text-fixture", "challenge-fixture",
+                                    "application/vnd.sqlite3", "training/notes.txt", shared_text))
+    ref, binding = emit(
+        "alias-mixed-class-fixture-first",
+        "The mixed text/fixture alias admits in either declaration order.",
+        index, files, {"admitted": True, "definition": {}})
+    VECTORS[-1]["want"] = admitted_definition(index, files, ref, binding)
+
+    # A mixed entry obeys every applicable logical rule: the fixture alias is
+    # inside the 10 MiB fixture bound, but the text alias over the same buffer is
+    # over the 64 KiB text bound and refuses at the text alias.
+    index = empty_index()
+    mixed_body = b"a" * 65537
+    index["assets"] = [
+        asset("mixed-fixture", "challenge-fixture", "application/vnd.sqlite3",
+              "training/mixed.sqlite", mixed_body),
+        asset("mixed-text", "evidence-text", "text/plain",
+              "training/mixed.sqlite", mixed_body),
+    ]
+    emit("alias-mixed-text-over-64kib",
+         "A text alias over a fixture-sized buffer still obeys the 64 KiB text bound.",
+         index, {}, refused("too_long", "/assets/1/bytes"))
+
+    # A physical union above 64 MiB is not itself a refusal: the owner caps the
+    # unique binary subset and the text subset separately. This vector is
+    # preflight accounting only; the declared fixture bytes are not supplied.
+    index = empty_index()
+    small_text = b"x"
+    files = {"training/small.txt": small_text}
+    index["assets"] = [asset("union-text", "evidence-text", "text/plain",
+                             "training/small.txt", small_text)]
+    for number in range(64):
+        path = f"training/union-fixture-{number:02d}.sqlite"
+        index["assets"].append(asset(
+            f"union-fixture-{number:02d}", "challenge-fixture",
+            "application/vnd.sqlite3", path, b"",
+            pinned={"sha256": sha256(path.encode()), "bytes": 1048576}))
+    emit("mixed-union-over-64mib",
+         "A full 64 MiB binary subset plus separately allowed text passes preflight; "
+         "the physical union alone never refuses (preflight accounting only).",
+         index, files, refused("missing_asset", "/assets"))
 
     index, files = full()
     index["assets"].append(copy.deepcopy(index["assets"][0]))
@@ -1520,6 +1629,36 @@ def main():
 
     full_negative("query-body-utf8", "A SQL body must be valid UTF-8.",
                   edit=sql_invalid_utf8, code="invalid_utf8", path="/assets/4")
+
+    # A query-metadata asset is only meaningful as one declared query's metadata:
+    # its id and connectionId are compared against that record, and the format
+    # has no other metadata-to-body mapping. An unbound one is an unresolved
+    # reference, not a guess by filename, hash or connection default.
+    def orphan_metadata(index, files, mutator=None):
+        metadata = copy.deepcopy(METADATA)
+        metadata["id"] = "retries/unused"
+        if mutator is not None:
+            mutator(metadata)
+        body = dumps(metadata)
+        files["training/unused.meta.json"] = body
+        index["assets"].append(asset("unused-metadata", "query-metadata",
+                                     "application/json", "training/unused.meta.json", body))
+
+    def orphan_metadata_credential(index, files):
+        orphan_metadata(index, files,
+                        lambda m: m["parameters"][0].__setitem__("isCredential", True))
+
+    index, files = full()
+    orphan_metadata(index, files)
+    emit("orphan-metadata-unbound",
+         "A query-metadata asset that no declared query record binds refuses.",
+         index, files, refused("invalid_reference", "/assets/9"))
+
+    index, files = full()
+    orphan_metadata_credential(index, files)
+    emit("orphan-metadata-credential",
+         "Credential screening runs on an unbound query-metadata asset too.",
+         index, files, refused("unknown_field", "/assets/9/parameters/0/isCredential"))
 
     def invalid_utf8_asset(asset_id):
         def apply(index, files):
@@ -1884,6 +2023,103 @@ def main():
     emit("check-cycle", "A transitive Check cycle rejects.", index, files,
          refused("invalid_value", "/checks"))
 
+    # --- Negatives/positives: unused Check definitions -------------------
+    # An unused check-definition asset is admitted and projected, so it must
+    # satisfy the same native semantics and package-local closure even though no
+    # checks[] record binds it. It never gains inventory authority.
+
+    def orphan_check(check_id="orphan-check", steps=None, validators=None):
+        return {
+            "id": check_id, "title": "Unused check", "version": 1, "inputs": [],
+            "steps": steps if steps is not None
+            else [{"id": "run", "kind": "query", "queryId": "retries/by-status"}],
+            "updatedAt": "2026-01-02T03:04:05Z", "updatedBy": "guide",
+        }
+
+    def add_orphan_check(index, files, check):
+        body = dumps(check)
+        files["training/orphan-check.json"] = body
+        index["assets"].append(asset("orphan-check", "check-definition",
+                                     "application/json", "training/orphan-check.json", body))
+
+    index, files = full()
+    add_orphan_check(index, files, orphan_check())
+    ref, binding = emit(
+        "orphan-check-valid",
+        "A fully closed unused Check definition is admitted with no inventory record.",
+        index, files, {"admitted": True, "definition": {}})
+    VECTORS[-1]["want"] = admitted_definition(index, files, ref, binding)
+
+    index, files = full()
+    add_orphan_check(index, files, orphan_check(
+        steps=[{"id": "run", "kind": "query", "queryId": "missing/query"}]))
+    emit("orphan-check-missing-query",
+         "An unused Check query step must resolve a declared package query.",
+         index, files, refused("invalid_reference", "/assets/9"))
+
+    index, files = full()
+    add_orphan_check(index, files, orphan_check(
+        steps=[{"id": "run", "kind": "check", "checkId": "missing-check"}]))
+    emit("orphan-check-missing-child",
+         "An unused Check dependency must resolve a declared package Check.",
+         index, files, refused("invalid_reference", "/assets/9"))
+
+    index, files = full()
+    add_orphan_check(index, files, orphan_check(steps=[{
+        "id": "run", "kind": "query", "queryId": "retries/by-status",
+        "validators": [{"id": "status-present", "validatorId": "promoted-validator"}],
+    }]))
+    emit("orphan-check-promoted-validator",
+         "An unused Check promoted-validator reference has no declared closed source.",
+         index, files, refused("invalid_reference", "/assets/9"))
+
+    index, files = full()
+    add_orphan_check(index, files, orphan_check(check_id="retry-observation"))
+    emit("orphan-check-duplicate-id",
+         "An unused Check definition may not duplicate a declared package Check id.",
+         index, files, refused("duplicate_id", "/assets/9"))
+
+    # --- Native timestamp precision -------------------------------------
+    def check_with(mutator):
+        def apply(index, files):
+            check = copy.deepcopy(CHECK)
+            mutator(check)
+            body = dumps(check)
+            files["training/retry-check.json"] = body
+            advance_bytes(index, "retry-check", body)
+        return apply
+
+    index, files = full()
+    check_with(lambda c: (c.__setitem__("updatedAt", "2026-01-02T03:04:05.123456789Z"),
+                          c.pop("createdAt")))(index, files)
+    ref, binding = emit(
+        "check-fractional-timestamp",
+        "A native nanosecond updatedAt is projected at full precision and an omitted "
+        "optional createdAt stays absent.",
+        index, files, {"admitted": True, "definition": {}})
+    VECTORS[-1]["want"] = admitted_definition(index, files, ref, binding)
+
+    index, files = full()
+    check_with(lambda c: c.__setitem__("updatedAt", "2026-01-02T03:04:05.500+05:30"))(index, files)
+    ref, binding = emit(
+        "check-offset-timestamp",
+        "A native non-zero offset keeps its offset and trailing fractional zeros are trimmed.",
+        index, files, {"admitted": True, "definition": {}})
+    VECTORS[-1]["want"] = admitted_definition(index, files, ref, binding)
+
+    full_negative("check-timestamp-invalid",
+                  "A native updatedAt requires an RFC3339 instant.",
+                  edit=check_with(lambda c: c.__setitem__("updatedAt", "2026-01-02T03:04:05")),
+                  code="invalid_value", path="/assets/5/updatedAt")
+    full_negative("check-timestamp-null",
+                  "An explicit null updatedAt rejects.",
+                  edit=check_with(lambda c: c.__setitem__("updatedAt", None)),
+                  code="invalid_type", path="/assets/5/updatedAt")
+    full_negative("check-created-at-invalid",
+                  "The optional native createdAt keeps its own native validation.",
+                  edit=check_with(lambda c: c.__setitem__("createdAt", "yesterday")),
+                  code="invalid_value", path="/assets/5")
+
     # --- Negatives: challenges -----------------------------------------
     full_negative("challenge-missing-fixture", "The fixture map equals the manifest suite exactly.",
                   lambda i: i["challenges"][0].__setitem__("fixtures", []),
@@ -1931,6 +2167,37 @@ def main():
     del files["training/retry.sqlite"]
     emit("challenge-fixture-missing", "A declared fixture without bytes refuses.", index, files,
          refused("missing_asset", "/assets"))
+
+    # A manifest asset that no declared challenge record binds cannot prove any
+    # fixture byte: the only fixtureID-to-asset mapping in the format is the
+    # challenge record's fixtures array. It refuses as an unresolved reference.
+    index, files = full()
+    orphan_manifest = copy.deepcopy(MANIFEST)
+    orphan_manifest["challengeId"] = "orphan-challenge"
+    orphan_manifest["fixtureSuite"]["fixtures"][0]["sha256"] = "dd" * 32
+    orphan_body = dumps(orphan_manifest)
+    files["training/orphan-challenge.json"] = orphan_body
+    index["assets"].append(asset("orphan-manifest", "challenge-manifest",
+                                 "application/json", "training/orphan-challenge.json",
+                                 orphan_body))
+    emit("orphan-manifest-unbound",
+         "A manifest asset with no declared challenge record cannot prove its fixture pins.",
+         index, files, refused("invalid_reference", "/assets/9"))
+
+    # A manifest's check-definition part names saved queries; each must be a
+    # declared package query. The reference answer selects one of those same ids
+    # (native validation enforces that), so closing the part closes both.
+    index, files = union_manifest()
+    manifest = json.loads(files["training/union-challenge.json"])
+    manifest["parts"][2]["checkDefinition"]["queryIds"] = ["missing/query"]
+    manifest["referenceSolutions"][2]["answer"]["checkDefinition"]["queryId"] = "missing/query"
+    manifest_body = dumps(manifest)
+    files["training/union-challenge.json"] = manifest_body
+    advance_bytes(index, "union-manifest", manifest_body)
+    emit("manifest-query-missing",
+         "A manifest saved-query reference must resolve a declared package query.",
+         index, files,
+         refused("invalid_reference", "/challenges/0/parts/2/checkDefinition/queryIds/0"))
 
     # --- Negatives: proposals and presentation -------------------------
     full_negative("proposal-query-missing", "A query proposal resolves a declared package query.",
@@ -1993,6 +2260,41 @@ def main():
     full_negative("watch-recovery-type", "A Watch recovery flag is a boolean.",
                   edit=watch_with(lambda w: w["notificationPolicy"].__setitem__("recovery", "no")),
                   code="invalid_type", path="/assets/8/notificationPolicy/recovery")
+
+    # Watch closure is independent of proposals[]: an unconsumed recommendation
+    # still has to pin a declared Check version and pass native input validation.
+    index, files = full()
+    unused_watch = copy.deepcopy(WATCH)
+    unused_watch["checkVersion"] = "2"
+    unused_watch_body = dumps(unused_watch)
+    files["training/unused-watch.json"] = unused_watch_body
+    index["assets"].append(asset("unused-watch", "watch-recommendation", "application/json",
+                                 "training/unused-watch.json", unused_watch_body))
+    emit("watch-unconsumed-wrong-version",
+         "An unconsumed Watch recommendation still pins the native Check version.",
+         index, files, refused("mismatch", "/assets/9/checkVersion"))
+
+    index, files = full()
+    unused_watch_body = dumps(WATCH)
+    files["training/unused-watch.json"] = unused_watch_body
+    index["assets"].append(asset("unused-watch", "watch-recommendation", "application/json",
+                                 "training/unused-watch.json", unused_watch_body))
+    ref, binding = emit(
+        "watch-unconsumed-valid",
+        "A fully closed unconsumed Watch recommendation is admitted.",
+        index, files, {"admitted": True, "definition": {}})
+    VECTORS[-1]["want"] = admitted_definition(index, files, ref, binding)
+
+    # --- Positive: empty registries with an unused closed asset ----------
+    index = empty_index("training-unused")
+    files = {"training/unused.txt": b"unused fictional evidence\n"}
+    index["assets"] = [asset("unused-text", "evidence-text", "text/plain",
+                             "training/unused.txt", files["training/unused.txt"])]
+    ref, binding = emit(
+        "unused-definitions-empty",
+        "Every empty inventory admits one closed unused evidence asset.",
+        index, files, {"admitted": True, "definition": {}})
+    VECTORS[-1]["want"] = admitted_definition(index, files, ref, binding)
 
     # --- Negatives: size budgets ---------------------------------------
     index = empty_index()

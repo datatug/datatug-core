@@ -850,3 +850,117 @@ func TestTrainingPackageTrustedInventoryProjections(t *testing.T) {
 	require.Len(t, narrative.PresentationTargets, 5)
 	require.Equal(t, "training-fixture", admitted.Sources[0].ID)
 }
+
+// TestTrainingPackageMixedAliasAccounting proves one physical source+path entry
+// with a text alias and a fixture alias is admitted in either declaration order,
+// counted once per logical subset, and never counted twice inside one subset.
+func TestTrainingPackageMixedAliasAccounting(t *testing.T) {
+	first := mustAdmit(t, corpusInput(t, "alias-mixed-class"))
+	reversed := mustAdmit(t, corpusInput(t, "alias-mixed-class-fixture-first"))
+	// The same package without the extra fixture alias; adding the alias must
+	// change only the binary subset and must not touch text accounting.
+	plain := mustAdmit(t, corpusInput(t, "full"))
+
+	require.Equal(t, first.TextBytes, reversed.TextBytes)
+	require.Equal(t, first.BinaryBytes, reversed.BinaryBytes)
+	require.Equal(t, plain.TextBytes, first.TextBytes)
+
+	physical := int64(0)
+	for _, contribution := range first.Contributions {
+		bytes, ok := integerAsInt(string(contribution.Bytes), 1<<40)
+		require.True(t, ok)
+		physical += bytes
+	}
+	// The mixed entry belongs to both logical subsets while occupying one
+	// buffer, so the two subtotals together exceed the physical union by exactly
+	// that entry's bytes.
+	mixed := contributionByPath(t, first, "training/notes.txt")
+	require.Equal(t, "text+binary", mixed.Class)
+	require.Equal(t, []string{"narrative-text", "narrative-text-fixture"}, mixed.AssetIDs)
+	mixedBytes, ok := integerAsInt(string(mixed.Bytes), 1<<40)
+	require.True(t, ok)
+	textBytes, _ := integerAsInt(string(first.TextBytes), 1<<40)
+	binaryBytes, _ := integerAsInt(string(first.BinaryBytes), 1<<40)
+	plainBinary, _ := integerAsInt(string(plain.BinaryBytes), 1<<40)
+	require.Equal(t, physical+mixedBytes, textBytes+binaryBytes)
+	// The fixture alias is the only new binary declaration, so the binary subset
+	// grows by exactly the shared buffer.
+	require.Equal(t, plainBinary+mixedBytes, binaryBytes)
+
+	reversedMixed := contributionByPath(t, reversed, "training/notes.txt")
+	require.Equal(t, "text+binary", reversedMixed.Class)
+	require.Equal(t, []string{"narrative-text-fixture", "narrative-text"}, reversedMixed.AssetIDs)
+	require.Equal(t, mixed.Bytes, reversedMixed.Bytes)
+	require.Equal(t, mixed.SHA256, reversedMixed.SHA256)
+}
+
+func contributionByPath(t *testing.T, admitted *AdmittedTrainingPackage, path string) TrainingAssetContribution {
+	t.Helper()
+	found := 0
+	var contribution TrainingAssetContribution
+	for _, candidate := range admitted.Contributions {
+		if candidate.Path == path {
+			contribution = candidate
+			found++
+		}
+	}
+	require.Equal(t, 1, found, "exactly one contribution for %s", path)
+	return contribution
+}
+
+// TestTrainingPackageTimestampMutation retains the original admitted object and
+// mutates both the caller buffers and the returned complete projection. The
+// native nanosecond timestamp and every nested native field stay stable, and no
+// new admission is built from disk.
+func TestTrainingPackageTimestampMutation(t *testing.T) {
+	input := corpusInput(t, "check-fractional-timestamp")
+	admitted := mustAdmit(t, input)
+	before := jsonPlain(t, admitted.Projection())
+	checkBefore := nativeCheckProjection(t, before)
+	require.Equal(t, "2026-01-02T03:04:05.123456789Z", checkBefore["updatedAt"])
+	require.NotContains(t, checkBefore, "createdAt")
+
+	for index := range input.IndexBytes {
+		input.IndexBytes[index] = 'x'
+	}
+	for index := range input.Assets {
+		for byteIndex := range input.Assets[index].Bytes {
+			input.Assets[index].Bytes[byteIndex] = 'y'
+		}
+	}
+	require.Equal(t, before, jsonPlain(t, admitted.Projection()))
+
+	// The returned complete projection is rebuilt per call: mutating it, its
+	// nested Check and its timestamp cannot rewrite the retained snapshot.
+	projection := admitted.Projection()
+	mutableCheck := nativeCheckProjection(t, projection)
+	mutableCheck["updatedAt"] = "mutated"
+	mutableCheck["steps"].([]any)[0].(map[string]any)["queryId"] = "mutated"
+	require.Equal(t, before, jsonPlain(t, admitted.Projection()))
+	require.Equal(t, "2026-01-02T03:04:05.123456789Z",
+		nativeCheckProjection(t, jsonPlain(t, admitted.Projection()))["updatedAt"])
+
+	// The reduced identity port carries no complete conformance projection and
+	// exposes no timestamp to normalise.
+	inventory := admitted.TrustedPackageInventory()
+	require.Equal(t, admitted.Reference, inventory.Ref)
+	require.NotContains(t, jsonPlain(t, inventory), "updatedAt")
+}
+
+func nativeCheckProjection(t *testing.T, projection any) map[string]any {
+	t.Helper()
+	codecs, ok := projection.(map[string]any)["codecs"].([]any)
+	require.True(t, ok)
+	for _, raw := range codecs {
+		codec, ok := raw.(map[string]any)
+		require.True(t, ok)
+		if codec["kind"] != "check-definition" {
+			continue
+		}
+		check, ok := codec["check"].(map[string]any)
+		require.True(t, ok)
+		return check
+	}
+	t.Fatal("no check-definition codec projection")
+	return nil
+}

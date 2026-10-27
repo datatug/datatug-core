@@ -18,14 +18,42 @@
       "path": "training/union.sqlite",
       "sha256": "41c40a7c663a9528dc81d695bb7713add68243ba2ec556d6d8bf125a3c90db0d",
       "bytes": 45
+    },
+    {
+      "id": "union-metadata",
+      "kind": "query-metadata",
+      "mediaType": "application/json",
+      "path": "training/union.meta.json",
+      "sha256": "e896f648e5765ce2c8dfcd170aaf84dd0027998c28ded24093c8d768016849a4",
+      "bytes": 123
+    },
+    {
+      "id": "union-body",
+      "kind": "query-body-sql",
+      "mediaType": "application/sql",
+      "path": "training/union.sql",
+      "sha256": "a62dc3fe9e10a2091941353e98c0d782fc4a4792adf1953b0c960065fd81c051",
+      "bytes": 28
     }
   ],
   "fictionalActors": [],
-  "sources": [],
+  "sources": [
+    {
+      "id": "union-source",
+      "fixtureAssetId": "union-fixture"
+    }
+  ],
   "cases": [],
   "incidents": [],
   "checks": [],
-  "queries": [],
+  "queries": [
+    {
+      "id": "union/query",
+      "metadataAssetId": "union-metadata",
+      "bodyAssetId": "union-body",
+      "sourceId": "union-source"
+    }
+  ],
   "challenges": [
     {
       "id": "union-challenge",

@@ -1,0 +1,32 @@
+{
+  "schema": "datatug-training-package/1",
+  "id": "training-empty",
+  "revision": 1,
+  "assets": [
+    {
+      "id": "mixed-fixture",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/mixed.sqlite",
+      "sha256": "008ffc88d3c96a9f307524eb361e47c5222a887fc45fa0c1fb8d429c5c23b430",
+      "bytes": 65537
+    },
+    {
+      "id": "mixed-text",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/mixed.sqlite",
+      "sha256": "008ffc88d3c96a9f307524eb361e47c5222a887fc45fa0c1fb8d429c5c23b430",
+      "bytes": 65537
+    }
+  ],
+  "fictionalActors": [],
+  "sources": [],
+  "cases": [],
+  "incidents": [],
+  "checks": [],
+  "queries": [],
+  "challenges": [],
+  "proposals": [],
+  "presentationTargets": []
+}

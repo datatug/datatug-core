@@ -51,22 +51,35 @@ Each vector has:
 JSON for large boundary packages. `issues` is the exact ordered
 `{code, path}` refusal list. A `newerClient` vector has no issues.
 
+Same-source+path aliases may use different codecs. A text alias pair (for
+example `query-body-sql` and `evidence-text` over one SQL buffer) and a text plus
+`challenge-fixture` pair are both valid: each alias parses independently, and the
+unique raw buffer contributes once. The owner keeps the text and binary quotas
+separate, so a mixed entry is one physical contribution whose bytes count once
+toward each applicable subset; its `class` is `text`, `binary` or `text+binary`.
+Declaration order never changes admission or totals. Conflicting pins, invalid
+alias bodies and a text alias over 64 KiB still refuse. Every declared source,
+used or unused, must resolve a `challenge-fixture` asset.
+
+Unused definitions are admitted only when they are fully closed. Every
+`check-definition` asset keeps native Check semantics and package-local
+query/Check/catalog closure even when no `checks[]` record binds it, and it never
+gains inventory authority. A `query-metadata` asset must be bound by a declared
+`queries[]` record and a `challenge-manifest` asset by a declared `challenges[]`
+record, because those records are the only place the format binds a metadata
+identity or a fixture id to bytes. Manifest `checkDefinition.queryIds` references
+close against the package `queries[]` inventory; the reference answer selects one
+of those same ids natively.
+
 `Projection()` is the complete conformance projection: every admitted native
-Check field (including `title`) and every native challenge-manifest field,
+Check field (including `title` and the full-precision `updatedAt` encoded the way
+the native time value encodes itself) and every native challenge-manifest field,
 answer/oracle union, structured field/selection, hint, visible-column option and
 reference solution is projected using the owner DTO's `omitempty` normalization.
 Absent optional native fields therefore stay absent instead of becoming a
 present `false` or empty value. `TrustedPackageInventory()` and
 `TrustedNarrativeInventory()` are intentionally reduced identity projections
 for later ports; they are not the complete conformance oracle.
-
-Same-source+path aliases may use different text codecs (for example
-`query-body-sql` and `evidence-text` over one SQL buffer). Each alias parses
-independently, and the unique raw buffer contributes once. A text/binary class
-mix at one canonical path is refused explicitly because the owner defines one
-budget class per raw buffer; conflicting pins and invalid alias bodies also
-refuse. Every declared source, used or unused, must resolve a
-`challenge-fixture` asset.
 
 ## Offline verification (no Go)
 
