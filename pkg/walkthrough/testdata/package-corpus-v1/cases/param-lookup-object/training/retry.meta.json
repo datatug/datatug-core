@@ -1,0 +1,41 @@
+{
+  "id": "retries/by-status",
+  "title": "Retries by status",
+  "type": "SQL",
+  "connectionId": "training-fixture",
+  "parameters": [
+    {
+      "id": "status",
+      "type": "string",
+      "title": "Status",
+      "isRequired": true,
+      "defaultValue": "pending",
+      "lookup": {
+        "db": "d",
+        "sql": "s",
+        "keyFields": [
+          "k"
+        ]
+      }
+    },
+    {
+      "id": "attempts",
+      "type": "integer",
+      "defaultValue": 3
+    },
+    {
+      "id": "ratio",
+      "type": "number",
+      "defaultValue": 2.5
+    },
+    {
+      "id": "strict",
+      "type": "boolean",
+      "defaultValue": false
+    },
+    {
+      "id": "optional",
+      "type": "string"
+    }
+  ]
+}

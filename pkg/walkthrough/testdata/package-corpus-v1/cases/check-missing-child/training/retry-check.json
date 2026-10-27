@@ -1,0 +1,29 @@
+{
+  "id": "retry-observation",
+  "title": "Retry observation",
+  "description": "Fictional retry check.",
+  "version": 1,
+  "inputs": [
+    {
+      "name": "status",
+      "type": "string",
+      "cardinality": "scalar",
+      "required": true
+    },
+    {
+      "name": "note",
+      "type": "string",
+      "cardinality": "scalar"
+    }
+  ],
+  "steps": [
+    {
+      "id": "run",
+      "kind": "check",
+      "checkId": "missing-check"
+    }
+  ],
+  "updatedAt": "2026-01-02T03:04:05Z",
+  "updatedBy": "guide",
+  "createdAt": "2026-01-01T00:00:00Z"
+}

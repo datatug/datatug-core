@@ -1,0 +1,33 @@
+{
+  "id": "retry-observation",
+  "title": "Unused retry observation",
+  "version": 1,
+  "inputs": [
+    {
+      "name": "region",
+      "type": "string",
+      "cardinality": "scalar",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "id": "run",
+      "kind": "query",
+      "queryId": "retries/by-status"
+    },
+    {
+      "id": "reuse",
+      "kind": "check",
+      "checkId": "retry-summary",
+      "bindings": [
+        {
+          "input": "status",
+          "fromInput": "region"
+        }
+      ]
+    }
+  ],
+  "updatedAt": "2026-01-02T03:04:05Z",
+  "updatedBy": "guide"
+}

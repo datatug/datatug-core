@@ -1,0 +1,536 @@
+{
+  "schema": "datatug-training-package/1",
+  "id": "training-empty",
+  "revision": 1,
+  "assets": [
+    {
+      "id": "union-text",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/small.txt",
+      "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+      "bytes": 1
+    },
+    {
+      "id": "union-fixture-00",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-00.sqlite",
+      "sha256": "27a899567a60920c659b3e5ba13c4609694bbfeaf530c263d7b0f9a6de040f92",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-01",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-01.sqlite",
+      "sha256": "6096f8ab195b801ea21b917f178e23bb00e13dd06ab53aa518271cd142d0c5d9",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-02",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-02.sqlite",
+      "sha256": "178af634f1c43fdd1d871dc2b6ddf664f43a5de00327b8e339cd290da204d06d",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-03",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-03.sqlite",
+      "sha256": "d92e31ad55b8fc1e2b43553add65e389cc83b0921752f2fd82c15c4a759fb0bb",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-04",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-04.sqlite",
+      "sha256": "0d2c35d70a490e17989e32593cbf22317a156a0d8d40538be57e086f1a1ba5bf",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-05",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-05.sqlite",
+      "sha256": "4aa8670b1d3cb90f0a6f2e64cf26f55dbe01f117837c4d64bb03e103c9e4b192",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-06",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-06.sqlite",
+      "sha256": "2352c5253724e38e8ed35db6c0a429b056251e236861616cf8a6915618167130",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-07",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-07.sqlite",
+      "sha256": "df8813c45b5e1a11c836bac5e1a4c34e75a66d5db50752d0d31ad89ec439a102",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-08",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-08.sqlite",
+      "sha256": "19399bdbf09150fac4fcc5351116f6202f07a15db634a014956e97c00c63e0b5",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-09",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-09.sqlite",
+      "sha256": "22394c96ce39474fbcca733ee9a372fbc0034de4636347c982c95b8bbff5712a",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-10",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-10.sqlite",
+      "sha256": "5aa67c8f65eb99f09f16ac20930598e97f4e81709fb2bb66bb29cfaf2e59fa3d",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-11",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-11.sqlite",
+      "sha256": "dea3f6f2b1b793aa0db1f57928c836b65dae991eea809903342590693d9c36a6",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-12",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-12.sqlite",
+      "sha256": "054028c9dd6e0b0d7be3c42cc81e9761ae933b6c49b8509158d4b84865633449",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-13",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-13.sqlite",
+      "sha256": "6120d06c314872ed7ef4b963c72dfac1f23de5f378c672b6f151a18e4598bc49",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-14",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-14.sqlite",
+      "sha256": "6863dcc4b73b15ebb945a21f17c695e14fbcbcbefc4508d92189bdc9ebca7a4a",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-15",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-15.sqlite",
+      "sha256": "1a3b5d2cbbd905be773e4c3d53cde9c58090dd452123f4fe8eafeb282485dbe5",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-16",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-16.sqlite",
+      "sha256": "a3c2ed92642f649822a8271cedfb5b61a907da815ed716a403d6870e4d195dd5",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-17",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-17.sqlite",
+      "sha256": "c5514a1884cf00f25353c826929c7273c34f980bc71683dfd3eea7008aa46021",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-18",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-18.sqlite",
+      "sha256": "eff09f05588fdbace634ba5b255c56819f8afbd95267325416b9ee819af1b97d",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-19",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-19.sqlite",
+      "sha256": "6b066a94ef57f83a700bd7f1cbec16d0de6c7ecf647fe98bd49888c5b187ab2d",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-20",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-20.sqlite",
+      "sha256": "1af2c70d4fecfbfd68ab9269878363b4bce6e09de36e3c3377fc601eab427379",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-21",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-21.sqlite",
+      "sha256": "0c1333b1ab7836b1b997f6670e79a605b948104efc1ccc405f60bd63d966b03a",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-22",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-22.sqlite",
+      "sha256": "48953d50986620184edb92f84ff2519d3647e4b477f62954e42a8c3fbf9d60f1",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-23",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-23.sqlite",
+      "sha256": "da5c2b0315fb0a4fd41a4cbd8341a8805af16e93804f9022de66a14276044a9b",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-24",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-24.sqlite",
+      "sha256": "b54f169c5cf3066abd93acd6103ee2d33b9ea9562f05779d88e2a974e9df41eb",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-25",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-25.sqlite",
+      "sha256": "87882406677cc54bf162cf6a071adf590ca63228c77b7a1e0f125dcfbec8f8ca",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-26",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-26.sqlite",
+      "sha256": "92176210a582cc7df32e9c02d9bfb8463a9bb6f3cd2654d1bb081afea403cb38",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-27",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-27.sqlite",
+      "sha256": "4d8178a7bed31fa49f78e7bf751ca3eb17712d87d67f197c6d7daa861f26d492",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-28",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-28.sqlite",
+      "sha256": "434aae4d1adf6b71a272779b11180754134a19a570b4d791302f3d5a867c2918",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-29",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-29.sqlite",
+      "sha256": "36e80d5ba4b8265b72645ebce67183f03ed6dff1ac78a0dc316326454eb29a44",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-30",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-30.sqlite",
+      "sha256": "3662b179b2db85b3390d88a87213b0006e1a2fa7340b98fb8639596da1be964b",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-31",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-31.sqlite",
+      "sha256": "53cea4580c13382f04c647b60e579669085af7af33bc5e78ef189550fd3f3787",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-32",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-32.sqlite",
+      "sha256": "ff41c1a92a63086fb6f621348cadbd38a0ac57d6655982e84d484cb2fabd40df",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-33",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-33.sqlite",
+      "sha256": "37a657149692e3d6247814c59f18302030bdc6b67f15a0fcb5524ec65e1b00a8",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-34",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-34.sqlite",
+      "sha256": "c903279ab22b5a52e83203d649d4c63f9f462f01faea165c7141c19f06c4bf58",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-35",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-35.sqlite",
+      "sha256": "cbd8e5b0b21ecfb5a58f427b0b255906a6fc1bd03638edbf8bcc292ddb294593",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-36",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-36.sqlite",
+      "sha256": "535d1767f3380b02619e6547a13a198497b866c97bcba8be91cfab4e30656ab3",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-37",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-37.sqlite",
+      "sha256": "acaa9d073d8d157239097768c11fb1bd917db58636c97764ce2b863456d206ab",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-38",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-38.sqlite",
+      "sha256": "45c7d93133218970098bd4d133aea2e9b57efbb309fc36a93d61f36ae48df32b",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-39",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-39.sqlite",
+      "sha256": "fa6c0a07650d2547db7ea745c8b849d0caf21b84bd0aa5d86e5a360503e5d1b5",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-40",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-40.sqlite",
+      "sha256": "a684399b357f78555812d84c128742f9ccc68c938fa6bcccdd0c445d8487bff6",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-41",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-41.sqlite",
+      "sha256": "a9320fefe37c33fbbbe758262c19d74596c0b021013201e4c5118df934a1c392",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-42",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-42.sqlite",
+      "sha256": "4327f812c9408070120fe1753edf68ba7eaf3294516b445f9c7c04a7682f729a",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-43",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-43.sqlite",
+      "sha256": "260b7910471c1e8bf1d3bea10fd194066377bf289fd3f0cb63be5713a2c5b892",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-44",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-44.sqlite",
+      "sha256": "97b7c7e40eaebcd650c25ba1562cd2578ae8558662fab258e77ed4d21dfdaa5b",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-45",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-45.sqlite",
+      "sha256": "d76b881fa495a76fd72b972d9e032d4291d5e0ad02ddb42774728d3649327368",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-46",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-46.sqlite",
+      "sha256": "e6717d9a0a77eaa976f0572c226f6d9afa268897df79b688f236480463815b8d",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-47",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-47.sqlite",
+      "sha256": "dff0a1b5a0cc7119723f3dd805a89e86975918f32886277c8453bec9609e324c",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-48",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-48.sqlite",
+      "sha256": "81d987ce8f8f0a4cdc45b613e111da9c4a4f512ea1a2daf0b7dcc152cffaf1aa",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-49",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-49.sqlite",
+      "sha256": "d7d3ade9f00aacd695aab3c4634a8e8cef25393b759c8a9c5475d65d0aabd5b9",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-50",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-50.sqlite",
+      "sha256": "d9f3bef7f711293903bc8185042386e813b7509cfdedec83ae8ed5ccd8a65bf8",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-51",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-51.sqlite",
+      "sha256": "dfcde7af13d4aa024cecf7f8ba84d810f995e8acbf2413eecb65ed2fd10b2d42",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-52",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-52.sqlite",
+      "sha256": "050db4e1b3f6560ceee360413d7e68124a8588b398fc8ba771f63d142297ea33",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-53",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-53.sqlite",
+      "sha256": "b484881df99bafd37fd576e111a35b2f5a2d7d90ee325f084d844fda3317dbf4",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-54",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-54.sqlite",
+      "sha256": "9f5abf1d87a79df297aae5b9c628ea074936953448ab2924aefb545cd9c9d7ef",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-55",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-55.sqlite",
+      "sha256": "e749e17a343848490eea238d7b266edc75670e1192c7f408f6b93c413d339a90",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-56",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-56.sqlite",
+      "sha256": "8245c7b74c8db72b2d46f2d75e88b2893dda7738b63d8c1accf741135c6455a6",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-57",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-57.sqlite",
+      "sha256": "d33fca236bf41c0d235f25e3b0aa37c9e64f3022184df9deab08a095740c82f8",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-58",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-58.sqlite",
+      "sha256": "a0ec2d35558669a7e8df99df3830403ec7f9fa224d58c3feab7580b18ab756ee",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-59",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-59.sqlite",
+      "sha256": "1d138842c20a9b684804d1494cf6b4acdb5d5fd95d9be4839463280b88d92101",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-60",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-60.sqlite",
+      "sha256": "f4039699af7961eb595a6e8af07a10186cac91037384a3e905e010bae98c171d",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-61",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-61.sqlite",
+      "sha256": "533c1e123322495993f7b4f63b83f1a195ad77e1daef13fa6f681d0d95d39bc5",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-62",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-62.sqlite",
+      "sha256": "229c5cb9833455bb2f0223e541fe2058b43af9cc43e4d9f97938cb5f8cd21713",
+      "bytes": 1048576
+    },
+    {
+      "id": "union-fixture-63",
+      "kind": "challenge-fixture",
+      "mediaType": "application/vnd.sqlite3",
+      "path": "training/union-fixture-63.sqlite",
+      "sha256": "cf565013fa53093a747b728af84047a00aab1c2e8fffe55c7a579ad8d6314e07",
+      "bytes": 1048576
+    }
+  ],
+  "fictionalActors": [],
+  "sources": [],
+  "cases": [],
+  "incidents": [],
+  "checks": [],
+  "queries": [],
+  "challenges": [],
+  "proposals": [],
+  "presentationTargets": []
+}

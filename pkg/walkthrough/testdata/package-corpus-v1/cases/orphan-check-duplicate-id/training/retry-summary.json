@@ -1,0 +1,28 @@
+{
+  "id": "retry-summary",
+  "title": "Retry summary",
+  "version": 1,
+  "inputs": [
+    {
+      "name": "status",
+      "type": "string",
+      "cardinality": "scalar",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "id": "run",
+      "kind": "check",
+      "checkId": "retry-observation",
+      "bindings": [
+        {
+          "input": "status",
+          "fromInput": "status"
+        }
+      ]
+    }
+  ],
+  "updatedAt": "2026-01-02T03:04:05Z",
+  "updatedBy": "guide"
+}

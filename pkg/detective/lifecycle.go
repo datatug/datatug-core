@@ -432,6 +432,26 @@ func ValidateQueryValidators(item QueryValidators) error {
 	return nil
 }
 
+// ValidateFindingFields validates the package-independent fields of one native
+// Finding: its ID grammar, non-empty text, closed status and its evidence
+// references' shape and uniqueness. Reference resolution against a Case's own
+// evidence remains validateCaseContent's job; the training package reuses this
+// narrow helper with its separate package evidence namespace and its own
+// 1000-finding limit instead of constructing a fake persisted Case.
+func ValidateFindingFields(f Finding) error {
+	if !validSlug(f.ID) || f.Text == "" || !oneOf(f.Status, "hypothesis", "confirmed") {
+		return ErrInvalid
+	}
+	seenRefs := map[string]bool{}
+	for _, ref := range f.EvidenceRefs {
+		if ref == "" || seenRefs[ref] {
+			return ErrInvalid
+		}
+		seenRefs[ref] = true
+	}
+	return nil
+}
+
 func validateCaseContent(c Case) error {
 	if c.Context == nil {
 		c.Context = map[string]InputValue{}
@@ -453,16 +473,17 @@ func validateCaseContent(c Case) error {
 	}
 	findingIDs := map[string]bool{}
 	for _, f := range c.Findings {
-		if !validSlug(f.ID) || findingIDs[f.ID] || f.Text == "" || !oneOf(f.Status, "hypothesis", "confirmed") {
+		if err := ValidateFindingFields(f); err != nil {
+			return ErrInvalid
+		}
+		if findingIDs[f.ID] {
 			return ErrInvalid
 		}
 		findingIDs[f.ID] = true
-		seenRefs := map[string]bool{}
 		for _, ref := range f.EvidenceRefs {
-			if !evidenceIDs[ref] || seenRefs[ref] {
+			if !evidenceIDs[ref] {
 				return ErrInvalid
 			}
-			seenRefs[ref] = true
 		}
 	}
 	for _, ref := range c.IncidentRefs {

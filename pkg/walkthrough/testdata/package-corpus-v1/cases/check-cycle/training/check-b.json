@@ -1,0 +1,15 @@
+{
+  "id": "check-b",
+  "title": "B",
+  "version": 1,
+  "inputs": [],
+  "steps": [
+    {
+      "id": "run",
+      "kind": "check",
+      "checkId": "check-a"
+    }
+  ],
+  "updatedAt": "2026-01-02T03:04:05Z",
+  "updatedBy": "guide"
+}
