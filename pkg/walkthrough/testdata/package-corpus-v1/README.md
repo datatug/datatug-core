@@ -4,9 +4,10 @@ Independent contract data for `walkthrough.AdmitTrainingPackage` (stage 1 of the
 training-package programme). Every raw byte and every expected projection or
 refusal here is authored by `generate.py` from:
 
-- `sneat-co/backstage` `spec/features/project-walkthroughs/training-package-format.md`
-  SHA-256 `6b4d0825e5abad9df4bb4dddb650320076ee49385c4ebaf6aa91f35380446e5a`
-- `sneat-co/backstage` `spec/features/project-walkthroughs/declaration-format.md`
+- `datatug/backstage` at `7a4c9160b18a9f478eab7a898aa86cf95c975822`,
+  `spec/features/project-walkthroughs/training-package-format.md`
+  SHA-256 `b4319295b9f4a9d993cbe144c76c876d3c94f9319cb6fe0dc37c17ec2734050e`
+- `datatug/backstage` `spec/features/project-walkthroughs/declaration-format.md`
   SHA-256 `2411a6074f765d9068fcd6604f9914ac6d80dd1fc008cebbcdc97e2e2f1b8a53`
 
 The generator never imports, runs or reads output from the Go or TypeScript
@@ -76,11 +77,12 @@ A `query-metadata` asset must be bound by a declared `queries[]` record and a
 `challenge-manifest` asset by a declared `challenges[]` record, and manifest
 `checkDefinition.queryIds` references close against the package `queries[]`
 inventory (the reference answer selects one of those same ids natively). Those
-reverse bindings are required by the accepted package-closure repair: an
+reverse bindings are required by the accepted package-closure repair and the
+owner document's closure table at the revision above: an
 identity-bearing metadata/manifest asset and a manifest saved-query reference are
-typed references that must resolve. They are **not yet listed in the owner
-document's closure table**, so Apps parity must treat them as pending owner
-clarification, not as a settled owner contract.
+typed references that must resolve. This corpus contains 198 vectors (21 admitted,
+176 refused, one newer-client result), with 1,860 verified case files and 1,866
+tracked corpus files.
 
 `Projection()` is the complete conformance projection: every admitted native
 Check field (including `title` and the full-precision `updatedAt` encoded the way
