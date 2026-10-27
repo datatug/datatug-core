@@ -174,6 +174,7 @@ func (s *ProjectStore) LoadProject(ctx context.Context, o ...datatug.StoreOption
 	}
 	project := datatug.NewProjectWithStore(s.projectID, s)
 	project.Coordination = file.Coordination
+	project.Databases = file.Databases
 	project.ProjectItem = file.ProjectItem
 	project.Created = file.Created
 	project.Repository = file.Repository
@@ -218,6 +219,7 @@ func (s *ProjectStore) SaveProject(ctx context.Context, p *datatug.Project) erro
 	}
 	file := datatug.ProjectFile{
 		EnvironmentOrder: p.EnvironmentOrder,
+		Databases:        p.Databases,
 		Coordination:     p.Coordination,
 		ProjectItem: datatug.ProjectItem{
 			ProjItemBrief: datatug.ProjItemBrief{ID: p.ID, Title: p.Title},
@@ -242,6 +244,9 @@ func (s *ProjectStore) SaveProject(ctx context.Context, p *datatug.Project) erro
 			existing, decodeErr := decodeProjectMetadata(fields)
 			if decodeErr != nil {
 				return decodeErr
+			}
+			if file.Databases == nil {
+				file.Databases = existing.Databases
 			}
 			if file.Coordination == nil {
 				file.Coordination = existing.Coordination
