@@ -1,0 +1,24 @@
+{
+  "schema": "datatug-training-package/1",
+  "id": "training-unused",
+  "revision": 1,
+  "assets": [
+    {
+      "id": "unused-text",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/unused.txt",
+      "sha256": "ed2f184dcd664d2ae166329d654906ed9a4e426b60d706b8a90fdf94acad61ba",
+      "bytes": 26
+    }
+  ],
+  "fictionalActors": [],
+  "sources": [],
+  "cases": [],
+  "incidents": [],
+  "checks": [],
+  "queries": [],
+  "challenges": [],
+  "proposals": [],
+  "presentationTargets": []
+}

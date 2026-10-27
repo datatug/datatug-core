@@ -1,0 +1,15 @@
+{
+  "id": "orphan-check",
+  "title": "Unused check",
+  "version": 1,
+  "inputs": [],
+  "steps": [
+    {
+      "id": "run",
+      "kind": "check",
+      "checkId": "missing-check"
+    }
+  ],
+  "updatedAt": "2026-01-02T03:04:05Z",
+  "updatedBy": "guide"
+}

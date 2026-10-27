@@ -1,0 +1,784 @@
+{
+  "schema": "datatug-training-package/1",
+  "id": "training-empty",
+  "revision": 1,
+  "assets": [
+    {
+      "id": "text-000",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-000.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-001",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-001.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-002",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-002.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-003",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-003.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-004",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-004.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-005",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-005.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-006",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-006.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-007",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-007.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-008",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-008.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-009",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-009.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-010",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-010.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-011",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-011.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-012",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-012.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-013",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-013.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-014",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-014.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-015",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-015.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-016",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-016.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-017",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-017.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-018",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-018.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-019",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-019.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-020",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-020.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-021",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-021.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-022",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-022.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-023",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-023.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-024",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-024.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-025",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-025.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-026",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-026.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-027",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-027.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-028",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-028.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-029",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-029.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-030",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-030.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-031",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-031.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-032",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-032.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-033",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-033.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-034",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-034.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-035",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-035.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-036",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-036.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-037",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-037.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-038",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-038.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-039",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-039.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-040",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-040.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-041",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-041.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-042",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-042.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-043",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-043.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-044",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-044.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-045",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-045.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-046",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-046.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-047",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-047.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-048",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-048.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-049",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-049.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-050",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-050.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-051",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-051.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-052",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-052.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-053",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-053.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-054",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-054.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-055",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-055.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-056",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-056.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-057",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-057.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-058",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-058.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-059",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-059.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-060",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-060.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-061",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-061.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-062",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-062.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-063",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-063.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-064",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-064.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-065",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-065.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-066",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-066.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-067",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-067.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-068",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-068.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-069",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-069.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-070",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-070.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-071",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-071.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-072",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-072.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-073",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-073.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-074",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-074.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-075",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-075.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-076",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-076.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-077",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-077.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-078",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-078.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-079",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-079.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-080",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-080.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-081",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-081.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-082",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-082.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-083",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-083.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-084",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-084.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-085",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-085.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-086",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-086.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-087",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-087.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-088",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-088.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-089",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-089.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-090",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-090.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-091",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-091.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-092",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-092.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-093",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-093.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-094",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-094.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    },
+    {
+      "id": "text-095",
+      "kind": "evidence-text",
+      "mediaType": "text/plain",
+      "path": "training/text-095.txt",
+      "sha256": "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+      "bytes": 65536
+    }
+  ],
+  "fictionalActors": [],
+  "sources": [],
+  "cases": [],
+  "incidents": [],
+  "checks": [],
+  "queries": [],
+  "challenges": [],
+  "proposals": [],
+  "presentationTargets": []
+}

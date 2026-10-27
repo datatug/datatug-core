@@ -1,0 +1,2 @@
+{"id": "line-1", "at": "2026-01-02T03:04:05Z", "actorId": "guide", "kind": "order-seen", "message": "First retry.", "extra": 1}
+{"id": "line-2", "at": "2026-01-02T03:05:05Z", "actorId": "analyst", "kind": "retry-seen", "message": "Second retry."}

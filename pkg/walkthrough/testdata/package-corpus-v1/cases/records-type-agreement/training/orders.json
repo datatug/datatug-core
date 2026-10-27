@@ -1,0 +1,40 @@
+{
+  "columns": [
+    {
+      "name": "order_id",
+      "type": "integer"
+    },
+    {
+      "name": "status",
+      "type": "string"
+    },
+    {
+      "name": "seen_at",
+      "type": "datetime"
+    },
+    {
+      "name": "note",
+      "type": "null"
+    }
+  ],
+  "rows": [
+    [
+      {
+        "type": "string",
+        "value": "11045"
+      },
+      {
+        "type": "string",
+        "value": "pending"
+      },
+      {
+        "type": "datetime",
+        "value": "2026-01-02T03:04:05Z"
+      },
+      {
+        "type": "null",
+        "value": null
+      }
+    ]
+  ]
+}

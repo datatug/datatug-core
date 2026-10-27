@@ -1,0 +1,7 @@
+{
+  "id": "union/query",
+  "title": "Union query",
+  "type": "SQL",
+  "connectionId": "union-source",
+  "parameters": []
+}

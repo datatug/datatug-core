@@ -1,0 +1,7 @@
+{
+  "id": "retries/unused",
+  "title": "Unused retries",
+  "type": "SQL",
+  "connectionId": "training-fixture",
+  "parameters": []
+}

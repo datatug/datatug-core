@@ -1,0 +1,251 @@
+{
+  "schemaVersion": 1,
+  "gradingVersion": "challenge-grading-v1",
+  "challengeId": "union-challenge",
+  "revision": 1,
+  "title": "Union challenge",
+  "objective": "Exercise every closed union.",
+  "difficulty": "advanced",
+  "dialect": "sqlite",
+  "allowedOperation": "write",
+  "timing": "optional",
+  "engine": {
+    "package": "@sqlite.org/sqlite-wasm",
+    "version": "3.54.1-build1",
+    "sqliteVersion": "3.54.1"
+  },
+  "fixtureSuite": {
+    "id": "union-suite",
+    "fixtures": [
+      {
+        "id": "base",
+        "label": "Base fixture",
+        "sha256": "41c40a7c663a9528dc81d695bb7713add68243ba2ec556d6d8bf125a3c90db0d",
+        "bytes": 45,
+        "runs": 2
+      }
+    ]
+  },
+  "visibleSchema": {
+    "tables": [
+      {
+        "name": "retries",
+        "columns": [
+          {
+            "name": "status",
+            "type": "string",
+            "primaryKey": true,
+            "notNull": true,
+            "collation": "RTRIM"
+          },
+          {
+            "name": "attempts",
+            "type": "integer"
+          }
+        ]
+      }
+    ]
+  },
+  "parts": [
+    {
+      "id": "result",
+      "title": "Rows",
+      "required": true,
+      "answerKind": "sql",
+      "sql": {
+        "cases": [
+          {
+            "fixture": "base",
+            "oracle": {
+              "kind": "result",
+              "columns": [
+                {
+                  "name": "status",
+                  "type": "string"
+                }
+              ],
+              "rows": [
+                [
+                  {
+                    "type": "string",
+                    "value": "pending"
+                  }
+                ]
+              ],
+              "ordering": "unordered",
+              "requireColumnNames": true,
+              "numericTolerance": "0.01"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "pick",
+      "title": "Pick",
+      "required": true,
+      "answerKind": "structured",
+      "structured": {
+        "fields": [
+          {
+            "id": "choice",
+            "label": "Choice",
+            "cardinality": "multi",
+            "required": true,
+            "minSelections": 1,
+            "maxSelections": 2,
+            "options": [
+              {
+                "id": "a",
+                "label": "A"
+              },
+              {
+                "id": "b",
+                "label": "B"
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "selections": {
+            "choice": [
+              "a"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "check",
+      "title": "Check",
+      "required": false,
+      "answerKind": "check-definition",
+      "checkDefinition": {
+        "queryIds": [
+          "union/query"
+        ],
+        "expectation": {
+          "id": "union-expectation",
+          "scope": "set",
+          "kind": "row-count",
+          "severity": "error",
+          "expected": {
+            "type": "integer",
+            "value": "1"
+          }
+        },
+        "cases": [
+          {
+            "fixture": "base",
+            "expectedOutcome": "pass"
+          }
+        ]
+      }
+    },
+    {
+      "id": "state",
+      "title": "State",
+      "required": false,
+      "answerKind": "sql",
+      "sql": {
+        "cases": [
+          {
+            "fixture": "base",
+            "oracle": {
+              "kind": "final-state",
+              "tables": [
+                {
+                  "name": "retries",
+                  "columns": [
+                    {
+                      "name": "status",
+                      "type": "string"
+                    },
+                    {
+                      "name": "attempts",
+                      "type": "integer"
+                    }
+                  ],
+                  "rows": [
+                    [
+                      {
+                        "type": "string",
+                        "value": "pending"
+                      },
+                      {
+                        "type": "integer",
+                        "value": "1"
+                      }
+                    ]
+                  ]
+                }
+              ],
+              "invariants": [
+                {
+                  "id": "keep-lowest",
+                  "kind": "group-min",
+                  "table": "retries",
+                  "groupBy": [
+                    "status"
+                  ],
+                  "column": "attempts",
+                  "description": "Keep the lowest attempt count."
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "hints": [
+    {
+      "id": "union-hint",
+      "text": "Every union is present."
+    }
+  ],
+  "referenceSolutions": [
+    {
+      "partId": "result",
+      "answer": {
+        "sql": "select status from retries;"
+      }
+    },
+    {
+      "partId": "pick",
+      "answer": {
+        "structured": {
+          "selections": {
+            "choice": [
+              "a"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "partId": "check",
+      "answer": {
+        "checkDefinition": {
+          "queryId": "union/query",
+          "expectation": {
+            "id": "union-expectation",
+            "scope": "set",
+            "kind": "row-count",
+            "severity": "error",
+            "expected": {
+              "type": "integer",
+              "value": "1"
+            }
+          }
+        }
+      }
+    },
+    {
+      "partId": "state",
+      "answer": {
+        "sql": "delete from retries;"
+      }
+    }
+  ]
+}
