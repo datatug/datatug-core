@@ -1,62 +1,134 @@
-# DataTug CLI - a command line data browser & editor
+# DataTug Core
 
-[![Build, Test, Vet, Lint](https://github.com/datatug/datatug/actions/workflows/golangci.yml/badge.svg)](https://github.com/datatug/datatug/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/datatug/datatug)](https://goreportcard.com/report/github.com/datatug/datatug)
-[![Coverage Status](https://coveralls.io/repos/github/datatug/datatug-core/badge.svg?branch=main)](https://coveralls.io/github/datatug/datatug-core?branch=main)
-[![Version](https://img.shields.io/github/v/tag/datatug/datatug?filter=v*.*.*&logo=Go)](https://github.com/datatug/datatug/tags)
-[![GoDoc](https://godoc.org/github.com/datatug/datatug?status.svg)](https://godoc.org/github.com/datatug/datatug)
-[![Sourcegraph](https://sourcegraph.com/github.com/datatug/datatug-core/-/badge.svg)](https://sourcegraph.com/github.com/datatug/datatug-core?badge)
+[![Build & Test](https://github.com/datatug/datatug-core/actions/workflows/ci.yml/badge.svg)](https://github.com/datatug/datatug-core/actions/workflows/ci.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSES/Apache-2.0.txt)
+[![Go Report Card](https://goreportcard.com/badge/github.com/datatug/datatug-core)](https://goreportcard.com/report/github.com/datatug/datatug-core)
+[![GoDoc](https://godoc.org/github.com/datatug/datatug-core?status.svg)](https://pkg.go.dev/github.com/datatug/datatug-core)
 
-This is mostly used by https://github.com/datatug/datatug-cli.
+**DataTug Core** is the foundational Go engine and domain library powering the DataTug ecosystem for database schema management, semantic modeling, recordset comparisons, and collaborative data exploration.
 
-<!-- dev-approach:v1 -->
-## Our approach to development
+---
 
-We build with our own tooling:
+## Architecture Summary
 
-- **[SpecScore](https://specscore.md)** — specify requirements as `SpecScore.md` artifacts
-- **[SpecStudio](https://specscore.studio)** — author & manage specs across their lifecycle
-- **[inGitDB](https://ingitdb.com)** — store structured data in Git where applicable
-- **[DALgo](https://dalgo.io)** — data access layer for Go
-- **[cover100.dev](https://cover100.dev)** — drive toward 100% test coverage
-- **[DataTug](https://datatug.io)** — query & explore data
-<!-- /dev-approach -->
+DataTug provides an open, modular data modeling and schema governance platform designed to bridge technical database schemas with semantic business meaning:
 
-## Project structure
+```
+                       +---------------------------+
+                       |    DataTug Applications   |
+                       |  (CLI, Web UI, Extensions)|
+                       +-------------+-------------+
+                                     |
+               +---------------------+---------------------+
+               |                                           |
++--------------v---------------+            +--------------v---------------+
+|    Semantic & Comparison     |            |      Storage & Drivers       |
+|  - meaninggraph (Resolver)   |            |  - filestore (Local Git/FS)  |
+|  - recordsetcompare (Diffs)  |            |  - ingitdbschema (Git DBs)   |
+|  - schemer (Introspection)   |            |  - dalgostore (DALgo backend)|
+|  - detective (Investigations)|            |  - dtprojcreator             |
++--------------+---------------+            +--------------+---------------+
+               |                                           |
+               +---------------------+---------------------+
+                                     |
+                       +-------------v-------------+
+                       |      Core Data Types      |
+                       |  - pkg/datatug            |
+                       |  - pkg/dto, pkg/dtconfig  |
+                       +-------------+-------------+
+                                     |
+                       +-------------v-------------+
+                       |    Entitlement Contracts  |
+                       |  - commercial/licensing   |
+                       +---------------------------+
+```
 
-- [pkg](pkg) - source codes for core packages
-- [docs](docs) - documentation
-- [.github/workflows](.github/workflows) - continuous integration
+### Core Architectural Pillars
+- **Meaning Graph**: Resolves data catalog selections, semantic models, and versioned entity relationships while preventing traversal attacks through strict fixture boundaries.
+- **Recordset Comparison**: High-performance row and cell-level diffing between query results and tabular snapshots, available natively and compilable to WebAssembly (`cmd/recordsetcompare-wasm`).
+- **in-Git Schema Governance**: Treat database schemas, queries, and semantic models as version-controlled code artifacts stored directly in Git repositories.
+- **Extensible Storage**: Neutral repository abstractions backed by filesystem (`filestore`) or multi-database drivers (`dalgostore`).
+- **Clean Entitlement Boundaries**: Enterprise hooks operate through cleanroom Go interfaces (`commercial/licensing`), keeping community code free from proprietary runtime bloat.
 
-## Dependencies & Credits
+---
 
-- https://gihub.com/strongo/validation - helpers for requests & models validations
+## Module Map
 
+| Package / Directory | Purpose |
+| :--- | :--- |
+| `cmd/recordsetcompare-wasm` | WebAssembly module for running dataset diffs directly in browsers. |
+| `pkg/datatug` | Foundational domain entities: Project, Environment, DbServer, Schema, Table, Query. |
+| `pkg/meaninggraph` | Semantic graph resolver, catalog integrity checker, and cross-model dependency linker. |
+| `pkg/recordsetcompare` | Tabular comparison engine, schema diff calculations, and row change classification. |
+| `pkg/recordsetcompare/bridge` | Bridges comparison results into external and serialization formats. |
+| `pkg/schemer` | Database schema introspection, table structures, column types, and foreign key relations. |
+| `pkg/semantic` | Business taxonomy, semantic types, and entity classification. |
+| `pkg/detective` | Investigative query execution, schema consistency checks, and root-cause analysis. |
+| `pkg/detectiveai` | AI-assisted schema intelligence and query suggestions. |
+| `pkg/storage` | High-level storage contracts and repository persistence abstractions. |
+| `pkg/storage/filestore` | Filesystem-backed repository driver for local project trees. |
+| `pkg/storage/ingitdbschema`| Git-tracked database schema persistence and version management. |
+| `pkg/storage/dalgostore` | Generic database storage backend implemented via DALgo. |
+| `pkg/storage/dtprojcreator`| Project scaffolding, directory templates, and project bootstrapping. |
+| `pkg/investigation` | Structured data investigation plans, steps, and execution trees. |
+| `pkg/incidents` | Incident reports, data quality alerts, and schema regression tracking. |
+| `pkg/challenge` | Query challenge runners and regression test benchmarks. |
+| `pkg/dbconnection` | Database connection strings, parameter resolution, and connection pooling. |
+| `pkg/dto` | Wire format Data Transfer Objects for API and CLI interop. |
+| `commercial/licensing` | Enterprise entitlement contracts (`EntitlementVerifier`, `CapacityDescriptor`, `CoordinatorContract`). |
 
-## CI/CD
+---
 
-There is a [continuous integration build](docs/CI-CD.md).
+## Building and Testing
 
-## Open Source Libraries we use
+### Prerequisites
+- **Go 1.22+**
+- Make or Bash shell
 
-- [DALgo](https://github.com/dal-go/dalgo) - Database Abstraction Layer for Go
-- [Bubble Tea](https://github.com/charmbracelet/bubbletea) - A Go framework for TUI apps
+### Build All Modules
+```bash
+go build ./...
+```
 
-## Contribution
+### Build WebAssembly Target
+To compile the WebAssembly recordset comparator:
+```bash
+GOOS=js GOARCH=wasm go build -o recordsetcompare.wasm ./cmd/recordsetcompare-wasm
+```
 
-Contributors wanted. For a start check [issues](https://github.com/datatug/datatug/issues)
-tagged with [`help wanted`](https://github.com/datatug/datatug/labels/help%20wanted)
-and [`good first issue`](https://github.com/datatug/datatug/labels/good%20first%20issue).
+### Run Tests
+Run the complete test suite across all community packages:
+```bash
+go test -v ./...
+```
 
-## Plans for improvements & TODO integrations
+Run tests with Go race detector:
+```bash
+go test -race ./pkg/...
+```
 
-- https://github.com/rivo/tview - show tables & query text
-- Dashboard: consider either https://github.com/gizak/termui or https://github.com/mum4k/termdash
-- [Dasel](https://github.com/TomWright/dasel) - Select, put and delete data from JSON, TOML, YAML, XML and CSV files
-  with a single tool. Supports conversion between formats and can be used as a Go package.
-- [DbMate](https://github.com/amacneil/dbmate) - A lightweight, framework-agnostic database migration tool.
-- use [SuperFile](https://github.com/yorukot/superfile) for file browsing?
+Run static analysis:
+```bash
+go vet ./...
+```
+
+---
 
 ## Licensing
 
-The `datatug` and other DataTug CLIs are free to use and source codes are open source under [MIT license](./LICENSE).
+DataTug is distributed under a **Model A mixed licensing framework**:
+- **Community Open Source (Apache 2.0)**: All packages within `pkg/`, `cmd/`, `internal/`, `web/`, `scripts/`, `docs/`, and `spec/` are licensed under the permissive [Apache License, Version 2.0](LICENSES/Apache-2.0.txt).
+  ```
+  Copyright 2020-2026 DataTug Authors and Contributors (original work Copyright 2020 sneat-team)
+  ```
+- **Commercial Extensions**: Code and interfaces under `commercial/` are governed by [DataTug Commercial Terms](LICENSES/COMMERCIAL-TERMS.md).
+
+See [`LICENSING.md`](LICENSING.md) for full details on scope boundaries and governance.
+
+---
+
+## Contributing
+
+We warmly welcome community contributions! Please read our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting pull requests.
+
+Security vulnerabilities should be reported following our [Security Policy](SECURITY.md).
