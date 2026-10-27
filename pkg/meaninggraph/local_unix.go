@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"golang.org/x/sys/unix"
 )
@@ -25,6 +26,9 @@ func openFixtureRoot(root string) (int, error) {
 	absolute, err := filepath.Abs(root)
 	if err != nil {
 		return -1, err
+	}
+	if strings.HasPrefix(absolute, "/var/") {
+		absolute = "/private/var/" + strings.TrimPrefix(absolute, "/var/")
 	}
 	fd, err := unix.Open("/", unix.O_RDONLY|unix.O_DIRECTORY|unix.O_CLOEXEC, 0)
 	if err != nil {
