@@ -147,6 +147,9 @@ func (s fsProjectStore) putProjectFile(projFile datatug.ProjectFile) error {
 	}
 	// Opaque members are merged below as RawMessages, preserving the
 	// existing writer path and exact numeric tokens.
+	if projFile.Databases == nil {
+		projFile.Databases = existingFile.Databases
+	}
 	if projFile.DataModels == nil {
 		projFile.DataModels = existingFile.DataModels
 	}
@@ -208,6 +211,7 @@ func (s fsProjectStore) saveProjectFile(project *datatug.Project) error {
 	// datatug.ProjectBrief.Validate().
 	projFile := datatug.ProjectFile{
 		DataModels:       project.DataModels,
+		Databases:        project.Databases,
 		Coordination:     project.Coordination,
 		EnvironmentOrder: project.EnvironmentOrder,
 		ProjectItem: datatug.ProjectItem{

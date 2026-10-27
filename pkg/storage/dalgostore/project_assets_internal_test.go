@@ -174,3 +174,16 @@ func TestNativeDeleteNeverIgnoresAssetReadFailure(t *testing.T) {
 	}
 	require.Error(t, NewStore(db, "native").DeleteProject(ctx, "unsafe/id"))
 }
+
+func TestLoadBoardRejectsCorruptStoredMetadataContent(t *testing.T) {
+	ctx := context.Background()
+	db := dalgo2memory.New(dalgo2memory.FirestoreProfile())
+	store := NewProjectStore(db, "p")
+	key, err := assetKey(projectKey("p"), "boards", "b")
+	require.NoError(t, err)
+	require.NoError(t, db.RunReadwriteTransaction(ctx, func(ctx context.Context, tx dal.ReadwriteTransaction) error {
+		return tx.Set(ctx, record.NewRecordWithData(key, &assetDocument{Content: []byte("{")}))
+	}))
+	_, err = store.LoadBoard(ctx, "b")
+	require.ErrorIs(t, err, ErrAssetInvalid)
+}

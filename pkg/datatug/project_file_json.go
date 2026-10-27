@@ -23,7 +23,7 @@ func (v *ProjectFile) UnmarshalJSON(body []byte) error {
 	_ = json.Unmarshal(body, &fields)
 	for key := range fields {
 		switch strings.ToLower(key) {
-		case "id", "title", "folder", "tags", "userids", "access", "created", "repository", "environmentorder", "datamodels", "coordination":
+		case "id", "title", "folder", "tags", "userids", "access", "created", "repository", "environmentorder", "datamodels", "coordination", "databases":
 			delete(fields, key)
 		}
 	}
@@ -35,12 +35,15 @@ func (v *ProjectFile) UnmarshalJSON(body []byte) error {
 }
 func (v ProjectFile) MarshalJSON() ([]byte, error) {
 	body, err := json.Marshal(projectFileJSON(v))
-	if err != nil || (len(v.jsonMetadata) == 0 && len(v.EnvironmentOrder) > 0) || (len(v.jsonMetadata) == 0 && v.EnvironmentOrder == nil) {
+	if err != nil || (v.Databases == nil && len(v.jsonMetadata) == 0 && (v.EnvironmentOrder == nil || len(v.EnvironmentOrder) > 0)) {
 		return body, err
 	}
 	var fields map[string]json.RawMessage
 	// body was just generated from a struct, so it is a valid JSON object.
 	_ = json.Unmarshal(body, &fields)
+	if v.Databases != nil {
+		fields["databases"], _ = json.Marshal(v.Databases)
+	}
 	if v.EnvironmentOrder != nil {
 		fields["environmentOrder"], _ = json.Marshal(v.EnvironmentOrder)
 	}

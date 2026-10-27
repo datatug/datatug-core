@@ -31,7 +31,8 @@ var assetIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$`)
 // assetDocument is a driver-neutral codec, not a second model. Content is the
 // canonical Core DTO; its key is authoritative and no revision is duplicated.
 type assetDocument struct {
-	Content []byte `json:"content" firestore:"content"`
+	Content   []byte     `json:"content" firestore:"content"`
+	UpdatedAt *time.Time `json:"updatedAt,omitempty" firestore:"updatedAt,omitempty"`
 }
 
 // NewProjectItemsStore scopes the real ProjectStore to caller-owned metadata.
@@ -165,7 +166,13 @@ func (s *ProjectStore) loadAsset(ctx context.Context, kind, id string, value any
 	if err = s.assetSession().Get(ctx, record.NewRecordWithData(key, doc)); err != nil {
 		return err
 	}
-	return decodeAsset(doc.Content, value, id)
+	if err := decodeAsset(doc.Content, value, id); err != nil {
+		return err
+	}
+	if board, ok := value.(*datatug.Board); ok {
+		board.UpdatedAt = doc.UpdatedAt
+	}
+	return nil
 }
 func (s *ProjectStore) saveAsset(ctx context.Context, kind, id string, value any) error {
 	writer, ok := s.assetSession().(dal.ReadwriteSession)
@@ -229,7 +236,8 @@ func (s *ProjectStore) saveAsset(ctx context.Context, kind, id string, value any
 			return ErrAssetLimit
 		}
 	}
-	return writer.Set(ctx, record.NewRecordWithData(key, &assetDocument{Content: body}))
+	updatedAt := timeNow().UTC()
+	return writer.Set(ctx, record.NewRecordWithData(key, &assetDocument{Content: body, UpdatedAt: &updatedAt}))
 }
 func (s *ProjectStore) deleteAsset(ctx context.Context, kind, id string) error {
 	writer, ok := s.assetSession().(dal.ReadwriteSession)
@@ -277,6 +285,9 @@ func (s *ProjectStore) readAssets(ctx context.Context, kind string, newValue fun
 		value := newValue()
 		if err := decodeAsset(doc.Content, value, id); err != nil {
 			return nil, 0, err
+		}
+		if board, ok := value.(*datatug.Board); ok {
+			board.UpdatedAt = doc.UpdatedAt
 		}
 		values = append(values, value)
 	}

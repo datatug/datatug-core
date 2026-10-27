@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/datatug/datatug-core/internal/jsonstrict"
 	"github.com/strongo/validation"
@@ -27,6 +28,8 @@ func (v Boards) Validate() error {
 // Board is holding all details about board
 type Board struct {
 	ProjectItem
+	// UpdatedAt is server storage metadata, excluded from canonical board content.
+	UpdatedAt *time.Time `json:"-" firestore:"-"`
 
 	// Parameters mirrors ProjBoardBrief.Parameters so the brief and the full board stay in step.
 	Parameters Parameters `json:"parameters,omitempty" firestore:"parameters,omitempty"`
@@ -181,6 +184,7 @@ func validatePresentationRoots(roots []presentationRoot) error {
 // ProjBoardBrief defines brief information of Board
 type ProjBoardBrief struct {
 	ProjItemBrief
+	UpdatedAt  *time.Time `json:"updatedAt,omitempty" firestore:"updatedAt,omitempty"`
 	Parameters Parameters `json:"parameters,omitempty" firestore:"parameters,omitempty"`
 	// TODO: Document why and how to use, add tests
 	RequiredParams [][]string `json:"requiredParams,omitempty" firestore:"requiredParams,omitempty"`
