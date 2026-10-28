@@ -76,10 +76,12 @@ var hostlessDrivers = []string{"sqlite3", "ingitdb", "openvaultdb", "https-json"
 // stays in an environment variable named by a connection descriptor (DataTug
 // keeps the host, the port and the credentials of such a server out of the
 // project). couchdb and postgrest are URL-backed HTTP document/data services,
-// and libsql is served over an HTTP/WebSocket URL, so a project may name one by
-// its driver alone and leave the URL to such a reference, or record the host
-// and port it is served on.
-var hostOptionalDrivers = []string{"sqlserver", "mysql", "oracle", "postgres", "couchdb", "postgrest", "libsql"}
+// libsql is served over an HTTP/WebSocket URL, and typesense is served over an
+// HTTP API, so a project may name one by its driver alone and leave the URL to
+// such a reference, or record the host and port it is served on. Accepting the
+// driver here records a connection descriptor only; it does not provide a
+// Typesense client or query support.
+var hostOptionalDrivers = []string{"sqlserver", "mysql", "oracle", "postgres", "couchdb", "postgrest", "libsql", "typesense"}
 
 // acceptedDrivers lists every driver ServerRef.Validate accepts.
 func acceptedDrivers() string {
