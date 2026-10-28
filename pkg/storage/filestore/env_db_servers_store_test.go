@@ -104,13 +104,13 @@ func TestFsEnvServerStore_DriverOnlyServersDoNotCollide(t *testing.T) {
 	assert.Equal(t, []string{"hr"}, loaded.Catalogs)
 }
 
-// A project recording couchdb and postgrest servers natively - by driver
-// alone, with the real connection URL carried by a connection descriptor or
-// environment reference - must survive the persisted environment-server
-// round trip, keep every server host/port-free, and still validate as a whole
-// project. The persisted JSON must carry no credentials: ServerRef holds only
-// driver/host/path/port and EnvDbServer its catalogs, so the account-free
-// reference stays account-free on disk.
+// A project recording couchdb, postgrest and libsql servers natively - by
+// driver alone, with the real connection URL carried by a connection
+// descriptor or environment reference - must survive the persisted
+// environment-server round trip, keep every server host/port-free, and still
+// validate as a whole project. The persisted JSON must carry no endpoint or
+// credentials: ServerRef holds only driver/host/path/port and EnvDbServer its
+// catalogs, so the account-free reference stays account-free on disk.
 func TestFsEnvServerStore_NativeProviderServersRoundTripWithoutCredentials(t *testing.T) {
 	projectPath := t.TempDir()
 	store := newFsEnvDbServersStore(projectPath)
@@ -119,12 +119,13 @@ func TestFsEnvServerStore_NativeProviderServersRoundTripWithoutCredentials(t *te
 	saved := datatug.EnvDbServers{
 		{ServerRef: datatug.ServerRef{Driver: "couchdb"}, Catalogs: []string{"documents"}},
 		{ServerRef: datatug.ServerRef{Driver: "postgrest"}, Catalogs: []string{"public"}},
+		{ServerRef: datatug.ServerRef{Driver: "libsql"}, Catalogs: []string{"main"}},
 	}
 	require.NoError(t, store.SaveEnvServers(ctx, "local", saved))
 
 	loaded, err := store.LoadEnvDbServers(ctx, "local")
 	require.NoError(t, err)
-	require.Len(t, loaded, 2)
+	require.Len(t, loaded, 3)
 
 	byDriver := make(map[string]*datatug.EnvDbServer, len(loaded))
 	for _, server := range loaded {
@@ -136,6 +137,8 @@ func TestFsEnvServerStore_NativeProviderServersRoundTripWithoutCredentials(t *te
 	assert.Equal(t, []string{"documents"}, byDriver["couchdb"].Catalogs)
 	require.NotNil(t, byDriver["postgrest"])
 	assert.Equal(t, []string{"public"}, byDriver["postgrest"].Catalogs)
+	require.NotNil(t, byDriver["libsql"])
+	assert.Equal(t, []string{"main"}, byDriver["libsql"].Catalogs)
 
 	// The persisted project validates through the shared model without any
 	// account, token or URL being embedded.
@@ -148,10 +151,10 @@ func TestFsEnvServerStore_NativeProviderServersRoundTripWithoutCredentials(t *te
 	}
 	require.NoError(t, project.Validate())
 
-	for _, id := range []string{"couchdb", "postgrest"} {
+	for _, id := range []string{"couchdb", "postgrest", "libsql"} {
 		raw, err := os.ReadFile(path.Join(projectPath, storage.EnvironmentsFolder, "local", storage.JsonFileName(id, storage.ServerFileSuffix)))
 		require.NoError(t, err, id)
-		for _, credential := range []string{"password", "secret", "token", "://", "user"} {
+		for _, credential := range []string{"password", "secret", "token", "://", "user", "http"} {
 			assert.NotContains(t, strings.ToLower(string(raw)), credential, id)
 		}
 	}

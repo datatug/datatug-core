@@ -204,6 +204,11 @@ func TestServerRef_Validate_Drivers(t *testing.T) {
 		{"postgrest with host and port", ServerRef{Driver: "postgrest", Host: "rest.local", Port: 3000}, ""},
 		{"postgrest with port only", ServerRef{Driver: "postgrest", Port: 3000}, ""},
 		{"postgrest negative port", ServerRef{Driver: "postgrest", Port: -1}, "port"},
+		{"libsql without host", ServerRef{Driver: "libsql"}, ""},
+		{"libsql with host", ServerRef{Driver: "libsql", Host: "db.local"}, ""},
+		{"libsql with host and port", ServerRef{Driver: "libsql", Host: "db.local", Port: 8080}, ""},
+		{"libsql with port only", ServerRef{Driver: "libsql", Port: 8080}, ""},
+		{"libsql negative port", ServerRef{Driver: "libsql", Port: -1}, "port"},
 		{"ingitdb bare", ServerRef{Driver: "ingitdb"}, ""},
 		{"ingitdb with path", ServerRef{Driver: "ingitdb", Path: "/x"}, ""},
 		{"ingitdb with host", ServerRef{Driver: "ingitdb", Host: "h"}, "cannot be used with ingitdb"},
@@ -247,7 +252,7 @@ func TestServerRef_Validate_Drivers(t *testing.T) {
 func TestServerRef_Validate_UnknownDriverNamesAcceptedDrivers(t *testing.T) {
 	err := ServerRef{Driver: "mongo", Host: "h"}.Validate()
 	if assert.Error(t, err) {
-		for _, d := range []string{"sqlite3", "sqlserver", "mysql", "oracle", "postgres", "couchdb", "postgrest", "ingitdb", "openvaultdb", "https-json"} {
+		for _, d := range []string{"sqlite3", "sqlserver", "mysql", "oracle", "postgres", "couchdb", "postgrest", "libsql", "ingitdb", "openvaultdb", "https-json"} {
 			assert.Contains(t, err.Error(), d)
 		}
 	}
