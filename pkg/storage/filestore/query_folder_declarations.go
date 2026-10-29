@@ -133,7 +133,15 @@ func (s fsQueriesStore) admitQueryFolderDeclaration(ctx context.Context, g query
 	if len(strings.Split(relative, "/")) > 32 {
 		return false, fmt.Errorf("query folder declaration depth exceeds capacity")
 	}
-	directory := path.Join(s.dirPath, relative)
+	// Even a repeat create must prove that the complete target is confined.
+	// Reading an existing declaration first would follow a symlinked target.
+	directory, err := walkQueryDir(s.dirPath, relative, "", false)
+	if err != nil {
+		return false, err
+	}
+	if err := g.refuseStuckFolder(relative, directory); err != nil {
+		return false, err
+	}
 	if exists, err := readQueryFolderDeclaration(directory, name, nil); err != nil || exists {
 		return exists, err
 	}

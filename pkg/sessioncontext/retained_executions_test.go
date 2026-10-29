@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/apicontract"
+	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
 var ordinaryLocalDefinition = json.RawMessage(`{"schemaVersion":1,"kind":"query","queries":[{"id":"source-query","queryType":"SQL","text":"select 1","connectionId":"native-source"}]}`)
@@ -204,8 +205,38 @@ func TestRetainedSessionSourcesOwnOrdinaryOutcomeAndExecutionContracts(t *testin
 					executeOK(t, svc, p, command)
 					inventory := read()
 					sources, err := ProjectRetainedSessionSources(context.Background(), inventory)
-					if err != nil || len(sources.Ordinary) != 1 || sources.Ordinary[0].Active || sources.Ordinary[0].State != outcome || sources.Ordinary[0].ExecutionAuthority != authority {
+					if err != nil || len(sources.Ordinary) != 1 || sources.Ordinary[0].Active != (outcome == "outcome-unknown") || sources.Ordinary[0].State != outcome || sources.Ordinary[0].ExecutionAuthority != authority {
 						t.Fatalf("retained outcome: %+v %v", sources, err)
+					}
+					snapshot, err := svc.GetSnapshot(context.Background(), p, "session")
+					if err != nil || snapshot.Session.PendingRunCount != 0 {
+						t.Fatal("settled client bookkeeping remained operationally pending", snapshot.Session, err)
+					}
+					if outcome == "outcome-unknown" {
+						// The owning session identity is certain even when an external
+						// execution's completion is not. A provider binding this run must
+						// preserve active use; opaque DefinitionID is never guessed here.
+						run := sources.Ordinary[0]
+						target := datatug.ProjectObjectRef{Kind: "session", ID: run.LifecycleSessionID}
+						objects := []datatug.ProjectObjectUsage{{Ref: target, ContentRevision: fmt.Sprint(snapshot.Session.Version)}, {Ref: datatug.ProjectObjectRef{Kind: "execution", ID: run.RunID}, ContentRevision: run.DefinitionDigest, Historical: !run.Active, References: []datatug.ProjectObjectRef{target}}}
+						usage := datatug.ProjectUsageSnapshot{Complete: true, Revision: "test", Objects: objects}
+						for _, action := range []string{"archive", "delete"} {
+							_, err := datatug.PlanProjectLifecycle(usage, datatug.ProjectLifecycleWrite{OperationID: "protect-unknown", ExpectedRevision: usage.Revision, Change: datatug.ProjectLifecycleChange{Object: target, Action: action}})
+							if !errors.Is(err, datatug.ErrProjectObjectReferenced) {
+								t.Fatalf("uncertain execution allowed %s: %v", action, err)
+							}
+						}
+						badPending := mutateRetainedContext(t, inventory, Sessions, "session", func(document *RetainedDocument) {
+							var session Session
+							if err := json.Unmarshal(document.Payload, &session); err != nil {
+								t.Fatal(err)
+							}
+							session.PendingRunCount = 1
+							document.Payload, _ = json.Marshal(session)
+						})
+						if out, err := ProjectRetainedSessionSources(context.Background(), badPending); !errors.Is(err, ErrUnavailable) || !reflect.DeepEqual(out, RetainedSessionSources{}) {
+							t.Fatal("lifecycle activity was counted as operationally pending", err)
+						}
 					}
 					if kind == "chat" && !strings.Contains(string(sources.Ordinary[0].ExecutionDocument), "native-source") {
 						t.Fatal("chat executable source pin lost")
