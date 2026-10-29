@@ -5,7 +5,7 @@ go 1.27.0
 toolchain go1.27.2
 
 require (
-	github.com/dal-go/dalgo v0.95.2
+	github.com/dal-go/dalgo v0.95.6-0.20261029151756-0939fe35f1d0
 	github.com/dal-go/record v0.1.5
 	github.com/gofrs/flock v0.13.1
 	github.com/ingitdb/ingitdb-go/ingitdb v0.9.1
@@ -14,14 +14,14 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/strongo/aichat v0.15.0
 	github.com/strongo/slice v0.3.13
-	github.com/strongo/validation v0.0.16
+	github.com/strongo/validation v0.0.17
 	go.uber.org/mock v0.6.0
 	golang.org/x/sys v0.49.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
-	github.com/RoaringBitmap/roaring/v2 v2.29.0 // indirect
+	github.com/RoaringBitmap/roaring/v2 v2.30.0 // indirect
 	github.com/bits-and-blooms/bitset v1.24.6 // indirect
 	github.com/ingr-io/ingr-go v0.0.2 // indirect
 	github.com/kr/text v0.2.0 // indirect
