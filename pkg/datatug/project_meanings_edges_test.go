@@ -2,6 +2,7 @@ package datatug
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -144,14 +145,27 @@ func TestMeaningMutationAdmissionAndCapacity(t *testing.T) {
 		t.Fatalf("add field: %v", err)
 	}
 	w.Change = ProjectMeaningAction{Action: "delete-field", Entity: MeaningIdentity{"project", "person"}, Field: MeaningIdentity{"project", "person-name"}}
+	if _, _, err = ApplyProjectMeaningChange(d, c, w); !errors.Is(err, ErrProjectUsageIncomplete) {
+		t.Fatalf("narrow catalog granted field deletion: %v", err)
+	}
+	// This pure admission test supplies an explicit provider proof. Production
+	// narrow catalogs never set LifecycleComplete themselves.
+	c.LifecycleComplete = true
 	next, _, err = ApplyProjectMeaningChange(d, c, w)
 	if err != nil || len(next.Entities[0].Fields) != 0 {
-		t.Fatalf("delete field %v", err)
+		t.Fatalf("verified field deletion: %v", err)
 	}
 	w.Change = ProjectMeaningAction{Action: "delete-entity", Entity: MeaningIdentity{"project", "person"}}
+	if _, _, err = ApplyProjectMeaningChange(d, c, w); !errors.Is(err, ErrProjectObjectReferenced) {
+		t.Fatalf("implicit nested field deletion accepted: %v", err)
+	}
+	d = next
+	c = build(d)
+	c.LifecycleComplete = true
+	w.OperationID, w.IfMatch = "delete-entity-after-field", c.Revision
 	next, _, err = ApplyProjectMeaningChange(d, c, w)
 	if err != nil || len(next.Entities) != 0 {
-		t.Fatalf("delete entity %v", err)
+		t.Fatalf("verified single entity deletion: %v", err)
 	}
 	d.Receipts = map[string]MeaningOperationReceipt{}
 	for i := 0; i < 10000; i++ {

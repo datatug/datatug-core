@@ -70,6 +70,8 @@ type EnvironmentOperationResult struct {
 	AcceptedAt       string   `json:"acceptedAt"`
 	ReplayUntil      string   `json:"replayUntil"`
 	EnvironmentID    string   `json:"environmentId,omitempty"`
+	DatabaseID       string   `json:"databaseId,omitempty"`
+	ConnectionID     string   `json:"connectionId,omitempty"`
 	EnvironmentOrder []string `json:"environmentOrder,omitempty"`
 	AfterStateDigest string   `json:"afterStateDigest"`
 	Status           string   `json:"status"`

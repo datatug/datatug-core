@@ -385,7 +385,8 @@ func (f *EnvironmentFiles) destination(rel string) (string, error) {
 		return "", ErrEnvironmentRecoveryRequired
 	}
 	parts := strings.Split(filepath.ToSlash(rel), "/")
-	if rel != "datatug-project.json" && (len(parts) != 3 || parts[0] != "environments" || parts[1] == "" || parts[1] == "." || parts[1] == ".." || (parts[2] != parts[1]+".env.json" && parts[2] != "environment-summary.json")) {
+	connection := len(parts) == 2 && parts[0] == "connections" && strings.HasSuffix(parts[1], ".json") && datatug.ValidConnectionID(strings.TrimSuffix(parts[1], ".json"))
+	if rel != "datatug-project.json" && !connection && (len(parts) != 3 || parts[0] != "environments" || parts[1] == "" || parts[1] == "." || parts[1] == ".." || (parts[2] != parts[1]+".env.json" && parts[2] != "environment-summary.json")) {
 		return "", ErrEnvironmentRecoveryRequired
 	}
 	p := filepath.Join(f.Root, rel)
@@ -488,6 +489,10 @@ func (f *EnvironmentFiles) Commit(changes map[string][]byte, binding string, res
 
 // CommitChecked fences exact bytes captured by the mutation's authoritative read.
 func (f *EnvironmentFiles) CommitChecked(changes map[string][]byte, expected map[string]string, binding string, result dto.EnvironmentOperationResult) error {
+	return f.commitChecked(changes, expected, binding, result, nil)
+}
+
+func (f *EnvironmentFiles) commitChecked(changes map[string][]byte, expected map[string]string, binding string, result dto.EnvironmentOperationResult, beforeDecision func() error) error {
 	if f.namespace == "" {
 		return os.ErrPermission
 	}
@@ -509,6 +514,9 @@ func (f *EnvironmentFiles) CommitChecked(changes map[string][]byte, expected map
 		old, e := environmentFileHash(dest)
 		if e != nil {
 			return e
+		}
+		if strings.HasPrefix(rel, "connections/") && old != "absent" {
+			return datatug.ErrAmbiguousConnection
 		}
 		if expected != nil {
 			want, ok := expected[rel]
@@ -547,6 +555,11 @@ func (f *EnvironmentFiles) CommitChecked(changes map[string][]byte, expected map
 		return e
 	}
 	environmentTransactionStep("intent")
+	if beforeDecision != nil {
+		if e = beforeDecision(); e != nil {
+			return errors.Join(e, f.recover())
+		}
+	}
 	if e = durableEnvironmentFile(filepath.Join(f.namespace, "commit"), []byte(environmentHash(body)), 0600); e != nil {
 		return e
 	}

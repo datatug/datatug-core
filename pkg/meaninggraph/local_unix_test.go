@@ -4,6 +4,7 @@ package meaninggraph
 
 import (
 	"context"
+	"errors"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 	"os"
@@ -11,6 +12,17 @@ import (
 	"path/filepath"
 	"testing"
 )
+
+func TestFixtureRootPathResolutionFailureReturnsNoHandle(t *testing.T) {
+	previous := fixtureAbsolutePath
+	t.Cleanup(func() { fixtureAbsolutePath = previous })
+	want := errors.New("root path unavailable")
+	fixtureAbsolutePath = func(string) (string, error) { return "", want }
+	fd, err := openFixtureRoot("/")
+	if fd != -1 || !errors.Is(err, want) {
+		t.Fatal("root descriptor failure lost", fd, err)
+	}
+}
 
 func TestResolverFixtureRefusesSymlinksAndNonregularInputs(t *testing.T) {
 	f, c := newFixture(t)

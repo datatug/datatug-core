@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"sort"
 	"strings"
 
 	"github.com/dal-go/dalgo/dal"
@@ -26,6 +25,7 @@ type DALRepository struct {
 	databaseID      string
 	parent          *record.Key
 	nativeNamespace NativeNamespace
+	admitRetained   RetainedWriteAdmission
 }
 
 func NewDALRepository(mounted MountedDatabase, parent *record.Key) (*DALRepository, error) {
@@ -65,19 +65,17 @@ func (r *DALRepository) Transact(ctx context.Context, f func(Transaction) error)
 		if e := f(unit); e != nil {
 			return e
 		}
-		ids := make([]string, 0, len(unit.pending))
-		for id := range unit.pending {
-			ids = append(ids, id)
+		unit.sealed = true
+		persist, err := prepareRetainedAdmission(ctx, tx, unit, r.nativeNamespace, r.admitRetained)
+		if err != nil {
+			return err
 		}
-		sort.Strings(ids)
-		for _, id := range ids {
-			doc := unit.pending[id]
-			data := map[string]any{"recordId": doc.ID, "version": doc.Version, "owner": doc.Owner, "sessionId": doc.SessionID, "payload": string(doc.Payload)}
-			if e := tx.Set(ctx, record.NewRecordWithData(unit.key(doc.Collection, doc.ID), data)); e != nil {
-				return e
+		if persist != nil {
+			if err := persist(); err != nil {
+				return err
 			}
 		}
-		return nil
+		return flushSessionWrites(ctx, tx, unit)
 	}, dal.TxWithMessage("session context command")))
 }
 
@@ -95,6 +93,7 @@ type dalTransaction struct {
 	adapter string
 	loaded  map[string]storedRecord
 	pending map[string]storedRecord
+	sealed  bool
 }
 
 func (d *dalTransaction) key(collection, id string) *record.Key {
@@ -139,6 +138,9 @@ func (d *dalTransaction) Load(ctx context.Context, collection, id string, out an
 	return doc.Version, nil
 }
 func (d *dalTransaction) Save(ctx context.Context, collection, id string, value any, expected int64, owner, sessionID string) error {
+	if d.sealed {
+		return ErrUnavailable
+	}
 	if expected < 0 || owner == "" || !safeID.MatchString(sessionID) {
 		return ErrInvalid
 	}

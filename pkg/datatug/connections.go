@@ -2,17 +2,26 @@ package datatug
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/datatug/datatug-core/internal/jsonstrict"
 )
 
 // ConnectionCatalogFormat is the supported project connection manifest format.
 // A project may keep several such manifests under connections/*.json.
 const ConnectionCatalogFormat = "datatug-demo-connections/v1"
+
+// MaxPublicConnectionCatalogBytes bounds the native public metadata wire
+// reader and every catalog authored for that reader. General private provider
+// inventories may accept larger existing files; public authoring must not.
+const MaxPublicConnectionCatalogBytes = 256 << 10
 
 var (
 	ErrConnectionNotFound         = errors.New("connection not found")
@@ -72,6 +81,35 @@ type ProjectConnections struct {
 	Connections      []EditionConnection `json:"connections,omitempty"`
 	BigQueryEditions []EditionConnection `json:"bigQueryEditions,omitempty"`
 	BigQueryPlans    []ConnectionPlan    `json:"bigQueryPlans,omitempty"`
+}
+
+// ParseProjectConnectionsJSON validates bounded declaration metadata while
+// leaving unrecognized private fields out of the result. Duplicate typed fields
+// are invalid even when the surrounding document contains opaque credentials.
+func ParseProjectConnectionsJSON(body []byte) (ProjectConnections, error) {
+	var catalog ProjectConnections
+	if len(body) > 1<<20 {
+		return catalog, ErrUnsupportedConnectionFile
+	}
+	if err := jsonstrict.CheckNoDuplicateKeysFor(body, reflect.TypeOf(catalog)); err != nil {
+		return ProjectConnections{}, err
+	}
+	if err := json.Unmarshal(body, &catalog); err != nil {
+		return ProjectConnections{}, err
+	}
+	if err := catalog.Validate(); err != nil {
+		return ProjectConnections{}, err
+	}
+	return catalog, nil
+}
+
+// ParsePublicProjectConnectionsJSON is the shared public catalog read contract.
+// Writers must validate prospective bytes with it before accepting a mutation.
+func ParsePublicProjectConnectionsJSON(body []byte) (ProjectConnections, error) {
+	if len(body) > MaxPublicConnectionCatalogBytes {
+		return ProjectConnections{}, ErrUnsupportedConnectionFile
+	}
+	return ParseProjectConnectionsJSON(body)
 }
 
 // ProjectConnectionsReader is an optional ProjectStore capability. The base

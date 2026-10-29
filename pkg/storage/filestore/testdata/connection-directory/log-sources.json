@@ -1,0 +1,35 @@
+{
+  "format": "datatug-log-sources/v1",
+  "sources": [
+    {
+      "id": "shipping-logs",
+      "title": "Shipping logs",
+      "database": "https://ovdb.demodb.dev/v1/databases/shipping-logs",
+      "synthetic": true,
+      "collections": [
+        { "id": "baseline", "title": "Shipping events" },
+        {
+          "id": "carrierGateway",
+          "title": "Carrier gateway calls",
+          "fields": { "correlation": "correlation_id", "service": "stream" }
+        }
+      ],
+      "fields": {
+        "timestamp": "occurred_at",
+        "sequence": "sequence",
+        "message": "kind",
+        "reference": "event_id"
+      },
+      "identifiers": [
+        { "field": "order_id", "label": "Order ID", "param": "order", "type": "integer" },
+        { "field": "attempt_id", "label": "Attempt ID", "param": "attempt", "type": "string" }
+      ],
+      "window": { "from": "2018-04-01T00:00:00Z", "to": "2018-05-21T00:00:00Z" },
+      "records": [
+        { "database": "https://ovdb.demodb.dev/v1/databases/northwind", "collection": "Orders", "field": "OrderID", "param": "order" },
+        { "database": "https://ovdb.demodb.dev/v1/databases/shipping", "collection": "requests", "field": "order_id", "param": "order" },
+        { "database": "https://ovdb.demodb.dev/v1/databases/shipping", "collection": "attempts", "field": "attempt_id", "param": "attempt" }
+      ]
+    }
+  ]
+}

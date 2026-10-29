@@ -108,6 +108,12 @@ func (o *DetectiveOwner) identity(ctx context.Context, p Principal, id Detective
 }
 
 func (o *DetectiveOwner) load(ctx context.Context, r Reader, id DetectiveIdentity) (AcceptedDetectiveWork, detectiveOwnerRecord, error) {
+	return loadDetectiveOwner(ctx, r, id)
+}
+
+// Shared consistency validation for authorized execution and internal retained
+// inventory. This does not perform actor authorization or grant dispatch rights.
+func loadDetectiveOwner(ctx context.Context, r Reader, id DetectiveIdentity) (AcceptedDetectiveWork, detectiveOwnerRecord, error) {
 	var work AcceptedDetectiveWork
 	version, err := r.Load(ctx, DetectiveWork, id.RunID, &work)
 	if err != nil {

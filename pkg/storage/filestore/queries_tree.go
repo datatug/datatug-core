@@ -95,7 +95,13 @@ func (s fsQueriesStore) loadQueriesTreeLocked(ctx context.Context, g queryLockGu
 	})
 
 	if len(own.Items) == 0 && len(subFolders) == 0 {
-		return nil, nil
+		declared, err := readQueryFolderDeclaration(dirPath, path.Base(relFolderPath), budget)
+		if err != nil {
+			return nil, err
+		}
+		if !declared {
+			return nil, nil
+		}
 	}
 	own.Folders = subFolders
 	return own, nil

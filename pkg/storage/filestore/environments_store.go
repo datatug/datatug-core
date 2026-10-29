@@ -156,7 +156,11 @@ func (s fsEnvironmentsStore) loadEnvironmentSummary(_ context.Context, id string
 	if env == nil {
 		return nil, fmt.Errorf("failed to load environment[%s] from project: %w", id, os.ErrNotExist)
 	}
-	return &datatug.EnvironmentSummary{ProjectItem: env.ProjectItem, Servers: env.DbServers}, nil
+	summary, err := env.Summary()
+	if err != nil {
+		return nil, err
+	}
+	return &summary, nil
 }
 
 // saveTarget mirrors the entities/boards/dbmodels stores' saveTarget: the
