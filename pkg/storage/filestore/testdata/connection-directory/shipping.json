@@ -1,0 +1,26 @@
+{
+  "format": "datatug-demo-connections/v1",
+  "connections": [
+    {
+      "id": "shipping-working-copy",
+      "dataset": "shipping-training",
+      "storage": "sqlite",
+      "tags": ["shipping", "synthetic", "training"],
+      "readiness": "not-published",
+      "query": "admission-required"
+    },
+    {
+      "id": "shipping-sqlite",
+      "dataset": "shipping",
+      "storage": "sqlite",
+      "tags": ["shipping", "synthetic", "sqlite"],
+      "environments": ["dev"],
+      "readiness": "public-api",
+      "source": "https://demodb.dev/ovdb/v1/databases/shipping",
+      "descriptor": "https://demodb.dev/ovdb/db/shipping/ovdb-database.json",
+      "fixtureSha256": "73f0d871607ee5b24de68b5398c25806f556a3126a31e1865fee79b2881977e0",
+      "query": "ovdb-read",
+      "copy": "unavailable"
+    }
+  ]
+}

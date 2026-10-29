@@ -69,12 +69,15 @@ type MeaningEntity struct {
 	Resources   []MeaningResource `json:"resources"`
 }
 type ProjectMeaningsCatalog struct {
-	Scope              MeaningScope    `json:"scope"`
-	Version            int             `json:"version"`
-	Revision           string          `json:"revision"`
-	Writable           bool            `json:"writable"`
-	ReferencesComplete bool            `json:"referencesComplete"`
-	Entities           []MeaningEntity `json:"entities"`
+	Scope              MeaningScope `json:"scope"`
+	Version            int          `json:"version"`
+	Revision           string       `json:"revision"`
+	Writable           bool         `json:"writable"`
+	ReferencesComplete bool         `json:"referencesComplete"`
+	// LifecycleComplete requires the complete cross-domain retained-usage proof.
+	// The narrow query/board meaning catalog cannot grant this capability.
+	LifecycleComplete bool            `json:"lifecycleComplete"`
+	Entities          []MeaningEntity `json:"entities"`
 }
 type ProjectMeaningAction struct {
 	Action      string          `json:"action"`
@@ -447,6 +450,14 @@ func ApplyProjectMeaningChange(d ProjectMeaningsDocument, c ProjectMeaningsCatal
 					return fail(ErrMeaningReferenced)
 				}
 			}
+			// An entity with fields is more than one definition. Nested deletion
+			// is a separate feature; fields must be removed individually first.
+			if len(current.Fields) != 0 {
+				return fail(ErrProjectObjectReferenced)
+			}
+			if !c.LifecycleComplete {
+				return fail(ErrProjectUsageIncomplete)
+			}
 			next.Entities = append(next.Entities[:i], next.Entities[i+1:]...)
 		} else {
 			j := -1
@@ -462,6 +473,9 @@ func ApplyProjectMeaningChange(d ProjectMeaningsDocument, c ProjectMeaningsCatal
 				if f.MeaningIdentity == a.Field && len(f.Resources) > 0 {
 					return fail(ErrMeaningReferenced)
 				}
+			}
+			if !c.LifecycleComplete {
+				return fail(ErrProjectUsageIncomplete)
 			}
 			next.Entities[i].Fields = append(next.Entities[i].Fields[:j], next.Entities[i].Fields[j+1:]...)
 		}

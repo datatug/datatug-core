@@ -23,13 +23,32 @@ var openReadmeFile = func(filePath string) (io.WriteCloser, error) {
 // through a symlinked or non-directory segment. README.md is created
 // exclusively: an existing entry - a file, or a symlink whether dangling or
 // not - is left alone and never followed.
-func (s fsQueriesStore) CreateQueryFolder(_ context.Context, parentPath, name string) error {
+func (s fsQueriesStore) CreateQueryFolder(ctx context.Context, parentPath, name string) error {
 	if err := validateQueryFolderPath(parentPath); err != nil {
 		return err
 	}
 	if reason, ok := validateQuerySegmentReason(name); !ok {
 		return invalidQueryLocation(parentPath, "", "folder name "+strconv.Quote(name)+": "+reason)
 	}
+	return s.withQueryLock(ctx, func(g queryLockGuard) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if _, err := walkQueryDir(s.dirPath, parentPath, "", false); err != nil {
+			return err
+		}
+		already, err := s.admitQueryFolderDeclaration(ctx, g, parentPath, name)
+		if err != nil || already {
+			return err
+		}
+		if err := s.createQueryFolderLocked(parentPath, name); err != nil {
+			return err
+		}
+		return writeQueryFolderDeclaration(path.Join(s.dirPath, parentPath, name), name)
+	})
+}
+
+func (s fsQueriesStore) createQueryFolderLocked(parentPath, name string) error {
 	folderPath := name
 	if parentPath != "" {
 		folderPath = parentPath + "/" + name

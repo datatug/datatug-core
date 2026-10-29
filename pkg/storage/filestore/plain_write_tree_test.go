@@ -39,6 +39,17 @@ func saveSmallProject(t *testing.T, root string) {
 func TestSaveOfASmallProjectWritesTheSameTreeAsBefore(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "proj")
 	saveSmallProject(t, root)
+	// Explicit folder creation now retains an empty-folder declaration. Pin its
+	// exact new bytes separately so the historical snapshot still detects any
+	// unintended change to every other file and directory.
+	declaration := filepath.Join(root, "queries/sub", queryFolderDeclarationFile)
+	body, err := os.ReadFile(declaration)
+	if err != nil || string(body) != `{"version":1,"name":"sub"}` {
+		t.Fatalf("query folder declaration = %q, error = %v", body, err)
+	}
+	if err := os.Remove(declaration); err != nil {
+		t.Fatal(err)
+	}
 	// Creation metadata is intentionally new; keep the historic byte snapshot
 	// for all other metadata, paths and sidecars.
 	// The hash was re-pinned once by the TugQL cutover: the small project's

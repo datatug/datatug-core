@@ -2,7 +2,6 @@ package filestore
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -52,6 +51,7 @@ func (s fsProjectStore) LoadProjectConnections(ctx context.Context) (datatug.Pro
 	}
 	seen := make(map[string]struct{})
 	files := 0
+	catalogs := 0
 	for _, entry := range entries {
 		if err := ctx.Err(); err != nil {
 			return datatug.ProjectConnections{}, err
@@ -71,16 +71,14 @@ func (s fsProjectStore) LoadProjectConnections(ctx context.Context) (datatug.Pro
 		if !exists {
 			return datatug.ProjectConnections{}, fmt.Errorf("connection catalog %q disappeared", name)
 		}
-		var catalog datatug.ProjectConnections
-		if err := jsonstrict.CheckNoDuplicateKeysFor(data, reflect.TypeOf(catalog)); err != nil {
+		catalog, isCatalog, err := datatug.ParseProjectConnectionDirectoryJSON(name, data)
+		if err != nil {
 			return datatug.ProjectConnections{}, fmt.Errorf("invalid connection catalog %q: %w", name, err)
 		}
-		if err := json.Unmarshal(data, &catalog); err != nil {
-			return datatug.ProjectConnections{}, fmt.Errorf("invalid connection catalog %q: %w", name, err)
-		}
-		if err := catalog.Validate(); err != nil {
-			return datatug.ProjectConnections{}, fmt.Errorf("invalid connection catalog %q: %w", name, err)
-		}
+		if !isCatalog {
+			continue
+		} // complete known log-source contract validated above
+		catalogs++
 		check := func(id string) error {
 			if _, exists := seen[id]; exists {
 				return &datatug.ConnectionResolutionError{Kind: datatug.ErrAmbiguousConnection, ConnectionID: id}
@@ -108,7 +106,7 @@ func (s fsProjectStore) LoadProjectConnections(ctx context.Context) (datatug.Pro
 		all.BigQueryEditions = append(all.BigQueryEditions, catalog.BigQueryEditions...)
 		all.BigQueryPlans = append(all.BigQueryPlans, catalog.BigQueryPlans...)
 	}
-	if files == 0 {
+	if catalogs == 0 {
 		return datatug.ProjectConnections{}, os.ErrNotExist
 	}
 	return all, nil

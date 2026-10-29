@@ -11,6 +11,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+var fixtureAbsolutePath = filepath.Abs
+
 func validateFixtureRoot(root string) error {
 	fd, err := openFixtureRoot(root)
 	if err != nil {
@@ -22,7 +24,7 @@ func validateFixtureRoot(root string) error {
 // Open every root component relative to an already-open directory. A symlink
 // in the configured root's ancestors must not bypass the fixture boundary.
 func openFixtureRoot(root string) (int, error) {
-	absolute, err := filepath.Abs(root)
+	absolute, err := fixtureAbsolutePath(root)
 	if err != nil {
 		return -1, err
 	}
