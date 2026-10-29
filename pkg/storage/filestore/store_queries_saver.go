@@ -24,6 +24,13 @@ var openReadmeFile = func(filePath string) (io.WriteCloser, error) {
 // exclusively: an existing entry - a file, or a symlink whether dangling or
 // not - is left alone and never followed.
 func (s fsQueriesStore) CreateQueryFolder(ctx context.Context, parentPath, name string) error {
+	return s.CreateQueryFolderGuarded(ctx, parentPath, name, nil)
+}
+
+// CreateQueryFolderGuarded preserves native folder admission and rechecks the
+// serving caller after all provider waits, before a target write or repeat ack.
+// Trusted in-process callers may omit authorize via CreateQueryFolder.
+func (s fsQueriesStore) CreateQueryFolderGuarded(ctx context.Context, parentPath, name string, authorize func() error) error {
 	if err := validateQueryFolderPath(parentPath); err != nil {
 		return err
 	}
@@ -38,8 +45,23 @@ func (s fsQueriesStore) CreateQueryFolder(ctx context.Context, parentPath, name 
 			return err
 		}
 		already, err := s.admitQueryFolderDeclaration(ctx, g, parentPath, name)
-		if err != nil || already {
+		if err != nil {
 			return err
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if authorize != nil {
+			if err := authorize(); err != nil {
+				return err
+			}
+		}
+		// Authorization may itself wait on an owning policy or branch read.
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if already {
+			return nil
 		}
 		if err := s.createQueryFolderLocked(parentPath, name); err != nil {
 			return err

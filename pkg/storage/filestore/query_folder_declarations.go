@@ -18,6 +18,7 @@ import (
 const queryFolderDeclarationFile = ".datatug-query-folder.json"
 
 var _ datatug.QueryFolderDirectories = (*fsQueriesStore)(nil)
+var _ datatug.GuardedQueryFolderDirectories = (*fsQueriesStore)(nil)
 
 var openQueryFolderDirectory = func(name string) (connectionDirectoryReader, error) { return os.Open(name) }
 var queryDeclarationListingBudget = fsQueriesStore.newListingBudget
