@@ -16,7 +16,7 @@ func TestEnvironmentCallerTransactionAndIsolation(t *testing.T) {
 	db := newTestDB()
 	root := record.NewKeyWithParentAndID(record.NewKeyWithID("spaces", "one"), "projects", "p")
 	var e datatug.Environment
-	require.NoError(t, json.Unmarshal([]byte(`{"id":"dev","title":"Development","presentation":{"tone":"warning"},"dbServers":[]}`), &e))
+	require.NoError(t, json.Unmarshal([]byte(`{"id":"dev","title":"Development","presentation":{"tone":"warning"},"dbServers":[],"editionConnections":["music-ovdb"],"private":{"token":"secret"}}`), &e))
 	require.NoError(t, db.RunReadwriteTransaction(ctx, func(ctx context.Context, tx dal.ReadwriteTransaction) error {
 		s, err := dalgostore.NewProjectItemsStore(tx, "p", root)
 		require.NoError(t, err)
@@ -29,6 +29,15 @@ func TestEnvironmentCallerTransactionAndIsolation(t *testing.T) {
 	body, err := json.Marshal(got)
 	require.NoError(t, err)
 	require.Contains(t, string(body), `"tone":"warning"`)
+	summary, err := s.LoadEnvironmentSummary(ctx, "dev")
+	require.NoError(t, err)
+	summaryBody, err := json.Marshal(summary)
+	require.NoError(t, err)
+	var summaryWire datatug.EnvironmentSummary
+	require.NoError(t, json.Unmarshal(summaryBody, &summaryWire))
+	require.Equal(t, []string{"music-ovdb"}, summaryWire.EditionConnections)
+	require.NotContains(t, string(summaryBody), "secret")
+	require.NotContains(t, string(summaryBody), "token")
 	all, err := s.LoadEnvironments(ctx)
 	require.NoError(t, err)
 	require.Len(t, all, 1)

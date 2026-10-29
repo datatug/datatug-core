@@ -5,6 +5,8 @@ import (
 	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
+var summarizeStoredEnvironment = datatug.Environment.Summary
+
 func (s *ProjectStore) LoadEnvironment(ctx context.Context, id string, _ ...datatug.StoreOption) (*datatug.Environment, error) {
 	v := new(datatug.Environment)
 	if err := s.loadAsset(ctx, "environments", id, v); err != nil {
@@ -17,7 +19,11 @@ func (s *ProjectStore) LoadEnvironmentSummary(ctx context.Context, id string) (*
 	if err != nil {
 		return nil, err
 	}
-	return &datatug.EnvironmentSummary{ProjectItem: v.ProjectItem, Servers: v.DbServers}, nil
+	summary, err := summarizeStoredEnvironment(*v)
+	if err != nil {
+		return nil, err
+	}
+	return &summary, nil
 }
 func (s *ProjectStore) LoadEnvironments(ctx context.Context, _ ...datatug.StoreOption) (datatug.Environments, error) {
 	values, err := s.listAssets(ctx, "environments", func() any { return new(datatug.Environment) })
