@@ -98,15 +98,26 @@ func TestRetainedProjectionCancellationAtEveryReadCheckpoint(t *testing.T) {
 			}
 		}
 	}
-	if out, err := ProjectRetainedSessionSources(nil, inv); !errors.Is(err, ErrInvalid) || !reflect.DeepEqual(out, RetainedSessionSources{}) {
-		t.Fatal("nil context accepted")
-	}
-	if out, err := ProjectRetainedDetectiveExecutions(nil, inv); !errors.Is(err, ErrInvalid) || out != nil {
-		t.Fatal("nil native context accepted")
-	}
-	r, _ := retainedReader(inv)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
+	for _, testCase := range []struct {
+		name string
+		ctx  context.Context
+		want error
+	}{
+		{name: "nil context", ctx: nil, want: ErrInvalid},
+		{name: "canceled context", ctx: ctx, want: context.Canceled},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			if out, err := ProjectRetainedSessionSources(testCase.ctx, inv); !errors.Is(err, testCase.want) || !reflect.DeepEqual(out, RetainedSessionSources{}) {
+				t.Fatal("invalid context accepted or partial sources returned", err)
+			}
+			if out, err := ProjectRetainedDetectiveExecutions(testCase.ctx, inv); !errors.Is(err, testCase.want) || out != nil {
+				t.Fatal("invalid context accepted or partial native output returned", err)
+			}
+		})
+	}
+	r, _ := retainedReader(inv)
 	if _, err := r.Load(ctx, Sessions, "s1", &Session{}); !errors.Is(err, context.Canceled) {
 		t.Fatal(err)
 	}

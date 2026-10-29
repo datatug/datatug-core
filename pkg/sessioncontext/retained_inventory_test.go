@@ -222,7 +222,7 @@ func (r retainedPhysicalKeyReader) Next() (record.Record, error) {
 	if row == nil {
 		return row, err
 	}
-	var id any = row.Key().ID
+	id := row.Key().ID
 	if r.numeric {
 		id = 123
 	}

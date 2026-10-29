@@ -189,11 +189,19 @@ func TestRetainedContextBindingsRejectUnknownAndBrokenJoinsWithoutPartialOutput(
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if out, err := ProjectRetainedContextBindings(ctx, inventory); !errors.Is(err, context.Canceled) || out != nil {
-		t.Fatal("canceled inventory returned bindings")
-	}
-	if out, err := ProjectRetainedContextBindings(nil, inventory); !errors.Is(err, ErrInvalid) || out != nil {
-		t.Fatal("nil context accepted")
+	for _, testCase := range []struct {
+		name string
+		ctx  context.Context
+		want error
+	}{
+		{name: "canceled context", ctx: ctx, want: context.Canceled},
+		{name: "nil context", ctx: nil, want: ErrInvalid},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			if out, err := ProjectRetainedContextBindings(testCase.ctx, inventory); !errors.Is(err, testCase.want) || out != nil {
+				t.Fatalf("invalid context returned bindings: len=%d error=%v", len(out), err)
+			}
+		})
 	}
 	first, _ := ProjectRetainedContextBindings(context.Background(), inventory)
 	second, _ := ProjectRetainedContextBindings(context.Background(), inventory)

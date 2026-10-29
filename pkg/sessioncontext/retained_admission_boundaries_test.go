@@ -51,10 +51,12 @@ func TestRetainedAdmissionRejectsUnboundOrOversizeBatchesBeforeCallingProvider(t
 			if persist != nil || !errors.Is(err, want) {
 				t.Fatal("invalid admission returned persistence closure", err)
 			}
+			if mode == "nil context" {
+				if err := flushSessionWrites(ctx, nil, &dalTransaction{}); !errors.Is(err, ErrInvalid) {
+					t.Fatal("nil context accepted by flush", err)
+				}
+			}
 		})
-	}
-	if err := flushSessionWrites(nil, nil, &dalTransaction{}); !errors.Is(err, ErrInvalid) {
-		t.Fatal(err)
 	}
 	unit := &dalTransaction{pending: map[string]storedRecord{"row": {ID: "row"}}}
 	ctx := checkpointContext(2)
@@ -67,7 +69,15 @@ func TestRetainedAdmissionRejectsUnboundOrOversizeBatchesBeforeCallingProvider(t
 func TestBufferedAdmissionFailurePermanentlySealsBuffer(t *testing.T) {
 	repo, db := retainedInventoryFixture(t)
 	failure := errors.New("admission or fence failed")
-	for _, mode := range []string{"prepare failure", "fence failure", "nil flush context"} {
+	for _, testCase := range []struct {
+		name         string
+		flushContext context.Context
+	}{
+		{name: "prepare failure"},
+		{name: "fence failure"},
+		{name: "nil flush context", flushContext: nil},
+	} {
+		mode := testCase.name
 		t.Run(mode, func(t *testing.T) {
 			err := db.RunReadwriteTransaction(context.Background(), func(ctx context.Context, tx dal.ReadwriteTransaction) error {
 				bound, err := repo.WithRetainedWriteAdmission(func(context.Context, dal.ReadwriteTransaction, NativeNamespace, []RetainedWrite) (func() error, error) {
@@ -90,7 +100,7 @@ func TestBufferedAdmissionFailurePermanentlySealsBuffer(t *testing.T) {
 				}
 				if mode == "nil flush context" {
 					buffer.admit = nil
-					if err = buffer.Flush(nil); !errors.Is(err, ErrInvalid) {
+					if err = buffer.Flush(testCase.flushContext); !errors.Is(err, ErrInvalid) {
 						t.Fatal(err)
 					}
 				} else {
