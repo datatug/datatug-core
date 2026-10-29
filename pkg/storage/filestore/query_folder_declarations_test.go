@@ -44,6 +44,105 @@ func TestQueryFolderDeclarationsRetainEmptyFoldersWithoutListingUnrelatedDirecto
 	}
 }
 
+func TestQueryFolderRepeatCreateValidatesTheCompleteTarget(t *testing.T) {
+	for _, mode := range []string{"valid repeat", "outside symlink", "inside symlink", "file target", "malformed declaration", "target alias", "interrupted target"} {
+		t.Run(mode, func(t *testing.T) {
+			store, root := newTestQueriesStore(t)
+			ctx := context.Background()
+			if err := store.CreateQueryFolder(ctx, "", "reports"); err != nil {
+				t.Fatal(err)
+			}
+			directory := filepath.Join(root, "reports")
+			outside := t.TempDir()
+			name := "reports"
+			physicalTarget := directory
+			switch mode {
+			case "outside symlink", "inside symlink":
+				destination := outside
+				if mode == "inside symlink" {
+					destination = filepath.Join(root, "original")
+					if err := os.Mkdir(destination, 0o755); err != nil {
+						t.Fatal(err)
+					}
+				}
+				if err := os.RemoveAll(directory); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Join(destination, queryFolderDeclarationFile), []byte(`{"version":1,"name":"reports"}`), 0o644); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Symlink(destination, directory); err != nil {
+					t.Fatal(err)
+				}
+				physicalTarget = destination
+			case "file target":
+				if err := os.RemoveAll(directory); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(directory, []byte("retained file"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			case "malformed declaration":
+				if err := os.WriteFile(filepath.Join(directory, queryFolderDeclarationFile), []byte(`{"version":2,"name":"reports"}`), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			case "target alias":
+				name = "reports/."
+			}
+			before, outsideBefore := snapshotDir(t, root), snapshotDir(t, outside)
+			var contentBefore map[string]string
+			if mode != "file target" {
+				contentBefore = snapshotDir(t, physicalTarget)
+			}
+			var err error
+			if mode == "interrupted target" {
+				_, err = store.admitQueryFolderDeclaration(ctx, queryLockGuard{stuck: []stuckQueryTxn{{err: &queryTxnIncompleteError{Err: errors.New("interrupted write")}}}}, "", name)
+			} else {
+				err = store.CreateQueryFolder(ctx, "", name)
+			}
+			if mode == "valid repeat" && err != nil || mode != "valid repeat" && err == nil {
+				t.Fatalf("repeat create %s returned %v", mode, err)
+			}
+			if !reflect.DeepEqual(before, snapshotDir(t, root)) || !reflect.DeepEqual(outsideBefore, snapshotDir(t, outside)) {
+				t.Fatal("repeat create changed the target or outside files")
+			}
+			if contentBefore != nil && !reflect.DeepEqual(contentBefore, snapshotDir(t, physicalTarget)) {
+				t.Fatal("repeat create changed retained folder contents")
+			}
+		})
+	}
+}
+
+func TestQueryFolderCreateRechecksTargetChangedAfterAdmission(t *testing.T) {
+	store, root := newTestQueriesStore(t)
+	ctx := context.Background()
+	outside := t.TempDir()
+	if err := os.WriteFile(filepath.Join(outside, queryFolderDeclarationFile), []byte(`{"version":1,"name":"reports"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.withQueryLock(ctx, func(guard queryLockGuard) error {
+		already, err := store.admitQueryFolderDeclaration(ctx, guard, "", "reports")
+		if err != nil || already {
+			t.Fatalf("missing folder was not admitted: %v %v", already, err)
+		}
+		// A filesystem writer outside the advisory lock can replace a target
+		// after admission. The physical create must perform its own safe walk.
+		if err := os.Symlink(outside, filepath.Join(root, "reports")); err != nil {
+			return err
+		}
+		before, outsideBefore := snapshotDir(t, root), snapshotDir(t, outside)
+		if err := store.createQueryFolderLocked("", "reports"); err == nil {
+			t.Fatal("physical create followed a target swapped after admission")
+		}
+		if !reflect.DeepEqual(before, snapshotDir(t, root)) || !reflect.DeepEqual(outsideBefore, snapshotDir(t, outside)) {
+			t.Fatal("failed physical create changed the target or outside contents")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestQueryFolderCreationCapacityDoesNotPoisonTheNextListing(t *testing.T) {
 	for _, limit := range []string{"depth", "directories", "entries", "bytes"} {
 		t.Run(limit, func(t *testing.T) {

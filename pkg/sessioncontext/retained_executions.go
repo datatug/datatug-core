@@ -18,11 +18,13 @@ type RetainedOrdinaryExecution struct {
 	Kind, DefinitionID, DefinitionRevision                       string
 	State, ExecutionAuthority, DefinitionDigest, ExecutionDigest string
 	Scope                                                        Scope
-	Active                                                       bool
-	DefinitionDocument, ExecutionDocument                        json.RawMessage
-	Subjects                                                     []RetainedScopedSubject
-	ResultRefs                                                   []string
-	Widgets                                                      []WidgetOutcome
+	// Active conservatively includes client outcome-unknown: client settlement
+	// clears operational pending bookkeeping but proves no source completion.
+	Active                                bool
+	DefinitionDocument, ExecutionDocument json.RawMessage
+	Subjects                              []RetainedScopedSubject
+	ResultRefs                            []string
+	Widgets                               []WidgetOutcome
 }
 
 // RetainedSessionSources joins context and execution sources across all owners.
@@ -212,8 +214,8 @@ func ProjectRetainedSessionSources(ctx context.Context, inventory RetainedInvent
 		} else if len(run.ResolvedParameters) != 0 {
 			return unknown()
 		}
-		active := run.State == "accepted"
-		if active {
+		pendingRun := run.State == "accepted"
+		if pendingRun {
 			if run.CompletedAt != nil || len(run.Widgets) != 0 || len(run.ResultRefs) != 0 || run.ErrorCode != "" || len(execution) == 0 && run.OutcomeOrigin != "" || len(execution) != 0 && run.OutcomeOrigin != origin {
 				return unknown()
 			}
@@ -239,6 +241,7 @@ func ProjectRetainedSessionSources(ctx context.Context, inventory RetainedInvent
 				}
 			}
 		}
+		active := pendingRun || run.State == "outcome-unknown"
 		item := RetainedOrdinaryExecution{Namespace: inventory.Namespace, Owner: d.Owner, SessionID: run.SessionID, RunID: run.ID, InputSnapshotID: input.ID, ContextSetID: input.ContextSetID, Kind: run.Kind, DefinitionID: run.DefinitionID, DefinitionRevision: run.DefinitionRevision, State: run.State, ExecutionAuthority: run.ExecutionAuthority, DefinitionDigest: input.DefinitionDigest, ExecutionDigest: run.ExecutionDigest, Scope: input.Scope, Active: active, DefinitionDocument: definition, ExecutionDocument: execution, ResultRefs: run.ResultRefs, Widgets: run.Widgets}
 		item.LifecycleSessionID, err = retainedLifecycleIdentity(inventory.Namespace, run.SessionID)
 		if err != nil {
