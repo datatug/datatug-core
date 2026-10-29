@@ -368,6 +368,9 @@ func (v QueryDef) Validate() error {
 	if err := v.Parameters.Validate(); err != nil {
 		return err
 	}
+	if err := v.validateReservedParameterNames(); err != nil {
+		return err
+	}
 	if v.Federation != nil {
 		for i, lookup := range v.Federation.Lookups {
 			if lookup.Database == "" || lookup.Collection == "" || lookup.FromColumn == "" || len(lookup.Fields) == 0 {
