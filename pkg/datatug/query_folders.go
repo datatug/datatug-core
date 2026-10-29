@@ -9,3 +9,13 @@ type QueryFolderDirectories interface {
 	CreateQueryFolder(context.Context, string, string) error
 	DeclaredQueryFolders(context.Context) ([]string, error)
 }
+
+// GuardedQueryFolderDirectories lets request-serving callers recheck authority
+// after the provider's locks, recovery and admission reads. authorize must run
+// before acknowledging an existing declaration or writing the target directory,
+// README or marker. A refusal leaves that target unchanged; prior transaction
+// recovery remains the provider's responsibility.
+type GuardedQueryFolderDirectories interface {
+	QueryFolderDirectories
+	CreateQueryFolderGuarded(context.Context, string, string, func() error) error
+}
