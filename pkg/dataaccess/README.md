@@ -50,7 +50,7 @@ admission.
 | `Exists` | Checks authority around the typed read. |
 | `Get`, `GetMulti` | Stages data into fresh containers; publishes only after successful read and authority recheck. Supports non-nil maps, non-nil pointers and fixed-length slices. Nil, scalar, key-only or inaccessible targets are refused before dispatch. |
 | `ExecuteQueryToRecordsReader` | Accepts only DALgo's built-in, unqualified, single-root-collection key-query profile. Preserves query limit, offset and cursor; refuses aliases, parent collections, database/schema qualifiers, filters, joins, grouping, having, ordering, projections and source scan directives. Foreign or typed-nil query/from implementations are refused. |
-| `RunReadonlyTransaction` | Returns only a guarded read transaction and bounds its context and lifetime. Retained transaction handles cannot be used after the callback ends. |
+| `RunReadonlyTransaction` | Returns only a guarded read transaction and bounds its context and lifetime. Retained transaction handles cannot be used after `RunReadonlyTransaction` returns. |
 
 Standing posture `all` permits reads; posture `none` needs a matching, approved,
 unexpired connection-level `data.read` grant. Equivalent active connection read
