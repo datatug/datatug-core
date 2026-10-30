@@ -1,6 +1,7 @@
 package dataaccess
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"unicode"
@@ -129,6 +130,10 @@ func DecodeGrant(data []byte) (Grant, error) {
 
 func decodeMVP(data []byte, value any) error {
 	if err := apicontract.DecodeStrict(data, value, "schemas", "exclude", "records", "fields", "request", "notBefore"); err != nil {
+		var forbidden *apicontract.ForbiddenFieldError
+		if errors.As(err, &forbidden) {
+			return unsupported("")
+		}
 		return &Denial{Capability: DataRead, Code: "INVALID_CONTRACT"}
 	}
 	return nil

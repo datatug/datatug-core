@@ -54,6 +54,8 @@ func NewAuthority(subject Subject, connection ConnectionRef, resolve Resolver) (
 // separate integration proof. Typed writes remain callable only to return a
 // DALgo policy denial before dispatch. Recordset queries are refused; the query
 // profile currently supports only unqualified, single-source key enumeration.
+// Point reads stage maps, non-nil pointers and fixed-length slices; nil, scalar
+// or inaccessible targets are refused before dispatch.
 // This additive boundary is a Task 4 checkpoint, not whole-task integration.
 type Database interface {
 	dal.ReadwriteSession
@@ -131,6 +133,7 @@ func (a *Authority) authorize(ctx context.Context) (*lease, error) {
 	}
 	ttl := min(resolution.ValidUntil.Sub(resolution.ServerTime), time.Minute)
 	allowed := resolution.Protection.ReadPosture == ReadAll
+	var grantTTL time.Duration
 	for _, grant := range resolution.Grants {
 		if err := grant.ValidateMVP(); err != nil || len(grant.Scope.Objects) != 0 {
 			return nil, unsupported(a.request.Connection.ID)
@@ -139,9 +142,12 @@ func (a *Authority) authorize(ctx context.Context) (*lease, error) {
 			return nil, a.denial(DataRead, "BINDING_MISMATCH")
 		}
 		if grant.State == Approved && grant.ExpiresAt.After(resolution.ServerTime) {
-			allowed = true
-			ttl = min(ttl, grant.ExpiresAt.Sub(resolution.ServerTime))
+			grantTTL = max(grantTTL, grant.ExpiresAt.Sub(resolution.ServerTime))
 		}
+	}
+	if !allowed && grantTTL > 0 {
+		allowed = true
+		ttl = min(ttl, grantTTL)
 	}
 	if a.request.Subject.Kind == Agent && resolution.Protection.AgentRead == AgentNone {
 		allowed = false

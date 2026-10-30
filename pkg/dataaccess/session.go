@@ -2,6 +2,7 @@ package dataaccess
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -66,37 +67,110 @@ func (s guardedSession) Get(ctx context.Context, rec record.Record) error {
 }
 
 func (s guardedSession) GetMulti(ctx context.Context, records []record.Record) error {
-	loaded := false
+	targets := make([]*readTarget, 0, len(records))
+	staged := make([]record.Record, 0, len(records))
+	for _, rec := range records {
+		target, err := stageRead(rec)
+		if err != nil {
+			return s.authority.denial(DataRead, "ACL_ENFORCEMENT_UNSUPPORTED")
+		}
+		targets = append(targets, target)
+		staged = append(staged, target.record)
+	}
 	err := s.run(ctx, func(ctx context.Context) error {
-		err := s.read.GetMulti(ctx, records)
-		loaded = err == nil
-		return err
+		if err := s.read.GetMulti(ctx, staged); err != nil {
+			return err
+		}
+		return record.AnyRecordWithError(staged...)
 	})
-	if err != nil {
-		for _, rec := range records {
-			if loaded {
-				value := reflect.ValueOf(rec.Data())
-				switch value.Kind() {
-				case reflect.Map:
-					value.Clear()
-				case reflect.Pointer:
-					if !value.IsNil() {
-						value.Elem().SetZero()
-					}
-				}
+	for i, target := range targets {
+		if err != nil {
+			target.clear()
+			records[i].SetError(err)
+		} else {
+			target.publish()
+			if target.record.Exists() {
+				records[i].SetError(nil)
+			} else {
+				records[i].SetError(record.ErrRecordNotFound)
 			}
-			rec.SetError(err)
 		}
 	}
 	return err
 }
 
+type readTarget struct {
+	original reflect.Value
+	staged   reflect.Value
+	record   record.Record
+}
+
+// Point reads stage into fresh containers of the caller's data type. The
+// adapter never receives caller-owned aliases; a partial error cannot populate
+// them. Maps, non-nil pointers and fixed-length slices are supported. Key-only,
+// nil, scalar or otherwise inaccessible targets are explicitly refused.
+func stageRead(rec record.Record) (target *readTarget, err error) {
+	defer func() {
+		if recover() != nil {
+			target, err = nil, fmt.Errorf("dataaccess: inaccessible read target")
+		}
+	}()
+	original := reflect.ValueOf(rec.Data())
+	var staged reflect.Value
+	switch original.Kind() {
+	case reflect.Map:
+		staged = reflect.MakeMap(original.Type())
+	case reflect.Pointer:
+		staged = reflect.New(original.Type().Elem())
+	case reflect.Slice:
+		staged = reflect.MakeSlice(original.Type(), original.Len(), original.Len())
+	default:
+		return nil, fmt.Errorf("dataaccess: unsupported read target")
+	}
+	if original.IsNil() {
+		return nil, fmt.Errorf("dataaccess: nil read target")
+	}
+	return &readTarget{original: original, staged: staged, record: record.NewRecordWithData(rec.Key(), staged.Interface())}, nil
+}
+
+func (t *readTarget) clear() {
+	switch t.original.Kind() {
+	case reflect.Map, reflect.Slice:
+		t.original.Clear()
+	case reflect.Pointer:
+		t.original.Elem().SetZero()
+	}
+}
+
+func (t *readTarget) publish() {
+	switch t.original.Kind() {
+	case reflect.Map:
+		t.original.Clear()
+		iterator := t.staged.MapRange()
+		for iterator.Next() {
+			t.original.SetMapIndex(iterator.Key(), iterator.Value())
+		}
+	case reflect.Pointer:
+		t.original.Elem().Set(t.staged.Elem())
+	case reflect.Slice:
+		reflect.Copy(t.original, t.staged)
+	}
+}
+
+var (
+	keysFromType  = reflect.TypeOf(dal.From(dal.NewRootCollectionRef("dataaccess", "")))
+	keysQueryType = reflect.TypeOf(dal.From(dal.NewRootCollectionRef("dataaccess", "")).NewQuery().SelectKeysOnly(reflect.String))
+)
+
 // freezeKeysQuery admits only a known, unconditional key-enumeration profile.
 // Rebuilding it freezes source/shape before authorization and prevents mutable
 // custom StructuredQuery implementations changing the dispatched operation.
 func freezeKeysQuery(query dal.Query) (dal.Query, bool) {
+	if reflect.TypeOf(query) != keysQueryType {
+		return nil, false
+	}
 	structured, ok := query.(dal.StructuredQuery)
-	if !ok || structured == nil || structured.From() == nil || structured.Where() != nil ||
+	if !ok || structured.From() == nil || reflect.TypeOf(structured.From()) != keysFromType || reflect.ValueOf(structured.From()).IsNil() || structured.Where() != nil ||
 		structured.Having() != nil || len(structured.GroupBy()) != 0 || len(structured.OrderBy()) != 0 ||
 		len(structured.Columns()) != 0 || len(structured.From().Joins()) != 0 ||
 		structured.IDKind() == reflect.Invalid {

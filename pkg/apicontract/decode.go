@@ -10,6 +10,14 @@ import (
 	"github.com/datatug/datatug-core/internal/jsonstrict"
 )
 
+// ForbiddenFieldError identifies forbidden field presence without requiring
+// callers to parse a diagnostic message. Matching follows JSON case folding.
+type ForbiddenFieldError struct{ Field string }
+
+func (e *ForbiddenFieldError) Error() string {
+	return fmt.Sprintf("apicontract: field %q is not accepted from a client", e.Field)
+}
+
 // DecodeStrict decodes data into v with no leniency: unknown JSON fields are
 // rejected (encoding/json's DisallowUnknownFields), duplicate keys at any
 // nesting level are rejected (encoding/json silently keeps only the last
@@ -104,7 +112,7 @@ func walkNoForbiddenFields(dec *json.Decoder, blocked map[string]bool) error {
 			key, _ := keyTok.(string)
 			for forbidden := range blocked {
 				if strings.EqualFold(key, forbidden) {
-					return fmt.Errorf("apicontract: field %q is not accepted from a client", key)
+					return &ForbiddenFieldError{Field: key}
 				}
 			}
 			if err := walkNoForbiddenFields(dec, blocked); err != nil {

@@ -55,10 +55,12 @@ func keyQuery() dal.StructuredQuery {
 // write that would succeed, records a dispatch. It has no approval logic.
 type recordingAdapter struct {
 	dal.NoConcurrency
-	calls  []string
-	hook   func(context.Context)
-	err    error
-	reader dal.RecordsReader
+	calls   []string
+	hook    func(context.Context)
+	err     error
+	reader  dal.RecordsReader
+	load    func([]record.Record)
+	missing bool
 }
 
 func (a *recordingAdapter) ID() string           { return "recording-a" }
@@ -78,9 +80,16 @@ func (a *recordingAdapter) Get(ctx context.Context, rec record.Record) error {
 	return a.GetMulti(ctx, []record.Record{rec})
 }
 func (a *recordingAdapter) GetMulti(ctx context.Context, records []record.Record) error {
+	if a.load != nil {
+		a.load(records)
+	}
 	err := a.call(ctx, "GetMulti")
 	for _, rec := range records {
-		rec.SetError(err)
+		if a.missing && err == nil {
+			rec.SetError(record.ErrRecordNotFound)
+		} else {
+			rec.SetError(err)
+		}
 	}
 	return err
 }
