@@ -178,7 +178,8 @@ func freezeKeysQuery(query dal.Query) (dal.Query, bool) {
 	}
 	source, ok := structured.From().Base().(dal.CollectionRef)
 	if !ok || source.Database() != "" || source.Schema() != "" || source.Parent() != nil ||
-		!canonical(source.Name()) || strings.ContainsAny(source.Name(), ".*?[]") || source.Alias() != "" {
+		!canonical(source.Name()) || strings.ContainsAny(source.Name(), ".*?[]") || source.Alias() != "" ||
+		source.ScanLimit() != 0 || len(source.ScanOrders()) != 0 {
 		return nil, false
 	}
 	builder := dal.From(dal.NewRootCollectionRef(source.Name(), "")).NewQuery().

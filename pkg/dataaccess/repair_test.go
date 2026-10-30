@@ -232,6 +232,25 @@ func TestUnknownAndTypedNilQueryImplementationsAreRefused(t *testing.T) {
 	require.Empty(t, adapter.calls)
 }
 
+// REVIEW r2: source scan directives are part of the AST. Rebuilding an ordinary
+// collection may not silently discard their limits or unsupported expressions.
+func TestSourceScanDirectivesAreRefusedBeforeDispatch(t *testing.T) {
+	for _, source := range []dal.CollectionRef{
+		dal.NewRootCollectionRef("docs", "").WithScan(1),
+		dal.NewRootCollectionRef("docs", "").WithScan(0, dal.AscendingField("secret")),
+		dal.NewRootCollectionRef("docs", "").WithScan(0, nil),
+	} {
+		adapter := &recordingAdapter{}
+		db := testDatabase(t, testAuthority(t, fixedResolver(fixtureResolution())), dal.NewDB(adapter))
+		reader, err := db.ExecuteQueryToRecordsReader(context.Background(), dal.From(source).NewQuery().SelectKeysOnly(reflect.String))
+		var denial *Denial
+		require.ErrorAs(t, err, &denial)
+		require.Equal(t, "ACL_ENFORCEMENT_UNSUPPORTED", denial.Code)
+		require.Nil(t, reader)
+		require.Empty(t, adapter.calls)
+	}
+}
+
 // REVIEW r1 D: grants union equivalent read authority; they never shorten an
 // existing standing permission or another valid connection read grant.
 func TestConnectionGrantUnionNeverNarrowsReadLifetime(t *testing.T) {

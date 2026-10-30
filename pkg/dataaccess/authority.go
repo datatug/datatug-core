@@ -17,6 +17,9 @@ type ResolveRequest struct {
 // Resolution comes only from the injected authenticated authority port. The
 // port verifies current membership and protection state, and refuses failure.
 // ServerTime and ValidUntil are verified server facts, not local clock values.
+// ServerTime must be fresh for this resolve call. A cached response must not be
+// replayed as new authority; a future caching adapter must preserve its original
+// age and deadline rather than rebase either onto the next call's local time.
 type Resolution struct {
 	Subject    Subject              `json:"subject"`
 	Connection ConnectionRef        `json:"connection"`
