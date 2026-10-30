@@ -33,7 +33,9 @@ func newRecordsReader(authority *Authority, ctx context.Context, bound *lease, c
 
 // Closing never takes the operation mutex: providers may need Close to unblock
 // Next/Cursor, and authority resolution itself may be blocked on the network.
-func (r *recordsReader) terminate(terminal error) error {
+// The provider's close error is retained for Close; a read or authorization
+// failure remains the primary error returned by the operation that failed.
+func (r *recordsReader) terminate(terminal error) {
 	r.mu.Lock()
 	if !r.closed {
 		r.closed = true
@@ -47,14 +49,14 @@ func (r *recordsReader) terminate(terminal error) error {
 		r.closeErr = err
 		r.mu.Unlock()
 	})
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return r.closeErr
 }
 
 func (r *recordsReader) Close() error {
 	r.stop()
-	return r.terminate(nil)
+	r.terminate(nil)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.closeErr
 }
 
 func (r *recordsReader) stateError() error {

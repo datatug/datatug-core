@@ -108,9 +108,10 @@ func TestStagedPointReadsDropPartialErrorExpiryAndRevocation(t *testing.T) {
 				pointerTarget := &customTarget{}
 				sliceTarget := []string{""}
 				var original any = mapTarget
-				if shape == "pointer" {
+				switch shape {
+				case "pointer":
 					original = pointerTarget
-				} else if shape == "slice" {
+				case "slice":
 					original = sliceTarget
 				}
 				adapter := &recordingAdapter{load: func(records []record.Record) {
@@ -159,9 +160,10 @@ func TestStagedPointReadPublishesOnlySuccessfulAuthorizedResults(t *testing.T) {
 			pointerTarget := &customTarget{Value: "old"}
 			sliceTarget := []string{"old"}
 			var original any = mapTarget
-			if shape == "pointer" {
+			switch shape {
+			case "pointer":
 				original = pointerTarget
-			} else if shape == "slice" {
+			case "slice":
 				original = sliceTarget
 			}
 			adapter := &recordingAdapter{load: func(records []record.Record) {

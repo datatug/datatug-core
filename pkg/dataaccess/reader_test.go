@@ -25,7 +25,8 @@ func TestCORE5ActualDeadlineClosesIdleReaderAndRefusesCursor(t *testing.T) {
 	resolution.Protection.ReadPosture = ReadNone
 	resolution.Grants = []Grant{fixtureGrant(resolution.ServerTime)}
 	resolution.Grants[0].ExpiresAt = resolution.ServerTime.Add(60 * time.Millisecond)
-	raw := &testReader{closed: make(chan struct{})}
+	closeErr := errors.New("provider close failed")
+	raw := &testReader{closed: make(chan struct{}), closeErr: closeErr}
 	reader := openTestReader(t, testAuthority(t, fixedResolver(resolution)), raw)
 	select {
 	case <-raw.closed:
@@ -38,7 +39,7 @@ func TestCORE5ActualDeadlineClosesIdleReaderAndRefusesCursor(t *testing.T) {
 	rec, err := reader.Next()
 	require.ErrorIs(t, err, access.ErrAccessDenied)
 	require.Nil(t, rec)
-	require.NoError(t, reader.Close())
+	require.ErrorIs(t, reader.Close(), closeErr)
 	raw.mu.Lock()
 	defer raw.mu.Unlock()
 	require.Zero(t, raw.cursorCalls)
