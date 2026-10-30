@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/datatug/datatug-core/internal/jsonstrict"
 )
@@ -101,8 +102,10 @@ func walkNoForbiddenFields(dec *json.Decoder, blocked map[string]bool) error {
 				return fmt.Errorf("apicontract: %w", err)
 			}
 			key, _ := keyTok.(string)
-			if blocked[key] {
-				return fmt.Errorf("apicontract: field %q is not accepted from a client", key)
+			for forbidden := range blocked {
+				if strings.EqualFold(key, forbidden) {
+					return fmt.Errorf("apicontract: field %q is not accepted from a client", key)
+				}
 			}
 			if err := walkNoForbiddenFields(dec, blocked); err != nil {
 				return err

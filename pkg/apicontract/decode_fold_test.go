@@ -5,6 +5,29 @@ import (
 	"testing"
 )
 
+func TestDecodeStrictRejectsCaseFoldedForbiddenPresence(t *testing.T) {
+	type payload struct {
+		Scope map[string]any `json:"scope"`
+	}
+	for _, key := range []string{"principal", "PRINCIPAL", "Principal", "ſcope"} {
+		var decoded map[string]any
+		forbidden := "principal"
+		if key == "ſcope" {
+			forbidden = "scope"
+		}
+		if err := DecodeStrict([]byte(`{"`+key+`":null}`), &decoded, forbidden); err == nil {
+			t.Fatalf("accepted forbidden field %q", key)
+		}
+	}
+	var decoded payload
+	if err := DecodeStrict([]byte(`{"scope":{"NOTBEFORE":null}}`), &decoded, "notBefore"); err == nil {
+		t.Fatal("accepted nested case-folded forbidden presence")
+	}
+	if err := DecodeStrict([]byte(`{"scope":{"allowed":null}}`), &decoded, "notBefore"); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // encoding/json matches a key to a struct field case-insensitively and keeps
 // the last of two spellings, so "project" and "Project" in one object are
 // duplicates DecodeStrict must reject - but only where a struct field is
