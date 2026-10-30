@@ -77,11 +77,12 @@ var hostlessDrivers = []string{"sqlite3", "ingitdb", "openvaultdb", "https-json"
 // keeps the host, the port and the credentials of such a server out of the
 // project). couchdb and postgrest are URL-backed HTTP document/data services,
 // libsql is served over an HTTP/WebSocket URL, and typesense is served over an
-// HTTP API, so a project may name one by its driver alone and leave the URL to
+// HTTP API. ClickHouse also supports an environment-backed connection descriptor.
+// A project may name one by its driver alone and leave the connection details to
 // such a reference, or record the host and port it is served on. Accepting the
 // driver here records a connection descriptor only; it does not provide a
-// Typesense client or query support.
-var hostOptionalDrivers = []string{"sqlserver", "mysql", "oracle", "postgres", "couchdb", "postgrest", "libsql", "typesense"}
+// provider client, query support or permission to execute a read.
+var hostOptionalDrivers = []string{"sqlserver", "mysql", "oracle", "postgres", "couchdb", "postgrest", "libsql", "typesense", "clickhouse"}
 
 // acceptedDrivers lists every driver ServerRef.Validate accepts.
 func acceptedDrivers() string {
