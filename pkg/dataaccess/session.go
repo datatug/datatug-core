@@ -236,7 +236,16 @@ func (s guardedSession) ExecuteQueryToRecordsReader(ctx context.Context, query d
 	reader, err := s.read.ExecuteQueryToRecordsReader(ctx, query)
 	if err != nil {
 		cancel()
+		// Providers may allocate a partial handle before failing. Core owns
+		// that handle even on error; cleanup must not replace the open error.
+		if !isNilValue(reader) {
+			_ = reader.Close()
+		}
 		return nil, err
+	}
+	if isNilValue(reader) {
+		cancel()
+		return nil, s.authority.denial(QueryTugQL, "ACL_ENFORCEMENT_UNSUPPORTED")
 	}
 	// Own the opened reader before post-I/O authority/fact resolution. Its
 	// lifetime watcher and monotonic ceiling hook can close it while that

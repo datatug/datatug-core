@@ -3,7 +3,6 @@ package dataaccess
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	"github.com/dal-go/dalgo/access"
 	"github.com/dal-go/dalgo/dal"
@@ -49,22 +48,10 @@ type TableIdentityVerifier interface {
 // Additional DALgo context policies still intersect before data dispatch; their
 // denial may follow trusted identity-metadata lookup.
 func (a *Authority) SecureDBWithTableIdentity(db dal.DB, verifier TableIdentityVerifier) (Database, error) {
-	if nilTableIdentityVerifier(verifier) {
+	if isNilValue(verifier) {
 		return nil, fmt.Errorf("dataaccess: table identity verifier is required")
 	}
 	return a.secureDB(db, verifier)
-}
-
-func nilTableIdentityVerifier(verifier TableIdentityVerifier) bool {
-	if verifier == nil {
-		return true
-	}
-	switch reflect.ValueOf(verifier).Kind() {
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
-		return reflect.ValueOf(verifier).IsNil()
-	default:
-		return false
-	}
 }
 
 type tableIdentityBinding struct {

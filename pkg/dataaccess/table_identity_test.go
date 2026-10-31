@@ -435,7 +435,7 @@ func TestTableIdentityFreezesQueryAndFactInputs(t *testing.T) {
 		return got, err
 	})
 	// Exercise non-nil value implementations as well as function/pointer ports.
-	require.False(t, nilTableIdentityVerifier(valueIdentityFixture{fixture: facts}))
+	require.False(t, isNilValue(valueIdentityFixture{fixture: facts}))
 	reader, err := identityDatabase(t, a, raw, verifier).ExecuteQueryToRecordsReader(context.Background(), query)
 	require.NoError(t, err)
 	frozen := native.query.(dal.StructuredQuery)
