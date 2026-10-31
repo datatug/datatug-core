@@ -54,6 +54,8 @@ type Result struct {
 	lifetime      context.Context
 	timer         *time.Timer
 	stopLifetime  func() bool
+	table         *TableRead
+	cleanup       []func()
 }
 
 func hashBytes(value []byte) string { sum := sha256.Sum256(value); return hex.EncodeToString(sum[:]) }
@@ -247,6 +249,23 @@ func (r *Result) purgeLocked() {
 	if r.stopLifetime != nil {
 		r.stopLifetime()
 	}
+	for _, closeOwned := range r.cleanup {
+		// Native cleanup may block on a driver. Private bytes are already gone;
+		// neither purge nor Close waits for I/O, or holds ownership across it.
+		go closeOwned()
+	}
+	r.cleanup = nil
+}
+
+func (r *Result) ownCleanup(closeOwned func()) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.payload == nil {
+		go closeOwned()
+		return false
+	}
+	r.cleanup = append(r.cleanup, closeOwned)
+	return true
 }
 
 // Close discards retained values even if no subsequent release is requested.
@@ -273,7 +292,8 @@ func (r *Result) guard(ctx context.Context) error {
 	resolving, cancel := context.WithDeadline(ctx, bound.deadline)
 	stop := context.AfterFunc(r.lifetime, cancel)
 	defer func() { stop(); cancel() }()
-	_, current, stopPrepared, err := r.authority.prepare(resolving, &bound)
+	// Publish a shorter current ceiling before a native fact port can stall.
+	_, current, stopPrepared, err := r.authority.prepareWithCeiling(resolving, &bound, nil, r.tightenResultCeiling)
 	if err != nil {
 		return err
 	}
@@ -286,13 +306,18 @@ func (r *Result) guard(ctx context.Context) error {
 	if r.payload == nil {
 		return fmt.Errorf("dataaccess: result is closed")
 	}
-	if current.deadline.Before(r.authorization.deadline) {
-		r.authorization.deadline = current.deadline
-	}
-	if r.timer != nil {
-		r.timer.Reset(time.Until(r.authorization.deadline))
-	}
 	return r.authority.check(ctx, r.authorization)
+}
+
+func (r *Result) tightenResultCeiling(current *lease) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.payload != nil && current.deadline.Before(r.authorization.deadline) {
+		r.authorization.deadline = current.deadline
+		if r.timer != nil {
+			r.timer.Reset(time.Until(current.deadline))
+		}
+	}
 }
 func (r *Result) write(ctx context.Context, writer io.Writer, envelope bool) error {
 	if r == nil || writer == nil {
@@ -319,7 +344,11 @@ func (r *Result) writeAuthorized(ctx context.Context, writer io.Writer, envelope
 		metadata := r.metadata
 		metadata.ExpiresAt = metadata.ServerTime.Add(r.authorization.deadline.Sub(r.authorization.started))
 		var err error
-		data, err = json.Marshal(ResultEnvelope{Payload: r.payload, Lease: metadata})
+		if r.table == nil {
+			data, err = json.Marshal(ResultEnvelope{Payload: r.payload, Lease: metadata})
+		} else {
+			data, err = json.Marshal(TableResultEnvelope{Payload: r.payload, Lease: TableResultLease{ResultLease: metadata, Profile: TableReadProfile, Operation: *r.table}})
+		}
 		if err != nil {
 			r.purgeLocked()
 			return err

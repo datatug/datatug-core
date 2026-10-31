@@ -57,11 +57,18 @@ func (a *Authority) SecureDBWithTableIdentity(db dal.DB, verifier TableIdentityV
 type tableIdentityBinding struct {
 	db       dal.DB
 	verifier TableIdentityVerifier
+	span     TableReadSpan // explicit recordset profile, never a transaction disguised as DB
 	request  TableIdentityRequest
 }
 
 func (b *tableIdentityBinding) verify(ctx context.Context) error {
-	facts, err := b.verifier.VerifyTableIdentity(ctx, b.db, b.request)
+	var facts TableIdentityFacts
+	var err error
+	if b.span != nil {
+		facts, err = b.span.Verify(ctx, b.request)
+	} else {
+		facts, err = b.verifier.VerifyTableIdentity(ctx, b.db, b.request)
+	}
 	if err != nil {
 		return err
 	}
