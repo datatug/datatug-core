@@ -132,6 +132,37 @@ func UpdateCase(old, next Case, actor string, at time.Time) (Case, AuditEvent, e
 	return next, AuditEvent{ID: fmt.Sprintf("case-%s-%d", next.ID, next.Version), At: at, Actor: actor, Action: "update-case", CaseID: next.ID}, nil
 }
 
+// RestoreCase reopens a legacy archived standalone Case without accepting
+// replacement context, references, evidence or history. The owning repository
+// must authorize the actor and compare the stored version in its transaction.
+// Cases associated with Work must use Work's owning transition instead.
+func RestoreCase(old Case, actor string, at time.Time) (Case, AuditEvent, error) {
+	if old.WorkItemID != "" || old.Status != "archived" || !validSlug(old.ID) || strings.TrimSpace(old.Title) == "" || old.Version < 1 || old.Version == int64(^uint64(0)>>1) || strings.TrimSpace(actor) == "" || at.IsZero() {
+		return Case{}, AuditEvent{}, ErrInvalid
+	}
+	next, err := cloneCase(old)
+	if err != nil {
+		return Case{}, AuditEvent{}, err
+	}
+	next.Status = "active"
+	next.ClosureReason = ""
+	next.Version++
+	next.UpdatedAt = at
+	eventID := fmt.Sprintf("lifecycle-%d", next.Version)
+	used := make(map[string]bool, len(next.Timeline))
+	for _, event := range next.Timeline {
+		used[event.ID] = true
+	}
+	for n := 0; used[eventID]; n++ {
+		eventID = fmt.Sprintf("restore-%d-%d", next.Version, n)
+	}
+	next.Timeline = append(next.Timeline, CaseEvent{ID: eventID, At: at, Actor: actor, Type: "restored"})
+	if err = validateCaseContent(next); err != nil {
+		return Case{}, AuditEvent{}, err
+	}
+	return next, AuditEvent{ID: fmt.Sprintf("case-%s-%d", next.ID, next.Version), At: at, Actor: actor, Action: "restore-case", CaseID: next.ID}, nil
+}
+
 // ApplyScenario snapshots reusable manual guidance; no step runs automatically.
 func ApplyScenario(c Case, scenario Scenario, applicationID, actor string, at time.Time) (Case, AuditEvent, error) {
 	if c.Status != "active" || !validSlug(applicationID) || actor == "" || at.IsZero() || len(c.ScenarioApplications) >= 100 || ValidateScenario(scenario) != nil {

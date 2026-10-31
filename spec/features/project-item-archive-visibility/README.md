@@ -36,6 +36,7 @@ User-facing APIs opt into `ActiveItemsOnly`. Internal/default loaders and direct
 - Given a stale revision, changed operation payload, invalid scope, unsafe filesystem metadata or malformed inventory, then the mutation is refused.
 - Given a visibility-only catalog, then archive/restore may be supported but Delete remains unavailable.
 - Given a complete deletion inventory with retained references, then destructive deletion remains blocked.
+- Given a legacy archived standalone Detective Case, then its owning repository may restore it with current authorization and version checks while preserving context, references, evidence and history; Work-associated Cases use Work’s owning transition.
 - Given runtime inventory callbacks using normal project readers, then review, archive and discovery finish without lock reentry deadlock.
 - Given legacy query definitions or supported current definition layouts, then the visibility catalog uses the same project object identity across reloads.
 - Given concurrent archive commands with the same expected revision, then one transition succeeds and the stale command conflicts.
