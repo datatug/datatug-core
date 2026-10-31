@@ -49,7 +49,8 @@ type ResultEnvelope struct {
 // Writers must obey io.Writer's contract: do not modify or retain the buffer.
 type Result struct {
 	mu            sync.Mutex
-	output        sync.Mutex // serializes writes without blocking cache purge/Close
+	output        chan struct{} // active writer completion; protected by mu
+	purged        chan struct{} // closed once by purgeLocked, before native cleanup
 	authority     *Authority
 	authorization *lease
 	metadata      ResultLease
@@ -240,10 +241,14 @@ func (a *Authority) ImportResult(ctx context.Context, request ResultRequest, req
 func (r *Result) watch() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.purged = make(chan struct{})
 	r.timer = time.AfterFunc(time.Until(r.authorization.deadline), func() { r.mu.Lock(); defer r.mu.Unlock(); r.purgeLocked() })
 	r.stopLifetime = context.AfterFunc(r.lifetime, func() { r.mu.Lock(); defer r.mu.Unlock(); r.purgeLocked() })
 }
 func (r *Result) purgeLocked() {
+	if r.payload != nil && r.purged != nil {
+		close(r.purged)
+	}
 	clear(r.payload)
 	r.payload = nil
 	if r.timer != nil {
@@ -326,13 +331,40 @@ func (r *Result) write(ctx context.Context, writer io.Writer, envelope bool) err
 	if r == nil || writer == nil {
 		return fmt.Errorf("dataaccess: result and writer required")
 	}
-	r.output.Lock()
-	defer r.output.Unlock()
-	if err := r.guard(ctx); err != nil {
-		r.Close()
-		return err
+	for {
+		// Authority I/O never owns output serialization. A queued writer must
+		// reauthorize after the prior writer completes rather than reuse a
+		// resolution obtained before waiting for external output I/O.
+		if err := r.guard(ctx); err != nil {
+			r.Close()
+			return err
+		}
+		r.mu.Lock()
+		if r.output == nil {
+			r.output = make(chan struct{})
+			r.mu.Unlock()
+			defer r.finishOutput()
+			return r.writeAuthorized(ctx, writer, envelope)
+		}
+		output, purged := r.output, r.purged
+		r.mu.Unlock()
+		select {
+		case <-output:
+			// Retry fresh authority outside the output gate.
+		case <-purged:
+			return fmt.Errorf("dataaccess: result is closed")
+		case <-ctx.Done():
+			r.Close()
+			return ctx.Err()
+		}
 	}
-	return r.writeAuthorized(ctx, writer, envelope)
+}
+
+func (r *Result) finishOutput() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	close(r.output)
+	r.output = nil
 }
 
 // writeAuthorized reacquires ownership after the network phase; Close may have
