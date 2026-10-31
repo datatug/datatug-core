@@ -54,7 +54,7 @@ admission.
 
 Standing posture `all` permits the supported reads. Posture `none` needs an
 approved, unexpired `data.read` grant matching the operation. Point reads,
-transactions and retained-result capture/import/release require connection-wide
+transactions and version1 retained-result capture/import/release require connection-wide
 authority; an exact-object grant cannot substitute for it. Active grants form a
 union: a shorter grant cannot shorten standing authority or a longer matching
 grant, and the existence of an object grant cannot narrow standing `all`. Agent
@@ -124,12 +124,47 @@ without waiting for their operation lock, including when an operation is blocked
 Consumers must close readers when finished. Already delivered application
 values, caches and snapshots still need their own integration and release checks.
 
+Result release makes a detached output copy and performs its last local
+authorization/deadline check immediately before handoff to the output operation.
+That authorized in-flight copy cannot be recalled by later cancellation or
+revocation. It stays intact while the writer consumes it and is cleared when
+Write returns. Writers must not retain or modify the buffer. Output serialization
+has its own mutex: a blocked writer cannot prevent Close, private retained-byte
+purge, expiry or native-span cleanup. No ownership mutex spans output I/O.
+
 ## Unsupported surfaces and claim limits
 
+`ReadTableResult` is a separate, explicit programmatic table-data profile. Core
+constructs one qualified all-column query, secures its native read session with
+DALgo's existing operation policy and context-policy intersection, and retains
+private serialized cells until a final release check. It admits no caller query,
+projection, filter, join, function, raw SQL, view, ordering or pagination. The
+bounded preview reads at most N+1 rows and returns at most N, with protected
+`returnedRows`, `hasMore` and `complete` metadata. Byte/type/column failures discard
+the entire preview. NULL, exact integer tokens and tagged base64 BLOBs are kept
+distinct. Mandatory fine-grained restrictions still refuse the profile.
+
+This requires a trusted `TableReadSource` and a pinned `TableReadSpan` that proves
+the actual source/table/compiler/native limits before rows open. Later Verify
+calls must be SQL-free immutable-proof and liveness checks; fresh control-plane
+authority resolution is separate. No old key-profile verifier automatically
+enables recordset reads. The span is retained until result close/expiry, and the
+data reader must close successfully before any result publication. Final native
+cleanup after output cannot retract bytes: the host owns redacted lifecycle-error
+reporting. Cleanup and purge never hold an ownership lock across native I/O.
+
+The separate version2 `TableResultEnvelope` binds its exact profile and operation
+alongside the original subject/source/request/nonce/digest/deadline. Import
+reconstructs resources from the independently expected operation and rejects v1;
+v1 import rejects v2. An added or replacement grant cannot rescue a retained
+result, and a shorter fresh ceiling is installed before any fact lookup can
+stall. No production opener, SQLite native profile or end-to-end consumer route
+is enabled merely by this Core API; each needs its own integration proof.
+
 The returned interface exposes no schema metadata, adapter/native capabilities,
-raw handle or read-write transaction opener. Object-only point operations,
-transactions and retained-result transport, raw queries, recordset readers and
-complex structured queries remain unsupported. The result wire is unchanged.
+raw handle or read-write transaction opener. Its object-only point operations,
+transactions, raw queries, general recordset readers and complex structured
+queries remain unsupported. Existing version1 result wire behavior is unchanged.
 Full standing policy/grant composition, native naming proof and production path
 coverage remain separate work.
 

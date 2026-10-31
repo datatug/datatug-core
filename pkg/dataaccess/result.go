@@ -43,10 +43,13 @@ type ResultEnvelope struct {
 }
 
 // Result keeps DataTug-owned values private until a final release check. Values
-// handed to an io.Writer are external copies and cannot be recalled. Writers
-// must obey io.Writer's contract: neither modify nor retain the supplied buffer.
+// handed to an output operation are detached copies and cannot be recalled.
+// The handoff is authorized under mu; output I/O never holds that ownership
+// lock. An in-flight copy stays intact until Write returns, then is cleared.
+// Writers must obey io.Writer's contract: do not modify or retain the buffer.
 type Result struct {
 	mu            sync.Mutex
+	output        sync.Mutex // serializes writes without blocking cache purge/Close
 	authority     *Authority
 	authorization *lease
 	metadata      ResultLease
@@ -54,6 +57,8 @@ type Result struct {
 	lifetime      context.Context
 	timer         *time.Timer
 	stopLifetime  func() bool
+	table         *TableRead
+	cleanup       []func()
 }
 
 func hashBytes(value []byte) string { sum := sha256.Sum256(value); return hex.EncodeToString(sum[:]) }
@@ -247,6 +252,23 @@ func (r *Result) purgeLocked() {
 	if r.stopLifetime != nil {
 		r.stopLifetime()
 	}
+	for _, closeOwned := range r.cleanup {
+		// Native cleanup may block on a driver. Private bytes are already gone;
+		// neither purge nor Close waits for I/O, or holds ownership across it.
+		go closeOwned()
+	}
+	r.cleanup = nil
+}
+
+func (r *Result) ownCleanup(closeOwned func()) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.payload == nil {
+		go closeOwned()
+		return false
+	}
+	r.cleanup = append(r.cleanup, closeOwned)
+	return true
 }
 
 // Close discards retained values even if no subsequent release is requested.
@@ -273,7 +295,8 @@ func (r *Result) guard(ctx context.Context) error {
 	resolving, cancel := context.WithDeadline(ctx, bound.deadline)
 	stop := context.AfterFunc(r.lifetime, cancel)
 	defer func() { stop(); cancel() }()
-	_, current, stopPrepared, err := r.authority.prepare(resolving, &bound)
+	// Publish a shorter current ceiling before a native fact port can stall.
+	_, current, stopPrepared, err := r.authority.prepareWithCeiling(resolving, &bound, nil, r.tightenResultCeiling)
 	if err != nil {
 		return err
 	}
@@ -286,18 +309,25 @@ func (r *Result) guard(ctx context.Context) error {
 	if r.payload == nil {
 		return fmt.Errorf("dataaccess: result is closed")
 	}
-	if current.deadline.Before(r.authorization.deadline) {
-		r.authorization.deadline = current.deadline
-	}
-	if r.timer != nil {
-		r.timer.Reset(time.Until(r.authorization.deadline))
-	}
 	return r.authority.check(ctx, r.authorization)
+}
+
+func (r *Result) tightenResultCeiling(current *lease) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.payload != nil && current.deadline.Before(r.authorization.deadline) {
+		r.authorization.deadline = current.deadline
+		if r.timer != nil {
+			r.timer.Reset(time.Until(current.deadline))
+		}
+	}
 }
 func (r *Result) write(ctx context.Context, writer io.Writer, envelope bool) error {
 	if r == nil || writer == nil {
 		return fmt.Errorf("dataaccess: result and writer required")
 	}
+	r.output.Lock()
+	defer r.output.Unlock()
 	if err := r.guard(ctx); err != nil {
 		r.Close()
 		return err
@@ -308,39 +338,62 @@ func (r *Result) write(ctx context.Context, writer io.Writer, envelope bool) err
 // writeAuthorized reacquires ownership after the network phase; Close may have
 // purged the values while authority was being resolved.
 func (r *Result) writeAuthorized(ctx context.Context, writer io.Writer, envelope bool) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if r.payload == nil {
-		return fmt.Errorf("dataaccess: result is closed")
-	}
-	data := r.payload
-	if envelope {
-		// Preserve the original ceiling if a current resolve has shortened the lease.
-		metadata := r.metadata
-		metadata.ExpiresAt = metadata.ServerTime.Add(r.authorization.deadline.Sub(r.authorization.started))
-		var err error
-		data, err = json.Marshal(ResultEnvelope{Payload: r.payload, Lease: metadata})
-		if err != nil {
-			r.purgeLocked()
-			return err
-		}
-		defer clear(data)
-	}
-	// Serialization can run arbitrary time; no writer receives bytes until this
-	// last local cancellation/deadline check. Network revocation was checked above.
-	if err := r.lifetime.Err(); err != nil {
-		r.purgeLocked()
+	data, err := r.handoff(ctx, envelope)
+	if err != nil {
 		return err
 	}
-	if err := r.authority.check(ctx, r.authorization); err != nil {
-		r.purgeLocked()
-		return err
-	}
+	// This detached buffer belongs to the in-flight output operation. Clearing
+	// it before Write returns would race a writer still consuming its argument.
+	defer clear(data)
 	n, err := writer.Write(data)
 	if err == nil && n != len(data) {
 		err = io.ErrShortWrite
 	}
 	return err
+}
+
+// handoff is the release linearization point. Cancellation/Close can purge the
+// retained cache immediately after it, but cannot retract the authorized output
+// copy. Serialization and final checks finish before that copy is handed off.
+func (r *Result) handoff(ctx context.Context, envelope bool) (data []byte, err error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	defer func() {
+		if err != nil {
+			clear(data)
+			data = nil
+		}
+	}()
+	if r.payload == nil {
+		return nil, fmt.Errorf("dataaccess: result is closed")
+	}
+	if envelope {
+		// Preserve the original ceiling if a current resolve has shortened the lease.
+		metadata := r.metadata
+		metadata.ExpiresAt = metadata.ServerTime.Add(r.authorization.deadline.Sub(r.authorization.started))
+		if r.table == nil {
+			data, err = json.Marshal(ResultEnvelope{Payload: r.payload, Lease: metadata})
+		} else {
+			data, err = json.Marshal(TableResultEnvelope{Payload: r.payload, Lease: TableResultLease{ResultLease: metadata, Profile: TableReadProfile, Operation: *r.table}})
+		}
+		if err != nil {
+			r.purgeLocked()
+			return data, err
+		}
+	} else {
+		data = bytes.Clone(r.payload)
+	}
+	// Serialization can run arbitrary time; no writer receives bytes until this
+	// last local cancellation/deadline check. Network revocation was checked above.
+	if err = r.lifetime.Err(); err != nil {
+		r.purgeLocked()
+		return data, err
+	}
+	if err = r.authority.check(ctx, r.authorization); err != nil {
+		r.purgeLocked()
+		return data, err
+	}
+	return data, nil
 }
 func (r *Result) WriteEnvelope(ctx context.Context, writer io.Writer) error {
 	return r.write(ctx, writer, true)
