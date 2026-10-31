@@ -73,7 +73,7 @@ var ErrProjectLifecycleInvalid = errors.New("invalid project lifecycle operation
 
 func validProjectObjectRef(ref ProjectObjectRef) bool {
 	switch ref.Kind {
-	case "query", "query-folder", "board", "card", "check", "validator", "entity", "meaning", "environment", "connection", "database", "server", "scenario", "case", "incident", "watch", "work", "session", "data-model", "execution", "run", "snapshot", "favorite":
+	case "query", "query-folder", "board", "card", "check", "validator", "query-validator", "entity", "meaning", "environment", "connection", "database", "server", "scenario", "case", "incident", "watch", "work", "session", "data-model", "execution", "run", "snapshot", "favorite":
 	default:
 		return false
 	}
@@ -114,25 +114,21 @@ func PlanProjectLifecycle(snapshot ProjectUsageSnapshot, write ProjectLifecycleW
 		(change.Action != "archive" && change.Action != "restore" && change.Action != "delete") || isProjectHistoryKind(change.Object.Kind) {
 		return plan, ErrProjectLifecycleInvalid
 	}
-	target, found := objects[change.Object]
+	_, found := objects[change.Object]
 	if !found {
 		return plan, fmt.Errorf("%w: object unavailable", ErrProjectLifecycleConflict)
 	}
+	// Archive/restore only affect active-list visibility. The definition stays
+	// available to references and executions, so neither incoming references
+	// nor an archived dependency prevents these non-destructive transitions.
+	if change.Action != "delete" {
+		return plan, nil
+	}
 	for _, source := range snapshot.Objects {
 		for _, reference := range source.References {
-			if reference == change.Object && (change.Action == "delete" ||
-				(change.Action == "archive" && !source.Archived && !source.Historical)) {
+			if reference == change.Object {
 				plan.Blockers = append(plan.Blockers, ProjectLifecycleBlocker{Target: reference, UsedBy: source.Ref, Archived: source.Archived, Historical: source.Historical})
 				break
-			}
-		}
-	}
-	if change.Action == "restore" {
-		seen := map[ProjectObjectRef]bool{}
-		for _, dependency := range target.References {
-			if objects[dependency].Archived && !seen[dependency] {
-				plan.Blockers = append(plan.Blockers, ProjectLifecycleBlocker{Target: dependency, UsedBy: target.Ref, Archived: target.Archived})
-				seen[dependency] = true
 			}
 		}
 	}

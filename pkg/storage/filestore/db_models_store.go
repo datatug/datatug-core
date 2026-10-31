@@ -155,7 +155,7 @@ func (s fsDbModelsStore) LoadDbModels(_ context.Context, o ...datatug.StoreOptio
 	sort.Slice(dbModels, func(i, j int) bool {
 		return dbModels[i].GetID() < dbModels[j].GetID()
 	})
-	return dbModels, nil
+	return filterVisibleProjectItems(s.projectDir, "data-model", "", dbModels, o...)
 }
 
 // saveTarget mirrors fsEntitiesStore.saveTarget: nested if a nested file

@@ -24,16 +24,24 @@ type ProjectLifecycleAck struct {
 }
 
 type ProjectLifecycleCatalog struct {
-	Revision string             `json:"revision"`
-	Complete bool               `json:"complete"`
-	Items    []ProjectUsageItem `json:"items"`
+	Revision string `json:"revision"`
+	Complete bool   `json:"complete"`
+	// ArchiveSupported is authoritative visibility support. Complete describes
+	// the reference graph required for Delete, not permission to hide an item.
+	ArchiveSupported bool               `json:"archiveSupported,omitempty"`
+	Items            []ProjectUsageItem `json:"items"`
 }
 
 // ProjectLifecycleStore is an optional authoritative provider capability. A
 // plain CRUD ProjectStore MUST NOT be treated as this capability. Unsupported
 // providers leave lifecycle actions unavailable; no legacy delete fallback.
 //
-// ChangeProjectLifecycle must authorize the current serving actor, inventory
+// Archive and restore change active-list visibility only. They preserve the
+// definition, its references, direct access and accepted executions. Providers
+// may implement these through an authoritative visibility catalog even when a
+// complete reference graph is unavailable; see PlanProjectVisibility.
+//
+// A destructive ChangeProjectLifecycle must authorize the current serving actor, inventory
 // every retained reference (including history from other actors and expired but
 // unpurged records), and run PlanProjectLifecycle on that fresh complete graph
 // inside the SAME provider lock/transaction as metadata/definition persistence

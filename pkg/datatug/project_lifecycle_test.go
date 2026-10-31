@@ -31,7 +31,7 @@ func TestProjectLifecycleReferencePolicy(t *testing.T) {
 		referenced, archived, blocked bool
 	}{
 		{"active use blocks delete", "delete", true, false, true},
-		{"active use blocks archive", "archive", true, false, true},
+		{"active use preserves archive", "archive", true, false, false},
 		{"archived use blocks delete", "delete", true, true, true},
 		{"archived use allows archive", "archive", true, true, false},
 		{"unreferenced allows delete", "delete", false, false, false},
@@ -72,15 +72,15 @@ func TestProjectLifecycleFailsClosed(t *testing.T) {
 	}
 }
 
-func TestProjectLifecycleRestoreRequiresDependenciesRestoredFirst(t *testing.T) {
+func TestProjectLifecycleRestorePreservesArchivedDependencies(t *testing.T) {
 	query, board := ProjectObjectRef{Kind: "query", ID: "q"}, ProjectObjectRef{Kind: "board", ID: "b"}
 	s := ProjectUsageSnapshot{Revision: "r", Complete: true, Objects: []ProjectObjectUsage{
 		{Ref: query, Archived: true, ContentRevision: "q"},
 		{Ref: board, Archived: true, ContentRevision: "b", References: []ProjectObjectRef{query}},
 	}}
 	w := ProjectLifecycleWrite{OperationID: "restore", ExpectedRevision: "r", Change: ProjectLifecycleChange{board, "restore"}}
-	if _, err := PlanProjectLifecycle(s, w); !errors.Is(err, ErrProjectObjectReferenced) {
-		t.Fatalf("active board must not depend on archived query: %v", err)
+	if _, err := PlanProjectLifecycle(s, w); err != nil {
+		t.Fatalf("restore must preserve the still accessible archived query: %v", err)
 	}
 	s.Objects[0].Archived = false // separate query restore committed
 	s.Revision = "after"
@@ -105,7 +105,7 @@ func TestProjectLifecycleRetainedHistoryBlocksDeletion(t *testing.T) {
 						{Ref: source, Historical: historical, ContentRevision: "h", References: []ProjectObjectRef{query}},
 					}}
 					plan, err := PlanProjectLifecycle(s, ProjectLifecycleWrite{OperationID: "op", ExpectedRevision: "r", Change: ProjectLifecycleChange{query, action}})
-					blocked := action == "delete" || !historical
+					blocked := action == "delete"
 					if blocked && (!errors.Is(err, ErrProjectObjectReferenced) || len(plan.Blockers) != 1 || plan.Blockers[0].UsedBy != source) {
 						t.Fatalf("retained reference lost: %+v %v", plan, err)
 					}

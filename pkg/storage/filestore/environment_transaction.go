@@ -386,7 +386,7 @@ func (f *EnvironmentFiles) destination(rel string) (string, error) {
 	}
 	parts := strings.Split(filepath.ToSlash(rel), "/")
 	connection := len(parts) == 2 && parts[0] == "connections" && strings.HasSuffix(parts[1], ".json") && datatug.ValidConnectionID(strings.TrimSuffix(parts[1], ".json"))
-	if rel != "datatug-project.json" && !connection && (len(parts) != 3 || parts[0] != "environments" || parts[1] == "" || parts[1] == "." || parts[1] == ".." || (parts[2] != parts[1]+".env.json" && parts[2] != "environment-summary.json")) {
+	if rel != "datatug-project.json" && rel != visibilityFile && !connection && (len(parts) != 3 || parts[0] != "environments" || parts[1] == "" || parts[1] == "." || parts[1] == ".." || (parts[2] != parts[1]+".env.json" && parts[2] != "environment-summary.json")) {
 		return "", ErrEnvironmentRecoveryRequired
 	}
 	p := filepath.Join(f.Root, rel)

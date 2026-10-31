@@ -164,7 +164,7 @@ func (s fsEntitiesStore) LoadEntities(_ context.Context, o ...datatug.StoreOptio
 	sort.Slice(entities, func(i, j int) bool {
 		return entities[i].GetID() < entities[j].GetID()
 	})
-	return entities, nil
+	return filterVisibleProjectItems(s.projectDir, "entity", "", entities, o...)
 }
 
 func (s fsEntitiesStore) DeleteEntity(_ context.Context, id string) error {

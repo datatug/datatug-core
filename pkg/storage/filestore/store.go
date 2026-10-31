@@ -70,6 +70,15 @@ func NewProjectStore(id, path string) datatug.ProjectStore {
 	return newFsProjectStore(id, path)
 }
 
+// NewProjectStoreWithVisibilityItems adds currently readable runtime-owned
+// definitions to visibility management. The host authorizes every target for
+// the supplied actor/scope. This port does not grant destructive Delete.
+func NewProjectStoreWithVisibilityItems(id, path string, items func(context.Context, datatug.ProjectLifecycleScope) ([]datatug.ProjectUsageItem, error)) datatug.ProjectStore {
+	s := newFsProjectStore(id, path)
+	s.visibilityItems = items
+	return s
+}
+
 // NewSingleProjectStore creates an instance of storage that implements storage.Store for a single project
 func NewSingleProjectStore(projectPath, projectID string) (storeInterface *FsStore, projID string) {
 	if projectID == "" {

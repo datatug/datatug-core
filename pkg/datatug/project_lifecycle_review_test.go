@@ -23,7 +23,7 @@ func TestProjectLifecycleReviewSingleObjectWithoutExposingRestrictedItems(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	if queryReview.CanArchive || queryReview.CanDelete || len(queryReview.Incoming) != 2 || !queryReview.Incoming[1].Restricted || queryReview.Incoming[1].Title != "" || queryReview.Incoming[1].Ref.ID != "" {
+	if !queryReview.CanArchive || queryReview.CanDelete || len(queryReview.Incoming) != 2 || !queryReview.Incoming[1].Restricted || queryReview.Incoming[1].Title != "" || queryReview.Incoming[1].Ref.ID != "" {
 		t.Fatalf("%+v", queryReview)
 	}
 }

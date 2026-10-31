@@ -161,7 +161,7 @@ func (s fsCardsStore) LoadCards(_ context.Context, o ...datatug.StoreOption) (da
 		}
 	}
 	sort.Slice(cards, func(i, j int) bool { return cards[i].ID < cards[j].ID })
-	return cards, nil
+	return filterVisibleProjectItems(s.projectDir, "card", "", cards, o...)
 }
 
 // SaveCard always writes the folder form. A flat file of the same card is
