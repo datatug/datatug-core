@@ -39,7 +39,7 @@ successful results before returning them; it provides no caching adapter.
 reject unknown fields, duplicate or case-folded duplicate keys, trailing input,
 and later-phase fields even when null or empty. Connection-read scopes require an
 explicit empty `requires` list. Exact-object read requests require
-`objects.exact`; request admission does not enable object-grant execution.
+`objects.exact`; request admission alone does not enable object-grant execution.
 Unknown required features are refused. Plain JSON unmarshalling is not wire
 admission.
 
@@ -49,15 +49,54 @@ admission.
 | --- | --- |
 | `Exists` | Checks authority around the typed read. |
 | `Get`, `GetMulti` | Stages data into fresh containers; publishes only after successful read and authority recheck. Supports non-nil maps, non-nil pointers and fixed-length slices. Nil, scalar, key-only or inaccessible targets are refused before dispatch. |
-| `ExecuteQueryToRecordsReader` | Accepts only DALgo's built-in, unqualified, single-root-collection key-query profile. Preserves query limit, offset and cursor; refuses aliases, parent collections, database/schema qualifiers, filters, joins, grouping, having, ordering, projections and source scan directives. Foreign or typed-nil query/from implementations are refused. |
+| `ExecuteQueryToRecordsReader` | Accepts only DALgo's built-in, unconditional, single-root-collection key-query profile. Default `SecureDB` accepts only unqualified sources without aliases. The explicit opt-in described below also accepts verified schema/name components and aliases. Both preserve limit, offset and cursor and refuse parent collections, database qualifiers, filters, joins, grouping, having, ordering, projections and source scan directives. Foreign or typed-nil query/from implementations are refused. |
 | `RunReadonlyTransaction` | Returns only a guarded read transaction and bounds its context and lifetime. Retained transaction handles cannot be used after `RunReadonlyTransaction` returns. |
 
-Standing posture `all` permits reads; posture `none` needs a matching, approved,
-unexpired connection-level `data.read` grant. Equivalent active connection read
-grants form a union: a shorter grant cannot shorten standing read authority or a
-longer grant. Agent subjects use the agent posture and cannot inherit human
-grants or execute with grants in this checkpoint. Resolutions containing
-unsupported object grants or mandatory fine-grained protection fail closed.
+Standing posture `all` permits the supported reads. Posture `none` needs an
+approved, unexpired `data.read` grant matching the operation. Point reads,
+transactions and retained-result capture/import/release require connection-wide
+authority; an exact-object grant cannot substitute for it. Active grants form a
+union: a shorter grant cannot shorten standing authority or a longer matching
+grant, and the existence of an object grant cannot narrow standing `all`. Agent
+subjects use the agent posture and cannot inherit human grants or execute with
+grants in this checkpoint. Unsupported grant fields and mandatory fine-grained
+protection fail closed.
+
+`SecureDBWithTableIdentity` is an optional trusted-host composition point for one
+actual opened database. It permits exact-object grants only for the frozen
+explicit-schema key-query profile, with database empty and schema/name matching
+byte-for-byte. Each operation compiles ordinary DALgo Root/TableScope read rules
+from the current posture and active-grant union; DALgo remains the evaluator.
+It uses DALgo's shared `ResourcesForQuery` mapping and checks table metadata
+before opaque kind, with no raw-query fallback. Bare names never acquire a
+namespace from a grant or a prefix. Different literal dots, quotes and case are
+different names, and Core never rewrites them.
+
+The optional `TableIdentityVerifier` supplies facts, never permissions. It must
+independently corroborate the exact opened handle, authenticated source binding
+and native execution identity. It must establish immutable source routing and
+identifier/compiler behavior across the complete database/reader lifetime, or
+pin an equivalent execution span. Before/after metadata samples alone cannot
+prove that a mutable pool did not change and change back. Native folding, quote
+interpretation, temporary-schema aliases, default search paths or unsupported
+configuration must refuse when byte-exact execution cannot be proved. A flag or
+catalog echo alone is insufficient. Logical name equality does not prove
+physical relation lineage across DDL replacement.
+
+Core permission candidacy and the original selected deadline precede any fact
+lookup. Denied Core authority, unlisted resources and unsupported profiles make
+no fact or adapter data calls. Additional restrictive DALgo context policies
+intersect before adapter data dispatch, but their denial may follow the trusted
+read-only identity-metadata lookup. The fact port receives scalar identity
+values and no grants or query payload; it must not mutate data or disclose
+secrets. Source/fact failures before or after I/O discard results and close held
+readers. Verifiers and resource requirements belong to one secured database and
+operation; none are installed globally on Authority.
+
+Missing or nil verifiers do not enable the profile, and default `SecureDB` stays
+closed to qualified execution. Synthetic verifier fixtures test composition and
+fences only. No production opener or native naming verifier is certified or
+wired by this checkpoint.
 
 All nine typed-write methods remain denied before adapter dispatch: `Set`,
 `SetMulti`, `Insert`, `InsertMulti`, `Update`, `UpdateRecord`, `UpdateMulti`,
@@ -68,9 +107,14 @@ core's database policy.
 
 The initial local deadline uses the interval from verified `ServerTime` to
 `ValidUntil`, capped at 60 seconds and, when grant authority is needed, the
-applicable grant expiry. The interval starts before resolution I/O, so that
+matching grant expiry. An unrelated surviving object grant cannot extend it.
+The interval starts before resolution I/O, so that
 latency consumes the budget. Transactions and readers retain their original
-deadline; a refresh cannot extend it.
+deadline; a refresh cannot extend it. Query readers retain exact mapped resource
+requirements and grant/protection digest identity, and reauthorize before and
+after each page or cursor release. Replacement or downscoped grants cannot
+renew an existing reader. Fact-port I/O holds no reader ownership lock, so Close,
+cancellation and expiry can close it while a lookup stalls.
 
 Point-read staging keeps newly fetched values out of caller-owned aliases when
 an adapter returns a partial error or authority expires or is revoked during
@@ -83,9 +127,11 @@ values, caches and snapshots still need their own integration and release checks
 ## Unsupported surfaces and claim limits
 
 The returned interface exposes no schema metadata, adapter/native capabilities,
-raw handle or read-write transaction opener. Object-grant execution, raw queries,
-recordset readers and complex structured queries are unsupported. Full standing
-policy/grant composition and production path coverage remain separate work.
+raw handle or read-write transaction opener. Object-only point operations,
+transactions and retained-result transport, raw queries, recordset readers and
+complex structured queries remain unsupported. The result wire is unchanged.
+Full standing policy/grant composition, native naming proof and production path
+coverage remain separate work.
 
 The tests prove shared authorization decisions across two recording
 implementations, including zero adapter calls for denied typed writes, and the
