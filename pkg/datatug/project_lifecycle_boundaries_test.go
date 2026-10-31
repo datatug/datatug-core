@@ -110,7 +110,7 @@ func TestLifecycleProtectsRetainedUseWithoutInventingAuditIdentityEdges(t *testi
 	}{
 		{name: "identity-only provenance", historical: true},
 		{name: "retained content", references: []ProjectObjectRef{target}, historical: true, deleteBlocked: true},
-		{name: "active use", references: []ProjectObjectRef{target}, archiveBlocked: true, deleteBlocked: true},
+		{name: "active use", references: []ProjectObjectRef{target}, deleteBlocked: true},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
 			snapshot := ProjectUsageSnapshot{Complete: true, Revision: "r", Objects: []ProjectObjectUsage{{Ref: target, ContentRevision: "q1"}, {Ref: ProjectObjectRef{Kind: "run", ID: "history"}, ContentRevision: "h1", Historical: scenario.historical, References: scenario.references}}}

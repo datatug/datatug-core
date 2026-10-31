@@ -11,13 +11,14 @@ type ProjectUsageItem struct {
 }
 
 type ProjectLifecycleReview struct {
-	Revision   string             `json:"revision"`
-	Complete   bool               `json:"complete"`
-	Target     ProjectUsageItem   `json:"target"`
-	Incoming   []ProjectUsageItem `json:"incoming"`
-	CanArchive bool               `json:"canArchive"`
-	CanDelete  bool               `json:"canDelete"`
-	CanRestore bool               `json:"canRestore"`
+	Revision         string             `json:"revision"`
+	Complete         bool               `json:"complete"`
+	ArchiveSupported bool               `json:"archiveSupported,omitempty"`
+	Target           ProjectUsageItem   `json:"target"`
+	Incoming         []ProjectUsageItem `json:"incoming"`
+	CanArchive       bool               `json:"canArchive"`
+	CanDelete        bool               `json:"canDelete"`
+	CanRestore       bool               `json:"canRestore"`
 }
 
 // ReviewProjectLifecycle does not authorize. A provider calls it only after

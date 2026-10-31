@@ -133,6 +133,10 @@ func (s fsQueriesStore) loadQueriesLocked(ctx context.Context, g queryLockGuard,
 		Items: make(datatug.QueryDefs, len(loaded)),
 	}
 	copy(folder.Items, loaded)
+	folder.Items, err = filterVisibleProjectItems(s.projectDir, "query", folderPath, folder.Items, o...)
+	if err != nil {
+		return nil, err
+	}
 	return folder, nil
 }
 

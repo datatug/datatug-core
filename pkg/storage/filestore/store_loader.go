@@ -17,6 +17,8 @@ type fileSystemLoader struct {
 	pathByID map[string]string
 }
 
+var projectVisibilityTreeFilter = filterVisibleQueryTree
+
 // LoadProject loads project
 func (s fsProjectStore) loadProjectUnlocked(ctx context.Context, o ...datatug.StoreOption) (*datatug.Project, error) {
 	opts := datatug.GetStoreOptions(o...)
@@ -78,6 +80,22 @@ func (s fsProjectStore) loadProjectUnlocked(ctx context.Context, o ...datatug.St
 		); err != nil {
 			err = fmt.Errorf("failed to load project by GetID=[%v]: %w", s.projectID, err)
 			return nil, err
+		}
+		if opts.ActiveItemsOnly() {
+			if err := projectVisibilityTreeFilter(s.projectPath, project.Queries, ""); err != nil {
+				return nil, err
+			}
+			active := make(map[string]bool, len(project.Environments))
+			for _, env := range project.Environments {
+				active[env.GetID()] = true
+			}
+			order := project.EnvironmentOrder[:0]
+			for _, id := range project.EnvironmentOrder {
+				if active[id] {
+					order = append(order, id)
+				}
+			}
+			project.EnvironmentOrder = order
 		}
 	}
 
