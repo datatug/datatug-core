@@ -222,8 +222,11 @@ func TestRetainedSessionSourcesOwnOrdinaryOutcomeAndExecutionContracts(t *testin
 						usage := datatug.ProjectUsageSnapshot{Complete: true, Revision: "test", Objects: objects}
 						for _, action := range []string{"archive", "delete"} {
 							_, err := datatug.PlanProjectLifecycle(usage, datatug.ProjectLifecycleWrite{OperationID: "protect-unknown", ExpectedRevision: usage.Revision, Change: datatug.ProjectLifecycleChange{Object: target, Action: action}})
-							if !errors.Is(err, datatug.ErrProjectObjectReferenced) {
-								t.Fatalf("uncertain execution allowed %s: %v", action, err)
+							if action == "delete" && !errors.Is(err, datatug.ErrProjectObjectReferenced) {
+								t.Fatalf("uncertain execution allowed deletion: %v", err)
+							}
+							if action == "archive" && err != nil {
+								t.Fatalf("visibility archive invalidated active execution: %v", err)
 							}
 						}
 						badPending := mutateRetainedContext(t, inventory, Sessions, "session", func(document *RetainedDocument) {
