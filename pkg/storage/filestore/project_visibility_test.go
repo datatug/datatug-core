@@ -219,3 +219,56 @@ func TestProjectFileVisibilityObjectLegacyDefinitions(t *testing.T) {
 		t.Fatal("SQL body recognized as separate definition")
 	}
 }
+
+func TestVisibilityUsesOwningQueryValidatorIdentity(t *testing.T) {
+	s, scope := visibilityFixture(t)
+	const filename = "query-validators/q-0123456789abcdef.json"
+	const definition = `{"queryId":"folder/query","version":1}`
+	if err := os.MkdirAll(filepath.Join(s.projectPath, "query-validators"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(s.projectPath, filename), []byte(definition), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if ref, ok := ProjectFileVisibilityObject(filename); ok {
+		t.Fatal("invented filename identity", ref)
+	}
+	ref := datatug.ProjectObjectRef{Kind: "query-validator", ID: "folder/query"}
+	s.visibilityItems = func(context.Context, datatug.ProjectLifecycleScope) ([]datatug.ProjectUsageItem, error) {
+		return []datatug.ProjectUsageItem{{Ref: ref, Title: ref.ID}}, nil
+	}
+	ctx := context.Background()
+	catalog, err := s.ListProjectLifecycle(ctx, scope, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	count := 0
+	for _, item := range catalog.Items {
+		if item.Ref.Kind == "query-validator" {
+			count++
+			if item.Ref != ref {
+				t.Fatal("phantom validator", item)
+			}
+		}
+	}
+	if count != 1 {
+		t.Fatal("missing owning validator", catalog)
+	}
+	_, err = s.ChangeProjectLifecycle(ctx, scope, datatug.ProjectLifecycleWrite{OperationID: "validator", ExpectedRevision: catalog.Revision, Change: datatug.ProjectLifecycleChange{Object: ref, Action: "archive"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	active, err := s.ListProjectLifecycle(ctx, scope, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range active.Items {
+		if item.Ref == ref {
+			t.Fatal("archived validator in active catalog")
+		}
+	}
+	body, err := os.ReadFile(filepath.Join(s.projectPath, filename))
+	if err != nil || string(body) != definition {
+		t.Fatal("archive changed owning validator bytes", err)
+	}
+}

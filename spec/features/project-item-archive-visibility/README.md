@@ -25,6 +25,8 @@ Providers authorize the current actor and project scope. A visibility catalog ca
 
 The filesystem provider stores a bounded project visibility sidecar atomically with a durable operation receipt. Archive/restore require a current catalog revision; replay binds the actor, complete provider scope and request digest. Replaying an old Archive after a later Restore returns its original receipt without changing restored visibility. Current runtime targets can be supplied through an actor-aware callback, invoked outside filesystem locks so normal project readers remain safe. The callback does not establish a deletion proof.
 
+Runtime definitions whose physical filenames are hashes are enumerated by the owning typed inventory callback using their canonical object ID; the generic path scanner must not invent an identity from that filename.
+
 User-facing APIs opt into `ActiveItemsOnly`. Internal/default loaders and direct object reads retain archived definitions for reference and execution resolution. Source files and retained execution history are not rewritten or removed by archive.
 
 ## Acceptance Criteria

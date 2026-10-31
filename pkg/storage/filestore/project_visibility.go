@@ -78,6 +78,8 @@ func ReadProjectArchivedItems(root string) (map[datatug.ProjectObjectRef]bool, e
 
 // ProjectFileVisibilityObject recognizes definition layouts, never execution-history
 // records. IDs are derived from project-relative layouts, not client paths.
+// Runtime records with hashed filenames (such as query validators) must come
+// from the owning typed inventory callback, which supplies canonical identities.
 func ProjectFileVisibilityObject(rel string) (datatug.ProjectObjectRef, bool) {
 	parts := strings.Split(filepath.ToSlash(rel), "/")
 	if len(parts) < 2 {
@@ -87,7 +89,7 @@ func ProjectFileVisibilityObject(rel string) (datatug.ProjectObjectRef, bool) {
 		ref := datatug.ProjectObjectRef{Kind: "server", ID: parts[1] + "/" + strings.TrimSuffix(parts[2], ".dbserver.json")}
 		return ref, ref.Validate() == nil
 	}
-	kinds := map[string]string{"queries": "query", "boards": "board", "cards": "card", "entities": "entity", "environments": "environment", "checks": "check", "validators": "validator", "query-validators": "query-validator", "scenarios": "scenario", "dbmodels": "data-model", "data-models": "data-model", "servers": "server", "dbservers": "server"}
+	kinds := map[string]string{"queries": "query", "boards": "board", "cards": "card", "entities": "entity", "environments": "environment", "checks": "check", "validators": "validator", "scenarios": "scenario", "dbmodels": "data-model", "data-models": "data-model", "servers": "server", "dbservers": "server"}
 	kind := kinds[parts[0]]
 	if kind == "" {
 		return datatug.ProjectObjectRef{}, false
@@ -176,7 +178,7 @@ func (s fsProjectStore) visibilityCatalog(ctx context.Context, extra []datatug.P
 			}
 			if len(strings.Split(filepath.ToSlash(rel), "/")) == 1 {
 				switch first {
-				case "queries", "boards", "cards", "entities", "environments", "checks", "validators", "query-validators", "scenarios", "dbmodels", "data-models", "servers", "dbservers", "dbs", "connections":
+				case "queries", "boards", "cards", "entities", "environments", "checks", "validators", "scenarios", "dbmodels", "data-models", "servers", "dbservers", "dbs", "connections":
 				default:
 					return filepath.SkipDir
 				}
