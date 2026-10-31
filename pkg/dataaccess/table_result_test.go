@@ -112,3 +112,29 @@ func TestTableResultOriginalRequestAndCredentialCeilings(t *testing.T) {
 	require.Zero(t, out.Len())
 	assertResultPurged(t, r)
 }
+
+func TestTableResultEscapedUnicodeRejectedAcrossWireFields(t *testing.T) {
+	env, _, _ := previewEnvelope(t)
+	data, err := json.Marshal(env)
+	require.NoError(t, err)
+	for _, unit := range []string{`\ud800`, `\udc00`, `\ud800x`} {
+		for name, pair := range map[string][2]string{
+			"operation-name":      {`"name":"Customer"`, `"name":"` + unit + `"`},
+			"operation-namespace": {`"namespace":"sales"`, `"namespace":"` + unit + `"`},
+			"column":              {`"columns":["id"]`, `"columns":["` + unit + `"]`},
+			"cell":                {`"rows":[[1]]`, `"rows":[["` + unit + `"]]`},
+		} {
+			t.Run(name+unit, func(t *testing.T) {
+				changed := bytes.Replace(data, []byte(pair[0]), []byte(pair[1]), 1)
+				require.NotEqual(t, data, changed)
+				_, err := DecodeTableResultEnvelope(changed)
+				require.Error(t, err)
+			})
+		}
+	}
+	for _, pair := range [][2]string{{`"name":"Customer"`, `"name":"\ud834\udd1e"`}, {`"columns":["id"]`, `"columns":["\ud834\udd1e"]`}} {
+		valid := bytes.Replace(data, []byte(pair[0]), []byte(pair[1]), 1)
+		_, err := DecodeTableResultEnvelope(valid)
+		require.NoError(t, err, "valid escaped surrogate pairs remain valid Unicode")
+	}
+}

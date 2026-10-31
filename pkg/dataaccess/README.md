@@ -124,6 +124,14 @@ without waiting for their operation lock, including when an operation is blocked
 Consumers must close readers when finished. Already delivered application
 values, caches and snapshots still need their own integration and release checks.
 
+Result release makes a detached output copy and performs its last local
+authorization/deadline check immediately before handoff to the output operation.
+That authorized in-flight copy cannot be recalled by later cancellation or
+revocation. It stays intact while the writer consumes it and is cleared when
+Write returns. Writers must not retain or modify the buffer. Output serialization
+has its own mutex: a blocked writer cannot prevent Close, private retained-byte
+purge, expiry or native-span cleanup. No ownership mutex spans output I/O.
+
 ## Unsupported surfaces and claim limits
 
 `ReadTableResult` is a separate, explicit programmatic table-data profile. Core

@@ -8,7 +8,6 @@ import (
 	"io"
 	"reflect"
 	"time"
-	"unicode/utf8"
 
 	"github.com/datatug/datatug-core/internal/jsonstrict"
 )
@@ -29,8 +28,8 @@ type TableResultEnvelope struct {
 // tableDecode reuses Core's duplicate/case-folded-key checker, preserving exact
 // integer tokens. Do not change v1's decoder or decode record cells to float64.
 func tableDecode(data []byte, target any) error {
-	if !utf8.Valid(data) {
-		return fmt.Errorf("dataaccess: invalid table JSON text")
+	if err := jsonstrict.ValidateUnicode(data); err != nil {
+		return err
 	}
 	if err := jsonstrict.CheckNoDuplicateKeysFor(data, reflect.TypeOf(target)); err != nil {
 		return err
