@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/dal-go/dalgo/access"
 	"github.com/dal-go/dalgo/dal"
 	"github.com/dal-go/dalgo/recordset"
 	"github.com/dal-go/record"
@@ -13,23 +14,29 @@ import (
 )
 
 type guardedSession struct {
-	authority *Authority
-	read      dal.ReadSession
-	write     dal.WriteSession
-	bound     *lease
-	lifetime  context.Context
+	authority        *Authority
+	read             dal.ReadSession
+	write            dal.WriteSession
+	bound            *lease
+	lifetime         context.Context
+	identityDB       dal.DB
+	identityVerifier TableIdentityVerifier
 }
 
 func (s guardedSession) prepare(ctx context.Context) (context.Context, *lease, context.CancelFunc, error) {
+	return s.prepareRequest(ctx, nil)
+}
+
+func (s guardedSession) prepareRequest(ctx context.Context, request *access.Request) (context.Context, *lease, context.CancelFunc, error) {
 	if s.lifetime == nil {
-		return s.authority.prepare(ctx, s.bound)
+		return s.authority.prepareRequest(ctx, s.bound, request)
 	}
 	if err := s.lifetime.Err(); err != nil {
 		return nil, nil, nil, err
 	}
 	merged, cancelLifetime := context.WithCancel(ctx)
 	stop := context.AfterFunc(s.lifetime, cancelLifetime)
-	prepared, authorization, cancel, err := s.authority.prepare(merged, s.bound)
+	prepared, authorization, cancel, err := s.authority.prepareRequest(merged, s.bound, request)
 	if err != nil {
 		stop()
 		cancelLifetime()
@@ -166,6 +173,10 @@ var (
 // Rebuilding it freezes source/shape before authorization and prevents mutable
 // custom StructuredQuery implementations changing the dispatched operation.
 func freezeKeysQuery(query dal.Query) (dal.Query, bool) {
+	return freezeNamedKeysQuery(query, false)
+}
+
+func freezeNamedKeysQuery(query dal.Query, allowQualified bool) (dal.Query, bool) {
 	if reflect.TypeOf(query) != keysQueryType {
 		return nil, false
 	}
@@ -177,12 +188,20 @@ func freezeKeysQuery(query dal.Query) (dal.Query, bool) {
 		return nil, false
 	}
 	source, ok := structured.From().Base().(dal.CollectionRef)
-	if !ok || source.Database() != "" || source.Schema() != "" || source.Parent() != nil ||
-		!canonical(source.Name()) || strings.ContainsAny(source.Name(), ".*?[]") || source.Alias() != "" ||
+	if !ok || source.Database() != "" || source.Parent() != nil ||
+		(source.Schema() != "" && !allowQualified) ||
+		(source.Schema() != "" && (!canonical(source.Schema()) || strings.ContainsAny(source.Schema(), "*?[]"))) ||
+		!canonical(source.Name()) || strings.ContainsAny(source.Name(), "*?[]") ||
+		(source.Schema() == "" && (strings.Contains(source.Name(), ".") || source.Alias() != "")) ||
+		(source.Alias() != "" && !canonical(source.Alias())) ||
 		source.ScanLimit() != 0 || len(source.ScanOrders()) != 0 {
 		return nil, false
 	}
-	builder := dal.From(dal.NewRootCollectionRef(source.Name(), "")).NewQuery().
+	frozenSource := dal.NewRootCollectionRef(source.Name(), "")
+	if source.Schema() != "" {
+		frozenSource = dal.NewQualifiedRootCollectionRef(source.Schema(), source.Name(), source.Alias())
+	}
+	builder := dal.From(frozenSource).NewQuery().
 		Limit(structured.Limit()).Offset(structured.Offset())
 	if structured.StartFrom() != "" {
 		builder.StartFrom(structured.StartFrom())
@@ -193,20 +212,50 @@ func freezeKeysQuery(query dal.Query) (dal.Query, bool) {
 }
 
 func (s guardedSession) ExecuteQueryToRecordsReader(ctx context.Context, query dal.Query) (dal.RecordsReader, error) {
-	query, supported := freezeKeysQuery(query)
+	query, supported := freezeNamedKeysQuery(query, s.identityVerifier != nil)
 	if !supported {
 		return nil, s.authority.denial(QueryTugQL, "ACL_ENFORCEMENT_UNSUPPORTED")
 	}
-	ctx, authorization, cancel, err := s.prepare(ctx)
+	request := &access.Request{Operation: access.Query, Resources: access.ResourcesForQuery(query)}
+	ctx, authorization, cancel, err := s.prepareRequest(ctx, request)
 	if err != nil {
 		return nil, err
+	}
+	// Permission candidacy and its original ceiling precede any fact-port I/O.
+	if table, explicit := request.Resources[0].Table(); explicit {
+		authorization.identity = &tableIdentityBinding{db: s.identityDB, verifier: s.identityVerifier, request: TableIdentityRequest{Connection: s.authority.request.Connection, Table: table}}
+		if err := authorization.identity.verify(ctx); err != nil {
+			cancel()
+			return nil, s.authority.denial(DataRead, "TABLE_IDENTITY_UNVERIFIED")
+		}
+		if err := s.authority.check(ctx, authorization); err != nil {
+			cancel()
+			return nil, err
+		}
 	}
 	reader, err := s.read.ExecuteQueryToRecordsReader(ctx, query)
 	if err != nil {
 		cancel()
+		// Providers may allocate a partial handle before failing. Core owns
+		// that handle even on error; cleanup must not replace the open error.
+		if !isNilValue(reader) {
+			_ = reader.Close()
+		}
 		return nil, err
 	}
-	return newRecordsReader(s.authority, ctx, authorization, cancel, reader), nil
+	if isNilValue(reader) {
+		cancel()
+		return nil, s.authority.denial(QueryTugQL, "ACL_ENFORCEMENT_UNSUPPORTED")
+	}
+	// Own the opened reader before post-I/O authority/fact resolution. Its
+	// lifetime watcher and monotonic ceiling hook can close it while that
+	// resolution stalls, even though no reader has escaped to the caller.
+	guarded := newRecordsReader(s.authority, ctx, authorization, cancel, reader)
+	if err := s.authority.recheckWithCeiling(ctx, authorization, guarded.tightenCeiling); err != nil {
+		guarded.terminate(err)
+		return nil, err
+	}
+	return guarded, nil
 }
 
 func (s guardedSession) ExecuteQueryToRecordsetReader(context.Context, dal.Query, ...recordset.Option) (dal.RecordsetReader, error) {

@@ -3,6 +3,7 @@ package dataaccess
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/dal-go/dalgo/dal"
 	"github.com/dal-go/record"
@@ -17,6 +18,7 @@ type recordsReader struct {
 	cancel    context.CancelFunc
 	reader    dal.RecordsReader
 	stop      func() bool
+	timer     *time.Timer // retains any freshly shortened ceiling between pages
 	closed    bool
 	terminal  error
 	closeErr  error
@@ -37,6 +39,9 @@ func newRecordsReader(authority *Authority, ctx context.Context, bound *lease, c
 // failure remains the primary error returned by the operation that failed.
 func (r *recordsReader) terminate(terminal error) {
 	r.mu.Lock()
+	if r.timer != nil {
+		r.timer.Stop()
+	}
 	if !r.closed {
 		r.closed = true
 		r.terminal = terminal
@@ -71,18 +76,44 @@ func (r *recordsReader) stateError() error {
 	return nil
 }
 
+// Snapshot immutable lease pointers briefly; resolution and naming I/O never
+// hold the ownership lock used by Close and deadline cancellation.
+func (r *recordsReader) boundSnapshot() *lease {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.bound
+}
+
+func (r *recordsReader) tightenCeiling(authorization *lease) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if !r.closed && authorization.deadline.Before(r.bound.deadline) {
+		r.bound = authorization
+		// Next/Cursor have no context argument. Retain a shorter ceiling even
+		// while fact/native I/O stalls or no later page is requested.
+		if r.timer == nil {
+			r.timer = time.AfterFunc(time.Until(authorization.deadline), func() { r.terminate(r.authority.denial(DataRead, "AUTHORIZATION_EXPIRED")) })
+		} else {
+			r.timer.Reset(time.Until(authorization.deadline))
+		}
+	}
+}
+
 func (r *recordsReader) release(operation func() error) error {
 	r.operation.Lock()
 	defer r.operation.Unlock()
 	if err := r.stateError(); err != nil {
 		return err
 	}
-	ctx, authorization, cancel, err := r.authority.prepare(r.ctx, r.bound)
+	ctx, authorization, cancel, err := r.authority.prepareWithCeiling(r.ctx, r.boundSnapshot(), nil, r.tightenCeiling)
 	if err == nil {
 		defer cancel()
-		err = operation()
+		err = r.stateError()
 		if err == nil {
-			err = r.authority.recheck(ctx, authorization)
+			err = operation()
+		}
+		if err == nil {
+			err = r.authority.recheckWithCeiling(ctx, authorization, r.tightenCeiling)
 		}
 	}
 	if err != nil {

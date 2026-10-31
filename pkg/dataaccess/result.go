@@ -161,6 +161,8 @@ func clampContext(ctx context.Context, authorization *lease) {
 // database for this Authority and transfer ownership of the complete serialized
 // JSON payload buffer (Core clears it, including on read/validation failure).
 // The first resolve precedes I/O, and neither I/O nor later release renews it.
+// This transport checkpoint requires connection-wide read authority; object-only
+// results require a separately reviewed resource-bound transport contract.
 func (a *Authority) CaptureResult(ctx context.Context, request ResultRequest, read func(context.Context) ([]byte, error)) (*Result, error) {
 	if a == nil || a.resolve == nil || !request.valid() || read == nil {
 		return nil, fmt.Errorf("dataaccess: result authority, request and reader required")
@@ -197,6 +199,7 @@ func (a *Authority) CaptureResult(ctx context.Context, request ResultRequest, re
 // pins the actual source identity from that trusted transport before constructing
 // Authority. requestStarted MUST be captured before the HTTP request. The caller
 // must bound ctx by the verified ORIGINAL credential deadline, not its refresh.
+// Object grants never substitute for current connection-wide result authority.
 // Ownership of envelope.Payload transfers to Core; it is cleared on every path
 // and immediately after compaction, before any authority network I/O.
 func (a *Authority) ImportResult(ctx context.Context, request ResultRequest, requestStarted time.Time, envelope ResultEnvelope) (*Result, error) {

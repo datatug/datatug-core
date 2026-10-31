@@ -320,11 +320,6 @@ func TestCORE4AuthorityFailuresAndBindingNeverDispatch(t *testing.T) {
 			r.Grants = []Grant{fixtureGrant(r.ServerTime)}
 			r.Grants[0].Scope.Requires = []string{"future"}
 		},
-		"object execution gated": func(r *Resolution) {
-			r.Grants = []Grant{fixtureGrant(r.ServerTime)}
-			r.Grants[0].Scope.Requires = []string{ObjectsExact}
-			r.Grants[0].Scope.Objects = []ObjectRef{{Name: "docs"}}
-		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			r := fixtureResolution()

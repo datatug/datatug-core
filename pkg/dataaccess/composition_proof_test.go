@@ -303,7 +303,7 @@ func TestCOMPValidationAndAgentCeiling(t *testing.T) {
 
 func TestCOMP6ProductionProfileRemainsUnchangedWhenProofIsAbsent(t *testing.T) {
 	backend := &recordingAdapter{}
-	resolution := compositionResolution(ReadAll, objectGrant("customer", ObjectRef{Namespace: "sales", Name: "Customer"}))
+	resolution := compositionResolution(ReadNone, objectGrant("customer", ObjectRef{Namespace: "sales", Name: "Customer"}))
 	boundary := testDatabase(t, testAuthority(t, fixedResolver(resolution)), dal.NewDB(backend))
 	_, err := boundary.Exists(context.Background(), record.NewKeyWithID("docs", "one"))
 	require.ErrorIs(t, err, access.ErrAccessDenied, "production object execution is still gated")

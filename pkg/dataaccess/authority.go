@@ -56,7 +56,9 @@ func NewAuthority(subject Subject, connection ConnectionRef, resolve Resolver) (
 // underlying handle, or read-write transaction opener. Those surfaces require
 // separate integration proof. Typed writes remain callable only to return a
 // DALgo policy denial before dispatch. Recordset queries are refused; the query
-// profile currently supports only unqualified, single-source key enumeration.
+// profile supports only frozen, unconditional single-source key enumeration,
+// with an explicit schema required for exact-object grants. Object-only retained
+// result transport and transactions remain unavailable at this checkpoint.
 // Point reads stage maps, non-nil pointers and fixed-length slices; nil, scalar
 // or inaccessible targets are refused before dispatch.
 // This additive boundary is a Task 4 checkpoint, not whole-task integration.
@@ -69,6 +71,10 @@ type Database interface {
 // corresponds to the resolved ConnectionRef. Only the secured interface leaves
 // it. Production opener wiring and its architecture ratchet are later work.
 func (a *Authority) SecureDB(db dal.DB) (Database, error) {
+	return a.secureDB(db, nil)
+}
+
+func (a *Authority) secureDB(db dal.DB, verifier TableIdentityVerifier) (Database, error) {
 	if a == nil || a.resolve == nil {
 		return nil, fmt.Errorf("dataaccess: authority is required")
 	}
@@ -82,7 +88,7 @@ func (a *Authority) SecureDB(db dal.DB) (Database, error) {
 	if writer == nil {
 		writer = access.SecureWriteSession(nil, readPolicy)
 	}
-	session := guardedSession{authority: a, read: secured, write: writer}
+	session := guardedSession{authority: a, read: secured, write: writer, identityDB: db, identityVerifier: verifier}
 	return &database{guardedSession: session, secured: secured}, nil
 }
 
@@ -92,6 +98,8 @@ type lease struct {
 	serverTime time.Time
 	digest     string
 	policy     access.Policy
+	request    *access.Request       // immutable DALgo-mapped resources of a frozen operation
+	identity   *tableIdentityBinding // immutable host fact binding for this operation only
 }
 
 type authorizationKey struct{}
@@ -120,6 +128,10 @@ func (a *Authority) denial(capability Permission, code string) error {
 // authorize deliberately resolves on each operation/page at this checkpoint.
 // It retains no caller-mutable grant, permission, policy or subject slices.
 func (a *Authority) authorize(ctx context.Context) (*lease, error) {
+	return a.authorizeRequest(ctx, nil)
+}
+
+func (a *Authority) authorizeRequest(ctx context.Context, request *access.Request) (*lease, error) {
 	started := a.now()
 	resolution, err := a.resolve(ctx, a.request)
 	if err != nil {
@@ -137,28 +149,20 @@ func (a *Authority) authorize(ctx context.Context) (*lease, error) {
 		resolution.Protection.MandatoryFineGrained {
 		return nil, a.denial(DataRead, "AUTHORITY_UNSUPPORTED")
 	}
-	ttl := min(resolution.ValidUntil.Sub(resolution.ServerTime), time.Minute)
-	allowed := resolution.Protection.ReadPosture == ReadAll
-	var grantTTL time.Duration
 	for _, grant := range resolution.Grants {
-		if err := grant.ValidateMVP(); err != nil || len(grant.Scope.Objects) != 0 {
+		if err := grant.ValidateMVP(); err != nil {
 			return nil, unsupported(a.request.Connection.ID)
 		}
 		if grant.Subject != a.request.Subject || grant.Scope.Connection != a.request.Connection.ID || a.request.Subject.Kind == Agent {
 			return nil, a.denial(DataRead, "BINDING_MISMATCH")
 		}
-		if grant.State == Approved && grant.ExpiresAt.After(resolution.ServerTime) {
-			grantTTL = max(grantTTL, grant.ExpiresAt.Sub(resolution.ServerTime))
-		}
-	}
-	if !allowed && grantTTL > 0 {
-		allowed = true
-		ttl = min(ttl, grantTTL)
 	}
 	if a.request.Subject.Kind == Agent && resolution.Protection.AgentRead == AgentNone {
-		allowed = false
+		return nil, a.denial(DataRead, "READ_DENIED")
 	}
-	if !allowed {
+	policy := newOperationReadPolicy(resolution, started, a.now)
+	deadline, err := policy.deadlineFor(request)
+	if err != nil {
 		return nil, a.denial(DataRead, "READ_DENIED")
 	}
 	// Starting the interval before the network call subtracts its whole latency.
@@ -167,7 +171,7 @@ func (a *Authority) authorize(ctx context.Context) (*lease, error) {
 	if err != nil {
 		return nil, a.denial(DataRead, "AUTHORITY_UNSUPPORTED")
 	}
-	return &lease{deadline: started.Add(ttl), started: started, serverTime: resolution.ServerTime, digest: digest, policy: readPolicy}, nil
+	return &lease{deadline: deadline, started: started, serverTime: resolution.ServerTime, digest: digest, policy: policy, request: copyReadRequest(request)}, nil
 }
 
 func (a *Authority) check(ctx context.Context, authorization *lease) error {
@@ -178,6 +182,16 @@ func (a *Authority) check(ctx context.Context, authorization *lease) error {
 }
 
 func (a *Authority) prepare(ctx context.Context, bound *lease) (context.Context, *lease, context.CancelFunc, error) {
+	return a.prepareRequest(ctx, bound, nil)
+}
+
+func (a *Authority) prepareRequest(ctx context.Context, bound *lease, request *access.Request) (context.Context, *lease, context.CancelFunc, error) {
+	return a.prepareWithCeiling(ctx, bound, request, nil)
+}
+
+// onCeiling is an internal reader-lifetime hook, invoked before fact I/O and
+// without an ownership lock. It may only shorten that reader's local lifetime.
+func (a *Authority) prepareWithCeiling(ctx context.Context, bound *lease, request *access.Request, onCeiling func(*lease)) (context.Context, *lease, context.CancelFunc, error) {
 	if bound != nil {
 		if err := a.check(ctx, bound); err != nil {
 			return nil, nil, nil, err
@@ -186,9 +200,15 @@ func (a *Authority) prepare(ctx context.Context, bound *lease) (context.Context,
 	if err := ctx.Err(); err != nil {
 		return nil, nil, nil, err
 	}
-	authorization, err := a.authorize(ctx)
+	if request == nil && bound != nil {
+		request = bound.request
+	}
+	authorization, err := a.authorizeRequest(ctx, request)
 	if err != nil {
 		return nil, nil, nil, err
+	}
+	if bound != nil && bound.request != nil && bound.digest != authorization.digest {
+		return nil, nil, nil, a.denial(DataRead, "AUTHORIZATION_CHANGED")
 	}
 	if bound != nil && bound.deadline.Before(authorization.deadline) {
 		authorization.deadline = bound.deadline
@@ -196,14 +216,38 @@ func (a *Authority) prepare(ctx context.Context, bound *lease) (context.Context,
 	if err := a.check(ctx, authorization); err != nil {
 		return nil, nil, nil, err
 	}
+	if bound != nil {
+		authorization.identity = bound.identity
+	}
 	ctx, cancel := context.WithDeadline(ctx, authorization.deadline)
+	if onCeiling != nil {
+		onCeiling(authorization)
+		if err := a.check(ctx, authorization); err != nil {
+			cancel()
+			return nil, nil, nil, err
+		}
+	}
+	if authorization.identity != nil {
+		if err := authorization.identity.verify(ctx); err != nil {
+			cancel()
+			return nil, nil, nil, a.denial(DataRead, "TABLE_IDENTITY_UNVERIFIED")
+		}
+		if err := a.check(ctx, authorization); err != nil {
+			cancel()
+			return nil, nil, nil, err
+		}
+	}
 	ctx = context.WithValue(ctx, authorizationKey{}, authorization)
 	ctx = access.WithPolicy(ctx, authorization.policy)
 	return ctx, authorization, cancel, nil
 }
 
 func (a *Authority) recheck(ctx context.Context, bound *lease) error {
-	_, _, cancel, err := a.prepare(ctx, bound)
+	return a.recheckWithCeiling(ctx, bound, nil)
+}
+
+func (a *Authority) recheckWithCeiling(ctx context.Context, bound *lease, onCeiling func(*lease)) error {
+	_, _, cancel, err := a.prepareWithCeiling(ctx, bound, nil, onCeiling)
 	if err == nil {
 		cancel()
 	}

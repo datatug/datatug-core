@@ -42,7 +42,8 @@ func (s Subject) Validate() error {
 }
 
 // ValidateMVP admits connection reads and exact-object read requests. Execution
-// of object grants remains gated until generic scope composition is proven.
+// of object grants requires a separately proven profile; admission alone never
+// enables it. SecureDBWithTableIdentity provides one bounded opt-in profile.
 // All not-yet-supported fields and unknown required features fail closed.
 func (s GrantScope) ValidateMVP(permissions []Permission) error {
 	if !canonical(s.Connection) || len(permissions) != 1 || permissions[0] != DataRead ||
