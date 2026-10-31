@@ -224,7 +224,7 @@ func (s fsProjectStore) visibilityCatalog(ctx context.Context, extra []datatug.P
 			return nil
 		}
 		if recognized {
-			if ref.Kind == "query" {
+			if ref.Kind == "query" || ref.Kind == "query-folder" {
 				for at := strings.LastIndex(ref.ID, "/"); at >= 0; at = strings.LastIndex(ref.ID[:at], "/") {
 					id := ref.ID[:at]
 					folder := datatug.ProjectObjectRef{Kind: "query-folder", ID: id}

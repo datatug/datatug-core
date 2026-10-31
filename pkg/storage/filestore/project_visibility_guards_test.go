@@ -370,3 +370,79 @@ func TestVisibilityFullProjectProjection(t *testing.T) {
 		t.Fatal("query projection corruption swallowed")
 	}
 }
+
+func TestVisibilityLegacyFoldersAndNativeServers(t *testing.T) {
+	s, scope := visibilityFixture(t)
+	ctx := context.Background()
+	writeVisibilityFixture(t, s.projectPath, "queries/legacy/deeper/old.sql.json", `{"title":"Old SQL"}`)
+	writeVisibilityFixture(t, s.projectPath, "queries/empty-parent/empty-child/.datatug-query-folder.json", `{"version":1,"name":"empty-child"}`)
+	writeVisibilityFixture(t, s.projectPath, "boards/a/x/x.board.json", `{"title":"Phantom"}`)
+	server := plainWriteDbServer()
+	servers := newFsProjDbServersStore(s.projectPath, filepath.Join(s.projectPath, "dbs"), "mysql")
+	if err := servers.SaveProjDbServer(ctx, server); err != nil {
+		t.Fatal(err)
+	}
+	cat, err := s.ListProjectLifecycle(ctx, scope, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := map[datatug.ProjectObjectRef]bool{}
+	for _, item := range cat.Items {
+		seen[item.Ref] = true
+	}
+	for _, ref := range []datatug.ProjectObjectRef{{Kind: "query-folder", ID: "legacy"}, {Kind: "query-folder", ID: "legacy/deeper"}, {Kind: "query-folder", ID: "empty-parent"}, {Kind: "query-folder", ID: "empty-parent/empty-child"}, {Kind: "server", ID: "mysql/" + server.ID}} {
+		if !seen[ref] {
+			t.Fatalf("missing %+v in %+v", ref, cat)
+		}
+	}
+	if seen[datatug.ProjectObjectRef{Kind: "board", ID: "x"}] {
+		t.Fatal("phantom board admitted")
+	}
+	ref := datatug.ProjectObjectRef{Kind: "server", ID: "mysql/" + server.ID}
+	_, err = s.ChangeProjectLifecycle(ctx, scope, datatug.ProjectLifecycleWrite{OperationID: "server", ExpectedRevision: cat.Revision, Change: datatug.ProjectLifecycleChange{Object: ref, Action: "archive"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	active, err := servers.LoadProjDbServers(ctx, datatug.ActiveItemsOnly())
+	if err != nil || len(active) != 0 {
+		t.Fatal(active, err)
+	}
+	all, err := servers.LoadProjDbServers(ctx)
+	if err != nil || len(all) != 1 {
+		t.Fatal(all, err)
+	}
+	if _, err = servers.LoadProjDbServer(ctx, server.ID); err != nil {
+		t.Fatal("archive broke server read", err)
+	}
+	writeVisibilityFixture(t, s.projectPath, "dbs/mysql/bad.dbserver.json", "{")
+	if _, err = servers.LoadProjDbServers(ctx, datatug.ActiveItemsOnly()); err == nil {
+		t.Fatal("bad server swallowed")
+	}
+}
+
+func TestVisibilityFolderInventoryLimit(t *testing.T) {
+	s, _ := visibilityFixture(t)
+	originalWalk, originalRead := visibilityWalk, visibilityRead
+	t.Cleanup(func() { visibilityWalk, visibilityRead = originalWalk, originalRead })
+	info, err := os.Stat(filepath.Join(s.projectPath, "queries/q.query.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry := fs.FileInfoToDirEntry(info)
+	visibilityRead = func(string, int64, *queryReadBudget) ([]byte, bool, error) { return []byte(`{}`), true, nil }
+	visibilityWalk = func(root string, fn fs.WalkDirFunc) error {
+		for i := 0; i < 10001; i++ {
+			p := fmt.Sprintf("queries/q%d.query.json", i)
+			if i == 10000 {
+				p = "queries/overflow/q.query.json"
+			}
+			if e := fn(filepath.Join(root, p), entry, nil); e != nil {
+				return e
+			}
+		}
+		return nil
+	}
+	if _, err = s.visibilityCatalog(context.Background(), nil); !errors.Is(err, datatug.ErrProjectUsageIncomplete) {
+		t.Fatal("folder budget not enforced", err)
+	}
+}
