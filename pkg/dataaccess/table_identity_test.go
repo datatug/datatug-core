@@ -350,11 +350,12 @@ func TestTableIdentityInitialLateFactsNeverDispatch(t *testing.T) {
 				deadline, ok := factCtx.Deadline()
 				require.True(t, ok)
 				require.WithinDuration(t, time.Now().Add(20*time.Second), deadline, time.Second)
-				if mode == "cancel" {
+				switch mode {
+				case "cancel":
 					cancel()
-				} else if mode == "deadline" {
+				case "deadline":
 					return TableIdentityFacts{}, context.DeadlineExceeded
-				} else {
+				default:
 					ticks.Add(int64(time.Minute))
 				}
 				return facts.VerifyTableIdentity(factCtx, actual, request)
