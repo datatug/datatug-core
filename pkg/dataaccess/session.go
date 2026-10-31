@@ -238,12 +238,15 @@ func (s guardedSession) ExecuteQueryToRecordsReader(ctx context.Context, query d
 		cancel()
 		return nil, err
 	}
-	if err := s.authority.recheck(ctx, authorization); err != nil {
-		cancel()
-		_ = reader.Close()
+	// Own the opened reader before post-I/O authority/fact resolution. Its
+	// lifetime watcher and monotonic ceiling hook can close it while that
+	// resolution stalls, even though no reader has escaped to the caller.
+	guarded := newRecordsReader(s.authority, ctx, authorization, cancel, reader)
+	if err := s.authority.recheckWithCeiling(ctx, authorization, guarded.tightenCeiling); err != nil {
+		guarded.terminate(err)
 		return nil, err
 	}
-	return newRecordsReader(s.authority, ctx, authorization, cancel, reader), nil
+	return guarded, nil
 }
 
 func (s guardedSession) ExecuteQueryToRecordsetReader(context.Context, dal.Query, ...recordset.Option) (dal.RecordsetReader, error) {

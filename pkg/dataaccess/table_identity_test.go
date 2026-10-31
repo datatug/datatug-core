@@ -610,3 +610,73 @@ func TestReaderCeilingHookCancellationPrecedesNaming(t *testing.T) {
 	_, _, _, err := a.prepareWithCeiling(ctx, nil, operationRequest(operationQuery("sales", "Customer", "")), func(*lease) { cancel() })
 	require.ErrorIs(t, err, context.Canceled)
 }
+
+func TestTableIdentityPostOpenStallOwnsAndClosesUnpublishedReader(t *testing.T) {
+	for _, mode := range []string{"shorter-expiry", "cancel"} {
+		t.Run(mode, func(t *testing.T) {
+			r := qualifiedResolution()
+			var resolutions atomic.Int64
+			a := testAuthority(t, func(context.Context, ResolveRequest) (Resolution, error) {
+				fresh := r
+				fresh.ServerTime = time.Now()
+				if resolutions.Add(1) > 1 && mode == "shorter-expiry" {
+					fresh.ValidUntil = fresh.ServerTime.Add(100 * time.Millisecond)
+				}
+				return fresh, nil
+			})
+			nativeReader := &testReader{closed: make(chan struct{})}
+			raw := dal.NewDB(&recordingAdapter{reader: nativeReader})
+			facts := newIdentityFixture(raw)
+			entered, unblock := make(chan context.Context, 1), make(chan struct{})
+			var lookups atomic.Int64
+			verifier := tableIdentityFunc(func(ctx context.Context, actual dal.DB, request TableIdentityRequest) (TableIdentityFacts, error) {
+				if lookups.Add(1) == 2 {
+					entered <- ctx
+					<-unblock
+				}
+				return facts.VerifyTableIdentity(ctx, actual, request)
+			})
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			db := identityDatabase(t, a, raw, verifier)
+			done := make(chan error, 1)
+			go func() {
+				reader, err := db.ExecuteQueryToRecordsReader(ctx, operationQuery("sales", "Customer", ""))
+				if reader != nil {
+					done <- errors.New("unverified reader escaped")
+					return
+				}
+				done <- err
+			}()
+			var factCtx context.Context
+			select {
+			case factCtx = <-entered:
+			case <-time.After(time.Second):
+				t.Fatal("post-open facts did not start")
+			}
+			if mode == "cancel" {
+				cancel()
+			}
+			select {
+			case <-factCtx.Done():
+			case <-time.After(time.Second):
+				t.Fatal("post-open context ceiling missing")
+			}
+			select {
+			case <-nativeReader.closed:
+			case <-time.After(time.Second):
+				t.Fatal("unpublished reader stayed open during blocked facts")
+			}
+			close(unblock)
+			select {
+			case err := <-done:
+				require.Error(t, err)
+			case <-time.After(time.Second):
+				t.Fatal("post-open call stayed blocked")
+			}
+			nativeReader.mu.Lock()
+			require.Equal(t, 1, nativeReader.closeCalls)
+			nativeReader.mu.Unlock()
+		})
+	}
+}
