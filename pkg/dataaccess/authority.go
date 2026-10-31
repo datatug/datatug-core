@@ -87,8 +87,11 @@ func (a *Authority) SecureDB(db dal.DB) (Database, error) {
 }
 
 type lease struct {
-	deadline time.Time
-	policy   access.Policy
+	deadline   time.Time
+	started    time.Time
+	serverTime time.Time
+	digest     string
+	policy     access.Policy
 }
 
 type authorizationKey struct{}
@@ -160,7 +163,11 @@ func (a *Authority) authorize(ctx context.Context) (*lease, error) {
 	}
 	// Starting the interval before the network call subtracts its whole latency.
 	// The monotonic local interval does not trust the machine's wall-clock skew.
-	return &lease{deadline: started.Add(ttl), policy: readPolicy}, nil
+	digest, err := resolutionDigest(resolution)
+	if err != nil {
+		return nil, a.denial(DataRead, "AUTHORITY_UNSUPPORTED")
+	}
+	return &lease{deadline: started.Add(ttl), started: started, serverTime: resolution.ServerTime, digest: digest, policy: readPolicy}, nil
 }
 
 func (a *Authority) check(ctx context.Context, authorization *lease) error {
