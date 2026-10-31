@@ -25,7 +25,8 @@ func TestSQLWidgetSettings_rowLinkRoundTrips(t *testing.T) {
 
 func TestSQLRowLink_Validate(t *testing.T) {
 	for name, link := range map[string]SQLRowLink{
-		"no board":     {},
+		"no target":    {},
+		"two targets":  {BoardID: "b", QueryID: "q"},
 		"no id":        {BoardID: "b", Parameters: []SQLRowLinkParameter{{Column: "c"}}},
 		"both sources": {BoardID: "b", Parameters: []SQLRowLinkParameter{{ID: "p", Column: "c", Value: "v"}}},
 		"no source":    {BoardID: "b", Parameters: []SQLRowLinkParameter{{ID: "p"}}},
@@ -36,5 +37,23 @@ func TestSQLRowLink_Validate(t *testing.T) {
 		if err := (SQLWidgetSettings{QueryID: "q", RowLink: &link}).Validate(); err == nil {
 			t.Errorf("%s: expected the widget to refuse it", name)
 		}
+	}
+}
+
+func TestSQLRowLink_queryOfAnotherProject(t *testing.T) {
+	in := `{"queryId":"{query}","projectId":"{project}","storeId":"github.com"}`
+	var link SQLRowLink
+	if err := json.Unmarshal([]byte(in), &link); err != nil {
+		t.Fatal(err)
+	}
+	if err := link.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	out, err := json.Marshal(link)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(out) != in {
+		t.Fatalf("got %s", out)
 	}
 }
