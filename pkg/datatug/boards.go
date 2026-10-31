@@ -488,6 +488,39 @@ type SQLWidgetSettings struct {
 	// PresentationFilter narrows an already admitted, complete result in the
 	// viewer. It is never sent to the referenced query as a parameter.
 	PresentationFilter *PresentationFilter `json:"presentationFilter,omitempty"`
+	// RowLink links each result row to another board of the same project.
+	RowLink *SQLRowLink `json:"rowLink,omitempty"`
+}
+
+// SQLRowLink links a result row to a board. BoardID may hold {column}
+// placeholders, filled from the row by the viewer.
+type SQLRowLink struct {
+	BoardID    string                `json:"boardId"`
+	Parameters []SQLRowLinkParameter `json:"parameters,omitempty"`
+}
+
+// SQLRowLinkParameter sets one target board parameter from a result column or
+// a literal value: exactly one of them.
+type SQLRowLinkParameter struct {
+	ID     string `json:"id"`
+	Column string `json:"column,omitempty"`
+	Value  string `json:"value,omitempty"`
+}
+
+// Validate returns error if not valid
+func (v SQLRowLink) Validate() error {
+	if v.BoardID == "" {
+		return validation.NewErrRecordIsMissingRequiredField("boardId")
+	}
+	for i, parameter := range v.Parameters {
+		if parameter.ID == "" {
+			return validation.NewErrBadRecordFieldValue(fmt.Sprintf("parameters[%d].id", i), "is required")
+		}
+		if (parameter.Column == "") == (parameter.Value == "") {
+			return validation.NewErrBadRecordFieldValue(fmt.Sprintf("parameters[%d]", i), "needs exactly one of column and value")
+		}
+	}
+	return nil
 }
 
 // PresentationFilter is deliberately closed even though legacy SQL widget
@@ -552,6 +585,11 @@ func (v SQLWidgetSettings) Validate() error {
 	if v.PresentationFilter != nil {
 		if err := v.PresentationFilter.Validate(); err != nil {
 			return validation.NewErrBadRecordFieldValue("presentationFilter", err.Error())
+		}
+	}
+	if v.RowLink != nil {
+		if err := v.RowLink.Validate(); err != nil {
+			return validation.NewErrBadRecordFieldValue("rowLink", err.Error())
 		}
 	}
 	return nil
