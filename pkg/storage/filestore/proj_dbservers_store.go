@@ -33,7 +33,11 @@ func (s fsProjDbServersStore) CatalogsStore(serverRef datatug.ServerRef) datatug
 }
 
 func (s fsProjDbServersStore) LoadProjDbServers(ctx context.Context, o ...datatug.StoreOption) (datatug.ProjDbServers, error) {
-	return s.loadProjectItems(ctx, s.dirPath, o...)
+	items, err := s.loadProjectItems(ctx, s.dirPath, o...)
+	if err != nil {
+		return nil, err
+	}
+	return filterVisibleProjectItems(s.projectDir, "server", s.driverID, items, o...)
 }
 
 func (s fsProjDbServersStore) LoadProjDbServer(ctx context.Context, serverID string, o ...datatug.StoreOption) (*datatug.ProjDbServer, error) {

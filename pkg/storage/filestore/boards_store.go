@@ -163,7 +163,7 @@ func (s fsBoardsStore) LoadBoards(_ context.Context, o ...datatug.StoreOption) (
 	sort.Slice(boards, func(i, j int) bool {
 		return boards[i].GetID() < boards[j].GetID()
 	})
-	return boards, nil
+	return filterVisibleProjectItems(s.projectDir, "board", "", boards, o...)
 }
 
 // saveTarget mirrors fsEntitiesStore.saveTarget, but the nested file has a

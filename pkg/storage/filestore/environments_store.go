@@ -145,7 +145,7 @@ func (s fsEnvironmentsStore) loadEnvironments(_ context.Context, o ...datatug.St
 		sorted = append(sorted, envs.GetByID(id))
 	}
 	envs = sorted
-	return envs, nil
+	return filterVisibleProjectItems(s.projectDir, "environment", "", envs, o...)
 }
 
 func (s fsEnvironmentsStore) loadEnvironmentSummary(_ context.Context, id string) (*datatug.EnvironmentSummary, error) {

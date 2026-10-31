@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"context"
 	"github.com/datatug/datatug-core/pkg/datatug"
 	"github.com/datatug/datatug-core/pkg/datatug2md"
 )
@@ -27,9 +28,10 @@ func newFsProjectStore(projectID string, projectPath string) fsProjectStore {
 }
 
 type fsProjectStore struct {
-	projectID     string
-	projectPath   string
-	readmeEncoder datatug.ReadmeEncoder
+	projectID       string
+	projectPath     string
+	visibilityItems func(context.Context, datatug.ProjectLifecycleScope) ([]datatug.ProjectUsageItem, error)
+	readmeEncoder   datatug.ReadmeEncoder
 	fsBoardsStore
 	fsCardsStore
 	fsDbModelsStore
