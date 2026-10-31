@@ -177,6 +177,7 @@ func (a *Authority) CaptureResult(ctx context.Context, request ResultRequest, re
 		return nil, err
 	}
 	payload, err := compactPayload(data)
+	clear(data)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +197,10 @@ func (a *Authority) CaptureResult(ctx context.Context, request ResultRequest, re
 // pins the actual source identity from that trusted transport before constructing
 // Authority. requestStarted MUST be captured before the HTTP request. The caller
 // must bound ctx by the verified ORIGINAL credential deadline, not its refresh.
+// Ownership of envelope.Payload transfers to Core; it is cleared on every path
+// and immediately after compaction, before any authority network I/O.
 func (a *Authority) ImportResult(ctx context.Context, request ResultRequest, requestStarted time.Time, envelope ResultEnvelope) (*Result, error) {
+	defer clear(envelope.Payload)
 	if a == nil || a.resolve == nil || !request.valid() || requestStarted.IsZero() {
 		return nil, fmt.Errorf("dataaccess: result authority and original request required")
 	}
@@ -206,10 +210,12 @@ func (a *Authority) ImportResult(ctx context.Context, request ResultRequest, req
 		return nil, a.denial(DataRead, "RESULT_BINDING_MISMATCH")
 	}
 	payload, err := compactPayload(envelope.Payload)
+	clear(envelope.Payload)
 	if err != nil {
 		return nil, err
 	}
 	if hashBytes(payload) != metadata.PayloadSHA256 {
+		clear(payload)
 		return nil, a.denial(DataRead, "RESULT_BINDING_MISMATCH")
 	}
 	bound := &lease{deadline: requestStarted.Add(ttl), started: requestStarted, serverTime: metadata.ServerTime, digest: metadata.GrantSetDigest, policy: readPolicy}

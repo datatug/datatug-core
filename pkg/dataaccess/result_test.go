@@ -157,6 +157,7 @@ func TestResultImportRejectsBindingReplayAndMissingMetadata(t *testing.T) {
 	for i, mutate := range mutations {
 		t.Run(string(rune('a'+i)), func(t *testing.T) {
 			copy := envelope
+			copy.Payload = bytes.Clone(envelope.Payload)
 			mutate(&copy)
 			r, err := a.ImportResult(context.Background(), resultRequest(), started, copy)
 			require.Error(t, err)
@@ -418,4 +419,34 @@ func TestResultCancellationBetweenResolveAndWriter(t *testing.T) {
 	require.Error(t, r.writeAuthorized(context.Background(), &out, true))
 	require.Empty(t, out.Bytes())
 	assertResultPurged(t, r)
+}
+
+func TestResultTransferredBuffersClearBeforeFreshResolve(t *testing.T) {
+	input := []byte(`{"record":{"name":"Ada"}}`)
+	calls := 0
+	a := testAuthority(t, func(context.Context, ResolveRequest) (Resolution, error) {
+		calls++
+		if calls == 2 {
+			require.Equal(t, make([]byte, len(input)), input)
+		}
+		return fixtureResolution(), nil
+	})
+	r, err := a.CaptureResult(context.Background(), resultRequest(), func(context.Context) ([]byte, error) { return input, nil })
+	require.NoError(t, err)
+	defer r.Close()
+	var out bytes.Buffer
+	require.NoError(t, r.WriteEnvelope(context.Background(), &out))
+	envelope, err := DecodeResultEnvelope(out.Bytes())
+	require.NoError(t, err)
+	a.resolve = func(context.Context, ResolveRequest) (Resolution, error) {
+		require.Equal(t, make([]byte, len(envelope.Payload)), []byte(envelope.Payload))
+		return fixtureResolution(), nil
+	}
+	imported, err := a.ImportResult(context.Background(), resultRequest(), time.Now(), envelope)
+	require.NoError(t, err)
+	defer imported.Close()
+	denied := []byte(`{"secret":"discard"}`)
+	_, err = a.CaptureResult(context.Background(), resultRequest(), func(context.Context) ([]byte, error) { return denied, errors.New("failed after buffering") })
+	require.Error(t, err)
+	require.Equal(t, make([]byte, len(denied)), denied)
 }
