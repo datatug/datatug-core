@@ -492,10 +492,14 @@ type SQLWidgetSettings struct {
 	RowLink *SQLRowLink `json:"rowLink,omitempty"`
 }
 
-// SQLRowLink links a result row to a board. BoardID may hold {column}
-// placeholders, filled from the row by the viewer.
+// SQLRowLink is the board or saved query a result row opens, exactly one of
+// them, in this project or, with ProjectID, another one. All but Parameters may
+// hold {column} placeholders, filled from the row by the viewer.
 type SQLRowLink struct {
-	BoardID    string                `json:"boardId"`
+	BoardID    string                `json:"boardId,omitempty"`
+	QueryID    string                `json:"queryId,omitempty"`
+	ProjectID  string                `json:"projectId,omitempty"`
+	StoreID    string                `json:"storeId,omitempty"`
 	Parameters []SQLRowLinkParameter `json:"parameters,omitempty"`
 }
 
@@ -509,8 +513,8 @@ type SQLRowLinkParameter struct {
 
 // Validate returns error if not valid
 func (v SQLRowLink) Validate() error {
-	if v.BoardID == "" {
-		return validation.NewErrRecordIsMissingRequiredField("boardId")
+	if (v.BoardID == "") == (v.QueryID == "") {
+		return validation.NewErrBadRecordFieldValue("boardId", "needs exactly one of boardId and queryId")
 	}
 	for i, parameter := range v.Parameters {
 		if parameter.ID == "" {
