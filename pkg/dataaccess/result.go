@@ -182,12 +182,12 @@ func (a *Authority) CaptureResult(ctx context.Context, request ResultRequest, re
 	}
 	metadata := ResultLease{Version: 1, Subject: a.request.Subject, Connection: a.request.Connection, GrantSetDigest: bound.digest, Nonce: request.Nonce, RequestSHA256: request.RequestSHA256, PayloadSHA256: hashBytes(payload), ServerTime: bound.serverTime}
 	result := &Result{authority: a, authorization: bound, metadata: metadata, payload: payload, lifetime: ctx}
+	result.metadata.ExpiresAt = bound.serverTime.Add(bound.deadline.Sub(bound.started))
+	result.watch()
 	if err := result.guard(ctx); err != nil {
-		result.purgeLocked()
+		result.Close()
 		return nil, err
 	}
-	result.metadata.ExpiresAt = bound.serverTime.Add(result.authorization.deadline.Sub(bound.started))
-	result.watch()
 	return result, nil
 }
 
@@ -215,11 +215,11 @@ func (a *Authority) ImportResult(ctx context.Context, request ResultRequest, req
 	bound := &lease{deadline: requestStarted.Add(ttl), started: requestStarted, serverTime: metadata.ServerTime, digest: metadata.GrantSetDigest, policy: readPolicy}
 	clampContext(ctx, bound)
 	result := &Result{authority: a, authorization: bound, metadata: metadata, payload: payload, lifetime: ctx}
+	result.watch()
 	if err := result.guard(ctx); err != nil {
-		result.purgeLocked()
+		result.Close()
 		return nil, err
 	}
-	result.watch()
 	return result, nil
 }
 
@@ -249,20 +249,39 @@ func (r *Result) Close() {
 	}
 }
 func (r *Result) guard(ctx context.Context) error {
+	r.mu.Lock()
+	if r.payload == nil {
+		r.mu.Unlock()
+		return fmt.Errorf("dataaccess: result is closed")
+	}
+	bound := *r.authorization
+	r.mu.Unlock()
 	if err := r.lifetime.Err(); err != nil {
 		return err
 	}
-	_, current, cancel, err := r.authority.prepare(ctx, r.authorization)
+	// Bound authority I/O before entering the resolver. An uncooperative resolver
+	// still cannot block the independent timer/lifetime purge or Close.
+	resolving, cancel := context.WithDeadline(ctx, bound.deadline)
+	stop := context.AfterFunc(r.lifetime, cancel)
+	defer func() { stop(); cancel() }()
+	_, current, stopPrepared, err := r.authority.prepare(resolving, &bound)
 	if err != nil {
 		return err
 	}
-	defer cancel()
-	if current.digest != r.authorization.digest {
+	defer stopPrepared()
+	if current.digest != bound.digest {
 		return r.authority.denial(DataRead, "RESULT_AUTHORITY_CHANGED")
 	}
-	r.authorization.deadline = current.deadline
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.payload == nil {
+		return fmt.Errorf("dataaccess: result is closed")
+	}
+	if current.deadline.Before(r.authorization.deadline) {
+		r.authorization.deadline = current.deadline
+	}
 	if r.timer != nil {
-		r.timer.Reset(time.Until(current.deadline))
+		r.timer.Reset(time.Until(r.authorization.deadline))
 	}
 	return r.authority.check(ctx, r.authorization)
 }
@@ -270,14 +289,20 @@ func (r *Result) write(ctx context.Context, writer io.Writer, envelope bool) err
 	if r == nil || writer == nil {
 		return fmt.Errorf("dataaccess: result and writer required")
 	}
+	if err := r.guard(ctx); err != nil {
+		r.Close()
+		return err
+	}
+	return r.writeAuthorized(ctx, writer, envelope)
+}
+
+// writeAuthorized reacquires ownership after the network phase; Close may have
+// purged the values while authority was being resolved.
+func (r *Result) writeAuthorized(ctx context.Context, writer io.Writer, envelope bool) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.payload == nil {
 		return fmt.Errorf("dataaccess: result is closed")
-	}
-	if err := r.guard(ctx); err != nil {
-		r.purgeLocked()
-		return err
 	}
 	data := r.payload
 	if envelope {

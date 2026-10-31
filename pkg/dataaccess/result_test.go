@@ -253,7 +253,14 @@ func TestResultLastCheckAfterSerialization(t *testing.T) {
 		defer cancel()
 		a := testAuthority(t, fixedResolver(fixtureResolution()))
 		r := captureFixture(t, a, ctx)
-		a.now = func() time.Time { cancel(); return time.Now() }
+		calls := 0
+		a.now = func() time.Time {
+			calls++
+			if calls == 4 {
+				cancel()
+			}
+			return time.Now()
+		}
 		var out bytes.Buffer
 		require.Error(t, r.WriteEnvelope(context.Background(), &out))
 		require.Empty(t, out.Bytes())
@@ -296,4 +303,119 @@ func assertResultPurged(t *testing.T, r *Result) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	require.Nil(t, r.payload)
+}
+
+func TestResultPurgeAndCloseDoNotWaitForResolver(t *testing.T) {
+	for _, mode := range []string{"expiry", "cancel", "close"} {
+		t.Run(mode, func(t *testing.T) {
+			resolution := fixtureResolution()
+			if mode == "expiry" {
+				resolution.ValidUntil = resolution.ServerTime.Add(200 * time.Millisecond)
+			}
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			entered := make(chan context.Context, 1)
+			hold := make(chan struct{})
+			stalled := false
+			a := testAuthority(t, func(resolving context.Context, _ ResolveRequest) (Resolution, error) {
+				if stalled {
+					entered <- resolving
+					<-hold
+				}
+				return resolution, nil
+			})
+			r := captureFixture(t, a, ctx)
+			stalled = true
+			var out bytes.Buffer
+			done := make(chan error, 1)
+			go func() { done <- r.WritePayload(context.Background(), &out) }()
+			resolving := <-entered
+			deadline, ok := resolving.Deadline()
+			require.True(t, ok)
+			require.False(t, deadline.After(r.authorization.deadline))
+			switch mode {
+			case "cancel":
+				cancel()
+			case "close":
+				r.Close()
+			case "expiry":
+				select {
+				case <-resolving.Done():
+				case <-time.After(time.Second):
+					t.Fatal("resolver context not bounded")
+				}
+			}
+			require.Eventually(t, func() bool { r.mu.Lock(); defer r.mu.Unlock(); return r.payload == nil }, time.Second, time.Millisecond)
+			closed := make(chan struct{})
+			go func() { r.Close(); close(closed) }()
+			select {
+			case <-closed:
+			case <-time.After(time.Second):
+				t.Fatal("Close blocked on resolver")
+			}
+			close(hold)
+			require.Error(t, <-done)
+			require.Empty(t, out.Bytes())
+		})
+	}
+}
+func TestResultCreationFreshResolveIsAlreadyDeadlineBound(t *testing.T) {
+	for _, mode := range []string{"capture", "import"} {
+		t.Run(mode, func(t *testing.T) {
+			original := testAuthority(t, fixedResolver(fixtureResolution()))
+			envelope, started := envelopeFixture(t, original)
+			ctx, cancel := context.WithTimeout(context.Background(), 40*time.Millisecond)
+			defer cancel()
+			calls := 0
+			a := testAuthority(t, func(resolving context.Context, _ ResolveRequest) (Resolution, error) {
+				calls++
+				if mode == "import" || calls == 2 {
+					_, ok := resolving.Deadline()
+					require.True(t, ok)
+					<-resolving.Done()
+				}
+				return fixtureResolution(), nil
+			})
+			if mode == "import" {
+				r, err := a.ImportResult(ctx, resultRequest(), started, envelope)
+				require.Error(t, err)
+				require.Nil(t, r)
+			} else {
+				r, err := a.CaptureResult(ctx, resultRequest(), func(context.Context) ([]byte, error) { return []byte(`{}`), nil })
+				require.Error(t, err)
+				require.Nil(t, r)
+			}
+		})
+	}
+}
+
+func TestResultFreshNarrowingAndCloseBetweenReleasePhases(t *testing.T) {
+	resolution := fixtureResolution()
+	a := testAuthority(t, func(context.Context, ResolveRequest) (Resolution, error) { return resolution, nil })
+	r := captureFixture(t, a, context.Background())
+	original := r.authorization.deadline
+	resolution.ValidUntil = resolution.ServerTime.Add(10 * time.Second)
+	require.NoError(t, r.WritePayload(context.Background(), io.Discard))
+	require.True(t, r.authorization.deadline.Before(original))
+	require.NoError(t, r.guard(context.Background()))
+	r.Close()
+	var out bytes.Buffer
+	require.Error(t, r.writeAuthorized(context.Background(), &out, false))
+	require.Empty(t, out.Bytes())
+}
+
+func TestResultCancellationBetweenResolveAndWriter(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	a := testAuthority(t, fixedResolver(fixtureResolution()))
+	r := captureFixture(t, a, ctx)
+	require.NoError(t, r.guard(context.Background()))
+	// Hold the asynchronous purge callback to exercise cancellation at the
+	// synchronous final handoff, independently of whichever goroutine wins.
+	require.True(t, r.stopLifetime())
+	cancel()
+	var out bytes.Buffer
+	require.Error(t, r.writeAuthorized(context.Background(), &out, true))
+	require.Empty(t, out.Bytes())
+	assertResultPurged(t, r)
 }
