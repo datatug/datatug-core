@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -39,10 +40,21 @@ func readProjectVisibility(root string) (projectVisibility, error) {
 	if err != nil || !exists {
 		return state, err
 	}
+	return decodeProjectVisibility(b)
+}
+
+func decodeProjectVisibility(b []byte) (projectVisibility, error) {
+	state := projectVisibility{Version: 1}
+	trimmed := bytes.TrimSpace(b)
+	// Syntax/depth admission precedes recursive duplicate-key traversal. Both
+	// readers already require a complete valid JSON document below.
+	if len(trimmed) == 0 || trimmed[0] != '{' || !json.Valid(b) {
+		return state, datatug.ErrProjectUsageIncomplete
+	}
 	if jsonstrict.CheckNoDuplicateKeysFor(b, reflect.TypeOf(state)) != nil {
 		return state, datatug.ErrProjectUsageIncomplete
 	}
-	if err = json.Unmarshal(b, &state); err != nil || state.Version != 1 || len(state.Archived) > 10000 {
+	if err := json.Unmarshal(b, &state); err != nil || state.Version != 1 || len(state.Archived) > 10000 {
 		return state, datatug.ErrProjectUsageIncomplete
 	}
 	seen := map[datatug.ProjectObjectRef]bool{}
@@ -65,7 +77,10 @@ func ProjectItemArchived(root string, ref datatug.ProjectObjectRef) (bool, error
 // ReadProjectArchivedItems returns one bounded visibility snapshot for active
 // list projection. It conveys no authorization or execution restriction.
 func ReadProjectArchivedItems(root string) (map[datatug.ProjectObjectRef]bool, error) {
-	state, err := readProjectVisibility(root)
+	return projectArchivedItems(readProjectVisibility(root))
+}
+
+func projectArchivedItems(state projectVisibility, err error) (map[datatug.ProjectObjectRef]bool, error) {
 	if err != nil {
 		return nil, err
 	}
@@ -87,6 +102,10 @@ func ProjectFileVisibilityObject(rel string) (datatug.ProjectObjectRef, bool) {
 	}
 	if parts[0] == "dbs" && len(parts) == 3 && strings.HasSuffix(parts[2], ".dbserver.json") {
 		ref := datatug.ProjectObjectRef{Kind: "server", ID: parts[1] + "/" + strings.TrimSuffix(parts[2], ".dbserver.json")}
+		return ref, ref.Validate() == nil
+	}
+	if parts[0] == "dbs" && len(parts) == 4 && parts[3] == ".datatug-dbserver.json" {
+		ref := datatug.ProjectObjectRef{Kind: "server", ID: parts[1] + "/" + parts[2]}
 		return ref, ref.Validate() == nil
 	}
 	kinds := map[string]string{"queries": "query", "boards": "board", "cards": "card", "entities": "entity", "environments": "environment", "checks": "check", "validators": "validator", "scenarios": "scenario", "dbmodels": "data-model", "data-models": "data-model", "servers": "server", "dbservers": "server"}

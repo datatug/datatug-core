@@ -39,21 +39,22 @@ func TestVisibilityMetadataRejectsCorruption(t *testing.T) {
 }
 func TestVisibilityFileMapperLayouts(t *testing.T) {
 	valid := map[string]datatug.ProjectObjectRef{
-		"environments/dev/environment-summary.json":  {Kind: "environment", ID: "dev"},
-		"environments/dev/dev.env.json":              {Kind: "environment", ID: "dev"},
-		"queries/reports/.datatug-query-folder.json": {Kind: "query-folder", ID: "reports"},
-		"queries/reports/sales.query.json":           {Kind: "query", ID: "reports/sales"},
-		"boards/b/board.json":                        {Kind: "board", ID: "b"},
-		"dbmodels/m/m.dbmodel.json":                  {Kind: "data-model", ID: "m"},
-		"dbservers/s.dbserver.json":                  {Kind: "server", ID: "s"},
-		"checks/check1.json":                         {Kind: "check", ID: "check1"},
+		"environments/dev/environment-summary.json":         {Kind: "environment", ID: "dev"},
+		"environments/dev/dev.env.json":                     {Kind: "environment", ID: "dev"},
+		"queries/reports/.datatug-query-folder.json":        {Kind: "query-folder", ID: "reports"},
+		"queries/reports/sales.query.json":                  {Kind: "query", ID: "reports/sales"},
+		"boards/b/board.json":                               {Kind: "board", ID: "b"},
+		"dbmodels/m/m.dbmodel.json":                         {Kind: "data-model", ID: "m"},
+		"dbservers/s.dbserver.json":                         {Kind: "server", ID: "s"},
+		"dbs/mysql/mysql:local:3306/.datatug-dbserver.json": {Kind: "server", ID: "mysql/mysql:local:3306"},
+		"checks/check1.json":                                {Kind: "check", ID: "check1"},
 	}
 	for path, want := range valid {
 		if got, ok := ProjectFileVisibilityObject(path); !ok || got != want {
 			t.Fatalf("%s: %+v %v", path, got, ok)
 		}
 	}
-	for _, path := range []string{"README.md", "runs/r.json", "environments/dev/run.json", "queries/.datatug-query-folder.json", "boards/other/b.board.json", "cards/blob.txt"} {
+	for _, path := range []string{"README.md", "runs/r.json", "environments/dev/run.json", "queries/.datatug-query-folder.json", "boards/other/b.board.json", "cards/blob.txt", "dbs/mysql/../.datatug-dbserver.json", "dbs/mysql/local/catalog/.datatug-dbserver.json"} {
 		if got, ok := ProjectFileVisibilityObject(path); ok {
 			t.Fatalf("not definition %s: %+v", path, got)
 		}
