@@ -84,7 +84,7 @@ func (a *Authority) ImportTableResult(ctx context.Context, request ResultRequest
 	}
 	metadata := envelope.Lease
 	ttl := metadata.ExpiresAt.Sub(metadata.ServerTime)
-	if metadata.Version != 2 || metadata.Profile != TableReadProfile || metadata.Operation != expected || metadata.Subject != a.request.Subject || metadata.Connection.Space != a.request.Connection.Space || metadata.Connection.ID != a.request.Connection.ID || !sameFingerprint(metadata.Connection.Fingerprint, a.request.Connection.Fingerprint) || metadata.Nonce != request.Nonce || metadata.RequestSHA256 != request.RequestSHA256 || !validHash(metadata.GrantSetDigest) || !validHash(metadata.PayloadSHA256) || metadata.ServerTime.IsZero() || ttl <= 0 || ttl > time.Minute || started.After(a.now()) {
+	if metadata.Version != 2 || metadata.Profile != TableReadProfile || metadata.Operation != expected || metadata.Subject != a.request.Subject || !sameConnection(metadata.Connection, a.request.Connection) || metadata.Nonce != request.Nonce || metadata.RequestSHA256 != request.RequestSHA256 || !validHash(metadata.GrantSetDigest) || !validHash(metadata.PayloadSHA256) || metadata.ServerTime.IsZero() || ttl <= 0 || ttl > time.Minute || started.After(a.now()) {
 		return nil, a.denial(DataRead, "RESULT_BINDING_MISMATCH")
 	}
 	payload, err := compactPayload(envelope.Payload)

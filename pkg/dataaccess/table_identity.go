@@ -72,8 +72,7 @@ func (b *tableIdentityBinding) verify(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if facts.Connection.Space != b.request.Connection.Space || facts.Connection.ID != b.request.Connection.ID ||
-		!sameFingerprint(facts.Connection.Fingerprint, b.request.Connection.Fingerprint) || facts.Table != b.request.Table {
+	if !sameConnection(facts.Connection, b.request.Connection) || facts.Table != b.request.Table {
 		return fmt.Errorf("dataaccess: native table identity mismatch")
 	}
 	return ctx.Err()

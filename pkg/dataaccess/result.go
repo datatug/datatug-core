@@ -59,6 +59,8 @@ type Result struct {
 	timer         *time.Timer
 	stopLifetime  func() bool
 	table         *TableRead
+	structured    *StructuredRead
+	executedTugQL string // private effective operation after subordinate policy constraints
 	cleanup       []func()
 }
 
@@ -77,9 +79,10 @@ func resolutionDigest(resolution Resolution) (string, error) {
 	grants := slices.Clone(resolution.Grants)
 	slices.SortFunc(grants, func(a, b Grant) int { return strings.Compare(a.ID, b.ID) })
 	data, err := json.Marshal(struct {
-		Protection ConnectionProtection
-		Grants     []Grant
-	}{resolution.Protection, grants})
+		Protection       ConnectionProtection
+		Grants           []Grant
+		LocalAuthorityID string `json:"localAuthorityId,omitempty"`
+	}{resolution.Protection, grants, resolution.Connection.LocalAuthorityID})
 	if err != nil {
 		return "", err
 	}
@@ -215,7 +218,7 @@ func (a *Authority) ImportResult(ctx context.Context, request ResultRequest, req
 	}
 	metadata := envelope.Lease
 	ttl := metadata.ExpiresAt.Sub(metadata.ServerTime)
-	if metadata.Version != 1 || metadata.Subject != a.request.Subject || metadata.Connection.Space != a.request.Connection.Space || metadata.Connection.ID != a.request.Connection.ID || !sameFingerprint(metadata.Connection.Fingerprint, a.request.Connection.Fingerprint) || metadata.Nonce != request.Nonce || metadata.RequestSHA256 != request.RequestSHA256 || !validHash(metadata.GrantSetDigest) || !validHash(metadata.PayloadSHA256) || metadata.ServerTime.IsZero() || ttl <= 0 || ttl > time.Minute || requestStarted.After(a.now()) {
+	if metadata.Version != 1 || metadata.Subject != a.request.Subject || !sameConnection(metadata.Connection, a.request.Connection) || metadata.Nonce != request.Nonce || metadata.RequestSHA256 != request.RequestSHA256 || !validHash(metadata.GrantSetDigest) || !validHash(metadata.PayloadSHA256) || metadata.ServerTime.IsZero() || ttl <= 0 || ttl > time.Minute || requestStarted.After(a.now()) {
 		return nil, a.denial(DataRead, "RESULT_BINDING_MISMATCH")
 	}
 	payload, err := compactPayload(envelope.Payload)
@@ -403,7 +406,9 @@ func (r *Result) handoff(ctx context.Context, envelope bool) (data []byte, err e
 		// Preserve the original ceiling if a current resolve has shortened the lease.
 		metadata := r.metadata
 		metadata.ExpiresAt = metadata.ServerTime.Add(r.authorization.deadline.Sub(r.authorization.started))
-		if r.table == nil {
+		if r.structured != nil {
+			data, err = json.Marshal(StructuredResultEnvelope{Payload: r.payload, Lease: StructuredResultLease{ResultLease: metadata, Profile: StructuredReadProfile, Operation: *r.structured, ExecutedTugQL: r.executedTugQL, ExecutionSHA256: hashBytes([]byte(r.executedTugQL))}})
+		} else if r.table == nil {
 			data, err = json.Marshal(ResultEnvelope{Payload: r.payload, Lease: metadata})
 		} else {
 			data, err = json.Marshal(TableResultEnvelope{Payload: r.payload, Lease: TableResultLease{ResultLease: metadata, Profile: TableReadProfile, Operation: *r.table}})

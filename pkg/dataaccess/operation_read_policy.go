@@ -16,10 +16,11 @@ type operationReadPolicy struct {
 	objects    map[ObjectRef]time.Time
 	ceiling    time.Time
 	now        func() time.Time
+	subject    Subject
 }
 
 func newOperationReadPolicy(resolution Resolution, started time.Time, now func() time.Time) *operationReadPolicy {
-	p := &operationReadPolicy{objects: make(map[ObjectRef]time.Time), ceiling: started.Add(min(resolution.ValidUntil.Sub(resolution.ServerTime), time.Minute)), now: now}
+	p := &operationReadPolicy{objects: make(map[ObjectRef]time.Time), ceiling: started.Add(min(resolution.ValidUntil.Sub(resolution.ServerTime), time.Minute)), now: now, subject: resolution.Subject}
 	if resolution.Protection.ReadPosture == ReadAll {
 		p.connection = p.ceiling
 	}
@@ -87,6 +88,13 @@ func (p *operationReadPolicy) Decide(ctx context.Context, request access.Request
 	rules, deadline, err := p.plan(request)
 	if err != nil || !p.now().Before(deadline) {
 		return access.Decision{Operation: request.Operation, Policy: p.Name(), Effect: "deny", Code: access.CodeEnforcementUnsupported, Explanation: "read composition unavailable"}
+	}
+	if principal, ok := access.PrincipalFrom(ctx); ok && principal.Subject != nil {
+		if principal.Subject.Realm != p.subject.Realm || string(principal.Subject.Kind) != string(p.subject.Kind) || principal.Subject.ID != p.subject.ID {
+			return access.Decision{Operation: request.Operation, Policy: p.Name(), Effect: "deny", Code: access.CodeEnforcementUnsupported, Explanation: "read subject mismatch"}
+		}
+		policy, _ := access.NewPolicyForRealm(p.subject.Realm, p.Name(), rules...)
+		return policy.Decide(ctx, request)
 	}
 	return access.MustPolicy(p.Name(), rules...).Decide(ctx, request)
 }

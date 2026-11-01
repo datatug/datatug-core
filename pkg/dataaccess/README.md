@@ -19,6 +19,15 @@ identity. When engine identity is absent, the address must match; otherwise the
 address is only a hint. An engine identity can identify cluster lineage rather
 than a unique physical database.
 
+`NewLocalAuthority` is the explicit alternative for a host-owned source with no
+enrolled Space. Its `LocalConnectionRef` binds a local authority ID, source ID
+and independently measured fingerprint. Its resulting `ConnectionRef` has an
+empty Space and an explicit `localAuthorityId`; it is never an enrolled decision
+actor. `NewAuthority` refuses a mixed Space/local identity. The same trusted
+resolver, evaluator and lifetime guards apply, but a local resolution cannot
+carry grants. Host ownership loss, changed local identity or changed baseline
+must fail resolution. A local ID supplied by a model is not host ownership.
+
 `Authority.SecureDB` accepts the corresponding DALgo database and returns the
 narrow `Database` interface. The host is responsible for verifying that the
 supplied database matches the resolved connection and keeping its raw handle out
@@ -167,6 +176,57 @@ transactions, raw queries, general recordset readers and complex structured
 queries remain unsupported. Existing version1 result wire behavior is unchanged.
 Full standing policy/grant composition, native naming proof and production path
 coverage remain separate work.
+
+## Structured operation and result profile
+
+`ReadStructuredResult` accepts an immutable `StructuredRead`: the existing
+serialized TugQL YAML/JSON, strict JSON `apicontract.TypedValueOrSet` bindings and
+bounded output rows/bytes. It accepts no caller-provided DALgo implementation,
+grants, subject, policies or credentials. Core privately parses the operation,
+uses DALgo's shared `ResourcesForQuery` for every source, and authorizes the same
+snapshot before opening a source. Supported projections, filters, joins, known
+aggregates, grouping/having, order, query limit and offset retain their complete
+semantics. The independent output bound returns a labelled preview and never
+changes the query's limit or ordering. Existing RHS-WHERE parameters use
+`condeval.Substitute`; unresolved or misplaced parameters refuse before opening.
+Typed integers and decimals that DALgo's generic numeric comparison cannot
+represent exactly refuse explicitly. No value is silently rounded into a query.
+
+This single-connection profile requires a distinct trusted
+`StructuredReadSource`/`StructuredReadSpan`. Its SQL-free verifier must establish
+the actual immutable source, native read-only span, compiler/options and every
+resource identity, including joined sources. Request identities are requirements,
+not evidence to echo. A provider must refuse unsupported operations and enforce
+its own native allocation limits. Implementing the port, a recording fixture or
+an in-memory result does not certify a native driver. The published table-only
+SQLite profile does not implement this broader contract.
+
+DALgo context row/field policies remain subordinate constraints. Core sets the
+explicit principal to its fixed host subject with no inherited roles or groups,
+so an Agent never acquires an ambient human identity. Explicit-realm policies
+must use that subject's realm. Core freezes any effective policy rewrite, unions
+its actual resources with the authored resources, and reauthorizes/reverifies
+that complete set before native data dispatch. Unknown or unprovable residuals
+fail closed. Mandatory fine-grained protection remains unsupported.
+
+The returned `Result` owns the original authority/credential ceiling, private
+payload, reader, native span, purge and final fresh output gate. The strict
+version3 `StructuredResultEnvelope` carries the complete authored operation,
+original nonce/digest, and authenticated effective operation/resources. Import
+requires independently expected original intent and original request start time;
+it never executes the server's effective query. Its resources remain part of
+fresh retained-value authorization. Payloads use the same exact scalar/NULL/BLOB
+encoding and bounds as table data. Versions 1, table 2 and structured 3 reject
+one another.
+
+Recursive subqueries currently refuse before opening because DALgo's nested
+route needs a separately owned intermediate-result and leaf-execution lifetime.
+Database-qualified/federated sources require independent authority and pinned
+spans for every actual source; this API refuses them before opening. Both remain
+unfinished integration work, as do production source constructors, CLI/MCP
+routes and native/provider claim gates. The explicit OQ-13 no-control-plane raw
+compatibility route and OQ-15 confirmed write-target route are distinct paths;
+neither is a fallback from an unsupported governed structured operation.
 
 The tests prove shared authorization decisions across two recording
 implementations, including zero adapter calls for denied typed writes, and the
