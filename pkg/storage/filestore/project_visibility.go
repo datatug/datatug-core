@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -39,10 +40,19 @@ func readProjectVisibility(root string) (projectVisibility, error) {
 	if err != nil || !exists {
 		return state, err
 	}
+	return decodeProjectVisibility(b)
+}
+
+func decodeProjectVisibility(b []byte) (projectVisibility, error) {
+	state := projectVisibility{Version: 1}
+	trimmed := bytes.TrimSpace(b)
+	if len(trimmed) == 0 || trimmed[0] != '{' {
+		return state, datatug.ErrProjectUsageIncomplete
+	}
 	if jsonstrict.CheckNoDuplicateKeysFor(b, reflect.TypeOf(state)) != nil {
 		return state, datatug.ErrProjectUsageIncomplete
 	}
-	if err = json.Unmarshal(b, &state); err != nil || state.Version != 1 || len(state.Archived) > 10000 {
+	if err := json.Unmarshal(b, &state); err != nil || state.Version != 1 || len(state.Archived) > 10000 {
 		return state, datatug.ErrProjectUsageIncomplete
 	}
 	seen := map[datatug.ProjectObjectRef]bool{}
@@ -65,7 +75,10 @@ func ProjectItemArchived(root string, ref datatug.ProjectObjectRef) (bool, error
 // ReadProjectArchivedItems returns one bounded visibility snapshot for active
 // list projection. It conveys no authorization or execution restriction.
 func ReadProjectArchivedItems(root string) (map[datatug.ProjectObjectRef]bool, error) {
-	state, err := readProjectVisibility(root)
+	return projectArchivedItems(readProjectVisibility(root))
+}
+
+func projectArchivedItems(state projectVisibility, err error) (map[datatug.ProjectObjectRef]bool, error) {
 	if err != nil {
 		return nil, err
 	}
