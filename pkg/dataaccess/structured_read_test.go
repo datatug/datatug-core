@@ -514,6 +514,19 @@ func TestStructuredNativeDispatchRejectsChangedOpaqueOrUnboundedRewrite(t *testi
 	require.Error(t, err)
 	_, err = session.ExecuteQueryToRecordsetReader(context.Background(), &mutableLimitStructuredQuery{StructuredQuery: q})
 	require.Error(t, err)
+	for _, text := range []string{
+		"from: {query: {as: nested, from: {schema: sales, name: Customer}, columns: [{field: id}]}}\ncolumns: [{field: id, source: nested}]",
+		"from: {schema: sales, name: Customer}\ncolumns: [{query: {as: nested, from: {schema: sales, name: Customer}, columns: [{field: id}]}, as: nested_id}]",
+	} {
+		// This is a valid policy-effective query over an already-authorized
+		// resource. Its recursive execution lifetime is still unproved: do not
+		// let a complete resource mapping substitute for profile admission.
+		rewritten, parseErr := tugql.Deserialize([]byte(text))
+		require.NoError(t, parseErr)
+		_, err = session.ExecuteQueryToRecordsetReader(context.Background(), rewritten)
+		require.ErrorContains(t, err, "separately owned")
+		require.Zero(t, adapter.calls.Load())
+	}
 	hidden := dal.From(dal.NewQualifiedRootCollectionRef("sales", "Hidden", "")).NewQuery().SelectIntoRecordset()
 	_, err = session.ExecuteQueryToRecordsetReader(context.Background(), hidden)
 	require.Error(t, err)

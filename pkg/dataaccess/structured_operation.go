@@ -49,9 +49,6 @@ func (op StructuredRead) query() (dal.StructuredQuery, *access.Request, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("dataaccess: unsupported structured query")
 	}
-	if dal.HasSubquery(query) {
-		return nil, nil, fmt.Errorf("dataaccess: recursive query requires a separately owned execution profile")
-	}
 	variables, err := structuredParameters(op.Parameters)
 	if err != nil {
 		return nil, nil, err
@@ -87,6 +84,12 @@ func parseStructuredOperation(serialized []byte) (dal.StructuredQuery, *access.R
 	query, err := tugql.Deserialize(serialized)
 	if err != nil {
 		return nil, nil, err
+	}
+	// Admission applies to authored intent AND the complete effective query
+	// after subordinate policies. A known resource set does not establish the
+	// separately owned leaf/intermediate lifetime required by recursive routes.
+	if dal.HasSubquery(query) {
+		return nil, nil, fmt.Errorf("dataaccess: recursive query requires a separately owned execution profile")
 	}
 	var tree yaml.Node
 	// The same YAML decoder has just accepted this document, including strict
