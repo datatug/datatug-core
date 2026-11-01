@@ -44,7 +44,7 @@ func NewAuthority(subject Subject, connection ConnectionRef, resolve Resolver) (
 		return nil, err
 	}
 	fingerprint := connection.Fingerprint
-	if resolve == nil || !canonical(connection.Space) || !canonical(connection.ID) ||
+	if resolve == nil || connection.LocalAuthorityID != "" || !canonical(connection.Space) || !canonical(connection.ID) ||
 		!canonical(fingerprint.Engine) || !canonical(fingerprint.Database) ||
 		(fingerprint.EngineIdentity == "" && fingerprint.Address == "") {
 		return nil, fmt.Errorf("dataaccess: resolver and resolved connection are required")
@@ -98,8 +98,8 @@ type lease struct {
 	serverTime time.Time
 	digest     string
 	policy     access.Policy
-	request    *access.Request       // immutable DALgo-mapped resources of a frozen operation
-	identity   *tableIdentityBinding // immutable host fact binding for this operation only
+	request    *access.Request                            // immutable DALgo-mapped resources of a frozen operation
+	identity   interface{ verify(context.Context) error } // immutable native binding for this operation
 }
 
 type authorizationKey struct{}
@@ -137,11 +137,13 @@ func (a *Authority) authorizeRequest(ctx context.Context, request *access.Reques
 	if err != nil {
 		return nil, a.denial(DataRead, "AUTHORITY_UNAVAILABLE")
 	}
-	if resolution.Subject != a.request.Subject || resolution.Connection.Space != a.request.Connection.Space ||
-		resolution.Connection.ID != a.request.Connection.ID || resolution.Protection.ID != a.request.Connection.ID ||
-		!sameFingerprint(resolution.Connection.Fingerprint, a.request.Connection.Fingerprint) ||
+	if resolution.Subject != a.request.Subject || !sameConnection(resolution.Connection, a.request.Connection) ||
+		resolution.Protection.ID != a.request.Connection.ID ||
 		!sameFingerprint(resolution.Protection.Fingerprint, a.request.Connection.Fingerprint) {
 		return nil, a.denial(DataRead, "BINDING_MISMATCH")
+	}
+	if a.request.Connection.LocalAuthorityID != "" && len(resolution.Grants) != 0 {
+		return nil, a.denial(DataRead, "LOCAL_GRANTS_UNSUPPORTED")
 	}
 	if resolution.ServerTime.IsZero() || !resolution.ValidUntil.After(resolution.ServerTime) ||
 		(resolution.Protection.ReadPosture != ReadAll && resolution.Protection.ReadPosture != ReadNone) ||

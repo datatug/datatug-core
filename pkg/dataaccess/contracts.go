@@ -37,6 +37,9 @@ type ConnectionRef struct {
 	Space       string      `json:"space"`
 	ID          string      `json:"id"`
 	Fingerprint Fingerprint `json:"fingerprint"`
+	// LocalAuthorityID is host-owned local authority, mutually exclusive with
+	// Space. Its presence never asserts enrollment or control-plane approval.
+	LocalAuthorityID string `json:"localAuthorityId,omitempty"`
 }
 
 type Permission string
