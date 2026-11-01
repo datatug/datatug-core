@@ -9,10 +9,10 @@ import (
 	"github.com/datatug/datatug-core/pkg/datatug"
 )
 
-// ReadProjectArchivedItemsFromRoot reads visibility from the same opened project
-// root as its definitions. It never reopens root.Name(), follows an archive
-// symlink or closes the caller's root. The result is display metadata only;
-// it conveys no authorization or execution restriction.
+// ReadProjectArchivedItemsFromRoot reads visibility through the caller's opened
+// project root and binds the opened archive to the inspected regular file.
+// It never reopens root.Name() or closes the caller's root. The result is display
+// metadata only; it conveys no authorization or execution restriction.
 func ReadProjectArchivedItemsFromRoot(root *os.Root) (map[datatug.ProjectObjectRef]bool, error) {
 	if root == nil {
 		return nil, datatug.ErrProjectUsageIncomplete

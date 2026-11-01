@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -12,6 +13,9 @@ import (
 )
 
 func TestVisibilityOpenedRootPreservesArchiveAfterPathReplacement(t *testing.T) {
+	if runtime.GOOS == "windows" || runtime.GOOS == "js" || runtime.GOOS == "plan9" {
+		t.Skip("requires a handle-based root that permits renaming an open directory")
+	}
 	parent := t.TempDir()
 	dir := filepath.Join(parent, "project")
 	if err := os.Mkdir(dir, 0o700); err != nil {
@@ -75,6 +79,9 @@ func TestVisibilityOpenedRootMissingAndUnsafeFiles(t *testing.T) {
 			case "symlink":
 				writeVisibilityFixture(t, dir, "other.json", `{"version":1}`)
 				if err := os.Symlink("other.json", filepath.Join(dir, visibilityFile)); err != nil {
+					if runtime.GOOS == "windows" {
+						t.Skipf("symlink creation requires platform privileges: %v", err)
+					}
 					t.Fatal(err)
 				}
 			case "oversize":
@@ -109,7 +116,7 @@ func (root visibilityRootFault) OpenFile(name string, flags int, mode fs.FileMod
 }
 
 func TestVisibilityOpenedRootRefusesOpenRaceAndReadFailures(t *testing.T) {
-	for _, mode := range []string{"open-error", "stat-error", "different-file", "directory-after-lstat", "read-error", "growth", "symlink-after-lstat"} {
+	for _, mode := range []string{"open-error", "removed-after-lstat", "stat-error", "different-file", "directory-after-lstat", "read-error", "growth", "symlink-after-lstat"} {
 		t.Run(mode, func(t *testing.T) {
 			dir := t.TempDir()
 			writeVisibilityFixture(t, dir, visibilityFile, `{"version":1}`)
@@ -126,6 +133,10 @@ func TestVisibilityOpenedRootRefusesOpenRaceAndReadFailures(t *testing.T) {
 				switch mode {
 				case "open-error":
 					return nil, errors.New("open failed")
+				case "removed-after-lstat":
+					if err := os.Remove(filepath.Join(dir, name)); err != nil {
+						t.Fatal(err)
+					}
 				case "stat-error":
 					file, err := root.OpenFile(name, flags, perm)
 					if err != nil {
@@ -148,6 +159,9 @@ func TestVisibilityOpenedRootRefusesOpenRaceAndReadFailures(t *testing.T) {
 						t.Fatal(err)
 					}
 					if err := os.Symlink("other.json", filepath.Join(dir, visibilityFile)); err != nil {
+						if runtime.GOOS == "windows" {
+							t.Skipf("symlink creation requires platform privileges: %v", err)
+						}
 						t.Fatal(err)
 					}
 				}
@@ -157,6 +171,9 @@ func TestVisibilityOpenedRootRefusesOpenRaceAndReadFailures(t *testing.T) {
 			rows, err := projectArchivedItems(state, err)
 			if err == nil || rows != nil {
 				t.Fatal("raced/unreadable archive became all active", rows, err)
+			}
+			if mode == "removed-after-lstat" && !errors.Is(err, os.ErrNotExist) {
+				t.Fatal("removal lost its filesystem cause", err)
 			}
 		})
 	}

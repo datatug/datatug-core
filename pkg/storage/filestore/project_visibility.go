@@ -46,7 +46,9 @@ func readProjectVisibility(root string) (projectVisibility, error) {
 func decodeProjectVisibility(b []byte) (projectVisibility, error) {
 	state := projectVisibility{Version: 1}
 	trimmed := bytes.TrimSpace(b)
-	if len(trimmed) == 0 || trimmed[0] != '{' {
+	// Syntax/depth admission precedes recursive duplicate-key traversal. Both
+	// readers already require a complete valid JSON document below.
+	if len(trimmed) == 0 || trimmed[0] != '{' || !json.Valid(b) {
 		return state, datatug.ErrProjectUsageIncomplete
 	}
 	if jsonstrict.CheckNoDuplicateKeysFor(b, reflect.TypeOf(state)) != nil {
@@ -100,6 +102,10 @@ func ProjectFileVisibilityObject(rel string) (datatug.ProjectObjectRef, bool) {
 	}
 	if parts[0] == "dbs" && len(parts) == 3 && strings.HasSuffix(parts[2], ".dbserver.json") {
 		ref := datatug.ProjectObjectRef{Kind: "server", ID: parts[1] + "/" + strings.TrimSuffix(parts[2], ".dbserver.json")}
+		return ref, ref.Validate() == nil
+	}
+	if parts[0] == "dbs" && len(parts) == 4 && parts[3] == ".datatug-dbserver.json" {
+		ref := datatug.ProjectObjectRef{Kind: "server", ID: parts[1] + "/" + parts[2]}
 		return ref, ref.Validate() == nil
 	}
 	kinds := map[string]string{"queries": "query", "boards": "board", "cards": "card", "entities": "entity", "environments": "environment", "checks": "check", "validators": "validator", "scenarios": "scenario", "dbmodels": "data-model", "data-models": "data-model", "servers": "server", "dbservers": "server"}
