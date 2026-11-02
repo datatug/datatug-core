@@ -149,18 +149,104 @@ func TestExactReviewAdmissionAndRedaction(t *testing.T) {
 	require.Error(t, err)
 	snapshot := exactSnapshot(t, exactFixtureDocument())
 	require.NotContains(t, fmt.Sprintf("%+v %#v %+v %#v", snapshot, snapshot, *snapshot, *snapshot), "Secret")
+	require.NotContains(t, snapshot.String(), "Secret")
+	require.NotContains(t, snapshot.GoString(), "Secret")
 	require.NotContains(t, snapshot.LogValue().String(), "Secret")
 	require.Equal(t, slog.KindString, snapshot.LogValue().Kind())
-	ctx := withExactReadProfile(context.WithValue(context.Background(), exactBindingKey{}, fixtureSubject()))
+	ctx := withExactReadProfile(context.WithValue(context.Background(), exactBindingKey{}, exactReadBinding{Subject: fixtureSubject(), Connection: fixtureConnection()}))
 	filtered := sourceReadContext{ctx}
 	require.Nil(t, filtered.Value(exactReadProfileKey{}))
-	require.Equal(t, fixtureSubject(), filtered.Value(exactBindingKey{}))
-	require.NoError(t, checkExactBinding(ctx, fixtureSubject()))
+	require.Equal(t, exactReadBinding{Subject: fixtureSubject(), Connection: fixtureConnection()}, filtered.Value(exactBindingKey{}))
+	require.NoError(t, checkExactBinding(ctx, fixtureSubject(), fixtureConnection()))
 	wrong := fixtureSubject()
 	wrong.ID = "other"
-	require.Error(t, checkExactBinding(ctx, wrong))
+	require.Error(t, checkExactBinding(ctx, wrong, fixtureConnection()))
 	p := newOperationReadPolicy(exactProjected(t, exactFixtureDocument()), time.Now(), time.Now)
 	canceled, cancel := context.WithCancel(context.Background())
 	cancel()
 	require.ErrorIs(t, p.Authorize(canceled, *operationRequest(operationQuery("sales", "Customer", ""))), context.Canceled)
+}
+
+func TestExactBoundedPrincipalMismatchDeniesBeforeNativeDispatch(t *testing.T) {
+	r := exactProjected(t, exactFixtureDocument())
+	p := newOperationReadPolicy(r, r.ServerTime, time.Now)
+	bounded, cancel := context.WithDeadline(context.Background(), p.ceiling)
+	defer cancel()
+	q := operationQuery("sales", "Customer", "")
+	request := operationRequest(q)
+	principal := access.PrincipalRef{Realm: r.Subject.Realm, Kind: access.PrincipalKind(r.Subject.Kind), ID: r.Subject.ID}
+	matching := access.WithPrincipal(bounded, access.Principal{Subject: &principal})
+	require.True(t, p.Decide(matching, *request).Allowed, "the bounded exact read must otherwise be allowed")
+	for name, change := range map[string]func(*access.PrincipalRef){
+		"realm": func(p *access.PrincipalRef) { p.Realm = "other" },
+		"kind":  func(p *access.PrincipalRef) { p.Kind = access.PrincipalKind(Agent) },
+		"id":    func(p *access.PrincipalRef) { p.ID = "other" },
+	} {
+		t.Run(name, func(t *testing.T) {
+			wrong := principal
+			change(&wrong)
+			ctx := access.WithPrincipal(bounded, access.Principal{Subject: &wrong})
+			decision := p.Decide(ctx, *request)
+			require.False(t, decision.Allowed)
+			require.Equal(t, "read subject mismatch", decision.Explanation)
+			adapter := &recordingAdapter{}
+			reader, err := access.SecureReadSession(adapter, p).ExecuteQueryToRecordsReader(ctx, q)
+			require.ErrorIs(t, err, access.ErrAccessDenied)
+			require.ErrorContains(t, err, "read subject mismatch")
+			require.Nil(t, reader)
+			require.Empty(t, adapter.calls)
+		})
+	}
+}
+
+func TestExactClosedScopeAdmissionDoesNotDropAnyUnsupportedField(t *testing.T) {
+	for name, mutate := range map[string]func(*GrantScope){
+		"schemas": func(s *GrantScope) { s.Schemas = []Selector{{Kind: "exact", Value: "sales"}} },
+		"exclude": func(s *GrantScope) { s.Exclude = []Selector{{Kind: "exact", Value: "Secret"}} },
+		"records": func(s *GrantScope) { s.Records = &RecordScope{Language: "sql"} },
+		"fields":  func(s *GrantScope) { s.Fields = &FieldScope{Include: []string{"id"}} },
+		"request": func(s *GrantScope) { s.Request = &RequestBinding{Fingerprint: "bound"} },
+	} {
+		t.Run(name, func(t *testing.T) {
+			raw := exactRawResolution()
+			g := exactReadGrant(raw.ServerTime, ObjectRef{"sales", "Order"})
+			g.Reason = "read authority"
+			g.Decision = nil
+			mutate(&g.Scope)
+			require.False(t, exactGrantFeatures(g), "closed exact admission must not depend on future MVP validator behavior")
+			raw.Grants = []Grant{g}
+			_, err := ProjectExactRead(context.Background(), raw, exactSnapshot(t, exactFixtureDocument()))
+			require.Error(t, err)
+			raw.ExactRead = &ExactReadPolicy{Version: 1, Subject: raw.Subject, Connection: raw.Connection, Baseline: []ObjectRef{}}
+			_, err = canonicalExactResolution(raw)
+			require.Error(t, err)
+		})
+	}
+}
+func TestExactAgentNoneEmptyResourcesAndFormattingRefuse(t *testing.T) {
+	r := exactProjected(t, exactFixtureDocument())
+	agent := Subject{Realm: r.Subject.Realm, Kind: Agent, ID: "worker"}
+	r.Subject = agent
+	r.ExactRead.Subject = agent
+	r.Protection.AgentRead = AgentNone
+	_, err := canonicalExactResolution(r)
+	require.Error(t, err)
+	r.Protection.AgentRead = AgentInherit
+	_, err = canonicalExactResolution(r)
+	require.NoError(t, err)
+	p := newOperationReadPolicy(r, r.ServerTime, time.Now)
+	ctx, cancel := context.WithDeadline(context.Background(), p.ceiling)
+	defer cancel()
+	_, _, err = p.planAt(access.Request{Operation: access.Query}, r.ServerTime)
+	require.ErrorContains(t, err, "operation resources required")
+	require.False(t, p.Decide(ctx, access.Request{Operation: access.Query}).Allowed)
+	snapshot := exactSnapshot(t, exactFixtureDocument())
+	for _, format := range []string{"%v", "%+v", "%#v", "%d", "%s", "%q", "%x", "%#x", "%f", "%t", "%p"} {
+		for _, value := range []any{snapshot, *snapshot} {
+			text := fmt.Sprintf(format, value)
+			require.NotContains(t, text, "Secret")
+			require.NotContains(t, text, "sales")
+			require.NotContains(t, text, "generation")
+		}
+	}
 }

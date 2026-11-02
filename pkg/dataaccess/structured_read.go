@@ -110,7 +110,7 @@ func (a *Authority) ReadStructuredResult(ctx context.Context, request ResultRequ
 	}
 	// A human principal or role list carried by the caller's context cannot
 	// become the authority's policy identity, especially for fixed Agent reads.
-	if err := checkExactBinding(ctx, a.request.Subject); err != nil {
+	if err := checkExactBinding(ctx, a.request.Subject, a.request.Connection); err != nil {
 		return nil, err
 	}
 	subject := a.request.Subject

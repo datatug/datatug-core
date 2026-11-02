@@ -64,7 +64,7 @@ func canonicalExactResolution(r Resolution) (Resolution, error) {
 		return r, nil
 	}
 	if r.Protection.ReadPosture != ReadExact || p.Version != 1 || p.Subject != r.Subject || p.Subject.Validate() != nil ||
-		p.Connection.LocalAuthorityID != "" || r.Connection.LocalAuthorityID != "" || !sameConnection(p.Connection, r.Connection) {
+		p.Connection.LocalAuthorityID != "" || r.Connection.LocalAuthorityID != "" || !sameConnection(p.Connection, r.Connection) || (r.Subject.Kind == Agent && r.Protection.AgentRead != AgentInherit) {
 		return Resolution{}, fmt.Errorf("dataaccess: selected exact policy binding unsupported")
 	}
 	copy := *p
@@ -99,13 +99,17 @@ func withExactReadProfile(ctx context.Context) context.Context {
 
 // Keep this admission explicit even if the generic MVP validator later grows.
 func exactGrantFeatures(g Grant) bool {
-	return len(g.Permissions) == 1 && g.Permissions[0] == DataRead && len(g.Scope.Requires) == 1 && g.Scope.Requires[0] == ObjectsExact
+	return g.Scope.Schemas == nil && g.Scope.Exclude == nil && g.Scope.Records == nil && g.Scope.Fields == nil && g.Scope.Request == nil && len(g.Permissions) == 1 && g.Permissions[0] == DataRead && len(g.Scope.Requires) == 1 && g.Scope.Requires[0] == ObjectsExact
 }
 
 type exactBindingKey struct{}
+type exactReadBinding struct {
+	Subject    Subject
+	Connection ConnectionRef
+}
 
-func checkExactBinding(ctx context.Context, subject Subject) error {
-	if bound, ok := ctx.Value(exactBindingKey{}).(Subject); ok && bound != subject {
+func checkExactBinding(ctx context.Context, subject Subject, connection ConnectionRef) error {
+	if bound, ok := ctx.Value(exactBindingKey{}).(exactReadBinding); ok && (bound.Subject != subject || !sameConnection(bound.Connection, connection)) {
 		return fmt.Errorf("dataaccess: exact binding unavailable")
 	}
 	return nil

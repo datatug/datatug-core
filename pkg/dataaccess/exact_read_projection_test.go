@@ -313,6 +313,8 @@ func TestExactProjectionCancellationAtEveryStageReleasesNoPartialAuthority(t *te
 	// Invalid internal state must fail closed even though ordinary callers can
 	// construct snapshots only through the strict decoder.
 	bad := *s
+	document := *s.document
+	bad.document = &document
 	bad.document.Objects = []ObjectRef{{Namespace: "sales"}}
 	_, err := bad.BindContext(context.Background(), raw.Subject)
 	require.Error(t, err)

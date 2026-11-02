@@ -3,8 +3,10 @@ package dataaccess
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"github.com/dal-go/dalgo/access"
 	"github.com/dal-go/dalgo/dal"
+	"github.com/dal-go/dalgo/recordset"
 	"github.com/dal-go/record"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -164,6 +166,8 @@ func TestExactMandatoryDenialsStopActualNativeDispatch(t *testing.T) {
 				r, err = ProjectAgentExactRead(context.Background(), exactRawResolution(), subject, exactSnapshot(t, doc))
 				require.NoError(t, err)
 			}
+			a, err := NewAuthority(subject, r.Connection, fixedResolver(r))
+			require.NoError(t, err)
 			deny := exactReadDeny{Object: &ObjectRef{"sales", "Customer"}}
 			switch name {
 			case "path":
@@ -173,25 +177,57 @@ func TestExactMandatoryDenialsStopActualNativeDispatch(t *testing.T) {
 			case "agent":
 				deny.Subject = &subject
 			}
-			doc.Denials = append(doc.Denials, deny)
-			ctx, err := exactSnapshot(t, doc).BindContext(context.Background(), subject)
-			require.NoError(t, err)
-			a, err := NewAuthority(subject, r.Connection, fixedResolver(r))
-			require.NoError(t, err)
 			for _, structured := range []bool{false, true} {
-				adapter := &previewAdapter{reader: &previewReader{rs: previewRecordset(t, []string{"id"})}}
-				if structured {
-					op := structuredOperation()
-					_, err = a.ReadStructuredResult(ctx, structuredRequest(t, op), op, structuredSourceFunc(func(context.Context, StructuredIdentityRequest) (StructuredReadSpan, error) {
-						return structuredSpan(adapter), nil
-					}))
-				} else {
-					_, err = a.ReadTableResult(ctx, resultRequest(), previewOperation(), tableSourceFunc(func(context.Context, TableIdentityRequest) (TableReadSpan, error) {
-						return newPreviewSpan(adapter), nil
-					}))
-				}
-				require.Error(t, err)
-				require.Zero(t, adapter.calls.Load())
+				t.Run(fmt.Sprintf("structured=%t", structured), func(t *testing.T) {
+					for _, denied := range []bool{false, true} {
+						configured := doc
+						if denied {
+							configured.Denials = append(append([]exactReadDeny{}, doc.Denials...), deny)
+						}
+						ctx, err := exactSnapshot(t, configured).BindContext(context.Background(), subject)
+						require.NoError(t, err)
+						adapter := &previewAdapter{reader: &previewReader{rs: previewRecordset(t, []string{"id"})}}
+						var result *Result
+						if structured {
+							op := structuredOperation()
+							result, err = a.ReadStructuredResult(ctx, structuredRequest(t, op), op, structuredSourceFunc(func(context.Context, StructuredIdentityRequest) (StructuredReadSpan, error) {
+								return structuredSpan(adapter), nil
+							}))
+						} else {
+							result, err = a.ReadTableResult(ctx, resultRequest(), previewOperation(), tableSourceFunc(func(context.Context, TableIdentityRequest) (TableReadSpan, error) {
+								return newPreviewSpan(adapter), nil
+							}))
+						}
+						if !denied {
+							require.NoError(t, err)
+							require.EqualValues(t, 1, adapter.calls.Load())
+							result.Close()
+							continue
+						}
+						var acl *Denial
+						require.ErrorAs(t, err, &acl)
+						require.Equal(t, DataRead, acl.Capability)
+						if structured {
+							require.Equal(t, "STRUCTURED_READ_FAILED", acl.Code)
+						} else {
+							require.Equal(t, "TABLE_READ_FAILED", acl.Code)
+						}
+						require.Zero(t, adapter.calls.Load())
+						// Inspect the actual secured-session error before Core intentionally hides
+						// private policy details behind its typed public denial.
+						q, req, err := previewOperation().query()
+						require.NoError(t, err)
+						prepared, lease, cancel, err := a.prepareRequest(withExactReadProfile(ctx), nil, req)
+						require.NoError(t, err)
+						_, err = access.SecureReadSession(adapter, lease.policy).ExecuteQueryToRecordsetReader(prepared, q)
+						cancel()
+						require.ErrorIs(t, err, access.ErrAccessDenied)
+						var nativeDenial *access.DeniedError
+						require.ErrorAs(t, err, &nativeDenial)
+						require.Equal(t, "datatug-exact-mandatory", nativeDenial.Decision.Policy)
+						require.Zero(t, adapter.calls.Load())
+					}
+				})
 			}
 		})
 	}
@@ -199,7 +235,7 @@ func TestExactMandatoryDenialsStopActualNativeDispatch(t *testing.T) {
 
 func TestExactSecuredSessionRejectsExpiredPreparedContextBeforeNativeDispatch(t *testing.T) {
 	r := exactProjected(t, exactFixtureDocument())
-	r.ValidUntil = r.ServerTime.Add(50 * time.Millisecond)
+	r.ValidUntil = r.ServerTime.Add(time.Second)
 	a := testAuthority(t, fixedResolver(r))
 	q, req, err := previewOperation().query()
 	require.NoError(t, err)
@@ -209,6 +245,11 @@ func TestExactSecuredSessionRejectsExpiredPreparedContextBeforeNativeDispatch(t 
 	defer cancel()
 	adapter := &previewAdapter{reader: &previewReader{rs: previewRecordset(t, []string{"id"})}}
 	secured := access.SecureReadSession(adapter, lease.policy)
+	positive, err := secured.ExecuteQueryToRecordsetReader(prepared, q)
+	require.NoError(t, err)
+	require.EqualValues(t, 1, adapter.calls.Load())
+	require.NoError(t, positive.Close())
+	adapter.calls.Store(0)
 
 	// A caller cannot detach a retained policy's deadline and reuse its values.
 	_, err = secured.ExecuteQueryToRecordsetReader(context.WithoutCancel(prepared), q)
@@ -235,6 +276,17 @@ func TestExactBoundSubjectMismatchAndSourceProfileStripping(t *testing.T) {
 	_, err = a.ReadTableResult(ctx, resultRequest(), previewOperation(), source)
 	require.Error(t, err)
 	op := structuredOperation()
+	otherDoc := exactFixtureDocument()
+	otherDoc.Connection.ID = "other-connection"
+	otherCtx, bindErr := exactSnapshot(t, otherDoc).BindContext(context.Background(), r.Subject)
+	require.NoError(t, bindErr)
+	_, err = a.ReadTableResult(otherCtx, resultRequest(), previewOperation(), source)
+	require.Error(t, err)
+	_, err = a.ReadStructuredResult(otherCtx, structuredRequest(t, op), op, structuredSourceFunc(func(context.Context, StructuredIdentityRequest) (StructuredReadSpan, error) {
+		t.Fatal("wrong-connection source opened")
+		return nil, nil
+	}))
+	require.Error(t, err)
 	_, err = a.ReadStructuredResult(ctx, structuredRequest(t, op), op, structuredSourceFunc(func(context.Context, StructuredIdentityRequest) (StructuredReadSpan, error) {
 		t.Fatal("mismatched source opened")
 		return nil, nil
@@ -245,12 +297,21 @@ func TestExactBoundSubjectMismatchAndSourceProfileStripping(t *testing.T) {
 		if structured {
 			_, err = a.ReadStructuredResult(context.Background(), structuredRequest(t, op), op, structuredSourceFunc(func(ctx context.Context, _ StructuredIdentityRequest) (StructuredReadSpan, error) {
 				require.Nil(t, ctx.Value(exactReadProfileKey{}))
-				return structuredSpan(adapter), nil
+				span := structuredSpan(adapter)
+				span.session = exactMarkerCheckingSession{ReadSession: adapter, t: t}
+				span.verify = func(ctx context.Context, _ StructuredIdentityRequest) error {
+					require.Nil(t, ctx.Value(exactReadProfileKey{}))
+					return nil
+				}
+				return span, nil
 			}))
 		} else {
 			_, err = a.ReadTableResult(context.Background(), resultRequest(), previewOperation(), tableSourceFunc(func(ctx context.Context, _ TableIdentityRequest) (TableReadSpan, error) {
 				require.Nil(t, ctx.Value(exactReadProfileKey{}))
-				return newPreviewSpan(adapter), nil
+				span := newPreviewSpan(adapter)
+				span.session = exactMarkerCheckingSession{ReadSession: adapter, t: t}
+				span.verify = func(ctx context.Context) error { require.Nil(t, ctx.Value(exactReadProfileKey{})); return nil }
+				return span, nil
 			}))
 		}
 		require.NoError(t, err)
@@ -284,10 +345,10 @@ func TestExactPureDeadlineGuardAlsoProtectsLegacyRawPointSession(t *testing.T) {
 		t.Run(string(posture), func(t *testing.T) {
 			r := fixtureResolution()
 			r.Protection.ReadPosture = posture
-			r.ValidUntil = r.ServerTime.Add(50 * time.Millisecond)
+			r.ValidUntil = r.ServerTime.Add(time.Second)
 			if posture == ReadNone {
 				g := fixtureGrant(r.ServerTime)
-				g.ExpiresAt = r.ServerTime.Add(30 * time.Millisecond)
+				g.ExpiresAt = r.ServerTime.Add(time.Second)
 				r.Grants = []Grant{g}
 			}
 			a := testAuthority(t, fixedResolver(r))
@@ -310,4 +371,14 @@ func TestExactPureDeadlineGuardAlsoProtectsLegacyRawPointSession(t *testing.T) {
 			require.Empty(t, adapter.calls)
 		})
 	}
+}
+
+type exactMarkerCheckingSession struct {
+	dal.ReadSession
+	t *testing.T
+}
+
+func (s exactMarkerCheckingSession) ExecuteQueryToRecordsetReader(ctx context.Context, q dal.Query, options ...recordset.Option) (dal.RecordsetReader, error) {
+	require.Nil(s.t, ctx.Value(exactReadProfileKey{}))
+	return s.ReadSession.ExecuteQueryToRecordsetReader(ctx, q, options...)
 }

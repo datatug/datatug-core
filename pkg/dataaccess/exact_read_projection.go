@@ -16,7 +16,7 @@ import (
 // generation and exclude old writers before enabling exact mode. This type does
 // not establish that deployment fence or discover policies in unrelated handles.
 type ExactReadSnapshot struct {
-	document exactReadDocument
+	document *exactReadDocument
 	valid    bool
 }
 
@@ -25,6 +25,10 @@ func (*ExactReadSnapshot) MarshalJSON() ([]byte, error) { return []byte("{}"), n
 
 func (ExactReadSnapshot) String() string   { return "[private exact read snapshot]" }
 func (ExactReadSnapshot) GoString() string { return "[private exact read snapshot]" }
+func (ExactReadSnapshot) Format(state fmt.State, _ rune) {
+	_, _ = state.Write([]byte("[private exact read snapshot]"))
+}
+
 func (ExactReadSnapshot) LogValue() slog.Value {
 	return slog.StringValue("[private exact read snapshot]")
 }
@@ -72,7 +76,7 @@ func DecodeExactReadSnapshot(data []byte) (*ExactReadSnapshot, error) {
 			}
 		}
 	}
-	snapshot := &ExactReadSnapshot{document: doc}
+	snapshot := &ExactReadSnapshot{document: &doc}
 	if doc.NativeNamespace != "" && !canonical(doc.NativeNamespace) {
 		return nil, fmt.Errorf("dataaccess: native namespace unavailable")
 	}
@@ -117,7 +121,7 @@ func DecodeExactReadSnapshot(data []byte) (*ExactReadSnapshot, error) {
 			}
 		}
 	}
-	snapshot.document = doc
+	snapshot.document = &doc
 	snapshot.valid = true
 	return snapshot, nil
 }
@@ -195,7 +199,7 @@ func (s *ExactReadSnapshot) BindContext(ctx context.Context, subject Subject) (c
 			return nil, err
 		}
 	}
-	return context.WithValue(access.WithPolicy(ctx, policy), exactBindingKey{}, subject), nil
+	return context.WithValue(access.WithPolicy(ctx, policy), exactBindingKey{}, exactReadBinding{Subject: subject, Connection: s.document.Connection}), nil
 }
 func (s *ExactReadSnapshot) allowed(ctx context.Context, object ObjectRef) (bool, error) {
 	if !s.known(object) {
@@ -273,7 +277,6 @@ func ProjectExactRead(ctx context.Context, r Resolution, s *ExactReadSnapshot) (
 		if len(objects) == 0 {
 			continue
 		}
-		objects, _ = canonicalExactObjects(objects)
 		g.Scope = GrantScope{Connection: r.Connection.ID, Objects: objects, Requires: []string{ObjectsExact}}
 		g.Permissions = []Permission{DataRead}
 		g.Reason = "read authority"
