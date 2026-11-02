@@ -111,7 +111,7 @@ func (a *Authority) ReadStructuredResult(ctx context.Context, request ResultRequ
 	// A human principal or role list carried by the caller's context cannot
 	// become the authority's policy identity, especially for fixed Agent reads.
 	if err := checkExactBinding(ctx, a.request.Subject, a.request.Connection); err != nil {
-		return nil, err
+		return nil, a.denial(DataRead, "EXACT_BINDING_MISMATCH")
 	}
 	subject := a.request.Subject
 	ctx = access.WithPrincipal(ctx, access.Principal{Subject: &access.PrincipalRef{Realm: subject.Realm, Kind: access.PrincipalKind(subject.Kind), ID: subject.ID}})

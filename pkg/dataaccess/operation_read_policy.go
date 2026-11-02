@@ -112,7 +112,10 @@ func (p *operationReadPolicy) decideRules(ctx context.Context, request access.Re
 		if principal.Subject.Realm != p.subject.Realm || string(principal.Subject.Kind) != string(p.subject.Kind) || principal.Subject.ID != p.subject.ID {
 			return access.Decision{Operation: request.Operation, Policy: p.Name(), Effect: "deny", Code: access.CodeEnforcementUnsupported, Explanation: "read subject mismatch"}
 		}
-		policy, _ := access.NewPolicyForRealm(p.subject.Realm, p.Name(), rules...)
+		policy, err := access.NewPolicyForRealm(p.subject.Realm, p.Name(), rules...)
+		if err != nil {
+			return access.Decision{Operation: request.Operation, Policy: p.Name(), Effect: "deny", Code: access.CodeEnforcementUnsupported, Explanation: "read composition unavailable"}
+		}
 		return policy.Decide(ctx, request)
 	}
 	return access.MustPolicy(p.Name(), rules...).Decide(ctx, request)

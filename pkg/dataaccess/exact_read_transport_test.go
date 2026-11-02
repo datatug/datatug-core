@@ -274,47 +274,73 @@ func TestExactBoundSubjectMismatchAndSourceProfileStripping(t *testing.T) {
 		return nil, nil
 	})
 	_, err = a.ReadTableResult(ctx, resultRequest(), previewOperation(), source)
-	require.Error(t, err)
+	require.ErrorIs(t, err, access.ErrAccessDenied)
+	var mismatch *Denial
+	require.ErrorAs(t, err, &mismatch)
+	require.Equal(t, "EXACT_BINDING_MISMATCH", mismatch.Code)
 	op := structuredOperation()
 	otherDoc := exactFixtureDocument()
 	otherDoc.Connection.ID = "other-connection"
 	otherCtx, bindErr := exactSnapshot(t, otherDoc).BindContext(context.Background(), r.Subject)
 	require.NoError(t, bindErr)
 	_, err = a.ReadTableResult(otherCtx, resultRequest(), previewOperation(), source)
-	require.Error(t, err)
+	require.ErrorIs(t, err, access.ErrAccessDenied)
+	require.ErrorAs(t, err, &mismatch)
+	require.Equal(t, "EXACT_BINDING_MISMATCH", mismatch.Code)
 	_, err = a.ReadStructuredResult(otherCtx, structuredRequest(t, op), op, structuredSourceFunc(func(context.Context, StructuredIdentityRequest) (StructuredReadSpan, error) {
 		t.Fatal("wrong-connection source opened")
 		return nil, nil
 	}))
-	require.Error(t, err)
+	require.ErrorIs(t, err, access.ErrAccessDenied)
+	require.ErrorAs(t, err, &mismatch)
+	require.Equal(t, "EXACT_BINDING_MISMATCH", mismatch.Code)
 	_, err = a.ReadStructuredResult(ctx, structuredRequest(t, op), op, structuredSourceFunc(func(context.Context, StructuredIdentityRequest) (StructuredReadSpan, error) {
 		t.Fatal("mismatched source opened")
 		return nil, nil
 	}))
-	require.Error(t, err)
+	require.ErrorIs(t, err, access.ErrAccessDenied)
+	require.ErrorAs(t, err, &mismatch)
+	require.Equal(t, "EXACT_BINDING_MISMATCH", mismatch.Code)
 	for _, structured := range []bool{false, true} {
 		adapter := &previewAdapter{reader: &previewReader{rs: previewRecordset(t, []string{"id"})}}
+		verificationCalls, nativeCalls := 0, 0
+		var result *Result
 		if structured {
-			_, err = a.ReadStructuredResult(context.Background(), structuredRequest(t, op), op, structuredSourceFunc(func(ctx context.Context, _ StructuredIdentityRequest) (StructuredReadSpan, error) {
+			result, err = a.ReadStructuredResult(context.Background(), structuredRequest(t, op), op, structuredSourceFunc(func(ctx context.Context, _ StructuredIdentityRequest) (StructuredReadSpan, error) {
 				require.Nil(t, ctx.Value(exactReadProfileKey{}))
 				span := structuredSpan(adapter)
-				span.session = exactMarkerCheckingSession{ReadSession: adapter, t: t}
+				span.session = exactMarkerCheckingSession{ReadSession: adapter, t: t, calls: &nativeCalls}
 				span.verify = func(ctx context.Context, _ StructuredIdentityRequest) error {
+					verificationCalls++
 					require.Nil(t, ctx.Value(exactReadProfileKey{}))
 					return nil
 				}
 				return span, nil
 			}))
 		} else {
-			_, err = a.ReadTableResult(context.Background(), resultRequest(), previewOperation(), tableSourceFunc(func(ctx context.Context, _ TableIdentityRequest) (TableReadSpan, error) {
+			result, err = a.ReadTableResult(context.Background(), resultRequest(), previewOperation(), tableSourceFunc(func(ctx context.Context, _ TableIdentityRequest) (TableReadSpan, error) {
 				require.Nil(t, ctx.Value(exactReadProfileKey{}))
 				span := newPreviewSpan(adapter)
-				span.session = exactMarkerCheckingSession{ReadSession: adapter, t: t}
-				span.verify = func(ctx context.Context) error { require.Nil(t, ctx.Value(exactReadProfileKey{})); return nil }
+				span.session = exactMarkerCheckingSession{ReadSession: adapter, t: t, calls: &nativeCalls}
+				span.verify = func(ctx context.Context) error {
+					verificationCalls++
+					require.Nil(t, ctx.Value(exactReadProfileKey{}))
+					return nil
+				}
 				return span, nil
 			}))
 		}
 		require.NoError(t, err)
+		defer result.Close()
+		// Empty result: pre-read, post-read, pre/post Next and final guard.
+		// Structured additionally verifies the effective query before dispatch.
+		expectedVerifications := 5
+		if structured {
+			expectedVerifications++
+		}
+		require.Equal(t, expectedVerifications, verificationCalls)
+		require.Equal(t, 1, nativeCalls)
+		result.Close()
 	}
 }
 
@@ -375,10 +401,12 @@ func TestExactPureDeadlineGuardAlsoProtectsLegacyRawPointSession(t *testing.T) {
 
 type exactMarkerCheckingSession struct {
 	dal.ReadSession
-	t *testing.T
+	t     *testing.T
+	calls *int
 }
 
 func (s exactMarkerCheckingSession) ExecuteQueryToRecordsetReader(ctx context.Context, q dal.Query, options ...recordset.Option) (dal.RecordsetReader, error) {
+	*s.calls++
 	require.Nil(s.t, ctx.Value(exactReadProfileKey{}))
 	return s.ReadSession.ExecuteQueryToRecordsetReader(ctx, q, options...)
 }

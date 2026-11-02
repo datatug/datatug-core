@@ -250,3 +250,35 @@ func TestExactAgentNoneEmptyResourcesAndFormattingRefuse(t *testing.T) {
 		}
 	}
 }
+
+func TestExactNotBeforeRemainsClosedIndependentlyOfGenericAdmission(t *testing.T) {
+	raw := exactRawResolution()
+	g := exactReadGrant(raw.ServerTime, ObjectRef{"sales", "Order"})
+	later := raw.ServerTime.Add(time.Hour)
+	g.NotBefore = &later
+	require.False(t, exactGrantFeatures(g))
+	raw.Grants = []Grant{g}
+	_, err := ProjectExactRead(context.Background(), raw, exactSnapshot(t, exactFixtureDocument()))
+	require.Error(t, err)
+	g.Reason = "read authority"
+	g.Decision = nil
+	raw.Grants = []Grant{g}
+	raw.ExactRead = &ExactReadPolicy{Version: 1, Subject: raw.Subject, Connection: raw.Connection, Baseline: []ObjectRef{}}
+	_, err = canonicalExactResolution(raw)
+	require.Error(t, err)
+}
+func TestExactInvalidInternalRulesReturnUnsupportedDenial(t *testing.T) {
+	r := exactProjected(t, exactFixtureDocument())
+	p := newOperationReadPolicy(r, r.ServerTime, time.Now)
+	ctx := access.WithPrincipal(context.Background(), access.Principal{Subject: &access.PrincipalRef{Realm: r.Subject.Realm, Kind: access.PrincipalKind(r.Subject.Kind), ID: r.Subject.ID}})
+	request := *operationRequest(operationQuery("sales", "Customer", ""))
+	// planAt emits unique names and valid plain scopes today. A future internal
+	// caller passing an invalid compilation must get an explicit safe denial.
+	invalid := []access.Rule{access.Root(access.Allow(access.Read, "duplicate")), access.Root(access.Allow(access.Read, "duplicate"))}
+	_, err := access.NewPolicyForRealm(r.Subject.Realm, p.Name(), invalid...)
+	require.Error(t, err)
+	decision := p.decideRules(ctx, request, invalid)
+	require.False(t, decision.Allowed)
+	require.Equal(t, access.CodeEnforcementUnsupported, decision.Code)
+	require.Equal(t, "read composition unavailable", decision.Explanation)
+}

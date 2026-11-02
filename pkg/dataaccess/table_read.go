@@ -75,7 +75,7 @@ func (a *Authority) ReadTableResult(ctx context.Context, request ResultRequest, 
 		return nil, err
 	}
 	if err := checkExactBinding(ctx, a.request.Subject, a.request.Connection); err != nil {
-		return nil, err
+		return nil, a.denial(DataRead, "EXACT_BINDING_MISMATCH")
 	}
 	ctx = withExactReadProfile(ctx)
 	prepared, bound, cancel, err := a.prepareRequest(ctx, nil, readRequest)

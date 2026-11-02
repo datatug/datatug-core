@@ -99,7 +99,7 @@ func withExactReadProfile(ctx context.Context) context.Context {
 
 // Keep this admission explicit even if the generic MVP validator later grows.
 func exactGrantFeatures(g Grant) bool {
-	return g.Scope.Schemas == nil && g.Scope.Exclude == nil && g.Scope.Records == nil && g.Scope.Fields == nil && g.Scope.Request == nil && len(g.Permissions) == 1 && g.Permissions[0] == DataRead && len(g.Scope.Requires) == 1 && g.Scope.Requires[0] == ObjectsExact
+	return g.NotBefore == nil && g.Scope.Schemas == nil && g.Scope.Exclude == nil && g.Scope.Records == nil && g.Scope.Fields == nil && g.Scope.Request == nil && len(g.Permissions) == 1 && g.Permissions[0] == DataRead && len(g.Scope.Requires) == 1 && g.Scope.Requires[0] == ObjectsExact
 }
 
 type exactBindingKey struct{}
