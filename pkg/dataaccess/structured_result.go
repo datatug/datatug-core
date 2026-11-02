@@ -91,7 +91,7 @@ func (a *Authority) ImportStructuredResult(ctx context.Context, request ResultRe
 		clear(payload)
 		return nil, a.denial(DataRead, "RESULT_BINDING_MISMATCH")
 	}
-	bound := &lease{deadline: started.Add(ttl), started: started, serverTime: metadata.ServerTime, digest: metadata.GrantSetDigest, request: readRequest}
+	bound := &lease{deadline: started.Add(ttl), started: started, serverTime: metadata.ServerTime, digest: metadata.GrantSetDigest, request: readRequest, exactProfile: true}
 	clampContext(ctx, bound)
 	result := a.newStructuredResult(ctx, request, expected, bound, payload)
 	result.metadata = metadata.ResultLease

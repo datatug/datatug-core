@@ -155,6 +155,8 @@ type ReadPosture string
 const (
 	ReadAll  ReadPosture = "all"
 	ReadNone ReadPosture = "none"
+	// ReadExact requires a current ExactReadPolicy and a resource-bound read profile.
+	ReadExact ReadPosture = "exact-v1"
 )
 
 type AgentRead string

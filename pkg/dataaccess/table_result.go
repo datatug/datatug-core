@@ -97,7 +97,7 @@ func (a *Authority) ImportTableResult(ctx context.Context, request ResultRequest
 		return nil, a.denial(DataRead, "RESULT_BINDING_MISMATCH")
 	}
 	_, readRequest, _ := expected.query() // valid expected DTO constructs this profile only
-	bound := &lease{deadline: started.Add(ttl), started: started, serverTime: metadata.ServerTime, digest: metadata.GrantSetDigest, request: readRequest}
+	bound := &lease{deadline: started.Add(ttl), started: started, serverTime: metadata.ServerTime, digest: metadata.GrantSetDigest, request: readRequest, exactProfile: true}
 	clampContext(ctx, bound)
 	result := a.newTableResult(ctx, request, expected, bound, payload)
 	result.metadata = metadata.ResultLease

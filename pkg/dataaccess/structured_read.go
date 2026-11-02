@@ -110,8 +110,12 @@ func (a *Authority) ReadStructuredResult(ctx context.Context, request ResultRequ
 	}
 	// A human principal or role list carried by the caller's context cannot
 	// become the authority's policy identity, especially for fixed Agent reads.
+	if err := checkExactBinding(ctx, a.request.Subject); err != nil {
+		return nil, err
+	}
 	subject := a.request.Subject
 	ctx = access.WithPrincipal(ctx, access.Principal{Subject: &access.PrincipalRef{Realm: subject.Realm, Kind: access.PrincipalKind(subject.Kind), ID: subject.ID}})
+	ctx = withExactReadProfile(ctx)
 	prepared, bound, cancel, err := a.prepareRequest(ctx, nil, readRequest)
 	if err != nil {
 		return nil, err
@@ -123,7 +127,7 @@ func (a *Authority) ReadStructuredResult(ctx context.Context, request ResultRequ
 	factsRequest := StructuredIdentityRequest{Connection: a.request.Connection, Resources: identities}
 	opening := factsRequest
 	opening.Resources = slices.Clone(identities)
-	span, err := source.OpenStructuredRead(prepared, opening)
+	span, err := source.OpenStructuredRead(sourceReadContext{prepared}, opening)
 	if !isNilValue(span) {
 		result.ownCleanup(func() { _ = span.Close() })
 	}

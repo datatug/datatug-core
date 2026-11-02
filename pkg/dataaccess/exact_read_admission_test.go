@@ -1,0 +1,166 @@
+package dataaccess
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"github.com/dal-go/dalgo/access"
+	"github.com/stretchr/testify/require"
+	"log/slog"
+	"testing"
+	"time"
+)
+
+func TestExactPublicAdmissionMatrixAndLegacyDigest(t *testing.T) {
+	good := exactProjected(t, exactFixtureDocument())
+	for name, mutate := range map[string]func(*Resolution){
+		"nil": func(r *Resolution) { r.ExactRead = nil }, "legacy": func(r *Resolution) { r.Protection.ReadPosture = ReadAll }, "version": func(r *Resolution) { r.ExactRead.Version++ }, "subject": func(r *Resolution) { r.ExactRead.Subject.ID = "other" }, "invalid subject": func(r *Resolution) { r.Subject.ID = ""; r.ExactRead.Subject = r.Subject }, "connection": func(r *Resolution) { r.ExactRead.Connection.ID = "other" }, "local selection": func(r *Resolution) { r.ExactRead.Connection.LocalAuthorityID = "local" }, "local response": func(r *Resolution) { r.Connection.LocalAuthorityID = "local" }, "baseline nil": func(r *Resolution) { r.ExactRead.Baseline = nil }, "baseline pattern": func(r *Resolution) { r.ExactRead.Baseline = []ObjectRef{{"sales", "*"}} }, "baseline duplicate": func(r *Resolution) { r.ExactRead.Baseline = append(r.ExactRead.Baseline, r.ExactRead.Baseline[0]) }, "baseline bound": func(r *Resolution) { r.ExactRead.Baseline = make([]ObjectRef, 1001) },
+	} {
+		t.Run(name, func(t *testing.T) {
+			copy := exactProjected(t, exactFixtureDocument())
+			mutate(&copy)
+			_, err := canonicalExactResolution(copy)
+			require.Error(t, err)
+			_, err = resolutionDigest(copy)
+			require.Error(t, err)
+		})
+	}
+	for name, mutate := range map[string]func(*Resolution){"not readonly": func(r *Resolution) { r.Protection.ReadOnly = false }, "finegrain": func(r *Resolution) { r.Protection.MandatoryFineGrained = true }, "connection grant": func(r *Resolution) { r.Grants = []Grant{fixtureGrant(r.ServerTime)} }, "namespace absent": func(r *Resolution) {
+		g := exactReadGrant(r.ServerTime, ObjectRef{Name: "Order"})
+		g.Reason = "read authority"
+		g.Decision = nil
+		r.Grants = []Grant{g}
+	}} {
+		t.Run(name, func(t *testing.T) {
+			r := exactProjected(t, exactFixtureDocument())
+			mutate(&r)
+			_, err := testAuthority(t, fixedResolver(r)).authorizeRequest(withExactReadProfile(context.Background()), operationRequest(operationQuery("sales", "Customer", "")))
+			require.Error(t, err)
+		})
+	}
+	a := testAuthority(t, fixedResolver(good))
+	req := operationRequest(operationQuery("sales", "Customer", ""))
+	_, err := a.authorizeRequest(context.Background(), req)
+	require.ErrorContains(t, err, "EXACT_PROFILE_REQUIRED")
+	_, err = a.authorizeRequest(withExactReadProfile(context.Background()), nil)
+	require.ErrorContains(t, err, "EXACT_PROFILE_REQUIRED")
+	_, bound, cancel, err := a.prepareRequest(withExactReadProfile(context.Background()), nil, req)
+	require.NoError(t, err)
+	cancel()
+	_, again, stop, err := a.prepareWithCeiling(context.Background(), bound, nil, nil)
+	require.NoError(t, err)
+	stop()
+	require.True(t, again.exactProfile)
+	legacy := fixtureResolution()
+	wire, err := json.Marshal(struct {
+		Protection       ConnectionProtection
+		Grants           []Grant
+		LocalAuthorityID string `json:"localAuthorityId,omitempty"`
+	}{legacy.Protection, nil, ""})
+	require.NoError(t, err)
+	digest, err := resolutionDigest(legacy)
+	require.NoError(t, err)
+	require.Equal(t, hashBytes(wire), digest)
+	for _, data := range [][]byte{[]byte(`{"version":1,"VERSION":1}`), []byte{255}, []byte(`{} {}`), []byte(`{"unknown":1}`)} {
+		var p ExactReadPolicy
+		require.Error(t, p.UnmarshalJSON(data))
+	}
+	require.Error(t, (*ExactReadPolicy)(nil).UnmarshalJSON([]byte(`{}`)))
+	wire, err = json.Marshal(good.ExactRead)
+	require.NoError(t, err)
+	var decoded ExactReadPolicy
+	require.NoError(t, json.Unmarshal(wire, &decoded))
+	require.Equal(t, *good.ExactRead, decoded)
+	first, err := resolutionDigest(good)
+	require.NoError(t, err)
+	good.ExactRead.Baseline = append(good.ExactRead.Baseline, ObjectRef{"alpha", "A"}, ObjectRef{"sales", "AAA"})
+	canonical, err := canonicalExactResolution(good)
+	require.NoError(t, err)
+	require.NotEqual(t, first, mustExactDigest(t, canonical))
+	good.ExactRead.Baseline[0].Name = "changed"
+	require.NotEqual(t, good.ExactRead.Baseline, canonical.ExactRead.Baseline)
+	for _, req := range []*access.Request{operationRequest(keyQuery()), operationRequest(operationQuery("sales", "Order", ""))} {
+		p := newOperationReadPolicy(good, good.ServerTime, func() time.Time { return good.ServerTime })
+		require.Error(t, p.Authorize(context.Background(), *req))
+	}
+}
+func mustExactDigest(t *testing.T, r Resolution) string {
+	t.Helper()
+	d, e := resolutionDigest(r)
+	require.NoError(t, e)
+	return d
+}
+
+func TestExactInspectionIsImmutableAndNeverCallsClock(t *testing.T) {
+	resolution := exactProjected(t, exactFixtureDocument())
+	now := resolution.ServerTime
+	calls := 0
+	p := newOperationReadPolicy(resolution, now, func() time.Time { calls++; return now })
+	request := operationRequest(operationQuery("sales", "Customer", ""))
+	before := calls
+	bounded, stop := context.WithDeadline(context.Background(), p.ceiling)
+	defer stop()
+	require.False(t, p.Decide(context.Background(), *request).Allowed)
+	require.True(t, p.Decide(bounded, *request).Allowed)
+	tooLong, end := context.WithDeadline(context.Background(), p.ceiling.Add(time.Second))
+	defer end()
+	require.False(t, p.Decide(tooLong, *request).Allowed)
+	require.False(t, p.Decide(context.WithoutCancel(bounded), *request).Allowed)
+	require.Equal(t, before, calls)
+	canceled, cancel := context.WithCancel(context.Background())
+	cancel()
+	require.False(t, p.Decide(canceled, *request).Allowed)
+	resolution.ExactRead.Baseline[0].Name = "forged"
+	now = now.Add(time.Minute)
+	require.True(t, p.Decide(bounded, *request).Allowed, "inspection is a captured immutable decision, not fresh authorization")
+	require.Equal(t, before, calls)
+	require.Error(t, p.Authorize(context.Background(), *request), "fresh deadline enforcement still refuses expired authority")
+	require.Greater(t, calls, before)
+	table := access.TableName{Schema: "sales", Name: "Customer"}
+	require.True(t, canonicalReadIdentity(access.CollectionResourceFor(nil, "Customer"), table))
+	require.False(t, canonicalReadIdentity(access.CollectionResourceFor(nil, "Order"), table))
+}
+
+func TestExactReviewAdmissionAndRedaction(t *testing.T) {
+	for _, object := range []ObjectRef{{"sales", "a/b"}, {"sales", "{a}"}, {"s/a", "b"}} {
+		require.False(t, validExactObject(object))
+	}
+	for _, mutate := range []func(*Grant){
+		func(g *Grant) { g.Scope.Requires = append(g.Scope.Requires, "unknown") },
+		func(g *Grant) { g.Scope.Requires = []string{} },
+		func(g *Grant) { g.Permissions = append(g.Permissions, DataWrite) },
+	} {
+		raw := exactRawResolution()
+		g := exactReadGrant(raw.ServerTime, ObjectRef{"sales", "Order"})
+		mutate(&g)
+		raw.Grants = []Grant{g}
+		_, err := ProjectExactRead(context.Background(), raw, exactSnapshot(t, exactFixtureDocument()))
+		require.Error(t, err)
+		g.Reason = "read authority"
+		g.Decision = nil
+		raw.ExactRead = &ExactReadPolicy{Version: 1, Subject: raw.Subject, Connection: raw.Connection, Baseline: []ObjectRef{}}
+		raw.Grants = []Grant{g}
+		_, err = canonicalExactResolution(raw)
+		require.Error(t, err)
+	}
+	raw := exactRawResolution()
+	raw.Grants = []Grant{exactReadGrant(raw.ServerTime, ObjectRef{Name: "Order"})}
+	_, err := ProjectExactRead(context.Background(), raw, exactSnapshot(t, exactFixtureDocument()))
+	require.Error(t, err)
+	snapshot := exactSnapshot(t, exactFixtureDocument())
+	require.NotContains(t, fmt.Sprintf("%+v %#v %+v %#v", snapshot, snapshot, *snapshot, *snapshot), "Secret")
+	require.NotContains(t, snapshot.LogValue().String(), "Secret")
+	require.Equal(t, slog.KindString, snapshot.LogValue().Kind())
+	ctx := withExactReadProfile(context.WithValue(context.Background(), exactBindingKey{}, fixtureSubject()))
+	filtered := sourceReadContext{ctx}
+	require.Nil(t, filtered.Value(exactReadProfileKey{}))
+	require.Equal(t, fixtureSubject(), filtered.Value(exactBindingKey{}))
+	require.NoError(t, checkExactBinding(ctx, fixtureSubject()))
+	wrong := fixtureSubject()
+	wrong.ID = "other"
+	require.Error(t, checkExactBinding(ctx, wrong))
+	p := newOperationReadPolicy(exactProjected(t, exactFixtureDocument()), time.Now(), time.Now)
+	canceled, cancel := context.WithCancel(context.Background())
+	cancel()
+	require.ErrorIs(t, p.Authorize(canceled, *operationRequest(operationQuery("sales", "Customer", ""))), context.Canceled)
+}

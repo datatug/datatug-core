@@ -76,13 +76,18 @@ func (request ResultRequest) valid() bool {
 	return len(request.Nonce) >= 16 && len(request.Nonce) <= 256 && canonical(request.Nonce) && validHash(request.RequestSHA256)
 }
 func resolutionDigest(resolution Resolution) (string, error) {
+	resolution, err := canonicalExactResolution(resolution)
+	if err != nil {
+		return "", err
+	}
 	grants := slices.Clone(resolution.Grants)
 	slices.SortFunc(grants, func(a, b Grant) int { return strings.Compare(a.ID, b.ID) })
 	data, err := json.Marshal(struct {
 		Protection       ConnectionProtection
 		Grants           []Grant
-		LocalAuthorityID string `json:"localAuthorityId,omitempty"`
-	}{resolution.Protection, grants, resolution.Connection.LocalAuthorityID})
+		LocalAuthorityID string           `json:"localAuthorityId,omitempty"`
+		ExactRead        *ExactReadPolicy `json:"exactRead,omitempty"`
+	}{resolution.Protection, grants, resolution.Connection.LocalAuthorityID, resolution.ExactRead})
 	if err != nil {
 		return "", err
 	}
