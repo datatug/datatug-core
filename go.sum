@@ -5,6 +5,8 @@ github.com/bits-and-blooms/bitset v1.24.6/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/dal-go/dalgo v0.97.0 h1:oiE9RJ0EPxtdzBf3c5JAxfF74Jhh0KCxNa+B9ytsN2E=
 github.com/dal-go/dalgo v0.97.0/go.mod h1:UCGV7G50rWbXamWXbmbBGmHiACWtNYUFNIL+qM5AAs8=
+github.com/dal-go/dalgo v0.98.0 h1:oVNychOyfCeE2BiDmKJm4SmSMWH6R94571XAscqsu0Q=
+github.com/dal-go/dalgo v0.98.0/go.mod h1:UCGV7G50rWbXamWXbmbBGmHiACWtNYUFNIL+qM5AAs8=
 github.com/dal-go/record v0.1.5 h1:lkPxiJA7S2oE5tA0WUayezd+lmaiEekrEcGz/HRhzLg=
 github.com/dal-go/record v0.1.5/go.mod h1:PuoOCH74/Vf+pIVWSdrMg7OdUmlSlPgj68yJ+gM42To=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
