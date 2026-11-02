@@ -61,6 +61,11 @@ func (m *compositionMemory) ExecuteQueryToRecordsReader(ctx context.Context, que
 // is no evidence about native engine resolution. Both record every dispatch.
 func compositionReadVector(t *testing.T, query dal.Query, allowed bool, policies ...access.Policy) {
 	t.Helper()
+	compositionReadVectorContext(t, context.Background(), query, allowed, policies...)
+}
+
+func compositionReadVectorContext(t *testing.T, ctx context.Context, query dal.Query, allowed bool, policies ...access.Policy) {
+	t.Helper()
 	a := &recordingAdapter{reader: &testReader{next: func() (record.Record, error) { return nil, dal.ErrNoMoreRecords }}}
 	b := &compositionMemory{newMemoryRecorder(t)}
 	for name, backend := range map[string]struct {
@@ -69,7 +74,7 @@ func compositionReadVector(t *testing.T, query dal.Query, allowed bool, policies
 	}{"recording": {a, &a.calls}, "memory": {b, &b.calls}} {
 		t.Run(name, func(t *testing.T) {
 			secured := access.SecureReadSession(backend.read, policies...)
-			reader, err := secured.ExecuteQueryToRecordsReader(context.Background(), query)
+			reader, err := secured.ExecuteQueryToRecordsReader(ctx, query)
 			if !allowed {
 				require.ErrorIs(t, err, access.ErrAccessDenied)
 				require.Empty(t, *backend.calls, "denial must precede every adapter call")

@@ -32,8 +32,8 @@ func TestOperationPolicyUsesDALgoResourcesAndIndependentGrantUnion(t *testing.T)
 			}
 		}
 		// Actual recording/memory wrappers still execute ordinary DALgo policies.
-		compositionReadVector(t, operationQuery("sales", "Customer", "c"), true, p)
-		compositionReadVector(t, operationQuery("sales", "Order", "o"), posture == ReadAll, p)
+		compositionReadVectorContext(t, operationFixedDeadlineContext{Context: context.Background(), deadline: p.objects[grant.Scope.Objects[0]]}, operationQuery("sales", "Customer", "c"), true, p)
+		compositionReadVectorContext(t, operationFixedDeadlineContext{Context: context.Background(), deadline: p.ceiling}, operationQuery("sales", "Order", "o"), posture == ReadAll, p)
 	}
 }
 func TestOperationPolicyHasExactNamesAndNoOpaqueOrPointWidening(t *testing.T) {
@@ -198,3 +198,12 @@ func TestOperationPolicyNeverExceedsResolutionCeiling(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, now.Add(time.Minute), deadline)
 }
+
+// Matches the deterministic clock fixture above; real Core contexts use
+// context.WithDeadline and real timer/cancellation tests cover their expiry.
+type operationFixedDeadlineContext struct {
+	context.Context
+	deadline time.Time
+}
+
+func (c operationFixedDeadlineContext) Deadline() (time.Time, bool) { return c.deadline, true }

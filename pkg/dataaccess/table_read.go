@@ -74,6 +74,10 @@ func (a *Authority) ReadTableResult(ctx context.Context, request ResultRequest, 
 	if err != nil {
 		return nil, err
 	}
+	if err := checkExactBinding(ctx, a.request.Subject, a.request.Connection); err != nil {
+		return nil, a.denial(DataRead, "EXACT_BINDING_MISMATCH")
+	}
+	ctx = withExactReadProfile(ctx)
 	prepared, bound, cancel, err := a.prepareRequest(ctx, nil, readRequest)
 	if err != nil {
 		return nil, err
@@ -85,7 +89,7 @@ func (a *Authority) ReadTableResult(ctx context.Context, request ResultRequest, 
 	result := a.newTableResult(ctx, request, operation, bound, make([]byte, 0, int(operation.MaxBytes)))
 	result.ownCleanup(cancel)
 	factsRequest := TableIdentityRequest{Connection: a.request.Connection, Table: access.TableName{Schema: operation.Object.Namespace, Name: operation.Object.Name}}
-	span, err := source.OpenTableRead(prepared, factsRequest)
+	span, err := source.OpenTableRead(sourceReadContext{prepared}, factsRequest)
 	if !isNilValue(span) {
 		result.ownCleanup(func() { _ = span.Close() })
 	}
@@ -117,7 +121,7 @@ func (r *Result) readTable(ctx context.Context, span TableReadSpan, query dal.Qu
 	// DALgo may enforce a field/record residual by rewriting a query. This
 	// profile cannot silently become a projection or filtered investigation.
 	// Only the exact Core-built builtin snapshot reaches the native session.
-	secured := access.SecureReadSession(frozenTableSession{ReadSession: session, query: query}, r.authorization.policy)
+	secured := access.SecureReadSession(frozenTableSession{ReadSession: session, query: query, result: r}, r.authorization.policy)
 	reader, err := secured.ExecuteQueryToRecordsetReader(ctx, query)
 	var once sync.Once
 	var closeErr error
@@ -150,7 +154,8 @@ func (r *Result) readTable(ctx context.Context, span TableReadSpan, query dal.Qu
 
 type frozenTableSession struct {
 	dal.ReadSession
-	query dal.Query
+	query  dal.Query
+	result *Result
 }
 
 func (s frozenTableSession) ExecuteQueryToRecordsetReader(ctx context.Context, query dal.Query, options ...recordset.Option) (dal.RecordsetReader, error) {
@@ -163,6 +168,16 @@ func (s frozenTableSession) ExecuteQueryToRecordsetReader(ctx context.Context, q
 		len(effective.GroupBy()) != 0 || len(effective.OrderBy()) != 0 || effective.IDKind() != reflect.Invalid ||
 		effective.Offset() != 0 || effective.Limit() != s.query.Limit() || effective.StartFrom() != "" || effective.StartAfter() != "" {
 		return nil, fmt.Errorf("dataaccess: table preview query rewrite is unsupported")
+	}
+	s.result.mu.Lock()
+	bound := *s.result.authorization
+	closed := s.result.payload == nil
+	s.result.mu.Unlock()
+	if closed {
+		return nil, fmt.Errorf("dataaccess: result is closed")
+	}
+	if err := s.result.authority.check(ctx, &bound); err != nil {
+		return nil, err
 	}
 	return s.ReadSession.ExecuteQueryToRecordsetReader(ctx, s.query)
 }

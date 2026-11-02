@@ -27,6 +27,7 @@ type Resolution struct {
 	Grants     []Grant              `json:"grants"`
 	ServerTime time.Time            `json:"serverTime"`
 	ValidUntil time.Time            `json:"validUntil"`
+	ExactRead  *ExactReadPolicy     `json:"exactRead,omitempty"`
 }
 
 type Resolver func(context.Context, ResolveRequest) (Resolution, error)
@@ -93,13 +94,14 @@ func (a *Authority) secureDB(db dal.DB, verifier TableIdentityVerifier) (Databas
 }
 
 type lease struct {
-	deadline   time.Time
-	started    time.Time
-	serverTime time.Time
-	digest     string
-	policy     access.Policy
-	request    *access.Request                            // immutable DALgo-mapped resources of a frozen operation
-	identity   interface{ verify(context.Context) error } // immutable native binding for this operation
+	deadline     time.Time
+	started      time.Time
+	serverTime   time.Time
+	digest       string
+	policy       access.Policy
+	request      *access.Request                            // immutable DALgo-mapped resources of a frozen operation
+	identity     interface{ verify(context.Context) error } // immutable native binding for this operation
+	exactProfile bool                                       // only Core table/structured entrypoints set this marker
 }
 
 type authorizationKey struct{}
@@ -133,7 +135,7 @@ func (a *Authority) authorize(ctx context.Context) (*lease, error) {
 
 func (a *Authority) authorizeRequest(ctx context.Context, request *access.Request) (*lease, error) {
 	started := a.now()
-	resolution, err := a.resolve(ctx, a.request)
+	resolution, err := a.resolve(sourceReadContext{ctx}, a.request)
 	if err != nil {
 		return nil, a.denial(DataRead, "AUTHORITY_UNAVAILABLE")
 	}
@@ -145,8 +147,16 @@ func (a *Authority) authorizeRequest(ctx context.Context, request *access.Reques
 	if a.request.Connection.LocalAuthorityID != "" && len(resolution.Grants) != 0 {
 		return nil, a.denial(DataRead, "LOCAL_GRANTS_UNSUPPORTED")
 	}
+	resolution, err = canonicalExactResolution(resolution)
+	if err != nil {
+		return nil, a.denial(DataRead, "AUTHORITY_UNSUPPORTED")
+	}
+	exactProfile, _ := ctx.Value(exactReadProfileKey{}).(bool)
+	if resolution.Protection.ReadPosture == ReadExact && (!exactProfile || request == nil || !resolution.Protection.ReadOnly) {
+		return nil, a.denial(DataRead, "EXACT_PROFILE_REQUIRED")
+	}
 	if resolution.ServerTime.IsZero() || !resolution.ValidUntil.After(resolution.ServerTime) ||
-		(resolution.Protection.ReadPosture != ReadAll && resolution.Protection.ReadPosture != ReadNone) ||
+		(resolution.Protection.ReadPosture != ReadAll && resolution.Protection.ReadPosture != ReadNone && resolution.Protection.ReadPosture != ReadExact) ||
 		(resolution.Protection.AgentRead != AgentInherit && resolution.Protection.AgentRead != AgentNone) ||
 		resolution.Protection.MandatoryFineGrained {
 		return nil, a.denial(DataRead, "AUTHORITY_UNSUPPORTED")
@@ -173,7 +183,7 @@ func (a *Authority) authorizeRequest(ctx context.Context, request *access.Reques
 	if err != nil {
 		return nil, a.denial(DataRead, "AUTHORITY_UNSUPPORTED")
 	}
-	return &lease{deadline: deadline, started: started, serverTime: resolution.ServerTime, digest: digest, policy: policy, request: copyReadRequest(request)}, nil
+	return &lease{deadline: deadline, started: started, serverTime: resolution.ServerTime, digest: digest, policy: policy, request: copyReadRequest(request), exactProfile: exactProfile}, nil
 }
 
 func (a *Authority) check(ctx context.Context, authorization *lease) error {
@@ -205,6 +215,9 @@ func (a *Authority) prepareWithCeiling(ctx context.Context, bound *lease, reques
 	if request == nil && bound != nil {
 		request = bound.request
 	}
+	if bound != nil && bound.exactProfile {
+		ctx = withExactReadProfile(ctx)
+	}
 	authorization, err := a.authorizeRequest(ctx, request)
 	if err != nil {
 		return nil, nil, nil, err
@@ -221,7 +234,9 @@ func (a *Authority) prepareWithCeiling(ctx context.Context, bound *lease, reques
 	if bound != nil {
 		authorization.identity = bound.identity
 	}
-	ctx, cancel := context.WithDeadline(ctx, authorization.deadline)
+	// Admission is internal to the captured lease; never pass its marker to
+	// resolver/source/native callbacks or returned operation contexts.
+	ctx, cancel := context.WithDeadline(sourceReadContext{ctx}, authorization.deadline)
 	if onCeiling != nil {
 		onCeiling(authorization)
 		if err := a.check(ctx, authorization); err != nil {
@@ -230,7 +245,7 @@ func (a *Authority) prepareWithCeiling(ctx context.Context, bound *lease, reques
 		}
 	}
 	if authorization.identity != nil {
-		if err := authorization.identity.verify(ctx); err != nil {
+		if err := authorization.identity.verify(sourceReadContext{ctx}); err != nil {
 			cancel()
 			return nil, nil, nil, a.denial(DataRead, "TABLE_IDENTITY_UNVERIFIED")
 		}
