@@ -2,6 +2,8 @@ package perimeter
 
 import (
 	"context"
+	"fmt"
+	"slices"
 	"testing"
 	"time"
 
@@ -12,9 +14,10 @@ import (
 
 func explain(t *testing.T, s Snapshot, subject dataaccess.Subject, permission dataaccess.Permission, object dataaccess.ObjectRef) Entry {
 	t.Helper()
-	entry, err := Explain(context.Background(), s, subject, permission, resource(object))
+	answer, err := Explain(context.Background(), s, subject, permission, resource(object), ExplainOptions{Detail: true})
 	require.NoError(t, err)
-	return entry
+	require.Len(t, answer.Entries, 1)
+	return answer.Entries[0]
 }
 
 func codes(blockers []Blocker) []string {
@@ -50,6 +53,7 @@ func TestExplainGrantAllowWithSourcesAndRestrictions(t *testing.T) {
 	require.Equal(t, &Ref{Kind: "authority", ID: connID}, entry.Blockers[0].Source)
 	require.Equal(t, &Ref{Kind: "policy", ID: "datatug-core-read-composition"}, entry.Blockers[1].Source)
 	require.Empty(t, entry.Sources)
+	require.Empty(t, entry.Candidates)
 
 	s := snapshot(t, dataaccess.ReadNone, g)
 	s.Connections[0].Protection.ReadOnly = false
@@ -80,7 +84,8 @@ func TestMandatoryDenyBeatsGrant(t *testing.T) {
 	s := snapshot(t, dataaccess.ReadExact, grant("g-sec", blue, asOf.Add(time.Hour), secrets), grant("g-inv", blue, asOf.Add(time.Hour), invoices))
 	entry := explain(t, s, blue, dataaccess.DataRead, secrets)
 	require.Equal(t, Deny, entry.Decision)
-	require.Equal(t, []string{"grant:g-sec"}, sourceIDs(entry.Sources), "the explanation shows the grant the mandatory deny overrides")
+	require.Empty(t, entry.Sources, "a deny never claims an allow source")
+	require.Empty(t, entry.Candidates, "projection already removed the mandatory-denied object from the grant")
 	require.Equal(t, []string{"READ_DENIED", string(access.CodeRuleDenied), string(access.CodeNoMatch)}, codes(entry.Blockers))
 	require.Equal(t, &Ref{Kind: "policy", ID: "datatug-exact-mandatory"}, entry.Blockers[1].Source)
 	require.Equal(t, entry, explain(t, s, blue, dataaccess.DataRead, secrets), "blocker order is deterministic")
@@ -91,9 +96,9 @@ func TestMandatoryDenyBeatsGrant(t *testing.T) {
 	fine := snapshot(t, dataaccess.ReadAll, grant("g1", blue, asOf.Add(time.Hour), invoices))
 	fine.Connections[0].Protection.MandatoryFineGrained = true
 	entry = explain(t, fine, blue, dataaccess.DataRead, invoices)
-	require.Equal(t, Deny, entry.Decision, "mandatory fine-grained protection refuses even posture all plus a grant")
-	require.Equal(t, "AUTHORITY_UNSUPPORTED", entry.Blockers[0].Code)
-	require.Equal(t, []string{"posture:prod-billing", "grant:g1"}, sourceIDs(entry.Sources))
+	require.Equal(t, Indeterminate, entry.Decision, "a protection Core cannot enforce is unknown, never allowed")
+	require.Equal(t, []Blocker{{Code: "AUTHORITY_UNSUPPORTED"}}, entry.Blockers)
+	require.Empty(t, entry.Sources)
 }
 
 func TestExpiryIsMeasuredAgainstSnapshotTime(t *testing.T) {
@@ -170,14 +175,17 @@ func TestMissingOrUnsupportedInputsAreIndeterminate(t *testing.T) {
 		"protection unreadable": {func(s *Snapshot) { s.Connections[0].Protection = nil }, blue, invoices, CodeProtectionUnavailable},
 		"exact without policy": {func(s *Snapshot) {
 			s.Connections[0].Protection.ReadPosture = dataaccess.ReadExact
-		}, green, customers, CodeExactPolicyUnavailable},
+		}, green, customers, "AUTHORITY_UNSUPPORTED"},
 		"exact projection refused": {func(s *Snapshot) {
 			*s = snapshot(t, dataaccess.ReadExact, withScope(grant("g", green, asOf.Add(time.Hour), customers)))
 		}, green, customers, CodeExactPolicyUnavailable},
 		"object not canonical": {func(*Snapshot) {}, blue, dataaccess.ObjectRef{Namespace: "billing", Name: "*"}, CodeEvaluationUnavailable},
 		"local connection": {func(s *Snapshot) {
 			s.Connections[0].Ref.Space, s.Connections[0].Ref.LocalAuthorityID = "", "local"
-		}, blue, invoices, CodeEvaluationUnavailable},
+		}, blue, invoices, CodeLocalConnection},
+		"invalid grant (Core refusal)": {func(s *Snapshot) {
+			*s = snapshot(t, dataaccess.ReadAll, unsupported(grant("g", blue, asOf.Add(time.Hour), invoices)))
+		}, blue, invoices, CodeUnsupportedScope},
 	} {
 		t.Run(name, func(t *testing.T) {
 			s := base()
@@ -197,14 +205,16 @@ func TestMissingOrUnsupportedInputsAreIndeterminate(t *testing.T) {
 	s.Connections[0].Ref.Space, s.Connections[0].Ref.LocalAuthorityID = "", "local"
 	require.Equal(t, EnforcementHonestClient, explain(t, s, blue, dataaccess.DataRead, invoices).Enforcement)
 
-	entry, err := Explain(context.Background(), base(), blue, dataaccess.DataRead, Resource{Connection: "nope", Namespace: "billing", Name: "invoices"})
+	answer, err := Explain(context.Background(), base(), blue, dataaccess.DataRead, Resource{Connection: "nope", Namespace: "billing", Name: "invoices"}, ExplainOptions{})
 	require.NoError(t, err)
+	require.False(t, answer.Complete)
+	entry = answer.Entries[0]
 	require.Equal(t, Indeterminate, entry.Decision)
-	require.Equal(t, EnforcementNone, entry.Enforcement)
+	require.Empty(t, entry.Enforcement)
 	require.Equal(t, []Blocker{{Code: CodeUnknownConnection}}, entry.Blockers)
 }
 
-func withScope(g dataaccess.Grant) dataaccess.Grant {
+func withScope(g StoredGrant) StoredGrant {
 	g.Scope.Fields = &dataaccess.FieldScope{Include: []string{"id"}}
 	return g
 }
@@ -214,16 +224,17 @@ func TestInconsistentInspectionIsIndeterminate(t *testing.T) {
 		snapshot   Snapshot
 		inspection dataaccess.TableReadInspection
 	}{
-		"admitted but assessed deny": {snapshot(t, dataaccess.ReadAll), dataaccess.TableReadInspection{Admitted: true, Assessment: access.Assessment{Outcome: access.AssessmentDeny}}},
-		"admitted with no source":    {snapshot(t, dataaccess.ReadNone), dataaccess.TableReadInspection{Admitted: true, Assessment: access.Assessment{Outcome: access.AssessmentAllow}}},
+		"admitted but assessed deny": {snapshot(t, dataaccess.ReadAll), dataaccess.TableReadInspection{Admitted: true, Assessment: dataaccess.InspectedAssessment{Outcome: access.AssessmentDeny}}},
+		"admitted with no source":    {snapshot(t, dataaccess.ReadNone), dataaccess.TableReadInspection{Admitted: true, Assessment: dataaccess.InspectedAssessment{Outcome: access.AssessmentAllow}}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			e := newEvaluator(tc.snapshot)
 			e.inspect = func(context.Context, dataaccess.Resolution, *dataaccess.ExactReadSnapshot, dataaccess.ObjectRef) (dataaccess.TableReadInspection, error) {
 				return tc.inspection, nil
 			}
-			entry, err := e.explain(context.Background(), blue, dataaccess.DataRead, resource(invoices))
+			answer, err := e.explain(context.Background(), blue, dataaccess.DataRead, resource(invoices))
 			require.NoError(t, err)
+			entry := answer.Entries[0]
 			require.Equal(t, Indeterminate, entry.Decision)
 			require.Equal(t, []Blocker{{Code: CodeEvaluationInconsistent}}, entry.Blockers)
 			require.Empty(t, entry.Sources)
@@ -245,7 +256,7 @@ func TestInvalidCallsAreRefused(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			_, err := ForSubject(tc.ctx, tc.s, blue, Filter{})
 			require.Error(t, err)
-			_, err = Explain(tc.ctx, tc.s, blue, dataaccess.DataRead, resource(invoices))
+			_, err = Explain(tc.ctx, tc.s, blue, dataaccess.DataRead, resource(invoices), ExplainOptions{})
 			require.Error(t, err)
 			_, err = ForResource(tc.ctx, tc.s, resource(invoices), nil)
 			require.Error(t, err)
@@ -299,8 +310,11 @@ func TestForSubject(t *testing.T) {
 		answer, err := ForSubject(ctx, broken, blue, Filter{Environment: "production"})
 		require.NoError(t, err)
 		require.False(t, answer.Complete)
+		require.Equal(t, []Entry{{Resource: Resource{Connection: connID}, Decision: Indeterminate,
+			Blockers: []Blocker{{Code: CodeResourcesNotEnumerated}}, Enforcement: EnforcementServer}}, answer.Entries, "unknowns fold into one row with no table name")
+		answer, err = ForSubject(ctx, broken, blue, Filter{IncludeDenied: true})
+		require.NoError(t, err)
 		require.Len(t, answer.Entries, 3)
-		require.Equal(t, Indeterminate, answer.Entries[0].Decision)
 	})
 
 	t.Run("objects come from inventory and the subject's own grants", func(t *testing.T) {
@@ -384,16 +398,16 @@ func TestForResource(t *testing.T) {
 		s.Connections[0].Protection.MandatoryFineGrained = true
 		answer, err = ForResource(ctx, s, resource(invoices), nil)
 		require.NoError(t, err)
-		require.Equal(t, []string{GroupProjectMembers}, subjects(answer), "every member is refused alike")
-		require.Equal(t, Deny, answer.Entries[0].Decision)
+		require.Equal(t, []string{GroupProjectMembers, "mallory"}, subjects(answer), "every member is unknown alike")
+		require.Equal(t, []Decision{Indeterminate, Deny}, decisions(answer))
 
 		s.Members = nil
 		s.Connections[0].Protection.MandatoryFineGrained = false
 		answer, err = ForResource(ctx, s, resource(invoices), nil)
 		require.NoError(t, err)
 		require.False(t, answer.Complete)
-		require.Equal(t, []string{GroupProjectMembers, "mallory"}, subjects(answer))
-		require.Equal(t, Indeterminate, answer.Entries[1].Decision)
+		require.Equal(t, []string{GroupProjectMembers}, subjects(answer), "no every-member allow during a membership outage")
+		require.Equal(t, []Blocker{{Code: CodeMembershipUnavailable}}, answer.Entries[0].Blockers)
 	})
 
 	t.Run("posture none enumerates members and grant subjects", func(t *testing.T) {
@@ -465,5 +479,131 @@ func TestSelfDecidedGrantConfersNothing(t *testing.T) {
 		entry = explain(t, s, blue, dataaccess.DataRead, invoices)
 		require.Equal(t, Allow, entry.Decision, "another grant still allows")
 		require.Equal(t, []string{"grant:g-ok"}, sourceIDs(entry.Sources))
+	}
+}
+
+func TestExplainWithoutDetailDisclosesNoPolicy(t *testing.T) {
+	ctx := context.Background()
+	s := snapshot(t, dataaccess.ReadExact, grant("g-sec", blue, asOf.Add(time.Hour), secrets))
+	var seen []Entry
+	for _, object := range []dataaccess.ObjectRef{secrets, {Namespace: "billing", Name: "ghost"}, invoices} {
+		answer, err := Explain(ctx, s, red, dataaccess.DataRead, resource(object), ExplainOptions{})
+		require.NoError(t, err)
+		require.Equal(t, asOf.Add(AnswerLease), answer.ValidUntil)
+		entry := answer.Entries[0]
+		require.Equal(t, Deny, entry.Decision)
+		require.Equal(t, []Blocker{{Code: CodeReadDenied}}, entry.Blockers)
+		require.Empty(t, entry.Candidates)
+		entry.Resource = Resource{}
+		seen = append(seen, entry)
+	}
+	require.Equal(t, seen[0], seen[1], "a mandatory-denied table and a missing name look the same")
+	require.Equal(t, seen[0], seen[2])
+	detailed := explain(t, s, red, dataaccess.DataRead, secrets)
+	require.Greater(t, len(detailed.Blockers), 1, "detail shows the policy chain")
+}
+
+func TestSelfViewNeverListsUnreachableNames(t *testing.T) {
+	ctx := context.Background()
+	s := snapshot(t, dataaccess.ReadExact, grant("g1", blue, asOf.Add(time.Hour), invoices))
+	for name, tc := range map[string]struct {
+		subject     dataaccess.Subject
+		permissions []dataaccess.Permission
+		mutate      func(*Snapshot)
+	}{
+		"non-modelled permission":     {blue, []dataaccess.Permission{dataaccess.QueryTugQL}, nil},
+		"unknown permission":          {red, []dataaccess.Permission{"data.purge"}, nil},
+		"non-member tugql":            {mallory, []dataaccess.Permission{dataaccess.QueryTugQL}, nil},
+		"agent":                       {agent, nil, nil},
+		"membership unreadable":       {red, nil, func(s *Snapshot) { s.Members = nil }},
+		"connection incomplete":       {red, nil, func(s *Snapshot) { s.Connections[0].Incomplete = []string{"grants"} }},
+		"non-member every permission": {mallory, []dataaccess.Permission{dataaccess.DataRead, dataaccess.DataUpdate, dataaccess.QueryRaw}, nil},
+	} {
+		t.Run(name, func(t *testing.T) {
+			copy := s
+			copy.Members = slices.Clone(s.Members)
+			copy.Connections = slices.Clone(s.Connections)
+			if tc.mutate != nil {
+				tc.mutate(&copy)
+			}
+			answer, err := ForSubject(ctx, copy, tc.subject, Filter{Permissions: tc.permissions})
+			require.NoError(t, err)
+			for _, entry := range answer.Entries {
+				if entry.Subject != nil {
+					require.Equal(t, invoices.Name, entry.Resource.Name, "only the subject's own grant object may be named")
+				}
+				require.NotEqual(t, secrets.Name, entry.Resource.Name)
+				require.NotEqual(t, customers.Name, entry.Resource.Name)
+			}
+		})
+	}
+}
+
+func TestResolutionMirrorsBackend(t *testing.T) {
+	approved := grant("g-ok", blue, asOf.Add(30*time.Second), invoices)
+	other := grant("g-red", red, asOf.Add(30*time.Minute), invoices)
+	grants := []StoredGrant{approved, other,
+		withState(grant("g-rev", blue, asOf.Add(time.Hour), invoices), dataaccess.Revoked),
+		withState(grant("g-req", blue, asOf.Add(time.Hour), invoices), dataaccess.Requested),
+		grant("g-edge", blue, asOf, invoices), grant("g-old", blue, asOf.Add(-time.Second), invoices)}
+	s := snapshot(t, dataaccess.ReadNone, grants...)
+	e := newEvaluator(s)
+	r, code := e.resolution(&s.Connections[0], blue)
+	require.Empty(t, code)
+	require.Equal(t, []dataaccess.Grant{approved.Grant}, r.Grants, "only approved grants unexpired at AsOf, own only")
+	require.Equal(t, asOf, r.ServerTime)
+	require.Equal(t, asOf.Add(30*time.Second), r.ValidUntil, "posture none clamps to the latest grant expiry")
+
+	s = snapshot(t, dataaccess.ReadAll, approved)
+	r, _ = newEvaluator(s).resolution(&s.Connections[0], blue)
+	require.Equal(t, asOf.Add(AnswerLease), r.ValidUntil)
+	s = snapshot(t, dataaccess.ReadNone, grant("g-long", blue, asOf.Add(time.Hour), invoices))
+	r, _ = newEvaluator(s).resolution(&s.Connections[0], blue)
+	require.Equal(t, asOf.Add(AnswerLease), r.ValidUntil)
+	s = snapshot(t, dataaccess.ReadNone)
+	r, _ = newEvaluator(s).resolution(&s.Connections[0], blue)
+	require.Equal(t, asOf.Add(AnswerLease), r.ValidUntil)
+
+	moved := grant("g-fp", blue, asOf.Add(-time.Hour), invoices)
+	moved.Fingerprint.EngineIdentity = ""
+	moved.Fingerprint.Address = "db.example"
+	kind := grant("g-kind", blue, asOf.Add(time.Hour), invoices)
+	kind.Subject.Kind = dataaccess.Service
+	var many []StoredGrant
+	for i := range MaxGrantsPerSubject + 1 {
+		many = append(many, grant(fmt.Sprintf("g-%03d", i), blue, asOf.Add(-time.Hour), invoices))
+	}
+	for name, tc := range map[string]struct {
+		grants []StoredGrant
+		code   string
+	}{
+		"fingerprint of an inactive grant": {[]StoredGrant{approved, moved}, CodeGrantBindingMismatch},
+		"subject kind":                     {[]StoredGrant{kind}, CodeGrantBindingMismatch},
+		"over the page cap":                {many, CodeGrantListTruncated},
+		"at the page cap":                  {many[:MaxGrantsPerSubject], ""},
+	} {
+		t.Run(name, func(t *testing.T) {
+			s := snapshot(t, dataaccess.ReadAll, tc.grants...)
+			_, code := newEvaluator(s).resolution(&s.Connections[0], blue)
+			require.Equal(t, tc.code, code)
+			entry := explain(t, s, blue, dataaccess.DataRead, invoices)
+			if tc.code != "" {
+				require.Equal(t, []Blocker{{Code: tc.code}}, entry.Blockers)
+				require.Equal(t, Allow, explain(t, s, red, dataaccess.DataRead, invoices).Decision, "another subject is unaffected, as in the backend")
+			}
+		})
+	}
+	require.True(t, sameFingerprint(dataaccess.Fingerprint{Engine: "e", Database: "d", Address: "a"}, dataaccess.Fingerprint{Engine: "e", Database: "d", Address: "a"}))
+	require.False(t, sameFingerprint(dataaccess.Fingerprint{Engine: "e", Database: "d"}, dataaccess.Fingerprint{Engine: "e", Database: "d"}))
+}
+
+func TestSubjectChecksPrecedeThePermission(t *testing.T) {
+	s := snapshot(t, dataaccess.ReadAll)
+	for _, permission := range []dataaccess.Permission{dataaccess.DataRead, dataaccess.DataUpdate, dataaccess.QueryRaw, dataaccess.QueryTugQL, "data.purge"} {
+		require.Equal(t, []Blocker{{Code: CodeNotProjectMember}}, explain(t, s, mallory, permission, invoices).Blockers, permission)
+		require.Equal(t, []Blocker{{Code: CodeSubjectKindUnsupported}}, explain(t, s, agent, permission, invoices).Blockers, permission)
+		unread := s
+		unread.Members = nil
+		require.Equal(t, []Blocker{{Code: CodeMembershipUnavailable}}, explain(t, unread, red, permission, invoices).Blockers, permission)
 	}
 }

@@ -58,23 +58,23 @@ func exactSnapshot(t *testing.T) *dataaccess.ExactReadSnapshot {
 	return s
 }
 
-func grant(id string, subject dataaccess.Subject, expiresAt time.Time, scope ...dataaccess.ObjectRef) dataaccess.Grant {
+func grant(id string, subject dataaccess.Subject, expiresAt time.Time, scope ...dataaccess.ObjectRef) StoredGrant {
 	requires := []string{}
 	if len(scope) > 0 {
 		requires = []string{dataaccess.ObjectsExact}
 	}
-	return dataaccess.Grant{ID: id, Subject: subject, RequestedBy: subject, Permissions: []dataaccess.Permission{dataaccess.DataRead},
+	return StoredGrant{Fingerprint: connRef().Fingerprint, Grant: dataaccess.Grant{ID: id, Subject: subject, RequestedBy: subject, Permissions: []dataaccess.Permission{dataaccess.DataRead},
 		Scope:  dataaccess.GrantScope{Connection: connID, Objects: scope, Requires: requires},
 		Reason: "investigate", ExpiresAt: expiresAt, State: dataaccess.Approved,
-		Decision: &dataaccess.Decision{By: priya, At: asOf.Add(-time.Hour)}, Revision: 1}
+		Decision: &dataaccess.Decision{By: priya, At: asOf.Add(-time.Hour)}, Revision: 1}}
 }
 
-func withState(g dataaccess.Grant, state dataaccess.GrantState) dataaccess.Grant {
+func withState(g StoredGrant, state dataaccess.GrantState) StoredGrant {
 	g.State = state
 	return g
 }
 
-func snapshot(t *testing.T, posture dataaccess.ReadPosture, grants ...dataaccess.Grant) Snapshot {
+func snapshot(t *testing.T, posture dataaccess.ReadPosture, grants ...StoredGrant) Snapshot {
 	t.Helper()
 	conn := Connection{Ref: connRef(), Protection: protection(posture), Grants: grants, Inventory: objects}
 	if posture == dataaccess.ReadExact {
@@ -85,4 +85,14 @@ func snapshot(t *testing.T, posture dataaccess.ReadPosture, grants ...dataaccess
 
 func resource(o dataaccess.ObjectRef) Resource {
 	return Resource{Connection: connID, Namespace: o.Namespace, Name: o.Name}
+}
+
+func selfDecided(g StoredGrant) StoredGrant {
+	g.Decision = &dataaccess.Decision{By: g.Subject, At: asOf.Add(-time.Minute)}
+	return g
+}
+
+func unsupported(g StoredGrant) StoredGrant {
+	g.Scope.Records = &dataaccess.RecordScope{Language: "tugqtree"}
+	return g
 }

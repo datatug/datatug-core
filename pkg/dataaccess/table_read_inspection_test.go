@@ -32,7 +32,7 @@ func TestInspectTableReadMatchesAdmissionWithoutReadingRows(t *testing.T) {
 		require.Equal(t, "READ_DENIED", got.Code)
 		require.True(t, got.Until.IsZero())
 		require.Equal(t, access.AssessmentDeny, got.Assessment.Outcome)
-		require.Equal(t, access.CodeNoMatch, got.Assessment.Policies[0].Decision.Code)
+		require.Equal(t, access.CodeNoMatch, got.Assessment.Policies[0].Code)
 	})
 
 	t.Run("posture none with object grant", func(t *testing.T) {
@@ -64,7 +64,7 @@ func TestInspectTableReadMatchesAdmissionWithoutReadingRows(t *testing.T) {
 		require.Equal(t, access.AssessmentDeny, got.Assessment.Outcome)
 		var mandatory bool
 		for _, p := range got.Assessment.Policies {
-			if p.Decision.Policy == "datatug-exact-mandatory" && p.Decision.Code == access.CodeRuleDenied {
+			if p.Policy == "datatug-exact-mandatory" && p.Code == access.CodeRuleDenied && !p.Allowed {
 				mandatory = true
 			}
 		}

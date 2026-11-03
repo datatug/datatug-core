@@ -22,10 +22,35 @@ type TableReadInspection struct {
 	// Until is the admitted lease deadline on the ServerTime clock. It is zero
 	// when admission is refused.
 	Until time.Time
-	// Assessment is DALgo AssessPlan over the read rules that the same Core
-	// compiler produces for this request at ServerTime, intersected with the
-	// sealed exact mandatory policy when one is supplied. It is metadata only.
-	Assessment access.Assessment
+	// Assessment is a reduced view of DALgo AssessPlan over the read rules
+	// that the same Core compiler produces for this request at ServerTime,
+	// intersected with the sealed exact mandatory policy when one is supplied.
+	// Rule IDs, row restrictions and explanations are dropped. Policy names and
+	// codes still distinguish a mandatory deny from no match, so this value is
+	// private-snapshot-grade: never serialise it to a caller who may not inspect
+	// the subject's access.
+	Assessment InspectedAssessment
+}
+
+// InspectedAssessment is the reduced, rule-free DALgo assessment.
+type InspectedAssessment struct {
+	Outcome  access.AssessmentOutcome
+	Policies []InspectedPolicy
+}
+
+// InspectedPolicy is one policy's decision: its name and fixed reason code.
+type InspectedPolicy struct {
+	Policy  string
+	Allowed bool
+	Code    access.ReasonCode
+}
+
+func reduceAssessment(assessment access.Assessment) InspectedAssessment {
+	reduced := InspectedAssessment{Outcome: assessment.Outcome, Policies: make([]InspectedPolicy, len(assessment.Policies))}
+	for i, p := range assessment.Policies {
+		reduced.Policies[i] = InspectedPolicy{Policy: p.Decision.Policy, Allowed: p.Decision.Allowed, Code: p.Decision.Code}
+	}
+	return reduced
 }
 
 // InspectTableRead answers whether ReadTableResult would admit a preview of one
@@ -64,7 +89,8 @@ func InspectTableRead(ctx context.Context, resolution Resolution, mandatory *Exa
 		inspection.Admitted = true
 		inspection.Until = bound.deadline
 	}
-	inspection.Assessment, err = assessTableRead(ctx, resolution, mandatory, *request, at)
+	assessment, err := assessTableRead(ctx, resolution, mandatory, *request, at)
+	inspection.Assessment = reduceAssessment(assessment)
 	return inspection, err
 }
 
