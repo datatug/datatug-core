@@ -378,9 +378,39 @@ func TestGeneratedGrantSetsMatchEnforcement(t *testing.T) {
 			for _, object := range objects {
 				answer, err := Explain(context.Background(), s, subject, dataaccess.DataRead, resource(object), ExplainOptions{})
 				require.NoError(t, err)
-				agree(t, fmt.Sprintf("case %d/%s/%s/%s %+v", i, posture, subject.ID, object.Name, evaluated), answer.Entries[0].Decision,
-					admitted(t, e, e.Connections[0], subject, object), strict[subject])
+				label := fmt.Sprintf("case %d/%s/%s/%s %+v", i, posture, subject.ID, object.Name, evaluated)
+				entry := answer.Entries[0]
+				agree(t, label, entry.Decision, admitted(t, e, e.Connections[0], subject, object), strict[subject])
+				if entry.Decision == Allow {
+					checkLease(t, label, s, entry, subject, object, posture, selfApproval)
+				}
 			}
 		}
 	}
+}
+
+// checkLease (N-2) bounds an allow's lease end independently of the
+// evaluator: never past the answer lease, and, when only grants admit the
+// read, never past the latest active grant that covers the object.
+func checkLease(t *testing.T, label string, s Snapshot, entry Entry, subject dataaccess.Subject, object dataaccess.ObjectRef, posture dataaccess.ReadPosture, selfApproval bool) {
+	t.Helper()
+	require.NotNilf(t, entry.AllowedUntil, "%s: allow without lease end", label)
+	until := *entry.AllowedUntil
+	require.Truef(t, until.After(s.AsOf), "%s: lease already ended", label)
+	require.Falsef(t, until.After(s.AsOf.Add(AnswerLease)), "%s: lease %s outlives the answer", label, until)
+	for _, source := range entry.Sources {
+		if source.Kind != SourceGrant {
+			return // posture or baseline: bounded by the answer lease only
+		}
+	}
+	var latest time.Time
+	for _, g := range s.Connections[0].Grants {
+		wide := len(g.Scope.Objects) == 0 && posture != dataaccess.ReadExact
+		self := g.Decision != nil && g.Decision.By == g.Subject && !selfApproval
+		if g.Subject == subject && g.State == dataaccess.Approved && g.ExpiresAt.After(s.AsOf) && !self &&
+			(wide || slices.Contains(g.Scope.Objects, object)) && g.ExpiresAt.After(latest) {
+			latest = g.ExpiresAt
+		}
+	}
+	require.Falsef(t, until.After(latest), "%s: lease %s outlives the latest covering grant %s", label, until, latest)
 }

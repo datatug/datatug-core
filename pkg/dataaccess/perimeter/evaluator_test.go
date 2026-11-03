@@ -607,3 +607,29 @@ func TestSubjectChecksPrecedeThePermission(t *testing.T) {
 		require.Equal(t, []Blocker{{Code: CodeMembershipUnavailable}}, explain(t, unread, red, permission, invoices).Blockers, permission)
 	}
 }
+
+// N-1: under exact-v1 only a grant projection could use is blamed; a
+// connection-wide grant never contributes there.
+func TestSelfDecidedBlameUnderExactNamesOnlyUsableGrants(t *testing.T) {
+	object := selfDecided(grant("g-obj", blue, asOf.Add(time.Hour), invoices))
+	wide := selfDecided(grant("g-wide", blue, asOf.Add(time.Hour)))
+	entry := explain(t, snapshot(t, dataaccess.ReadExact, wide, object), blue, dataaccess.DataRead, invoices)
+	require.Equal(t, Deny, entry.Decision)
+	var blamed []string
+	for _, b := range entry.Blockers {
+		if b.Code == CodeSelfDecided {
+			blamed = append(blamed, b.Source.ID)
+		}
+	}
+	require.Equal(t, []string{"g-obj"}, blamed)
+
+	entry = explain(t, snapshot(t, dataaccess.ReadNone, wide, object), blue, dataaccess.DataRead, invoices)
+	require.Equal(t, Deny, entry.Decision)
+	blamed = nil
+	for _, b := range entry.Blockers {
+		if b.Code == CodeSelfDecided {
+			blamed = append(blamed, b.Source.ID)
+		}
+	}
+	require.Equal(t, []string{"g-obj", "g-wide"}, blamed, "outside exact-v1 a connection-wide grant does contribute")
+}
