@@ -53,6 +53,10 @@ var skip = regexp.MustCompile(`(_(count|enabled|verified|flag|required|changed|u
 
 var underscores = regexp.MustCompile(`_+`)
 
+// idHoldsValue lists kinds whose "*_id" columns usually hold the value itself
+// (session_id, national_id, passport_id, email_id), not a key to another row.
+var idHoldsValue = map[Kind]bool{"session-id": true, "national-id": true, "passport-number": true, "email": true}
+
 // notPersonal matches names that look like a rule's but are not about a person.
 var notPersonal = regexp.MustCompile(`(^|_)mac_?address($|_)`)
 
@@ -103,7 +107,7 @@ func SuggestColumn(name, dbType string) (Rule, bool) {
 	}
 	for _, r := range Rules {
 		if r.Pattern.MatchString(n) {
-			if strings.HasSuffix(n, "_id") && r.Kind != "session-id" && r.Kind != "national-id" {
+			if strings.HasSuffix(n, "_id") && !idHoldsValue[r.Kind] {
 				return Rule{}, false
 			}
 			return r, true

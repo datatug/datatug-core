@@ -404,7 +404,7 @@ func TestSuggest(t *testing.T) {
 		"created_by_email": "pii-email", "updated_by_ip": "pii-ip-address", "email_on_file": "pii-email", "phone_at_signup": "pii-phone",
 		"name_on_card": "", "phonenumber": "pii-phone", "bank_account": "financial-bank-account", "signing_key": "secret-api-key",
 		"encryption_key": "secret-api-key", "credentials": "secret-password", "salt": "secret-password-hash", "pin": "secret-password",
-		"drivers_license": "pii-national-id", "card_holder_name": "pii-person-name", "session_id": "secret-session-id", "national_id": "pii-national-id",
+		"drivers_license": "pii-national-id", "passport_id": "pii-passport-number", "email_id": "pii-email", "card_holder_name": "pii-person-name", "session_id": "secret-session-id", "national_id": "pii-national-id",
 	} {
 		r, ok := SuggestColumn(name, "varchar")
 		if rule == "" {
@@ -448,6 +448,29 @@ func TestMaskPlan(t *testing.T) {
 			t.Errorf("%s must be masked", ref)
 		}
 	}
+	for ref, want := range map[string]string{`"e.mail"`: "e.mail", "[e.mail]": "e.mail", "`a.b`": "a.b", "t.c": "c", " c ": "c", "'q'": "q", `x"`: "x", `"a""b"`: `a"b`, "[a]]b]": "a]b", `"Email".`: "Email"} {
+		if got := BareName(ref); got != want {
+			t.Errorf("BareName(%s) = %q, want %q", ref, got, want)
+		}
+	}
+	if _, ok := NewPlan([]ColumnLabel{{Column: "e.mail", Class: ClassPII}}, nil).IsMasked(`t."e.mail"`); !ok {
+		t.Error("quoted dotted name must be masked")
+	}
+	quoted := NewPlan([]ColumnLabel{{Column: `a"b`, Class: ClassPII}, {Column: "email", Class: ClassPII}}, nil)
+	for _, ref := range []string{`"a""b"`, `email"`, `"email".`, `t.[email]`, `"x"."EMAIL"`} {
+		if _, ok := quoted.IsMasked(ref); !ok {
+			t.Errorf("%s must be masked", ref)
+		}
+	}
+	if _, ok := quoted.IsMasked(`"other"`); ok {
+		t.Error("other is not masked")
+	}
+	if quoteStart(`""x`, '"', '"') != -1 {
+		t.Error("a doubled quote at the start is not an opening quote")
+	}
+	if p := NewPlan(labels, nil).Protection("secret"); p == nil || p.Ask != NeverText {
+		t.Errorf("non-revealable ask: %+v", p)
+	}
 	twins := NewPlan([]ColumnLabel{{Column: "Email", Class: ClassPII}, {Column: "email", Class: ClassPII}}, nil)
 	if len(twins.Columns()) != 2 {
 		t.Fatalf("case twins must both be masked: %v", twins.Columns())
@@ -482,6 +505,7 @@ func TestMaskPlan(t *testing.T) {
 	}
 	tables["customers"] = cols("email")
 	wantCode(t, RawRefusal(d, "nw", tables, true), CodeRawRefused)
+	wantCode(t, RawRefusal(d, "nw", map[string][]Column{"orders": cols("id"), "hidden": {}}, true), CodeRawRefused)
 	if RawRefusal(d, "nw", tables, false) != nil {
 		t.Fatal("people keep raw locally")
 	}
