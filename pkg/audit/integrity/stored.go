@@ -33,10 +33,16 @@ func schemaField(name string) (fieldSpec, bool) {
 	return schemaV1[i], true
 }
 
+// orderKey reports whether a field fixes the leaf order and so can never be erased.
+func orderKey(name string) bool { return name == "id" || name == "at" }
+
 func (x *StoredEvent) check() error {
 	for name := range x.Erased {
 		if _, ok := schemaField(name); !ok {
 			return &FieldError{Field: name, Err: ErrUnknownField}
+		}
+		if orderKey(name) {
+			return &FieldError{Field: name, Err: ErrInvalidArgument}
 		}
 	}
 	return nil
@@ -70,7 +76,7 @@ func (x *StoredEvent) Erase(fields ...string) error {
 		if !ok {
 			return &FieldError{Field: name, Err: ErrUnknownField}
 		}
-		if name == "id" || name == "at" {
+		if orderKey(name) {
 			return &FieldError{Field: name, Err: ErrInvalidArgument}
 		}
 		specs = append(specs, f)

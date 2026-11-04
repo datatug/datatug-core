@@ -71,7 +71,8 @@ func TestErasureKeepsVerification(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rep.Windows[0].Root != root || !slices.Equal(rep.Windows[0].Events[1].Redacted, []string{"reason"}) || rep.Windows[0].Complete {
+	ev1 := rep.Windows[0].Events[1]
+	if rep.Windows[0].Root != root || ev1.Redacted != nil || !slices.Equal(ev1.Erased, []string{"reason"}) || !rep.Windows[0].Complete {
 		t.Fatalf("report %+v", rep.Windows[0])
 	}
 	b, _ := json.Marshal(after)
@@ -113,6 +114,13 @@ func TestEraseRejects(t *testing.T) {
 	if x.Event.Reason != want || x.Erased != nil {
 		t.Fatal("a rejected Erase must change nothing")
 	}
+	for _, protected := range []string{"id", "at"} {
+		y := x
+		y.Erased = map[string]Hash{protected: {}}
+		if _, err := y.Leaf(); !errors.Is(err, ErrInvalidArgument) {
+			t.Fatalf("hand-built Erased[%q]: %v", protected, err)
+		}
+	}
 	x.Erased = map[string]Hash{"nope": {}}
 	if _, err := x.Leaf(); !errors.Is(err, ErrUnknownField) {
 		t.Fatal(err)
@@ -150,8 +158,12 @@ func TestEraseEveryFieldKind(t *testing.T) {
 			t.Fatalf("values left after erasure: %+v", e)
 		}
 		d, _ := x.Disclose()
-		if r := d.Redacted(); len(r) != len(names) {
-			t.Fatalf("redacted %d of %d", len(r), len(names))
+		if r := d.Erased(); len(r) != len(names) || d.Redacted() != nil {
+			t.Fatalf("erased %d of %d, redacted %v", len(r), len(names), d.Redacted())
+		}
+		// Redacting an erased field keeps it marked erased.
+		if again, _ := d.Redact("reason"); len(again.Erased()) != len(names) {
+			t.Fatal("Redact dropped the erased label")
 		}
 	}
 }
@@ -217,5 +229,16 @@ func TestVerifyErasureMatching(t *testing.T) {
 	}
 	if got := valueStrings(encInt(ptr(int64(7)))); got != nil {
 		t.Fatal("numbers hold no text")
+	}
+}
+
+// A store that swaps in a commitment for a field it never erased changes the
+// leaf, so the window no longer verifies.
+func TestForgedStoredCommitment(t *testing.T) {
+	f := newFixture(t, 63)
+	ws := f.sealChain(t0, Hash{}, 3)
+	ws[0].events[1].Erased = map[string]Hash{"kind": {1}}
+	if _, err := VerifyExport(fullExport(t, ws), f.opts()); !errors.Is(err, ErrInclusionProof) {
+		t.Fatalf("want ErrInclusionProof, got %v", err)
 	}
 }

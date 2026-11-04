@@ -89,13 +89,16 @@ type DisclosedEvent struct {
 	Fields  []DisclosedField `json:"fields"`
 }
 
-// DisclosedField is one committed field. Salt is nil when the field is
-// redacted; Value is then empty.
+// DisclosedField is one committed field. Salt is nil when the field is not
+// revealed; Value is then empty. Erased marks a field whose value the store
+// dropped ([StoredEvent.Erase]) as opposed to one hidden from this reader;
+// it is the exporter's label and only ever set on an unrevealed field.
 type DisclosedField struct {
 	Name       string `json:"name"`
 	Commitment Hash   `json:"commitment"`
 	Salt       *Hash  `json:"salt,omitempty"`
 	Value      []byte `json:"value,omitempty"`
+	Erased     bool   `json:"erased,omitempty"`
 }
 
 // Revealed reports whether the field's value is disclosed.
@@ -109,7 +112,7 @@ func disclose(s Salt, e *Event, erased map[string]Hash) DisclosedEvent {
 	d := DisclosedEvent{Version: EncodingVersion, Fields: make([]DisclosedField, len(schemaV1))}
 	for i, f := range schemaV1 {
 		if c, ok := erased[f.name]; ok {
-			d.Fields[i] = DisclosedField{Name: f.name, Commitment: c}
+			d.Fields[i] = DisclosedField{Name: f.name, Commitment: c, Erased: true}
 			continue
 		}
 		fs := s.fieldSalt(f.name)
@@ -128,16 +131,28 @@ func (d DisclosedEvent) Redact(names ...string) (DisclosedEvent, error) {
 		if i < 0 {
 			return DisclosedEvent{}, &FieldError{Field: n, Err: ErrUnknownField}
 		}
-		out.Fields[i] = DisclosedField{Name: n, Commitment: out.Fields[i].Commitment}
+		if out.Fields[i].Revealed() {
+			out.Fields[i] = DisclosedField{Name: n, Commitment: out.Fields[i].Commitment}
+		}
 	}
 	return out, nil
 }
 
-// Redacted lists the names of redacted fields, in schema order.
+// Redacted lists the fields hidden from this reader (not revealed and not
+// erased), in schema order.
 func (d DisclosedEvent) Redacted() []string {
+	return d.hidden(func(f DisclosedField) bool { return !f.Revealed() && !f.Erased })
+}
+
+// Erased lists the fields whose value the store dropped, in schema order.
+func (d DisclosedEvent) Erased() []string {
+	return d.hidden(func(f DisclosedField) bool { return f.Erased })
+}
+
+func (d DisclosedEvent) hidden(match func(DisclosedField) bool) []string {
 	var names []string
 	for _, f := range d.Fields {
-		if !f.Revealed() {
+		if match(f) {
 			names = append(names, f.Name)
 		}
 	}
@@ -195,6 +210,9 @@ func (d DisclosedEvent) decode() (Event, error) {
 				return Event{}, &FieldError{Field: f.Name, Err: fmt.Errorf("%w: redacted field carries a value", ErrMalformedEvent)}
 			}
 			continue
+		}
+		if f.Erased {
+			return Event{}, &FieldError{Field: f.Name, Err: fmt.Errorf("%w: erased field is revealed", ErrMalformedEvent)}
 		}
 		if err := spec.checkCanonical(&e, f.Value); err != nil {
 			return Event{}, &FieldError{Field: f.Name, Err: fmt.Errorf("%w: %v", ErrMalformedEvent, err)}

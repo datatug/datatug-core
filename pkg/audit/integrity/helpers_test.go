@@ -122,7 +122,7 @@ func (f *fixture) sealWindow(w WindowID, prev Hash, events []StoredEvent) sealed
 	if err != nil {
 		f.t.Fatal(err)
 	}
-	stmt, err := Seal(w, prev, leaves, w.Start.Add(retention))
+	stmt, err := Seal(w, prev, leaves, w.End().Add(retention))
 	if err != nil {
 		f.t.Fatal(err)
 	}

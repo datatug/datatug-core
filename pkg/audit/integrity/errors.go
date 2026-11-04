@@ -41,8 +41,8 @@ var (
 	ErrLeafOrder = errors.New("audit integrity: events not in insertion order")
 	// ErrLeafIndex reports an event index outside its window.
 	ErrLeafIndex = errors.New("audit integrity: leaf index out of range")
-	// ErrEventMisplaced reports an event whose revealed window, Space or
-	// project differs from the window it is proven in.
+	// ErrEventMisplaced reports an event whose revealed window, Space,
+	// project or time contradicts the window it is proven in.
 	ErrEventMisplaced = errors.New("audit integrity: event names another window")
 	// ErrIncompleteWindow reports a window exported as whole that lacks leaves
 	// (for example a truncated window).
@@ -58,14 +58,18 @@ var (
 	ErrMissingSeal = errors.New("audit integrity: window has no signed root or tombstone")
 	// ErrAnchorMismatch reports a root that differs from an independently anchored copy.
 	ErrAnchorMismatch = errors.New("audit integrity: root differs from anchored root")
-	// ErrStatementMismatch reports signed statements that disagree: a
-	// tombstone and a root for one window, or a hold release that matches no
-	// earlier placement of the same hold and range.
+	// ErrStatementMismatch reports statements that do not fit together: a
+	// window with both a root and a tombstone, a hold release that matches no
+	// earlier placement of the same hold and range, or an export hold missing
+	// from the anchored holds.
 	ErrStatementMismatch = errors.New("audit integrity: statements disagree")
 	// ErrForgedTombstone reports a tombstone that does not stand: bad
-	// signature, disagreeing root, deletion before the signed expiry or under
-	// a legal hold, or events still present. The cause is attached.
+	// signature, deletion before the signed expiry or under a legal hold, or
+	// events still present. The cause is attached.
 	ErrForgedTombstone = errors.New("audit integrity: tombstone does not verify")
+	// ErrRetentionTooShort reports a seal whose expiry is below the policy
+	// floor given in [VerifyOptions.MinRetention].
+	ErrRetentionTooShort = errors.New("audit integrity: retention shorter than policy allows")
 	// ErrTombstoneBeforeExpiry reports a tombstone dated before the window expired.
 	ErrTombstoneBeforeExpiry = errors.New("audit integrity: deleted before expiry")
 	// ErrDeletedUnderHold reports a tombstone dated while a legal hold covered the window.

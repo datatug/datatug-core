@@ -3,6 +3,7 @@ package integrity
 import (
 	"crypto/sha256"
 	"errors"
+	"slices"
 	"testing"
 )
 
@@ -87,5 +88,17 @@ func TestVerifyInclusionRejects(t *testing.T) {
 	}
 	if _, err := InclusionProof(leaves, 5); !errors.Is(err, ErrLeafIndex) {
 		t.Fatalf("want ErrLeafIndex, got %v", err)
+	}
+}
+
+func TestTreeOwnsItsLeaves(t *testing.T) {
+	leaves := leavesN(5)
+	tree := NewTree(leaves)
+	before, _ := tree.Proof(3)
+	root := tree.Root()
+	leaves[2] = Hash{}
+	after, _ := tree.Proof(3)
+	if tree.Root() != root || !slices.Equal(before, after) || tree.Size() != 5 {
+		t.Fatal("mutating the caller's slice changed the tree")
 	}
 }

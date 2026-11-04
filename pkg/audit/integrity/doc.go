@@ -92,6 +92,17 @@
 // events, with a proof of each window root in its checkpoint. Not
 // implemented; it would add a statement kind, not change the ones here.
 //
-// Residual risk (permission model §19.4): integrity starts at sealing. This
-// package cannot detect changes made to a window before it was sealed.
+// # Residual risks
+//
+//   - Integrity starts at sealing (permission model §19.4). This package
+//     cannot detect changes made to a window before it was sealed.
+//   - A tombstone's DeletedAt is asserted by the operator's signer. Firestore
+//     TTL purges up to about a day after expireAt, so a hold placed after
+//     expiry but before the actual purge can be bypassed by backdating
+//     DeletedAt to the expiry. Closing this needs an independent deletion
+//     time, such as the anchor bucket's object creation time for the
+//     tombstone, compared against the holds.
+//   - A real-key re-signing of the last window, the first window's link, and
+//     hold coverage are checked independently only when the caller passes
+//     anchored roots and holds ([VerifyOptions]).
 package integrity

@@ -23,8 +23,8 @@ type Export struct {
 	Holds   []Signed[HoldStatement] `json:"holds,omitempty"`
 }
 
-// ExportWindow is one window of an export. It carries a signed root, a
-// tombstone, or both (they must agree). Whole claims that every event of the
+// ExportWindow is one window of an export. It carries exactly one of a signed
+// root or a tombstone (which embeds the signed seal). Whole claims that every event of the
 // window is included; the verifier fails the export if that is not so.
 type ExportWindow struct {
 	Root      *Signed[RootStatement]      `json:"root,omitempty"`
@@ -54,9 +54,14 @@ type VerifyOptions struct {
 	// another Space or project are ignored.
 	AnchoredHolds []Signed[HoldStatement]
 	// HoldsAnchored declares that AnchoredHolds is the complete set of holds
-	// for this Space and project in the anchor bucket. Only then does the
-	// report say hold coverage was checked independently.
+	// for this Space and project in the anchor bucket. Tombstones are then
+	// judged on the anchored holds only, every hold in the export must also
+	// be in the anchor, and the report says hold coverage was independent.
 	HoldsAnchored bool
+	// MinRetention is the shortest retention policy allows (the 90-day
+	// floor). A seal expiring earlier than its window's end plus MinRetention
+	// is [ErrRetentionTooShort]. Zero skips the check.
+	MinRetention time.Duration
 }
 
 // ChainStart says what the first window's previous-root link was checked against.
@@ -103,8 +108,9 @@ type WindowReport struct {
 	ExpiresAt  time.Time `json:"expiresAt"`
 	Tombstoned bool      `json:"tombstoned,omitempty"`
 	// Complete is true only when every event of the window is included and
-	// none has a redacted field. Otherwise only the included events are
-	// proven authentic; nothing is proven about omitted ones.
+	// none has a redacted field. Fields erased in the store (see
+	// [EventReport.Erased]) do not count against it. Otherwise only the
+	// included events are proven authentic; nothing is proven about omitted ones.
 	Complete bool          `json:"complete"`
 	Events   []EventReport `json:"events,omitempty"`
 }
@@ -113,7 +119,11 @@ type WindowReport struct {
 type EventReport struct {
 	Index    uint64   `json:"index"`
 	Leaf     Hash     `json:"leaf"`
-	Redacted []string `json:"redacted,omitempty"`
+	Redacted []string `json:"redacted,omitempty"` // hidden from this reader
+	// Erased are fields whose value the store dropped (§19.4 erasure). The
+	// label is the exporter's: both erased and redacted fields are proven
+	// only by their commitments.
+	Erased []string `json:"erased,omitempty"`
 }
 
 // Events is the number of events proven authentic.
@@ -197,29 +207,36 @@ func signatureKind(err error) error {
 func verifyHolds(exp *Export, opts VerifyOptions, first WindowID) ([]HoldStatement, error) {
 	fail := func(kind, cause error) error { return &VerifyError{Window: first, Event: -1, Err: kind, Cause: cause} }
 	ours := func(h HoldStatement) bool { return h.Space == exp.Space && h.Project == exp.Project }
-	var holds []HoldStatement
-	check := func(source string, i int, h Signed[HoldStatement]) error {
-		if err := h.Verify(opts.Verifier); err != nil {
-			return fail(signatureKind(err), fmt.Errorf("%s hold %d: %w", source, i, err))
-		}
-		holds = append(holds, h.Statement)
-		return nil
-	}
+	var exported, anchored []HoldStatement
 	for i, h := range exp.Holds {
 		if !ours(h.Statement) {
 			return nil, fail(ErrStatementMismatch, fmt.Errorf("export hold %d is for another space or project", i))
 		}
-		if err := check("export", i, h); err != nil {
-			return nil, err
+		if err := h.Verify(opts.Verifier); err != nil {
+			return nil, fail(signatureKind(err), fmt.Errorf("export hold %d: %w", i, err))
 		}
+		exported = append(exported, h.Statement)
 	}
 	for i, h := range opts.AnchoredHolds {
 		if !ours(h.Statement) {
 			continue
 		}
-		if err := check("anchored", i, h); err != nil {
-			return nil, err
+		if err := h.Verify(opts.Verifier); err != nil {
+			return nil, fail(signatureKind(err), fmt.Errorf("anchored hold %d: %w", i, err))
 		}
+		anchored = append(anchored, h.Statement)
+	}
+	holds := append(exported, anchored...)
+	if opts.HoldsAnchored {
+		// The anchor is the record; the export may only repeat it. A statement
+		// the anchor lacks (say, a release signed by the audited operator)
+		// must not lift an anchored hold.
+		for i, h := range exported {
+			if !slices.ContainsFunc(anchored, func(a HoldStatement) bool { return bytes.Equal(a.message(), h.message()) }) {
+				return nil, fail(ErrStatementMismatch, fmt.Errorf("export hold %d is not in the anchor", i))
+			}
+		}
+		holds = anchored
 	}
 	for _, r := range holds {
 		if r.Action == HoldRelease && !slices.ContainsFunc(holds, func(p HoldStatement) bool { return releases(r, p) }) {
@@ -261,6 +278,8 @@ func (v *verifier) window(ew *ExportWindow, want WindowID, first bool, prev Hash
 
 	var seal RootStatement
 	switch {
+	case ew.Tombstone != nil && ew.Root != nil:
+		return nil, fail(ErrStatementMismatch, errors.New("a window carries a signed root or a tombstone, not both"))
 	case ew.Tombstone != nil:
 		seal = ew.Tombstone.Statement.Seal
 	case ew.Root != nil:
@@ -279,6 +298,10 @@ func (v *verifier) window(ew *ExportWindow, want WindowID, first bool, prev Hash
 		if err := ew.Root.Verify(v.opts.Verifier); err != nil {
 			return nil, fail(signatureKind(err), err)
 		}
+	}
+	if v.opts.MinRetention > 0 && seal.ExpiresAt.Before(want.End().Add(v.opts.MinRetention)) {
+		return nil, fail(ErrRetentionTooShort, fmt.Errorf("expires %s, policy floor %s after the window ends",
+			seal.ExpiresAt.Format(time.RFC3339), v.opts.MinRetention))
 	}
 	root := seal.Root()
 	wr := &WindowReport{Window: want, Root: root, LeafCount: seal.LeafCount, ExpiresAt: seal.ExpiresAt}
@@ -317,9 +340,6 @@ func (v *verifier) tombstone(ew *ExportWindow, want WindowID, seal RootStatement
 	if err := t.Verify(v.opts.Verifier); err != nil {
 		return err
 	}
-	if ew.Root != nil && ew.Root.Statement.Root() != seal.Root() {
-		return fmt.Errorf("%w: tombstone seal differs from the signed root", ErrStatementMismatch)
-	}
 	if len(ew.Events) > 0 {
 		return ErrTombstoneHasEvents
 	}
@@ -339,7 +359,8 @@ func eventKind(err error) error {
 }
 
 // misplaced names the first revealed location field of d that contradicts
-// the window it is proven in.
+// the window it is proven in. Writers place an event by its arrival time, so
+// "at" lies in [start, end + SealGrace).
 func misplaced(d DisclosedEvent, e *Event, want WindowID) string {
 	switch {
 	case d.revealed("window") && e.Window != want.Key():
@@ -348,6 +369,8 @@ func misplaced(d DisclosedEvent, e *Event, want WindowID) string {
 		return "resource.space"
 	case d.revealed("resource.project") && e.Resource.Project != want.Project:
 		return "resource.project"
+	case d.revealed("at") && (e.At.Before(want.Start) || !e.At.Before(want.End().Add(SealGrace))):
+		return "at"
 	}
 	return ""
 }
@@ -414,7 +437,7 @@ func (v *verifier) events(ew *ExportWindow, want WindowID, seal RootStatement, w
 		if len(redacted) > 0 {
 			wr.Complete = false
 		}
-		wr.Events = append(wr.Events, EventReport{Index: ev.Index, Leaf: leaves[j], Redacted: redacted})
+		wr.Events = append(wr.Events, EventReport{Index: ev.Index, Leaf: leaves[j], Redacted: redacted, Erased: ev.Event.Erased()})
 	}
 	return nil
 }

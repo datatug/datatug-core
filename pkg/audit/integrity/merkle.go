@@ -3,6 +3,7 @@ package integrity
 import (
 	"crypto/sha256"
 	"fmt"
+	"slices"
 )
 
 // The Merkle tree follows RFC 9162 §2.1: leaves are already prefixed with
@@ -25,8 +26,9 @@ type Tree struct {
 	levels [][]Hash // levels[0] are the leaves; the last level holds the root
 }
 
-// NewTree builds the tree over leaves in canonical order ([OrderLeaves]).
+// NewTree builds the tree over a copy of leaves, in canonical order ([OrderLeaves]).
 func NewTree(leaves []Hash) *Tree {
+	leaves = slices.Clone(leaves)
 	t := &Tree{levels: [][]Hash{leaves}}
 	for level := leaves; len(level) > 1; {
 		next := make([]Hash, 0, (len(level)+1)/2)

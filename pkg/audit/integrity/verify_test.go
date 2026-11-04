@@ -79,6 +79,7 @@ func TestVerifyExportJSONRoundTrip(t *testing.T) {
 	ws := f.sealChain(t0, Hash{}, 2, 1)
 	exp := fullExport(t, ws)
 	exp.Windows[1].Tombstone = f.tombstoneFor(ws[1], ws[1].expires())
+	exp.Windows[1].Root = nil // a tombstone replaces the root
 	exp.Windows[1].Events = nil
 	exp.Windows[1].Whole = false
 	hold := mustSign(t, f.signer, HoldStatement{HoldID: "h", Space: testSpace, Project: testProject, From: t0, To: t0,
@@ -397,6 +398,7 @@ func TestVerifyDetectsTampering(t *testing.T) {
 			tamper: func(t *testing.T, f *fixture, ws []sealed, exp *Export) VerifyOptions {
 				x := mustSign(t, attacker(), TombstoneStatement{Seal: ws[1].stmt, DeletedAt: ws[1].expires()})
 				exp.Windows[1].Tombstone, exp.Windows[1].Events = &x, nil
+				exp.Windows[1].Root = nil // a tombstone replaces the root
 				return f.opts()
 			},
 			want: []error{ErrForgedTombstone, ErrBadSignature}, window: 1, event: -1,
@@ -406,21 +408,19 @@ func TestVerifyDetectsTampering(t *testing.T) {
 			tamper: func(t *testing.T, f *fixture, ws []sealed, exp *Export) VerifyOptions {
 				x := signRaw(t, f.signer, TombstoneStatement{Seal: ws[1].stmt, DeletedAt: ws[1].id.Start})
 				exp.Windows[1].Tombstone, exp.Windows[1].Events = &x, nil
+				exp.Windows[1].Root = nil // a tombstone replaces the root
 				return f.opts()
 			},
 			want: []error{ErrForgedTombstone, ErrTombstoneBeforeExpiry}, window: 1, event: -1,
 		},
 		{
-			name: "tombstone seal differs from the signed root",
+			name: "root and tombstone both present",
 			tamper: func(t *testing.T, f *fixture, ws []sealed, exp *Export) VerifyOptions {
-				s := ws[1].stmt
-				s.LeafCount = 0
-				s.MerkleRoot = MerkleRoot(nil)
-				exp.Windows[1].Tombstone = mustSignPtr(t, f.signer, TombstoneStatement{Seal: s, DeletedAt: ws[1].expires()})
+				exp.Windows[1].Tombstone = f.tombstoneFor(ws[1], ws[1].expires())
 				exp.Windows[1].Events = nil
 				return f.opts()
 			},
-			want: []error{ErrForgedTombstone, ErrStatementMismatch}, window: 1, event: -1,
+			want: []error{ErrStatementMismatch}, window: 1, event: -1,
 		},
 		{
 			name: "tombstone with an invented seal and no root",
@@ -438,6 +438,7 @@ func TestVerifyDetectsTampering(t *testing.T) {
 			name: "tombstoned window still has events",
 			tamper: func(t *testing.T, f *fixture, ws []sealed, exp *Export) VerifyOptions {
 				exp.Windows[1].Tombstone = f.tombstoneFor(ws[1], ws[1].expires())
+				exp.Windows[1].Root = nil // a tombstone replaces the root
 				return f.opts()
 			},
 			want: []error{ErrForgedTombstone, ErrTombstoneHasEvents}, window: 1, event: -1,
@@ -446,6 +447,7 @@ func TestVerifyDetectsTampering(t *testing.T) {
 			name: "tombstone dated while a legal hold was in force",
 			tamper: func(t *testing.T, f *fixture, ws []sealed, exp *Export) VerifyOptions {
 				exp.Windows[1].Tombstone = f.tombstoneFor(ws[1], ws[1].expires().Add(time.Hour))
+				exp.Windows[1].Root = nil // a tombstone replaces the root
 				exp.Windows[1].Events = nil
 				exp.Holds = []Signed[HoldStatement]{
 					mustSign(t, f.signer, HoldStatement{HoldID: "h1", Space: testSpace, Project: testProject, From: t0, To: ws[2].id.Start,
@@ -486,6 +488,7 @@ func TestVerifyDetectsTampering(t *testing.T) {
 			name: "deletion under a hold the export omits, found in the anchor",
 			tamper: func(t *testing.T, f *fixture, ws []sealed, exp *Export) VerifyOptions {
 				exp.Windows[1].Tombstone = f.tombstoneFor(ws[1], ws[1].expires().Add(time.Hour))
+				exp.Windows[1].Root = nil // a tombstone replaces the root
 				exp.Windows[1].Events = nil
 				o := f.opts()
 				o.AnchoredHolds = []Signed[HoldStatement]{mustSign(t, f.signer, hold("h1", ws[1].id.Start, ws[1].id.Start, HoldPlace, t0, "act-a"))}
@@ -524,6 +527,67 @@ func TestVerifyDetectsTampering(t *testing.T) {
 				return f.opts()
 			},
 			want: []error{ErrStatementMismatch}, window: 0, event: -1,
+		},
+		{
+			name: "export-only release lifting an anchored hold",
+			tamper: func(t *testing.T, f *fixture, ws []sealed, exp *Export) VerifyOptions {
+				del := ws[1].expires().Add(time.Hour)
+				exp.Windows[1].Tombstone = f.tombstoneFor(ws[1], del)
+				exp.Windows[1].Root, exp.Windows[1].Events = nil, nil
+				place := hold("h1", ws[1].id.Start, ws[1].id.Start, HoldPlace, t0, "act-a")
+				o := f.opts()
+				o.AnchoredHolds, o.HoldsAnchored = []Signed[HoldStatement]{mustSign(t, f.signer, place)}, true
+				exp.Holds = []Signed[HoldStatement]{mustSign(t, f.signer,
+					hold("h1", ws[1].id.Start, ws[1].id.Start, HoldRelease, del.Add(-time.Minute), "act-a", "act-b"))}
+				return o
+			},
+			want: []error{ErrStatementMismatch}, window: 0, event: -1,
+		},
+		{
+			name: "hold re-placed after an earlier release still binds",
+			tamper: func(t *testing.T, f *fixture, ws []sealed, exp *Export) VerifyOptions {
+				exp.Windows[1].Tombstone = f.tombstoneFor(ws[1], ws[1].expires().Add(time.Hour))
+				exp.Windows[1].Root, exp.Windows[1].Events = nil, nil
+				from := ws[1].id.Start
+				exp.Holds = []Signed[HoldStatement]{
+					mustSign(t, f.signer, hold("h1", from, from, HoldPlace, t0, "act-a")),
+					mustSign(t, f.signer, hold("h1", from, from, HoldRelease, t0.Add(time.Hour), "act-a", "act-b")),
+					mustSign(t, f.signer, hold("h1", from, from, HoldPlace, t0.Add(2*time.Hour), "act-a")),
+				}
+				return f.opts()
+			},
+			want: []error{ErrForgedTombstone, ErrDeletedUnderHold}, window: 1, event: -1,
+		},
+		{
+			name: "retention below the policy floor",
+			tamper: func(t *testing.T, f *fixture, ws []sealed, exp *Export) VerifyOptions {
+				o := f.opts()
+				o.MinRetention = retention + time.Hour
+				return o
+			},
+			want: []error{ErrRetentionTooShort}, window: 0, event: -1,
+		},
+		{
+			name: "event time before its window",
+			tamper: func(t *testing.T, f *fixture, ws []sealed, exp *Export) VerifyOptions {
+				return f.resealWith(t, ws, exp, 1, func(e *Event) { e.At = ws[1].id.Start.Add(-time.Nanosecond) })
+			},
+			want: []error{ErrEventMisplaced}, window: 1, event: 0, field: "at",
+		},
+		{
+			name: "event time past its window and the grace",
+			tamper: func(t *testing.T, f *fixture, ws []sealed, exp *Export) VerifyOptions {
+				return f.resealWith(t, ws, exp, 1, func(e *Event) { e.At = ws[1].id.End().Add(SealGrace) })
+			},
+			want: []error{ErrEventMisplaced}, window: 1, event: 1, field: "at",
+		},
+		{
+			name: "erased label on a revealed field",
+			tamper: func(t *testing.T, f *fixture, ws []sealed, exp *Export) VerifyOptions {
+				exp.Windows[0].Events[0].Event.Fields[6].Erased = true
+				return f.opts()
+			},
+			want: []error{ErrMalformedEvent}, window: 0, event: 0, field: "reason",
 		},
 		{
 			name: "release without a placement",
@@ -612,6 +676,7 @@ func TestVerifyTombstones(t *testing.T) {
 	exp.Windows[0] = ExportWindow{Tombstone: f.tombstoneFor(ws[0], expires.Add(time.Minute))}
 	// Window 1: tombstone with root, deleted after a hold was released by two.
 	exp.Windows[1].Tombstone = f.tombstoneFor(ws[1], ws[1].expires().Add(48*time.Hour))
+	exp.Windows[1].Root = nil // a tombstone replaces the root
 	exp.Windows[1].Events, exp.Windows[1].Whole = nil, false
 	place := HoldStatement{HoldID: "h1", Space: testSpace, Project: testProject, From: ws[1].id.Start, To: ws[1].id.Start,
 		Action: HoldPlace, At: t0.Add(time.Hour), Actors: []ActorRef{"act-a"}}
@@ -641,10 +706,21 @@ func TestVerifyTombstones(t *testing.T) {
 	foreign := place
 	foreign.Project = "other"
 	o.AnchoredHolds = append(o.AnchoredHolds, mustSign(t, f.signer, foreign))
+	exported := exp.Holds
 	exp.Holds = nil
 	rep, err = VerifyExport(exp, o)
 	if err != nil || rep.Holds != HoldsFromAnchor {
 		t.Fatalf("anchored holds: %v %+v", err, rep)
+	}
+	// The export may repeat anchored holds.
+	exp.Holds = exported
+	if rep, err = VerifyExport(exp, o); err != nil || rep.Holds != HoldsFromAnchor {
+		t.Fatalf("export repeating the anchor: %v", err)
+	}
+	// A policy floor the seals meet passes.
+	o.MinRetention = retention
+	if _, err := VerifyExport(exp, o); err != nil {
+		t.Fatal(err)
 	}
 }
 
