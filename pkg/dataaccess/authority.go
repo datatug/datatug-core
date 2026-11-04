@@ -34,6 +34,10 @@ type Resolution struct {
 	// the agent's own perimeter with it (Perimeter REQ:agent-access), so the
 	// user's grants, posture and memberships are inputs of every agent answer.
 	AgentUser *Resolution `json:"agentUser,omitempty"`
+	// AgentSession is the live agent session of this call, when there is one.
+	// Without it an agent keeps standing access and deadline approvals, and no
+	// session-bound grant may be present.
+	AgentSession *AgentSession `json:"agentSession,omitempty"`
 }
 
 type Resolver func(context.Context, ResolveRequest) (Resolution, error)
@@ -209,7 +213,9 @@ func (a *Authority) checkGrantBinding(resolution Resolution) error {
 			u.ServerTime.IsZero() || !u.ValidUntil.After(u.ServerTime) ||
 			// The user's resolution is as fresh as the agent's: same server
 			// instant and no longer validity, never a cached older answer.
-			!u.ServerTime.Equal(resolution.ServerTime) || u.ValidUntil.After(resolution.ValidUntil) {
+			!u.ServerTime.Equal(resolution.ServerTime) || u.ValidUntil.After(resolution.ValidUntil) ||
+			// The session belongs to the agent's call, never to its user's.
+			u.AgentSession != nil || (resolution.AgentSession != nil && (!canonical(resolution.AgentSession.ID) || resolution.AgentSession.EndsAt.IsZero())) {
 			return a.denial(DataRead, "BINDING_MISMATCH")
 		}
 		user = &u.Subject
@@ -221,7 +227,7 @@ func (a *Authority) checkGrantBinding(resolution Resolution) error {
 				return a.denial(DataRead, "BINDING_MISMATCH")
 			}
 		}
-	} else if resolution.AgentUser != nil {
+	} else if resolution.AgentUser != nil || resolution.AgentSession != nil {
 		return a.denial(DataRead, "BINDING_MISMATCH")
 	}
 	for _, grant := range resolution.Grants {
@@ -234,6 +240,14 @@ func (a *Authority) checkGrantBinding(resolution Resolution) error {
 		}
 	}
 	return nil
+}
+
+// sessionBound reports whether a session-bound grant belongs to the
+// resolution's live agent session. One that does not confers nothing (the
+// policy skips it), so a host that still lists an ended session's grant never
+// costs the agent its standing or deadline access (D29 SQ-5).
+func sessionBound(resolution Resolution, grant Grant) bool {
+	return resolution.AgentSession != nil && resolution.AgentSession.ID == grant.AgentSessionID
 }
 
 func (a *Authority) check(ctx context.Context, authorization *lease) error {
