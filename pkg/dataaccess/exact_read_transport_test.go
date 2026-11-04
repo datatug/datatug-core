@@ -163,7 +163,7 @@ func TestExactMandatoryDenialsStopActualNativeDispatch(t *testing.T) {
 			if name == "agent" {
 				subject = Subject{Realm: subject.Realm, Kind: Agent, ID: "demo-agent"}
 				var err error
-				r, err = ProjectAgentExactRead(context.Background(), exactRawResolution(), subject, exactSnapshot(t, doc))
+				r, err = ProjectAgentResolution(context.Background(), exactRawResolution(), subject, nil, exactSnapshot(t, doc))
 				require.NoError(t, err)
 			}
 			a, err := NewAuthority(subject, r.Connection, fixedResolver(r))

@@ -39,7 +39,7 @@ func TestAgentUsesBaselineAndNeverInheritsHumanGrant(t *testing.T) {
 	resolution := fixtureResolution()
 	resolution.Subject.Kind = Agent
 	newBoundary := func() Database {
-		a, err := NewAuthority(resolution.Subject, resolution.Connection, func(context.Context, ResolveRequest) (Resolution, error) { return resolution, nil })
+		a, err := NewAuthority(resolution.Subject, resolution.Connection, func(context.Context, ResolveRequest) (Resolution, error) { return agentOf(resolution), nil })
 		require.NoError(t, err)
 		return testDatabase(t, a, dal.NewDB(&recordingAdapter{}))
 	}

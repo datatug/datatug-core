@@ -101,6 +101,13 @@ func assessTableRead(ctx context.Context, resolution Resolution, mandatory *Exac
 		return unavailable, nil
 	}
 	policy := newOperationReadPolicy(canonicalResolution, at, func() time.Time { return at })
+	if resolution.Subject.Kind == Agent {
+		// Report what the agent may actually read: never more than its user.
+		if canonicalResolution.AgentUser == nil {
+			return unavailable, nil
+		}
+		policy = policy.intersect(newOperationReadPolicy(*canonicalResolution.AgentUser, at, func() time.Time { return at }))
+	}
 	// planAt refuses only identities that TableRead.query cannot construct; a
 	// refusal leaves no rule, which DALgo evaluates as default deny.
 	rules, _, _ := policy.planAt(request, at)

@@ -2,6 +2,7 @@ package dataaccess
 
 import (
 	"fmt"
+	"maps"
 	"time"
 )
 
@@ -30,6 +31,13 @@ func NewLocalAuthority(subject Subject, connection LocalConnectionRef, resolve R
 	}
 	ref := ConnectionRef{ID: connection.ID, Fingerprint: fingerprint, LocalAuthorityID: connection.AuthorityID}
 	return &Authority{request: ResolveRequest{Subject: subject, Connection: ref}, resolve: resolve, now: time.Now}, nil
+}
+
+// sameProtection compares every protection fact, including its revision.
+func sameProtection(a, b ConnectionProtection) bool {
+	return a.ID == b.ID && a.Fingerprint == b.Fingerprint && a.Name == b.Name && a.Environment == b.Environment && a.ReadOnly == b.ReadOnly &&
+		a.ReadPosture == b.ReadPosture && a.AgentRead == b.AgentRead && maps.Equal(a.MaxDuration, b.MaxDuration) &&
+		a.MandatoryFineGrained == b.MandatoryFineGrained && a.Revision == b.Revision
 }
 
 func sameConnection(a, b ConnectionRef) bool {

@@ -28,6 +28,12 @@ type Resolution struct {
 	ServerTime time.Time            `json:"serverTime"`
 	ValidUntil time.Time            `json:"validUntil"`
 	ExactRead  *ExactReadPolicy     `json:"exactRead,omitempty"`
+	// AgentUser is required for an agent subject and absent otherwise: the
+	// fresh resolution of the person the agent belongs to (the person who
+	// registered it, or the person it acts for). Every authorization intersects
+	// the agent's own perimeter with it (Perimeter REQ:agent-access), so the
+	// user's grants, posture and memberships are inputs of every agent answer.
+	AgentUser *Resolution `json:"agentUser,omitempty"`
 }
 
 type Resolver func(context.Context, ResolveRequest) (Resolution, error)
@@ -144,7 +150,7 @@ func (a *Authority) authorizeRequest(ctx context.Context, request *access.Reques
 		!sameFingerprint(resolution.Protection.Fingerprint, a.request.Connection.Fingerprint) {
 		return nil, a.denial(DataRead, "BINDING_MISMATCH")
 	}
-	if a.request.Connection.LocalAuthorityID != "" && len(resolution.Grants) != 0 {
+	if a.request.Connection.LocalAuthorityID != "" && (len(resolution.Grants) != 0 || resolution.AgentUser != nil && len(resolution.AgentUser.Grants) != 0) {
 		return nil, a.denial(DataRead, "LOCAL_GRANTS_UNSUPPORTED")
 	}
 	resolution, err = canonicalExactResolution(resolution)
@@ -161,13 +167,8 @@ func (a *Authority) authorizeRequest(ctx context.Context, request *access.Reques
 		resolution.Protection.MandatoryFineGrained {
 		return nil, a.denial(DataRead, "AUTHORITY_UNSUPPORTED")
 	}
-	for _, grant := range resolution.Grants {
-		if err := grant.ValidateMVP(); err != nil {
-			return nil, unsupported(a.request.Connection.ID)
-		}
-		if grant.Subject != a.request.Subject || grant.Scope.Connection != a.request.Connection.ID || a.request.Subject.Kind == Agent {
-			return nil, a.denial(DataRead, "BINDING_MISMATCH")
-		}
+	if err := a.checkGrantBinding(resolution); err != nil {
+		return nil, err
 	}
 	if a.request.Subject.Kind == Agent && resolution.Protection.AgentRead == AgentNone {
 		return nil, a.denial(DataRead, "READ_DENIED")
@@ -177,6 +178,15 @@ func (a *Authority) authorizeRequest(ctx context.Context, request *access.Reques
 	if err != nil {
 		return nil, a.denial(DataRead, "READ_DENIED")
 	}
+	if a.request.Subject.Kind == Agent {
+		// The agent never exceeds its user: intersect, never union. A read the
+		// agent's own perimeter admits but its user's does not is refused with
+		// the user's missing access named (D27).
+		policy = policy.intersect(newOperationReadPolicy(*resolution.AgentUser, started, a.now))
+		if deadline, err = policy.deadlineFor(request); err != nil {
+			return nil, a.denial(DataRead, "AGENT_USER_LACKS_ACCESS")
+		}
+	}
 	// Starting the interval before the network call subtracts its whole latency.
 	// The monotonic local interval does not trust the machine's wall-clock skew.
 	digest, err := resolutionDigest(resolution)
@@ -184,6 +194,46 @@ func (a *Authority) authorizeRequest(ctx context.Context, request *access.Reques
 		return nil, a.denial(DataRead, "AUTHORITY_UNSUPPORTED")
 	}
 	return &lease{deadline: deadline, started: started, serverTime: resolution.ServerTime, digest: digest, policy: policy, request: copyReadRequest(request), exactProfile: exactProfile}, nil
+}
+
+// checkGrantBinding admits only grants whose subject is the resolved subject.
+// An agent may hold its own approvals (D23), bound to the same agent user as
+// its resolution; a human grant never reaches an agent, and an agent grant
+// never reaches a human. The agent user's resolution is bound the same way.
+func (a *Authority) checkGrantBinding(resolution Resolution) error {
+	var user *Subject
+	if a.request.Subject.Kind == Agent {
+		u := resolution.AgentUser
+		if u == nil || u.AgentUser != nil || u.Subject.Kind != User || u.Subject.Validate() != nil || u.Subject.Realm != a.request.Subject.Realm ||
+			!sameConnection(u.Connection, a.request.Connection) || !sameProtection(u.Protection, resolution.Protection) ||
+			u.ServerTime.IsZero() || !u.ValidUntil.After(u.ServerTime) ||
+			// The user's resolution is as fresh as the agent's: same server
+			// instant and no longer validity, never a cached older answer.
+			!u.ServerTime.Equal(resolution.ServerTime) || u.ValidUntil.After(resolution.ValidUntil) {
+			return a.denial(DataRead, "BINDING_MISMATCH")
+		}
+		user = &u.Subject
+		for _, grant := range u.Grants {
+			if grant.ValidateMVP() != nil {
+				return unsupported(a.request.Connection.ID)
+			}
+			if grant.Subject != u.Subject || grant.Scope.Connection != a.request.Connection.ID {
+				return a.denial(DataRead, "BINDING_MISMATCH")
+			}
+		}
+	} else if resolution.AgentUser != nil {
+		return a.denial(DataRead, "BINDING_MISMATCH")
+	}
+	for _, grant := range resolution.Grants {
+		if err := grant.ValidateMVP(); err != nil {
+			return unsupported(a.request.Connection.ID)
+		}
+		if grant.Subject != a.request.Subject || grant.Scope.Connection != a.request.Connection.ID ||
+			(user == nil) != (grant.AgentUser == nil) || (user != nil && *grant.AgentUser != *user) {
+			return a.denial(DataRead, "BINDING_MISMATCH")
+		}
+	}
+	return nil
 }
 
 func (a *Authority) check(ctx context.Context, authorization *lease) error {

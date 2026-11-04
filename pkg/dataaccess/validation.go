@@ -100,6 +100,39 @@ func (g Grant) ValidateMVP() error {
 		(g.Decision != nil && (g.Decision.By.Validate() != nil || g.Decision.At.IsZero())) {
 		return fmt.Errorf("dataaccess: invalid grant")
 	}
+	return g.validateAgent()
+}
+
+// validateAgent admits agent-subject grants only as self-requests bound to one
+// agent user, and every own-agent marker only on such a grant (REQ:agent-access).
+func (g Grant) validateAgent() error {
+	invalid := fmt.Errorf("dataaccess: invalid agent grant")
+	if g.AgentUser == nil {
+		if g.Subject.Kind == Agent || g.Forwarded != nil || g.EffectiveAt != nil ||
+			(g.Decision != nil && (g.Decision.By.Kind == Agent || g.Decision.ForOwnAgent || g.Decision.Dormant || g.Decision.ByAgentUser)) {
+			return invalid
+		}
+		return nil
+	}
+	user := *g.AgentUser
+	if g.Subject.Kind != Agent || user.Validate() != nil || user.Kind != User || user.Realm != g.Subject.Realm || g.RequestedBy != g.Subject {
+		return invalid
+	}
+	if g.Forwarded != nil && (g.Forwarded.By != user || g.Forwarded.At.IsZero() || (g.Forwarded.Note != "" && !canonical(g.Forwarded.Note))) {
+		return invalid
+	}
+	if d := g.Decision; d != nil {
+		own := d.ForOwnAgent || d.Dormant || d.ByAgentUser
+		// An agent never decides, and its user's decision is always flagged.
+		if d.By.Kind == Agent || (d.By == user && !d.ForOwnAgent && !d.ByAgentUser) ||
+			(own && (d.By != user || d.Self)) || (d.Dormant && !d.ForOwnAgent) || (d.ForOwnAgent && d.ByAgentUser) ||
+			(d.ByAgentUser && g.State != Refused) || (d.ForOwnAgent && g.State == Refused) {
+			return invalid
+		}
+	}
+	if g.EffectiveAt != nil && (g.EffectiveAt.IsZero() || g.Decision == nil || !g.Decision.Dormant) {
+		return invalid
+	}
 	return nil
 }
 

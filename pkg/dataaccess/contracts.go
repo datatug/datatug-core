@@ -121,6 +121,24 @@ type Decision struct {
 	Note     string    `json:"note,omitempty"`
 	Self     bool      `json:"self"`
 	Narrowed bool      `json:"narrowed"`
+	// ForOwnAgent marks a decision the agent's user made for their own agent
+	// (Perimeter REQ:agent-asks-its-user). It never widens the user: the agent
+	// stays capped at the user's access at every authorization.
+	ForOwnAgent bool `json:"forOwnAgent,omitempty"`
+	// Dormant records that the user could not read every covered object when
+	// approving for their own agent; the approval takes effect only once they
+	// can (Grant.EffectiveAt, event access.agent_grant.effective).
+	Dormant bool `json:"dormant,omitempty"`
+	// ByAgentUser marks the agent's user declining their own agent's request.
+	ByAgentUser bool `json:"byAgentUser,omitempty"`
+}
+
+// Forwarding records an agent's user handing its request on to approvers. It
+// is not a decision: approvers see an agent's request only once forwarded.
+type Forwarding struct {
+	By   Subject   `json:"by"`
+	At   time.Time `json:"at"`
+	Note string    `json:"note,omitempty"`
 }
 
 type Grant struct {
@@ -137,6 +155,15 @@ type Grant struct {
 	Decision    *Decision    `json:"decision,omitempty"`
 	PriorGrant  string       `json:"priorGrant,omitempty"`
 	Revision    int64        `json:"revision"`
+	// AgentUser is server-set on every agent-subject grant: the person the agent
+	// asks first and whose access always caps it (the person who registered it,
+	// or the person it acts for). It is absent on every other grant.
+	AgentUser *Subject `json:"agentUser,omitempty"`
+	// Forwarded is set once the agent's user hands the request to approvers.
+	Forwarded *Forwarding `json:"forwarded,omitempty"`
+	// EffectiveAt is set once, inside the grant-revision compare-and-set of the
+	// agent's first allowed read after a dormant own-agent approval wakes.
+	EffectiveAt *time.Time `json:"effectiveAt,omitempty"`
 }
 
 // AccessRequest carries no subject, requester, approval, or identity assertion.

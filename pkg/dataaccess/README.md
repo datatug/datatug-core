@@ -67,8 +67,15 @@ transactions and version1 retained-result capture/import/release require connect
 authority; an exact-object grant cannot substitute for it. Active grants form a
 union: a shorter grant cannot shorten standing authority or a longer matching
 grant, and the existence of an object grant cannot narrow standing `all`. Agent
-subjects use the agent posture and cannot inherit human grants or execute with
-grants in this checkpoint. Unsupported grant fields and mandatory fine-grained
+subjects use the agent posture and never inherit human grants. An agent may hold
+its own approvals (Perimeter D23): grants whose subject is that agent and whose
+`agentUser` is the person it belongs to (who registered it, or whom it acts for).
+Every agent `Resolution` carries that person's fresh resolution as `agentUser`,
+and every authorization intersects the two per table: the agent reads a table
+only while its user can, so a user who loses access closes the agent at its next
+authorization (`AGENT_USER_LACKS_ACCESS`), and the user's resolution is part of
+the lease digest. `ProjectAgentResolution` builds that resolution for hosts.
+Record and field units join the same intersection when they exist. Unsupported grant fields and mandatory fine-grained
 protection fail closed.
 
 `SecureDBWithTableIdentity` is an optional trusted-host composition point for one

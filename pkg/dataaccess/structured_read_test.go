@@ -213,7 +213,7 @@ func TestStructuredReadAgentBaselineAndContextIdentity(t *testing.T) {
 			if mode == "agent-none" {
 				resolution.Protection.AgentRead = AgentNone
 			}
-			a, err := NewAuthority(resolution.Subject, resolution.Connection, fixedResolver(resolution))
+			a, err := NewAuthority(resolution.Subject, resolution.Connection, fixedResolver(agentOf(resolution)))
 			require.NoError(t, err)
 			ctx := access.WithPrincipal(context.Background(), access.Principal{ID: "sam", Roles: []string{"owner"}, Groups: []string{"staff"}})
 			adapter := &previewAdapter{reader: &previewReader{rs: previewRecordset(t, []string{"id"})}}

@@ -82,12 +82,23 @@ func resolutionDigest(resolution Resolution) (string, error) {
 	}
 	grants := slices.Clone(resolution.Grants)
 	slices.SortFunc(grants, func(a, b Grant) int { return strings.Compare(a.ID, b.ID) })
+	// An agent's answer depends on its user's access too (permission model
+	// §16), so a change to the user's grants or posture changes the digest.
+	agentUser := ""
+	if resolution.AgentUser != nil {
+		if agentUser, err = resolutionDigest(*resolution.AgentUser); err != nil {
+			return "", err
+		}
+		// Bind which person the agent belongs to, not only what they reach.
+		agentUser = resolution.AgentUser.Subject.Realm + "\x00" + resolution.AgentUser.Subject.ID + "\x00" + agentUser
+	}
 	data, err := json.Marshal(struct {
 		Protection       ConnectionProtection
 		Grants           []Grant
 		LocalAuthorityID string           `json:"localAuthorityId,omitempty"`
 		ExactRead        *ExactReadPolicy `json:"exactRead,omitempty"`
-	}{resolution.Protection, grants, resolution.Connection.LocalAuthorityID, resolution.ExactRead})
+		AgentUser        string           `json:"agentUser,omitempty"`
+	}{resolution.Protection, grants, resolution.Connection.LocalAuthorityID, resolution.ExactRead, agentUser})
 	if err != nil {
 		return "", err
 	}
