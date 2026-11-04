@@ -98,11 +98,24 @@ func resolutionDigest(resolution Resolution) (string, error) {
 		LocalAuthorityID string           `json:"localAuthorityId,omitempty"`
 		ExactRead        *ExactReadPolicy `json:"exactRead,omitempty"`
 		AgentUser        string           `json:"agentUser,omitempty"`
-	}{resolution.Protection, grants, resolution.Connection.LocalAuthorityID, resolution.ExactRead, agentUser})
+		// The session ID, not its end: the idle end moves with every use.
+		AgentSession string `json:"agentSession,omitempty"`
+	}{resolution.Protection, grants, resolution.Connection.LocalAuthorityID, resolution.ExactRead, agentUser, agentSessionID(resolution)})
 	if err != nil {
 		return "", err
 	}
 	return hashBytes(data), nil
+}
+
+// agentSessionID binds the session only when a grant depends on it, so a
+// standing-only agent is not re-authorized when its session rolls over.
+func agentSessionID(r Resolution) string {
+	for _, g := range r.Grants {
+		if g.Lifetime == LifetimeSession && sessionBound(r, g) {
+			return r.AgentSession.ID
+		}
+	}
+	return ""
 }
 
 // strictJSON rejects unknown fields (when decoded into a struct), duplicate

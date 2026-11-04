@@ -75,6 +75,7 @@ func (r AccessRequest) ValidateMVP() error {
 		return err
 	}
 	if !canonical(r.Reason) || r.ExpiresAt.IsZero() || (r.PriorGrant != "" && !canonical(r.PriorGrant)) ||
+		(r.Lifetime != "" && r.Lifetime != LifetimeDeadline && r.Lifetime != LifetimeSession) ||
 		(r.CaseRef != nil && (!canonical(r.CaseRef.Kind) || !canonical(r.CaseRef.ID))) {
 		return fmt.Errorf("dataaccess: invalid access request")
 	}
@@ -83,7 +84,7 @@ func (r AccessRequest) ValidateMVP() error {
 
 func (g Grant) ValidateMVP() error {
 	if err := (AccessRequest{Permissions: g.Permissions, Scope: g.Scope, Reason: g.Reason,
-		ExpiresAt: g.ExpiresAt, CaseRef: g.CaseRef, PriorGrant: g.PriorGrant}).ValidateMVP(); err != nil {
+		ExpiresAt: g.ExpiresAt, CaseRef: g.CaseRef, PriorGrant: g.PriorGrant, Lifetime: g.Lifetime}).ValidateMVP(); err != nil {
 		return err
 	}
 	if err := g.Subject.Validate(); err != nil {
@@ -107,8 +108,12 @@ func (g Grant) ValidateMVP() error {
 // agent user, and every own-agent marker only on such a grant (REQ:agent-access).
 func (g Grant) validateAgent() error {
 	invalid := fmt.Errorf("dataaccess: invalid agent grant")
+	// A session-bound grant names its agent session; no other grant does.
+	if (g.Lifetime == LifetimeSession) != (g.AgentSessionID != "") || (g.AgentSessionID != "" && !canonical(g.AgentSessionID)) {
+		return invalid
+	}
 	if g.AgentUser == nil {
-		if g.Subject.Kind == Agent || g.Forwarded != nil || g.EffectiveAt != nil ||
+		if g.Subject.Kind == Agent || g.Forwarded != nil || g.EffectiveAt != nil || g.Lifetime == LifetimeSession ||
 			(g.Decision != nil && (g.Decision.By.Kind == Agent || g.Decision.ForOwnAgent || g.Decision.Dormant || g.Decision.ByAgentUser)) {
 			return invalid
 		}

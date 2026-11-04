@@ -164,6 +164,38 @@ type Grant struct {
 	// EffectiveAt is set once, inside the grant-revision compare-and-set of the
 	// agent's first allowed read after a dormant own-agent approval wakes.
 	EffectiveAt *time.Time `json:"effectiveAt,omitempty"`
+	// Lifetime is how long the approval lasts (Perimeter REQ:approval-lifetimes,
+	// D29); absent means LifetimeDeadline.
+	Lifetime Lifetime `json:"lifetime,omitempty"`
+	// AgentSessionID binds a LifetimeSession grant to one server-minted agent
+	// session (REQ:agent-sessions); it is set on such grants and no others.
+	AgentSessionID string `json:"agentSessionId,omitempty"`
+}
+
+// Lifetime is an approval's lifetime (Perimeter REQ:approval-lifetimes, D29).
+// "Always" is not a lifetime: it is a standing rule targeting an agent.
+type Lifetime string
+
+const (
+	// LifetimeDeadline lasts until ExpiresAt; it is the meaning of an absent lifetime.
+	LifetimeDeadline Lifetime = "deadline"
+	// LifetimeSession lasts until its agent session ends or ExpiresAt, whichever
+	// comes first. Agent subjects only.
+	LifetimeSession Lifetime = "session"
+	// LifetimeOnce is one exact write statement, consumed on commit (DAS L4, D29,
+	// D30). Reserved: the MVP refuses it. Its statement data (fingerprint,
+	// parameters, key set, INSERT rows, new values, preconditions) will attach as
+	// an additional optional object, so the shape grows without a break.
+	LifetimeOnce Lifetime = "once"
+)
+
+// AgentSession is the live agent session a control plane authorized an agent's
+// call under (Perimeter REQ:agent-sessions). It is an evaluator input, set only
+// on an agent's resolution: session-bound grants count only for this session
+// and never beyond EndsAt (the earlier of its idle and absolute ends).
+type AgentSession struct {
+	ID     string    `json:"id"`
+	EndsAt time.Time `json:"endsAt"`
 }
 
 // AccessRequest carries no subject, requester, approval, or identity assertion.
@@ -175,6 +207,8 @@ type AccessRequest struct {
 	ExpiresAt   time.Time    `json:"expiresAt"`
 	CaseRef     *CaseRef     `json:"caseRef,omitempty"`
 	PriorGrant  string       `json:"priorGrant,omitempty"`
+	// Lifetime is the requested lifetime; the decider may narrow it, never widen it.
+	Lifetime Lifetime `json:"lifetime,omitempty"`
 }
 
 type ReadPosture string
