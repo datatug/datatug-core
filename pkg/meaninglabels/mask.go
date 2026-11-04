@@ -52,39 +52,78 @@ func (p Plan) Empty() bool {
 	return len(p.Masked) == 0
 }
 
-// IsMasked reports whether a column is masked. The name is compared ignoring
-// case, and a qualified or quoted reference (c."Email", [Email]) is compared
-// by its last unquoted segment, so a gate never fails open on spelling.
-func (p Plan) IsMasked(column string) (ColumnLabel, bool) {
-	name := BareName(column)
-	if l, ok := p.Masked[name]; ok {
-		return l, true
-	}
-	for masked, l := range p.Masked {
-		if strings.EqualFold(masked, name) {
+// IsMasked reports whether a column is masked. The reference is compared
+// ignoring case, under every spelling it could stand for (see Candidates), so
+// the gate fails closed on qualification, quoting and escapes. One entry is
+// one identifier reference, not an expression.
+func (p Plan) IsMasked(reference string) (ColumnLabel, bool) {
+	for _, name := range Candidates(reference) {
+		if l, ok := p.Masked[name]; ok {
 			return l, true
+		}
+		for masked, l := range p.Masked {
+			if strings.EqualFold(masked, name) {
+				return l, true
+			}
 		}
 	}
 	return ColumnLabel{}, false
 }
 
-// BareName strips qualification and identifier quotes from a column
-// reference. A quoted last segment keeps its dots ("e.mail", [e.mail]).
+// BareName is the most likely column name a reference stands for: the last
+// segment, unquoted and unescaped ("a""b" is a"b, [e.mail] is e.mail).
 func BareName(reference string) string {
+	return Candidates(reference)[0]
+}
+
+// Candidates lists every column name a reference could stand for, most likely
+// first: the unescaped quoted last segment, the last dot segment with quotes
+// trimmed, and the raw last segment.
+func Candidates(reference string) []string {
 	reference = strings.TrimSpace(reference)
+	var out []string
+	add := func(v string) {
+		for _, x := range out {
+			if x == v {
+				return
+			}
+		}
+		out = append(out, v)
+	}
 	if n := len(reference); n >= 2 {
 		closing := reference[n-1]
-		opening := map[byte]byte{'"': '"', '`': '`', ']': '[', '\'': '\''}[closing]
-		if opening != 0 {
-			if i := strings.LastIndexByte(reference[:n-1], opening); i >= 0 {
-				return reference[i+1 : n-1]
+		if opening, ok := map[byte]byte{'"': '"', '`': '`', ']': '[', '\'': '\''}[closing]; ok {
+			if i := quoteStart(reference[:n-1], opening, closing); i >= 0 {
+				inner := reference[i+1 : n-1]
+				add(strings.ReplaceAll(inner, string([]byte{closing, closing}), string(closing)))
+				add(inner)
 			}
 		}
 	}
-	if i := strings.LastIndex(reference, "."); i >= 0 {
-		reference = reference[i+1:]
+	trimmed := strings.TrimRight(reference, ".")
+	last := trimmed
+	if i := strings.LastIndex(trimmed, "."); i >= 0 {
+		last = trimmed[i+1:]
 	}
-	return reference
+	add(strings.Trim(last, "\"`[]' "))
+	add(last)
+	return out
+}
+
+// quoteStart finds the opening quote of a quoted segment that ends just before
+// body's end, skipping doubled closing quotes inside it; -1 if there is none.
+func quoteStart(body string, opening, closing byte) int {
+	for i := len(body) - 1; i >= 0; i-- {
+		if body[i] != opening {
+			continue
+		}
+		if opening == closing && i > 0 && body[i-1] == closing {
+			i-- // a doubled quote is an escape inside the segment
+			continue
+		}
+		return i
+	}
+	return -1
 }
 
 // Protection returns the wire protection of a masked column.

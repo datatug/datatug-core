@@ -448,13 +448,25 @@ func TestMaskPlan(t *testing.T) {
 			t.Errorf("%s must be masked", ref)
 		}
 	}
-	for ref, want := range map[string]string{`"e.mail"`: "e.mail", "[e.mail]": "e.mail", "`a.b`": "a.b", "t.c": "c", " c ": "c", "'q'": "q", `x"`: `x"`} {
+	for ref, want := range map[string]string{`"e.mail"`: "e.mail", "[e.mail]": "e.mail", "`a.b`": "a.b", "t.c": "c", " c ": "c", "'q'": "q", `x"`: "x", `"a""b"`: `a"b`, "[a]]b]": "a]b", `"Email".`: "Email"} {
 		if got := BareName(ref); got != want {
 			t.Errorf("BareName(%s) = %q, want %q", ref, got, want)
 		}
 	}
 	if _, ok := NewPlan([]ColumnLabel{{Column: "e.mail", Class: ClassPII}}, nil).IsMasked(`t."e.mail"`); !ok {
 		t.Error("quoted dotted name must be masked")
+	}
+	quoted := NewPlan([]ColumnLabel{{Column: `a"b`, Class: ClassPII}, {Column: "email", Class: ClassPII}}, nil)
+	for _, ref := range []string{`"a""b"`, `email"`, `"email".`, `t.[email]`, `"x"."EMAIL"`} {
+		if _, ok := quoted.IsMasked(ref); !ok {
+			t.Errorf("%s must be masked", ref)
+		}
+	}
+	if _, ok := quoted.IsMasked(`"other"`); ok {
+		t.Error("other is not masked")
+	}
+	if quoteStart(`""x`, '"', '"') != -1 {
+		t.Error("a doubled quote at the start is not an opening quote")
 	}
 	if p := NewPlan(labels, nil).Protection("secret"); p == nil || p.Ask != NeverText {
 		t.Errorf("non-revealable ask: %+v", p)
