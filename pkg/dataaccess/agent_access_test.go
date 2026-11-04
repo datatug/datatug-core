@@ -198,6 +198,9 @@ func TestAgentGrantValidation(t *testing.T) {
 		"effective zero":                   func(g *Grant) { g.Decision.Dormant = true; g.EffectiveAt = &time.Time{} },
 		"effective without decision":       func(g *Grant) { g.Decision = nil; g.EffectiveAt = &now },
 		"effective not dormant":            func(g *Grant) { g.EffectiveAt = &now },
+		"decided by the agent itself":      func(g *Grant) { g.Decision = &Decision{By: agentSubject(), At: now} },
+		"decided by another agent":         func(g *Grant) { g.Decision = &Decision{By: Subject{Realm: "sneat", Kind: Agent, ID: "a9"}, At: now} },
+		"user decision unflagged":          func(g *Grant) { g.Decision = &Decision{By: user, At: now} },
 	}
 	for name, mutate := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -503,4 +506,88 @@ func TestCoversUserAccess(t *testing.T) {
 			require.Error(t, err)
 		})
 	}
+}
+
+// Review 8888f1c M1: inspection reports what the agent can actually read.
+func TestInspectTableReadCapsAgentByUser(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+	order := ObjectRef{"sales", "Order"}
+	doc := exactFixtureDocument()
+	user := exactRawResolution()
+	r, err := ProjectAgentResolution(ctx, user, agentSubject(), []Grant{agentGrant(now, order)}, exactSnapshot(t, doc))
+	require.NoError(t, err)
+	got, err := InspectTableRead(ctx, r, exactSnapshot(t, doc), order)
+	require.NoError(t, err)
+	require.False(t, got.Admitted)
+	require.Equal(t, "AGENT_USER_LACKS_ACCESS", got.Code)
+	require.NotEqual(t, "allow", string(got.Assessment.Outcome))
+	user.Grants = []Grant{exactReadGrant(now, order)}
+	r, err = ProjectAgentResolution(ctx, user, agentSubject(), []Grant{agentGrant(now, order)}, exactSnapshot(t, doc))
+	require.NoError(t, err)
+	got, err = InspectTableRead(ctx, r, exactSnapshot(t, doc), order)
+	require.NoError(t, err)
+	require.True(t, got.Admitted)
+	require.Equal(t, "allow", string(got.Assessment.Outcome))
+	r, err = ProjectAgentResolution(ctx, user, agentSubject(), nil, exactSnapshot(t, doc))
+	require.NoError(t, err)
+	r.AgentUser = nil
+	got, err = InspectTableRead(ctx, r, exactSnapshot(t, doc), ObjectRef{"sales", "Customer"})
+	require.NoError(t, err)
+	require.False(t, got.Admitted)
+	require.Equal(t, "indeterminate", string(got.Assessment.Outcome))
+}
+
+// Review 8888f1c M2, L4, L5, L6.
+func TestAgentUserResolutionFreshAndBound(t *testing.T) {
+	now := time.Now()
+	r := fixtureResolution()
+	r.Subject = agentSubject()
+	for name, mutate := range map[string]func(*Resolution){
+		"older user answer":  func(r *Resolution) { r.AgentUser.ServerTime = r.ServerTime.Add(-time.Minute) },
+		"longer user answer": func(r *Resolution) { r.AgentUser.ValidUntil = r.ValidUntil.Add(time.Second) },
+	} {
+		t.Run(name, func(t *testing.T) {
+			a := exactAgentAuthority(t, func() Resolution { c := agentOf(r); c.AgentUser.Grants = []Grant{}; mutate(&c); return c })
+			_, err := a.authorizeRequest(context.Background(), nil)
+			requireDenialCode(t, err, "BINDING_MISMATCH")
+		})
+	}
+	t.Run("local authority refuses user grants", func(t *testing.T) {
+		local := LocalConnectionRef{AuthorityID: "owned-local-registry", ID: "conn", Fingerprint: fixtureConnection().Fingerprint}
+		lr := agentOf(r, fixtureGrant(now))
+		lr.Connection.Space, lr.Connection.LocalAuthorityID = "", local.AuthorityID
+		lr.AgentUser.Connection = lr.Connection
+		a, err := NewLocalAuthority(agentSubject(), local, fixedResolver(lr))
+		require.NoError(t, err)
+		_, err = a.authorizeRequest(context.Background(), nil)
+		requireDenialCode(t, err, "LOCAL_GRANTS_UNSUPPORTED")
+	})
+	t.Run("digest binds the user's identity", func(t *testing.T) {
+		dana, err := resolutionDigest(agentOf(r))
+		require.NoError(t, err)
+		other := agentOf(r)
+		other.AgentUser.Subject.ID = "kim"
+		kim, err := resolutionDigest(other)
+		require.NoError(t, err)
+		require.NotEqual(t, dana, kim)
+	})
+	t.Run("projection does not alias the caller's grants", func(t *testing.T) {
+		user := fixtureResolution()
+		user.Grants = []Grant{fixtureGrant(now)}
+		own := agentGrant(now)
+		own.Scope = GrantScope{Connection: "conn", Requires: []string{}}
+		own.CaseRef = &CaseRef{Kind: "incident", ID: "1"}
+		grants := []Grant{own}
+		out, err := ProjectAgentResolution(context.Background(), user, agentSubject(), grants, nil)
+		require.NoError(t, err)
+		grants[0].Decision.By.ID = "changed"
+		grants[0].AgentUser.ID = "changed"
+		grants[0].CaseRef.ID = "changed"
+		user.Grants[0].Decision.By.ID = "changed"
+		require.Equal(t, "sam", out.Grants[0].Decision.By.ID)
+		require.Equal(t, "sam", out.Grants[0].AgentUser.ID)
+		require.Equal(t, "1", out.Grants[0].CaseRef.ID)
+		require.Equal(t, "priya", out.AgentUser.Grants[0].Decision.By.ID)
+	})
 }

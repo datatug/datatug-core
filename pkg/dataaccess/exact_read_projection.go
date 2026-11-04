@@ -362,11 +362,11 @@ func ProjectAgentResolution(ctx context.Context, user Resolution, agent Subject,
 			return Resolution{}, unavailable
 		}
 		own := user
-		own.Grants = slices.Clone(user.Grants)
+		own.Grants = cloneGrants(user.Grants)
 		own.Protection.MaxDuration = maps.Clone(user.Protection.MaxDuration)
 		result := user
 		result.Subject = agent
-		result.Grants = slices.Clone(grants)
+		result.Grants = cloneGrants(grants)
 		result.Protection.MaxDuration = maps.Clone(user.Protection.MaxDuration)
 		result.AgentUser = &own
 		return result, nil
@@ -413,4 +413,31 @@ func exactAssessmentAllowed(assessment access.Assessment, err error) (bool, erro
 		return false, fmt.Errorf("dataaccess: exact assessment unavailable")
 	}
 	return assessment.Outcome == access.AssessmentAllow, nil
+}
+
+// cloneGrants copies grants with their pointer fields, so a caller mutating
+// its input afterwards cannot change a returned resolution.
+func cloneGrants(in []Grant) []Grant {
+	out := make([]Grant, len(in))
+	for i, g := range in {
+		g.Permissions = slices.Clone(g.Permissions)
+		g.Scope.Objects = slices.Clone(g.Scope.Objects)
+		g.Scope.Requires = slices.Clone(g.Scope.Requires)
+		g.CaseRef = clonePointer(g.CaseRef)
+		g.NotBefore = clonePointer(g.NotBefore)
+		g.Decision = clonePointer(g.Decision)
+		g.AgentUser = clonePointer(g.AgentUser)
+		g.Forwarded = clonePointer(g.Forwarded)
+		g.EffectiveAt = clonePointer(g.EffectiveAt)
+		out[i] = g
+	}
+	return out
+}
+
+func clonePointer[T any](p *T) *T {
+	if p == nil {
+		return nil
+	}
+	v := *p
+	return &v
 }

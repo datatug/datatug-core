@@ -150,7 +150,7 @@ func (a *Authority) authorizeRequest(ctx context.Context, request *access.Reques
 		!sameFingerprint(resolution.Protection.Fingerprint, a.request.Connection.Fingerprint) {
 		return nil, a.denial(DataRead, "BINDING_MISMATCH")
 	}
-	if a.request.Connection.LocalAuthorityID != "" && len(resolution.Grants) != 0 {
+	if a.request.Connection.LocalAuthorityID != "" && (len(resolution.Grants) != 0 || resolution.AgentUser != nil && len(resolution.AgentUser.Grants) != 0) {
 		return nil, a.denial(DataRead, "LOCAL_GRANTS_UNSUPPORTED")
 	}
 	resolution, err = canonicalExactResolution(resolution)
@@ -206,7 +206,10 @@ func (a *Authority) checkGrantBinding(resolution Resolution) error {
 		u := resolution.AgentUser
 		if u == nil || u.AgentUser != nil || u.Subject.Kind != User || u.Subject.Validate() != nil || u.Subject.Realm != a.request.Subject.Realm ||
 			!sameConnection(u.Connection, a.request.Connection) || !sameProtection(u.Protection, resolution.Protection) ||
-			u.ServerTime.IsZero() || !u.ValidUntil.After(u.ServerTime) {
+			u.ServerTime.IsZero() || !u.ValidUntil.After(u.ServerTime) ||
+			// The user's resolution is as fresh as the agent's: same server
+			// instant and no longer validity, never a cached older answer.
+			!u.ServerTime.Equal(resolution.ServerTime) || u.ValidUntil.After(resolution.ValidUntil) {
 			return a.denial(DataRead, "BINDING_MISMATCH")
 		}
 		user = &u.Subject

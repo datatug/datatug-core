@@ -89,6 +89,8 @@ func resolutionDigest(resolution Resolution) (string, error) {
 		if agentUser, err = resolutionDigest(*resolution.AgentUser); err != nil {
 			return "", err
 		}
+		// Bind which person the agent belongs to, not only what they reach.
+		agentUser = resolution.AgentUser.Subject.Realm + "\x00" + resolution.AgentUser.Subject.ID + "\x00" + agentUser
 	}
 	data, err := json.Marshal(struct {
 		Protection       ConnectionProtection
