@@ -34,3 +34,8 @@ Enforced by `internal/architecture/engine_free_test.go`: it fails when any go.mo
 import `database/sql` or contain engine catalog names. `testdata/` fixtures (for example
 the storage spike's sqlite module) are exempt. Do not weaken the test to get a change in; move the code to an
 adapter.
+
+No Go file here, tests included, imports a separate adapter module (`github.com/dal-go/dalgo2*`); adapters
+bundled in the DALgo core module (`github.com/dal-go/dalgo/adapters/dalgo2memory`, `.../dalgo2fs`)
+are fine, and `internal/architecture/no_adapter_imports_test.go` enforces it (founder, 2026-11-04:
+"We are OK to import from core but not from other modules/repos").
