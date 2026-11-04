@@ -48,7 +48,7 @@ func TestWindowValidate(t *testing.T) {
 			}
 		})
 	}
-	if _, err := Seal(WindowID{}, Hash{}, nil); !errors.Is(err, ErrInvalidWindow) {
+	if _, err := Seal(WindowID{}, Hash{}, nil, t0.Add(time.Hour)); !errors.Is(err, ErrInvalidWindow) {
 		t.Fatalf("Seal: want ErrInvalidWindow, got %v", err)
 	}
 }
@@ -56,7 +56,7 @@ func TestWindowValidate(t *testing.T) {
 func TestSealRootBindsEverything(t *testing.T) {
 	w := WindowFor(testSpace, testProject, t0)
 	leaves := leavesN(3)
-	s, err := Seal(w, Hash{1}, leaves)
+	s, err := Seal(w, Hash{1}, leaves, t0.Add(time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,19 +64,24 @@ func TestSealRootBindsEverything(t *testing.T) {
 		t.Fatal("seal fields")
 	}
 	base := s.Root()
+	x := s.ExpiresAt
 	variants := []RootStatement{
-		{Window: w.Next(), PrevRoot: s.PrevRoot, MerkleRoot: s.MerkleRoot, LeafCount: 3},
-		{Window: WindowID{Space: testSpace, Project: "other", Start: w.Start}, PrevRoot: s.PrevRoot, MerkleRoot: s.MerkleRoot, LeafCount: 3},
-		{Window: w, PrevRoot: Hash{2}, MerkleRoot: s.MerkleRoot, LeafCount: 3},
-		{Window: w, PrevRoot: s.PrevRoot, MerkleRoot: Hash{}, LeafCount: 3},
-		{Window: w, PrevRoot: s.PrevRoot, MerkleRoot: s.MerkleRoot, LeafCount: 4},
+		{Window: w.Next(), PrevRoot: s.PrevRoot, MerkleRoot: s.MerkleRoot, LeafCount: 3, ExpiresAt: x},
+		{Window: WindowID{Space: testSpace, Project: "other", Start: w.Start}, PrevRoot: s.PrevRoot, MerkleRoot: s.MerkleRoot, LeafCount: 3, ExpiresAt: x},
+		{Window: w, PrevRoot: Hash{2}, MerkleRoot: s.MerkleRoot, LeafCount: 3, ExpiresAt: x},
+		{Window: w, PrevRoot: s.PrevRoot, MerkleRoot: Hash{}, LeafCount: 3, ExpiresAt: x},
+		{Window: w, PrevRoot: s.PrevRoot, MerkleRoot: s.MerkleRoot, LeafCount: 4, ExpiresAt: x},
+		{Window: w, PrevRoot: s.PrevRoot, MerkleRoot: s.MerkleRoot, LeafCount: 3, ExpiresAt: x.Add(time.Second)},
 	}
 	for i, v := range variants {
 		if v.Root() == base {
 			t.Fatalf("variant %d has the same root", i)
 		}
 	}
-	empty, _ := Seal(w, Hash{}, nil)
+	if _, err := Seal(w, Hash{}, nil, time.Time{}); !errors.Is(err, ErrInvalidStatement) {
+		t.Fatalf("Seal without expiry: %v", err)
+	}
+	empty, _ := Seal(w, Hash{}, nil, t0.Add(time.Hour))
 	if empty.LeafCount != 0 || empty.MerkleRoot != MerkleRoot(nil) {
 		t.Fatal("empty window seal")
 	}
@@ -102,5 +107,29 @@ func TestHashText(t *testing.T) {
 	}
 	if err := back.UnmarshalText([]byte("zz")); !errors.Is(err, ErrMalformedHash) {
 		t.Fatalf("UnmarshalText: %v", err)
+	}
+}
+
+func TestWindowClosedAfterGrace(t *testing.T) {
+	w := WindowFor(testSpace, testProject, t0)
+	if !w.End().Equal(t0.Add(WindowDuration)) {
+		t.Fatal("End")
+	}
+	lastInstant := w.End().Add(-time.Nanosecond)
+	if WindowFor(testSpace, testProject, lastInstant) != w {
+		t.Fatal("an event at the last instant belongs to the window")
+	}
+	for _, tc := range []struct {
+		now  time.Time
+		want bool
+	}{
+		{w.Start, false},
+		{w.End(), false},
+		{w.End().Add(SealGrace - time.Nanosecond), false},
+		{w.End().Add(SealGrace), true},
+	} {
+		if got := w.Closed(tc.now); got != tc.want {
+			t.Fatalf("Closed(%s) = %v", tc.now, got)
+		}
 	}
 }

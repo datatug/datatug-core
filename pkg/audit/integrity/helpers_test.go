@@ -104,18 +104,45 @@ func (f *fixture) event(w WindowID, i int) Event {
 	return e
 }
 
-type stored struct {
-	salt  Salt
-	event Event
-}
+const retention = 365 * 24 * time.Hour
 
 type sealed struct {
 	id     WindowID
-	events []stored
+	events []StoredEvent // canonical leaf order
 	leaves []Hash
+	tree   *Tree
 	stmt   RootStatement
 	root   Signed[RootStatement]
-	expiry Signed[ExpiryStatement]
+}
+
+// sealWindow simulates the sealer for one window: canonical order, seal, sign.
+func (f *fixture) sealWindow(w WindowID, prev Hash, events []StoredEvent) sealed {
+	f.t.Helper()
+	leaves, err := OrderLeaves(events)
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	stmt, err := Seal(w, prev, leaves, w.Start.Add(retention))
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	return sealed{id: w, events: events, leaves: leaves, tree: NewTree(leaves), stmt: stmt, root: mustSign(f.t, f.signer, stmt)}
+}
+
+// storedEvents writes n random events into window w, in a shuffled
+// (Firestore-like) order.
+func (f *fixture) storedEvents(w WindowID, n int) []StoredEvent {
+	f.t.Helper()
+	events := make([]StoredEvent, 0, n)
+	for i := range n {
+		salt, err := NewSalt(randReader{f.rng})
+		if err != nil {
+			f.t.Fatal(err)
+		}
+		events = append(events, StoredEvent{Salt: salt, Event: f.event(w, i)})
+	}
+	f.rng.Shuffle(len(events), func(i, j int) { events[i], events[j] = events[j], events[i] })
+	return events
 }
 
 // sealChain simulates the writer and the sealer: counts[i] events in the
@@ -125,25 +152,9 @@ func (f *fixture) sealChain(start time.Time, prev Hash, counts ...int) []sealed 
 	w := WindowFor(testSpace, testProject, start)
 	var out []sealed
 	for _, n := range counts {
-		s := sealed{id: w}
-		for i := range n {
-			salt, err := NewSalt(randReader{f.rng})
-			if err != nil {
-				f.t.Fatal(err)
-			}
-			ev := f.event(w, i)
-			s.events = append(s.events, stored{salt: salt, event: ev})
-			s.leaves = append(s.leaves, LeafOf(salt, &ev))
-		}
-		stmt, err := Seal(w, prev, s.leaves)
-		if err != nil {
-			f.t.Fatal(err)
-		}
-		s.stmt = stmt
-		s.root = mustSign(f.t, f.signer, stmt)
-		s.expiry = mustSign(f.t, f.signer, ExpiryStatement{Window: w, Root: stmt.Root(), ExpiresAt: w.Start.Add(365 * 24 * time.Hour)})
+		s := f.sealWindow(w, prev, f.storedEvents(w, n))
 		out = append(out, s)
-		prev = stmt.Root()
+		prev = s.stmt.Root()
 		w = w.Next()
 	}
 	return out
@@ -161,12 +172,15 @@ func mustSign[S statement](t testing.TB, signer Signer, s S) Signed[S] {
 // exportEvent discloses stored event i of window s with its proof.
 func exportEvent(t testing.TB, s sealed, i int) ExportEvent {
 	t.Helper()
-	proof, err := InclusionProof(s.leaves, uint64(i))
+	proof, err := s.tree.Proof(uint64(i))
 	if err != nil {
 		t.Fatal(err)
 	}
-	ev := s.events[i].event
-	return ExportEvent{Index: uint64(i), Proof: proof, Event: Disclose(s.events[i].salt, &ev)}
+	d, err := s.events[i].Disclose()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ExportEvent{Index: uint64(i), Proof: proof, Event: d}
 }
 
 // fullExport exports every window whole, every event revealed.
@@ -174,8 +188,8 @@ func fullExport(t testing.TB, ws []sealed) *Export {
 	t.Helper()
 	exp := &Export{Space: testSpace, Project: testProject, From: ws[0].id.Start, To: ws[len(ws)-1].id.Start}
 	for _, s := range ws {
-		root, expiry := s.root, s.expiry
-		ew := ExportWindow{Root: &root, Expiry: &expiry, Whole: true}
+		root := s.root
+		ew := ExportWindow{Root: &root, Whole: true}
 		for i := range s.events {
 			ew.Events = append(ew.Events, exportEvent(t, s, i))
 		}
@@ -186,6 +200,8 @@ func fullExport(t testing.TB, ws []sealed) *Export {
 
 // tombstoneFor signs a retention tombstone for s.
 func (f *fixture) tombstoneFor(s sealed, deletedAt time.Time) *Signed[TombstoneStatement] {
-	x := mustSign(f.t, f.signer, TombstoneStatement{Seal: s.stmt, ExpiresAt: s.expiry.Statement.ExpiresAt, DeletedAt: deletedAt})
+	x := mustSign(f.t, f.signer, TombstoneStatement{Seal: s.stmt, DeletedAt: deletedAt})
 	return &x
 }
+
+func (s sealed) expires() time.Time { return s.stmt.ExpiresAt }

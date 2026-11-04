@@ -228,6 +228,7 @@ func bagField() fieldSpec {
 			return nil
 		},
 		set: func(e *Event, v []byte) error {
+			e.Resource.Bag = nil
 			ss, err := tuple(v, 3)
 			if err != nil || ss == nil {
 				return err
@@ -249,6 +250,7 @@ func caseField() fieldSpec {
 			return nil
 		},
 		set: func(e *Event, v []byte) error {
+			e.CaseRef = nil
 			ss, err := tuple(v, 2)
 			if err != nil || ss == nil {
 				return err
@@ -269,6 +271,7 @@ func execField() fieldSpec {
 			return nil
 		},
 		set: func(e *Event, v []byte) error {
+			e.Execution = nil
 			ss, err := tuple(v, 3)
 			if err != nil || ss == nil {
 				return err
@@ -289,6 +292,7 @@ func digestField() fieldSpec {
 			return nil
 		},
 		set: func(e *Event, v []byte) error {
+			e.Statement = nil
 			ss, err := tuple(v, 2)
 			if err != nil || ss == nil {
 				return err

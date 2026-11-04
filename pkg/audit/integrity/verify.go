@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
+	"unicode"
 )
 
 // Export is what `POST audit/exports` produces and `datatug access audit
@@ -25,13 +28,12 @@ type Export struct {
 // window is included; the verifier fails the export if that is not so.
 type ExportWindow struct {
 	Root      *Signed[RootStatement]      `json:"root,omitempty"`
-	Expiry    *Signed[ExpiryStatement]    `json:"expiry,omitempty"`
 	Tombstone *Signed[TombstoneStatement] `json:"tombstone,omitempty"`
 	Whole     bool                        `json:"whole,omitempty"`
 	Events    []ExportEvent               `json:"events,omitempty"`
 }
 
-// ExportEvent is one included event at its insertion index, with its proof.
+// ExportEvent is one included event at its leaf index, with its proof.
 type ExportEvent struct {
 	Index uint64         `json:"index"`
 	Proof []Hash         `json:"proof"`
@@ -47,6 +49,14 @@ type VerifyOptions struct {
 	// [ErrAnchorMismatch]; an anchor for the window before the range pins the
 	// first previous-root link.
 	Anchors map[string]Hash
+	// AnchoredHolds are hold statements read from the anchor bucket, not from
+	// the export. They are merged with the export's own; statements for
+	// another Space or project are ignored.
+	AnchoredHolds []Signed[HoldStatement]
+	// HoldsAnchored declares that AnchoredHolds is the complete set of holds
+	// for this Space and project in the anchor bucket. Only then does the
+	// report say hold coverage was checked independently.
+	HoldsAnchored bool
 }
 
 // ChainStart says what the first window's previous-root link was checked against.
@@ -62,6 +72,18 @@ const (
 	ChainUnverified ChainStart = "unverified"
 )
 
+// HoldCoverage says where the legal holds used to judge tombstones came from.
+type HoldCoverage string
+
+// Hold coverages.
+const (
+	// HoldsFromAnchor: the complete hold set came from the independent anchor.
+	HoldsFromAnchor HoldCoverage = "anchored"
+	// HoldsFromExportOnly: only holds the exporter chose to include were
+	// seen; a deletion under an omitted hold would not be detected.
+	HoldsFromExportOnly HoldCoverage = "export-only"
+)
+
 // Report is what a successful verification proves.
 type Report struct {
 	Space      string         `json:"space"`
@@ -69,6 +91,7 @@ type Report struct {
 	From       time.Time      `json:"from"`
 	To         time.Time      `json:"to"`
 	ChainStart ChainStart     `json:"chainStart"`
+	Holds      HoldCoverage   `json:"holds"`
 	Windows    []WindowReport `json:"windows"`
 }
 
@@ -77,8 +100,8 @@ type WindowReport struct {
 	Window     WindowID  `json:"window"`
 	Root       Hash      `json:"root"`
 	LeafCount  uint64    `json:"leafCount"`
+	ExpiresAt  time.Time `json:"expiresAt"`
 	Tombstoned bool      `json:"tombstoned,omitempty"`
-	ExpiresAt  time.Time `json:"expiresAt,omitzero"`
 	// Complete is true only when every event of the window is included and
 	// none has a redacted field. Otherwise only the included events are
 	// proven authentic; nothing is proven about omitted ones.
@@ -129,12 +152,16 @@ func VerifyExport(exp *Export, opts VerifyOptions) (*Report, error) {
 	if exp.To.Before(exp.From) {
 		return nil, &VerifyError{Window: first, Event: -1, Err: ErrWindowSequence, Cause: errors.New("range ends before it starts")}
 	}
-	holds, err := verifyHolds(exp, opts.Verifier, first)
+	holds, err := verifyHolds(exp, opts, first)
 	if err != nil {
 		return nil, err
 	}
 	v := &verifier{opts: opts, holds: holds}
-	rep := &Report{Space: exp.Space, Project: exp.Project, From: exp.From, To: exp.To, ChainStart: ChainUnverified}
+	rep := &Report{Space: exp.Space, Project: exp.Project, From: exp.From, To: exp.To,
+		ChainStart: ChainUnverified, Holds: HoldsFromExportOnly}
+	if opts.HoldsAnchored {
+		rep.Holds = HoldsFromAnchor
+	}
 	want := first
 	var prev Hash
 	i := 0
@@ -165,19 +192,47 @@ func signatureKind(err error) error {
 	return ErrInvalidStatement
 }
 
-func verifyHolds(exp *Export, v Verifier, first WindowID) ([]HoldStatement, error) {
-	holds := make([]HoldStatement, 0, len(exp.Holds))
-	for i, h := range exp.Holds {
-		if h.Statement.Space != exp.Space || h.Statement.Project != exp.Project {
-			return nil, &VerifyError{Window: first, Event: -1, Err: ErrStatementMismatch,
-				Cause: fmt.Errorf("hold %d is for another space or project", i)}
-		}
-		if err := h.Verify(v); err != nil {
-			return nil, &VerifyError{Window: first, Event: -1, Err: signatureKind(err), Cause: fmt.Errorf("hold %d: %w", i, err)}
+// verifyHolds checks every hold statement from the export and the anchor,
+// and requires each release to follow a placement of the same hold and range.
+func verifyHolds(exp *Export, opts VerifyOptions, first WindowID) ([]HoldStatement, error) {
+	fail := func(kind, cause error) error { return &VerifyError{Window: first, Event: -1, Err: kind, Cause: cause} }
+	ours := func(h HoldStatement) bool { return h.Space == exp.Space && h.Project == exp.Project }
+	var holds []HoldStatement
+	check := func(source string, i int, h Signed[HoldStatement]) error {
+		if err := h.Verify(opts.Verifier); err != nil {
+			return fail(signatureKind(err), fmt.Errorf("%s hold %d: %w", source, i, err))
 		}
 		holds = append(holds, h.Statement)
+		return nil
+	}
+	for i, h := range exp.Holds {
+		if !ours(h.Statement) {
+			return nil, fail(ErrStatementMismatch, fmt.Errorf("export hold %d is for another space or project", i))
+		}
+		if err := check("export", i, h); err != nil {
+			return nil, err
+		}
+	}
+	for i, h := range opts.AnchoredHolds {
+		if !ours(h.Statement) {
+			continue
+		}
+		if err := check("anchored", i, h); err != nil {
+			return nil, err
+		}
+	}
+	for _, r := range holds {
+		if r.Action == HoldRelease && !slices.ContainsFunc(holds, func(p HoldStatement) bool { return releases(r, p) }) {
+			return nil, fail(ErrStatementMismatch, fmt.Errorf("release of hold %q matches no earlier placement of the same range", r.HoldID))
+		}
 	}
 	return holds, nil
+}
+
+// releases reports whether release r lifts placement p: same hold and range,
+// dated no earlier than the placement.
+func releases(r, p HoldStatement) bool {
+	return p.Action == HoldPlace && r.sameScope(p) && !r.At.Before(p.At)
 }
 
 type verifier struct {
@@ -191,13 +246,10 @@ func (v *verifier) held(w WindowID, t time.Time) bool {
 		if p.Action != HoldPlace || !p.covers(w) || p.At.After(t) {
 			continue
 		}
-		released := false
-		for _, r := range v.holds {
-			if r.Action == HoldRelease && r.HoldID == p.HoldID && !r.At.After(t) {
-				released = true
-			}
-		}
-		if !released {
+		lifted := slices.ContainsFunc(v.holds, func(r HoldStatement) bool {
+			return r.Action == HoldRelease && releases(r, p) && !r.At.After(t)
+		})
+		if !lifted {
 			return true
 		}
 	}
@@ -225,27 +277,16 @@ func (v *verifier) window(ew *ExportWindow, want WindowID, first bool, prev Hash
 	}
 	if ew.Root != nil {
 		if err := ew.Root.Verify(v.opts.Verifier); err != nil {
-			return nil, fail(ErrBadSignature, err)
+			return nil, fail(signatureKind(err), err)
 		}
 	}
 	root := seal.Root()
-	wr := &WindowReport{Window: want, Root: root, LeafCount: seal.LeafCount}
-	if ew.Expiry != nil {
-		x := ew.Expiry.Statement
-		if !x.Window.Equal(want) || x.Root != root {
-			return nil, fail(ErrStatementMismatch, errors.New("expiry statement names another window or root"))
-		}
-		if err := ew.Expiry.Verify(v.opts.Verifier); err != nil {
-			return nil, fail(signatureKind(err), err)
-		}
-		wr.ExpiresAt = x.ExpiresAt
-	}
+	wr := &WindowReport{Window: want, Root: root, LeafCount: seal.LeafCount, ExpiresAt: seal.ExpiresAt}
 	if ew.Tombstone != nil {
 		if err := v.tombstone(ew, want, seal); err != nil {
 			return nil, fail(ErrForgedTombstone, err)
 		}
 		wr.Tombstoned = true
-		wr.ExpiresAt = ew.Tombstone.Statement.ExpiresAt
 	}
 	if first {
 		if a, ok := v.opts.Anchors[want.Prev().Key()]; ok {
@@ -279,9 +320,6 @@ func (v *verifier) tombstone(ew *ExportWindow, want WindowID, seal RootStatement
 	if ew.Root != nil && ew.Root.Statement.Root() != seal.Root() {
 		return fmt.Errorf("%w: tombstone seal differs from the signed root", ErrStatementMismatch)
 	}
-	if ew.Expiry != nil && !ew.Expiry.Statement.ExpiresAt.Equal(t.Statement.ExpiresAt) {
-		return fmt.Errorf("%w: tombstone expiry differs from the expiry statement", ErrStatementMismatch)
-	}
 	if len(ew.Events) > 0 {
 		return ErrTombstoneHasEvents
 	}
@@ -300,11 +338,38 @@ func eventKind(err error) error {
 	return ErrMalformedEvent
 }
 
+// misplaced names the first revealed location field of d that contradicts
+// the window it is proven in.
+func misplaced(d DisclosedEvent, e *Event, want WindowID) string {
+	switch {
+	case d.revealed("window") && e.Window != want.Key():
+		return "window"
+	case d.revealed("resource.space") && e.Resource.Space != want.Space:
+		return "resource.space"
+	case d.revealed("resource.project") && e.Resource.Project != want.Project:
+		return "resource.project"
+	}
+	return ""
+}
+
+// outOfOrder reports whether two consecutive included events, both with
+// "at" and "id" revealed, break the canonical leaf order.
+func outOfOrder(a, b DisclosedEvent, ea, eb *Event, la, lb Hash) bool {
+	for _, d := range []DisclosedEvent{a, b} {
+		if !d.revealed("at") || !d.revealed("id") {
+			return false
+		}
+	}
+	c := CompareEvents(ea, eb)
+	return c > 0 || c == 0 && bytes.Compare(la[:], lb[:]) > 0
+}
+
 func (v *verifier) events(ew *ExportWindow, want WindowID, seal RootStatement, wr *WindowReport) error {
 	fail := func(j int, field string, kind, cause error) error {
 		return &VerifyError{Window: want, Event: j, Field: field, Err: kind, Cause: cause}
 	}
 	leaves := make([]Hash, len(ew.Events))
+	decoded := make([]Event, len(ew.Events))
 	for j, ev := range ew.Events {
 		if ev.Index >= seal.LeafCount {
 			return fail(j, "", ErrLeafIndex, fmt.Errorf("index %d of %d", ev.Index, seal.LeafCount))
@@ -312,13 +377,13 @@ func (v *verifier) events(ew *ExportWindow, want WindowID, seal RootStatement, w
 		if j > 0 && ev.Index <= ew.Events[j-1].Index {
 			return fail(j, "", ErrLeafOrder, fmt.Errorf("index %d after %d", ev.Index, ew.Events[j-1].Index))
 		}
-		leaf, err := ev.Event.Leaf()
+		e, leaf, err := ev.Event.verified()
 		if err != nil {
 			var fe *FieldError
 			_ = errors.As(err, &fe)
 			return fail(j, fe.Field, eventKind(err), err)
 		}
-		leaves[j] = leaf
+		leaves[j], decoded[j] = leaf, e
 	}
 	for j, ev := range ew.Events {
 		if VerifyInclusion(leaves[j], ev.Index, seal.LeafCount, ev.Proof, seal.MerkleRoot) == nil {
@@ -330,6 +395,14 @@ func (v *verifier) events(ew *ExportWindow, want WindowID, seal RootStatement, w
 			}
 		}
 		return fail(j, "", ErrInclusionProof, nil)
+	}
+	for j, ev := range ew.Events {
+		if field := misplaced(ev.Event, &decoded[j], want); field != "" {
+			return fail(j, field, ErrEventMisplaced, nil)
+		}
+		if j > 0 && outOfOrder(ew.Events[j-1].Event, ev.Event, &decoded[j-1], &decoded[j], leaves[j-1], leaves[j]) {
+			return fail(j, "", ErrLeafOrder, errors.New("events break the canonical (at, id) leaf order"))
+		}
 	}
 	all := uint64(len(ew.Events)) == seal.LeafCount
 	if ew.Whole && !all {
@@ -346,24 +419,65 @@ func (v *verifier) events(ew *ExportWindow, want WindowID, seal RootStatement, w
 	return nil
 }
 
-// VerifyErasure verifies exp and then proves that the erased user id appears
-// nowhere in it: events name people only by pseudonymous [ActorRef], so
-// deleting the identity-map entry leaves every event and root verifiable.
-// A revealed field containing the id is [ErrIdentityLeak].
+// tokens splits s into case-folded runs of letters and digits.
+func tokens(s string) []string {
+	return strings.FieldsFunc(strings.ToLower(s), func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) })
+}
+
+// valueStrings returns the text inside a canonical value (strings and string
+// lists; numbers and times hold no text).
+func valueStrings(v []byte) []string {
+	switch {
+	case len(v) == 0:
+		return nil
+	case v[0] == tagString:
+		return []string{string(v[1:])}
+	case v[0] == tagStrings:
+		ss, _ := decStrings(v)
+		return ss
+	}
+	return nil
+}
+
+// containsRun reports whether needle occurs as a contiguous run of hay.
+func containsRun(hay, needle []string) bool {
+	for i := 0; i+len(needle) <= len(hay); i++ {
+		if slices.Equal(hay[i:i+len(needle)], needle) {
+			return true
+		}
+	}
+	return false
+}
+
+// VerifyErasure verifies exp and then checks that the erased user id appears
+// in none of its revealed values. Events name people only by pseudonymous
+// [ActorRef], and erased free text is replaced by its commitment
+// ([StoredEvent.Erase]), so deleting the identity-map entry leaves every
+// event and root verifiable. A revealed value that contains the id is
+// [ErrIdentityLeak].
+//
+// The id matches as a run of whole tokens, case-folded, where tokens are runs
+// of letters and digits ("Firebase-UID-Alice" matches "firebase uid alice";
+// "al" does not match "approval"). This is a check, not a proof of absence:
+// it cannot see the id inside a longer token, in another encoding (base64,
+// hashes, percent-encoding), in redacted values, or in events the export
+// does not include.
 func VerifyErasure(exp *Export, opts VerifyOptions, erasedUserID string) (*Report, error) {
-	if erasedUserID == "" {
+	needle := tokens(erasedUserID)
+	if len(needle) == 0 {
 		return nil, ErrInvalidArgument
 	}
 	rep, err := VerifyExport(exp, opts)
 	if err != nil {
 		return nil, err
 	}
-	needle := []byte(erasedUserID)
 	for i, w := range exp.Windows {
 		for j, ev := range w.Events {
 			for _, f := range ev.Event.Fields {
-				if f.Revealed() && bytes.Contains(f.Value, needle) {
-					return nil, &VerifyError{Window: rep.Windows[i].Window, Event: j, Field: f.Name, Err: ErrIdentityLeak}
+				for _, s := range valueStrings(f.Value) {
+					if containsRun(tokens(s), needle) { // redacted fields carry no value
+						return nil, &VerifyError{Window: rep.Windows[i].Window, Event: j, Field: f.Name, Err: ErrIdentityLeak}
+					}
 				}
 			}
 		}

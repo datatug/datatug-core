@@ -64,14 +64,22 @@ func leafOf(version uint16, commitments []Hash) Hash {
 	return w.sum()
 }
 
-// LeafOf returns the Merkle leaf of event e under salt s. The sealer calls it
-// for each stored event.
-func LeafOf(s Salt, e *Event) Hash {
+// LeafOf returns the Merkle leaf of event e under salt s, with no erased
+// field. Use [StoredEvent.Leaf] once a field has been erased in the store.
+func LeafOf(s Salt, e *Event) Hash { return leafOf(EncodingVersion, commitments(s, e, nil)) }
+
+// commitments returns every field's commitment; erased fields take their
+// stored commitment instead of one computed from e.
+func commitments(s Salt, e *Event, erased map[string]Hash) []Hash {
 	cs := make([]Hash, len(schemaV1))
 	for i, f := range schemaV1 {
+		if c, ok := erased[f.name]; ok {
+			cs[i] = c
+			continue
+		}
 		cs[i] = commit(s.fieldSalt(f.name), f.name, f.get(e))
 	}
-	return leafOf(EncodingVersion, cs)
+	return cs
 }
 
 // DisclosedEvent is an event as exported: every field carries its
@@ -93,10 +101,17 @@ type DisclosedField struct {
 // Revealed reports whether the field's value is disclosed.
 func (f DisclosedField) Revealed() bool { return f.Salt != nil }
 
-// Disclose returns e with every field revealed.
-func Disclose(s Salt, e *Event) DisclosedEvent {
+// Disclose returns e with every field revealed (no erased field). Use
+// [StoredEvent.Disclose] once a field has been erased in the store.
+func Disclose(s Salt, e *Event) DisclosedEvent { return disclose(s, e, nil) }
+
+func disclose(s Salt, e *Event, erased map[string]Hash) DisclosedEvent {
 	d := DisclosedEvent{Version: EncodingVersion, Fields: make([]DisclosedField, len(schemaV1))}
 	for i, f := range schemaV1 {
+		if c, ok := erased[f.name]; ok {
+			d.Fields[i] = DisclosedField{Name: f.name, Commitment: c}
+			continue
+		}
 		fs := s.fieldSalt(f.name)
 		v := f.get(e)
 		d.Fields[i] = DisclosedField{Name: f.name, Commitment: commit(fs, f.name, v), Salt: &fs, Value: v}
@@ -134,14 +149,27 @@ func (d DisclosedEvent) Redacted() []string {
 // A failure is a [*FieldError] wrapping [ErrUnsupportedVersion],
 // [ErrMalformedEvent] or [ErrFieldTampered].
 func (d DisclosedEvent) Leaf() (Hash, error) {
-	if _, err := d.decode(); err != nil {
-		return Hash{}, err
+	_, leaf, err := d.verified()
+	return leaf, err
+}
+
+// verified decodes and checks d and returns the decoded event and its leaf.
+func (d DisclosedEvent) verified() (Event, Hash, error) {
+	e, err := d.decode()
+	if err != nil {
+		return Event{}, Hash{}, err
 	}
 	cs := make([]Hash, len(d.Fields))
 	for i, f := range d.Fields {
 		cs[i] = f.Commitment
 	}
-	return leafOf(d.Version, cs), nil
+	return e, leafOf(d.Version, cs), nil
+}
+
+// revealed reports whether the named field is disclosed.
+func (d DisclosedEvent) revealed(name string) bool {
+	i := slices.IndexFunc(d.Fields, func(f DisclosedField) bool { return f.Name == name })
+	return i >= 0 && d.Fields[i].Revealed()
 }
 
 // Event decodes the revealed fields of d after the same checks as

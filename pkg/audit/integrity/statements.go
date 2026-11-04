@@ -11,8 +11,7 @@ const labelStatement = "datatug/audit/v1/statement"
 
 // Statement kinds, bound into every signed message.
 const (
-	kindRoot      byte = 1
-	kindExpiry    byte = 2
+	kindRoot      byte = 1 // carries the expiry; kind 2 (a separate expiry statement) is retired
 	kindTombstone byte = 3
 	kindHold      byte = 4
 )
@@ -32,7 +31,7 @@ type Verifier interface {
 }
 
 type statement interface {
-	RootStatement | ExpiryStatement | TombstoneStatement | HoldStatement
+	RootStatement | TombstoneStatement | HoldStatement
 	message() []byte
 	validate() error
 }
@@ -76,7 +75,15 @@ func header(kind byte) *builder {
 	return w
 }
 
-func (s RootStatement) validate() error { return s.Window.Validate() }
+func (s RootStatement) validate() error {
+	if err := s.Window.Validate(); err != nil {
+		return err
+	}
+	if !s.ExpiresAt.After(s.Window.End()) {
+		return fmt.Errorf("%w: window expires before it ends", ErrInvalidStatement)
+	}
+	return nil
+}
 
 func (s RootStatement) message() []byte {
 	w := header(kindRoot)
@@ -84,38 +91,12 @@ func (s RootStatement) message() []byte {
 	return w.b
 }
 
-// ExpiryStatement says "window W, with root R, expires at T". The sealer
-// signs it at sealing so that a later absence is pre-explained.
-type ExpiryStatement struct {
-	Window    WindowID  `json:"window"`
-	Root      Hash      `json:"root"`
-	ExpiresAt time.Time `json:"expiresAt"`
-}
-
-func (s ExpiryStatement) validate() error {
-	if err := s.Window.Validate(); err != nil {
-		return err
-	}
-	if s.ExpiresAt.IsZero() {
-		return fmt.Errorf("%w: expiry without a time", ErrInvalidStatement)
-	}
-	return nil
-}
-
-func (s ExpiryStatement) message() []byte {
-	w := header(kindExpiry)
-	w.window(s.Window)
-	w.hash(s.Root)
-	w.time(s.ExpiresAt)
-	return w.b
-}
-
 // TombstoneStatement records that a window's events were deleted by
-// retention. It carries the window's seal so the chain still verifies
-// across the deleted window.
+// retention. It carries the window's seal, including the expiry signed at
+// sealing, so the chain still verifies across the deleted window and the
+// deletion can be checked against the expiry.
 type TombstoneStatement struct {
 	Seal      RootStatement `json:"seal"`
-	ExpiresAt time.Time     `json:"expiresAt"`
 	DeletedAt time.Time     `json:"deletedAt"`
 }
 
@@ -123,10 +104,7 @@ func (s TombstoneStatement) validate() error {
 	if err := s.Seal.validate(); err != nil {
 		return err
 	}
-	if s.ExpiresAt.IsZero() || s.DeletedAt.IsZero() {
-		return fmt.Errorf("%w: tombstone without expiry or deletion time", ErrInvalidStatement)
-	}
-	if s.DeletedAt.Before(s.ExpiresAt) {
+	if s.DeletedAt.Before(s.Seal.ExpiresAt) {
 		return ErrTombstoneBeforeExpiry
 	}
 	return nil
@@ -135,7 +113,6 @@ func (s TombstoneStatement) validate() error {
 func (s TombstoneStatement) message() []byte {
 	w := header(kindTombstone)
 	s.Seal.write(w)
-	w.time(s.ExpiresAt)
 	w.time(s.DeletedAt)
 	return w.b
 }
@@ -214,6 +191,11 @@ func (s HoldStatement) message() []byte {
 		w.str(string(a))
 	}
 	return w.b
+}
+
+// sameScope reports whether o names the same hold over the same range.
+func (s HoldStatement) sameScope(o HoldStatement) bool {
+	return s.HoldID == o.HoldID && s.Space == o.Space && s.Project == o.Project && s.From.Equal(o.From) && s.To.Equal(o.To)
 }
 
 // covers reports whether the hold's range includes window w.

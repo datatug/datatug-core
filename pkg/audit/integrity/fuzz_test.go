@@ -60,7 +60,7 @@ func FuzzVerifyExportJSON(f *testing.F) {
 	fx := newFixture(f, 71)
 	ws := fx.sealChain(t0, Hash{}, 2, 0, 1)
 	exp := fullExport(f, ws)
-	exp.Windows[1].Tombstone = fx.tombstoneFor(ws[1], ws[1].expiry.Statement.ExpiresAt)
+	exp.Windows[1].Tombstone = fx.tombstoneFor(ws[1], ws[1].expires())
 	seed, err := json.Marshal(exp)
 	if err != nil {
 		f.Fatal(err)

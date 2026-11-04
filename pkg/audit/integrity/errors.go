@@ -41,6 +41,9 @@ var (
 	ErrLeafOrder = errors.New("audit integrity: events not in insertion order")
 	// ErrLeafIndex reports an event index outside its window.
 	ErrLeafIndex = errors.New("audit integrity: leaf index out of range")
+	// ErrEventMisplaced reports an event whose revealed window, Space or
+	// project differs from the window it is proven in.
+	ErrEventMisplaced = errors.New("audit integrity: event names another window")
 	// ErrIncompleteWindow reports a window exported as whole that lacks leaves
 	// (for example a truncated window).
 	ErrIncompleteWindow = errors.New("audit integrity: whole window is missing events")
@@ -55,11 +58,13 @@ var (
 	ErrMissingSeal = errors.New("audit integrity: window has no signed root or tombstone")
 	// ErrAnchorMismatch reports a root that differs from an independently anchored copy.
 	ErrAnchorMismatch = errors.New("audit integrity: root differs from anchored root")
-	// ErrStatementMismatch reports two signed statements that disagree about one window.
+	// ErrStatementMismatch reports signed statements that disagree: a
+	// tombstone and a root for one window, or a hold release that matches no
+	// earlier placement of the same hold and range.
 	ErrStatementMismatch = errors.New("audit integrity: statements disagree")
 	// ErrForgedTombstone reports a tombstone that does not stand: bad
-	// signature, disagreeing root, deletion before expiry or under a legal
-	// hold, or events still present. The cause is attached.
+	// signature, disagreeing root, deletion before the signed expiry or under
+	// a legal hold, or events still present. The cause is attached.
 	ErrForgedTombstone = errors.New("audit integrity: tombstone does not verify")
 	// ErrTombstoneBeforeExpiry reports a tombstone dated before the window expired.
 	ErrTombstoneBeforeExpiry = errors.New("audit integrity: deleted before expiry")
