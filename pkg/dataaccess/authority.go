@@ -235,9 +235,7 @@ func (a *Authority) checkGrantBinding(resolution Resolution) error {
 			return unsupported(a.request.Connection.ID)
 		}
 		if grant.Subject != a.request.Subject || grant.Scope.Connection != a.request.Connection.ID ||
-			(user == nil) != (grant.AgentUser == nil) || (user != nil && *grant.AgentUser != *user) ||
-			// A session-bound grant counts only in its own live session (D29).
-			(grant.Lifetime == LifetimeSession && !sessionBound(resolution, grant)) {
+			(user == nil) != (grant.AgentUser == nil) || (user != nil && *grant.AgentUser != *user) {
 			return a.denial(DataRead, "BINDING_MISMATCH")
 		}
 	}
@@ -245,7 +243,9 @@ func (a *Authority) checkGrantBinding(resolution Resolution) error {
 }
 
 // sessionBound reports whether a session-bound grant belongs to the
-// resolution's live agent session.
+// resolution's live agent session. One that does not confers nothing (the
+// policy skips it), so a host that still lists an ended session's grant never
+// costs the agent its standing or deadline access (D29 SQ-5).
 func sessionBound(resolution Resolution, grant Grant) bool {
 	return resolution.AgentSession != nil && resolution.AgentSession.ID == grant.AgentSessionID
 }

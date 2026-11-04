@@ -107,11 +107,15 @@ func resolutionDigest(resolution Resolution) (string, error) {
 	return hashBytes(data), nil
 }
 
+// agentSessionID binds the session only when a grant depends on it, so a
+// standing-only agent is not re-authorized when its session rolls over.
 func agentSessionID(r Resolution) string {
-	if r.AgentSession == nil {
-		return ""
+	for _, g := range r.Grants {
+		if g.Lifetime == LifetimeSession && sessionBound(r, g) {
+			return r.AgentSession.ID
+		}
 	}
-	return r.AgentSession.ID
+	return ""
 }
 
 // strictJSON rejects unknown fields (when decoded into a struct), duplicate

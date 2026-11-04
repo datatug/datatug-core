@@ -56,10 +56,23 @@ func TestSessionGrantCountsOnlyInItsLiveSession(t *testing.T) {
 	// Another session, or no session, never carries the approval.
 	current = sessionResolution(now, grant, &AgentSession{ID: "s2", EndsAt: now.Add(time.Hour)})
 	_, err = a.authorizeRequest(context.Background(), nil)
-	requireDenialCode(t, err, "BINDING_MISMATCH")
+	requireDenialCode(t, err, "READ_DENIED")
 	current = sessionResolution(now, grant, nil)
 	_, err = a.authorizeRequest(context.Background(), nil)
-	requireDenialCode(t, err, "BINDING_MISMATCH")
+	requireDenialCode(t, err, "READ_DENIED")
+	// A stale session grant never costs the agent its other access.
+	stale := sessionResolution(now, grant, &AgentSession{ID: "s2", EndsAt: now.Add(time.Hour)})
+	standing := grant
+	standing.ID, standing.Lifetime, standing.AgentSessionID = "standing", "", ""
+	stale.Grants = append(stale.Grants, standing)
+	current = stale
+	rolled, err := a.authorizeRequest(context.Background(), nil)
+	require.NoError(t, err)
+	stale.AgentSession = &AgentSession{ID: "s3", EndsAt: now.Add(time.Hour)}
+	current = stale
+	rolledAgain, err := a.authorizeRequest(context.Background(), nil)
+	require.NoError(t, err)
+	require.Equal(t, rolled.digest, rolledAgain.digest, "a session no grant uses is not bound")
 
 	// A deadline approval keeps working without a session (D29 SQ-5).
 	deadline := grant
@@ -67,11 +80,36 @@ func TestSessionGrantCountsOnlyInItsLiveSession(t *testing.T) {
 	current = sessionResolution(now, deadline, nil)
 	_, err = a.authorizeRequest(context.Background(), nil)
 	require.NoError(t, err)
-	withSession := sessionResolution(now, deadline, session)
-	current = withSession
-	sessioned, err := a.authorizeRequest(context.Background(), nil)
+	current = sessionResolution(now, grant, &AgentSession{ID: "s9", EndsAt: now.Add(time.Hour)})
+	current.Grants[0].AgentSessionID = "s9"
+	other, err := a.authorizeRequest(context.Background(), nil)
 	require.NoError(t, err)
-	require.NotEqual(t, digest, sessioned.digest)
+	require.NotEqual(t, digest, other.digest, "a used session is bound")
+}
+
+// Exact posture: a session grant on an object is projected, bound and capped.
+func TestExactSessionGrant(t *testing.T) {
+	doc := exactFixtureDocument()
+	now := time.Now()
+	order := ObjectRef{"sales", "Order"}
+	user := exactRawResolution()
+	user.Grants = []Grant{exactReadGrant(now, order)}
+	g := agentGrant(now, order)
+	g.Lifetime, g.AgentSessionID = LifetimeSession, "s1"
+	var session *AgentSession
+	a := exactAgentAuthority(t, func() Resolution {
+		r, err := ProjectAgentResolution(context.Background(), user, agentSubject(), []Grant{g}, exactSnapshot(t, doc))
+		require.NoError(t, err)
+		r.AgentSession = session
+		return r
+	})
+	ctx := withExactReadProfile(context.Background())
+	readOrder := operationRequest(operationQuery("sales", "Order", ""))
+	_, err := a.authorizeRequest(ctx, readOrder)
+	requireDenialCode(t, err, "READ_DENIED")
+	session = &AgentSession{ID: "s1", EndsAt: now.Add(time.Hour)}
+	_, err = a.authorizeRequest(ctx, readOrder)
+	require.NoError(t, err)
 }
 
 func TestAgentSessionBindingRefusals(t *testing.T) {

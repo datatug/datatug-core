@@ -79,8 +79,9 @@ Every grant has a lifetime (Perimeter D29): `deadline` (also the meaning of an
 absent lifetime) or, for agent grants only, `session`, bound by `agentSessionId`
 to one server-minted agent session. The host sets `Resolution.agentSession` (its
 ID and end) on an agent's resolution only while that session is live; a session
-grant counts only in that session and never beyond its end, and any session grant
-outside it is `BINDING_MISMATCH`. The digest binds the session ID, not its end.
+grant counts only in that session and never beyond its end; any other session grant
+confers nothing. The digest binds the session ID (not its end) when a grant uses it.
+`ProjectAgentResolution` leaves `agentSession` to the host, which sets it on the result.
 `once` is reserved for write statements and refused until DAS L4.
 Record and field units join the same intersection when they exist. Unsupported grant fields and mandatory fine-grained
 protection fail closed.
