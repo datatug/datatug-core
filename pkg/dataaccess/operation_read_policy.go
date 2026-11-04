@@ -33,10 +33,19 @@ func newOperationReadPolicy(resolution Resolution, started time.Time, now func()
 		p.connection = p.ceiling
 	}
 	for _, grant := range resolution.Grants {
-		if grant.State != Approved || !grant.ExpiresAt.After(resolution.ServerTime) {
+		ends := grant.ExpiresAt
+		if grant.Lifetime == LifetimeSession {
+			// Inspection evaluates without binding, so an unbound session grant
+			// is skipped here too; a bound one never outlives its session.
+			if !sessionBound(resolution, grant) {
+				continue
+			}
+			ends = earlier(ends, resolution.AgentSession.EndsAt)
+		}
+		if grant.State != Approved || !ends.After(resolution.ServerTime) {
 			continue
 		}
-		deadline := started.Add(grant.ExpiresAt.Sub(resolution.ServerTime))
+		deadline := started.Add(ends.Sub(resolution.ServerTime))
 		if p.ceiling.Before(deadline) {
 			deadline = p.ceiling
 		}

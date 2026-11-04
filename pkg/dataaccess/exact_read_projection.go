@@ -350,7 +350,7 @@ func ProjectAgentExactRead(ctx context.Context, user Resolution, agent Subject, 
 func ProjectAgentResolution(ctx context.Context, user Resolution, agent Subject, grants []Grant, s *ExactReadSnapshot) (Resolution, error) {
 	unavailable := fmt.Errorf("dataaccess: agent resolution unavailable")
 	if ctx == nil || agent.Kind != Agent || agent.Validate() != nil || user.Subject.Kind != User || user.Subject.Validate() != nil ||
-		agent.Realm != user.Subject.Realm || user.AgentUser != nil {
+		agent.Realm != user.Subject.Realm || user.AgentUser != nil || user.AgentSession != nil {
 		return Resolution{}, unavailable
 	}
 	for _, g := range grants {

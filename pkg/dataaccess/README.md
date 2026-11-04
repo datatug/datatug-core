@@ -75,6 +75,13 @@ and every authorization intersects the two per table: the agent reads a table
 only while its user can, so a user who loses access closes the agent at its next
 authorization (`AGENT_USER_LACKS_ACCESS`), and the user's resolution is part of
 the lease digest. `ProjectAgentResolution` builds that resolution for hosts.
+Every grant has a lifetime (Perimeter D29): `deadline` (also the meaning of an
+absent lifetime) or, for agent grants only, `session`, bound by `agentSessionId`
+to one server-minted agent session. The host sets `Resolution.agentSession` (its
+ID and end) on an agent's resolution only while that session is live; a session
+grant counts only in that session and never beyond its end, and any session grant
+outside it is `BINDING_MISMATCH`. The digest binds the session ID, not its end.
+`once` is reserved for write statements and refused until DAS L4.
 Record and field units join the same intersection when they exist. Unsupported grant fields and mandatory fine-grained
 protection fail closed.
 

@@ -98,11 +98,20 @@ func resolutionDigest(resolution Resolution) (string, error) {
 		LocalAuthorityID string           `json:"localAuthorityId,omitempty"`
 		ExactRead        *ExactReadPolicy `json:"exactRead,omitempty"`
 		AgentUser        string           `json:"agentUser,omitempty"`
-	}{resolution.Protection, grants, resolution.Connection.LocalAuthorityID, resolution.ExactRead, agentUser})
+		// The session ID, not its end: the idle end moves with every use.
+		AgentSession string `json:"agentSession,omitempty"`
+	}{resolution.Protection, grants, resolution.Connection.LocalAuthorityID, resolution.ExactRead, agentUser, agentSessionID(resolution)})
 	if err != nil {
 		return "", err
 	}
 	return hashBytes(data), nil
+}
+
+func agentSessionID(r Resolution) string {
+	if r.AgentSession == nil {
+		return ""
+	}
+	return r.AgentSession.ID
 }
 
 // strictJSON rejects unknown fields (when decoded into a struct), duplicate
