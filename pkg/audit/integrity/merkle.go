@@ -3,13 +3,13 @@ package integrity
 import (
 	"crypto/sha256"
 	"fmt"
-	"math/bits"
 )
 
 // The Merkle tree follows RFC 9162 §2.1: leaves are already prefixed with
 // 0x00 by [LeafOf]; an interior node is SHA-256(0x01 || left || right); the
 // tree of n leaves splits at the largest power of two below n; the empty tree's
-// root is SHA-256 of the empty string.
+// root is SHA-256 of the empty string. Building it level by level, carrying an
+// unpaired last node up unchanged, yields exactly that tree.
 
 func node(l, r Hash) Hash {
 	var b [1 + 2*sha256.Size]byte
@@ -19,38 +19,66 @@ func node(l, r Hash) Hash {
 	return sha256.Sum256(b[:])
 }
 
-// split returns the largest power of two strictly below n (n ≥ 2).
-func split(n int) int { return 1 << (bits.Len(uint(n-1)) - 1) }
+// Tree is a window's Merkle tree, built once: its root and every inclusion
+// proof are then served without rehashing (O(n) to build, O(log n) a proof).
+type Tree struct {
+	levels [][]Hash // levels[0] are the leaves; the last level holds the root
+}
 
-// MerkleRoot returns the root over leaves in insertion order.
-func MerkleRoot(leaves []Hash) Hash {
-	switch len(leaves) {
-	case 0:
+// NewTree builds the tree over leaves in canonical order ([OrderLeaves]).
+func NewTree(leaves []Hash) *Tree {
+	t := &Tree{levels: [][]Hash{leaves}}
+	for level := leaves; len(level) > 1; {
+		next := make([]Hash, 0, (len(level)+1)/2)
+		for i := 0; i+1 < len(level); i += 2 {
+			next = append(next, node(level[i], level[i+1]))
+		}
+		if len(level)%2 == 1 {
+			next = append(next, level[len(level)-1])
+		}
+		t.levels = append(t.levels, next)
+		level = next
+	}
+	return t
+}
+
+// Size is the number of leaves.
+func (t *Tree) Size() uint64 { return uint64(len(t.levels[0])) }
+
+// Root is the tree's root; the empty tree has SHA-256("").
+func (t *Tree) Root() Hash {
+	if t.Size() == 0 {
 		return sha256.Sum256(nil)
-	case 1:
-		return leaves[0]
 	}
-	k := split(len(leaves))
-	return node(MerkleRoot(leaves[:k]), MerkleRoot(leaves[k:]))
+	return t.levels[len(t.levels)-1][0]
 }
 
-// InclusionProof returns the audit path of leaves[index].
+// Proof returns the inclusion proof of the leaf at index.
+func (t *Tree) Proof(index uint64) ([]Hash, error) {
+	if index >= t.Size() {
+		return nil, fmt.Errorf("%w: index %d of %d", ErrLeafIndex, index, t.Size())
+	}
+	var proof []Hash
+	i := int(index)
+	for _, level := range t.levels[:len(t.levels)-1] {
+		switch {
+		case i%2 == 1:
+			proof = append(proof, level[i-1])
+		case i+1 < len(level):
+			proof = append(proof, level[i+1])
+		}
+		i /= 2
+	}
+	return proof, nil
+}
+
+// MerkleRoot returns the root over leaves in canonical order.
+func MerkleRoot(leaves []Hash) Hash { return NewTree(leaves).Root() }
+
+// InclusionProof returns the audit path of leaves[index]. To prove many leaves
+// of one window, build a [Tree] once instead.
 func InclusionProof(leaves []Hash, index uint64) ([]Hash, error) {
-	if index >= uint64(len(leaves)) {
-		return nil, fmt.Errorf("%w: index %d of %d", ErrLeafIndex, index, len(leaves))
-	}
-	return path(leaves, int(index)), nil
-}
-
-func path(leaves []Hash, m int) []Hash {
-	if len(leaves) == 1 {
-		return nil
-	}
-	k := split(len(leaves))
-	if m < k {
-		return append(path(leaves[:k], m), MerkleRoot(leaves[k:]))
-	}
-	return append(path(leaves[k:], m-k), MerkleRoot(leaves[:k]))
+	return NewTree(leaves).Proof(index)
 }
 
 // VerifyInclusion checks that leaf sits at index in the tree of size leaves
