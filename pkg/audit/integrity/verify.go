@@ -58,8 +58,8 @@ type VerifyOptions struct {
 	// judged on the anchored holds only, every hold in the export must also
 	// be in the anchor, and the report says hold coverage was independent.
 	HoldsAnchored bool
-	// MinRetention is the shortest retention policy allows (the 90-day
-	// floor). A seal expiring earlier than its window's end plus MinRetention
+	// MinRetention is the shortest retention policy allows (normally
+	// [RetentionFloor]). A seal expiring earlier than its window's end plus MinRetention
 	// is [ErrRetentionTooShort]. Zero skips the check.
 	MinRetention time.Duration
 }
@@ -107,23 +107,28 @@ type WindowReport struct {
 	LeafCount  uint64    `json:"leafCount"`
 	ExpiresAt  time.Time `json:"expiresAt"`
 	Tombstoned bool      `json:"tombstoned,omitempty"`
-	// Complete is true only when every event of the window is included and
-	// none has a redacted field. Fields erased in the store (see
-	// [EventReport.Erased]) do not count against it. Otherwise only the
-	// included events are proven authentic; nothing is proven about omitted ones.
-	Complete bool          `json:"complete"`
-	Events   []EventReport `json:"events,omitempty"`
+	// Complete is true when every event (leaf) of the window is included,
+	// whatever is hidden inside them. Otherwise only the included events are
+	// proven authentic; nothing is proven about omitted ones.
+	Complete bool `json:"complete"`
+	// Disclosed is true when no included event hides a field, whether the
+	// exporter labels it redacted or erased.
+	Disclosed bool          `json:"disclosed"`
+	Events    []EventReport `json:"events,omitempty"`
 }
 
 // EventReport is one authentic event.
 type EventReport struct {
-	Index    uint64   `json:"index"`
-	Leaf     Hash     `json:"leaf"`
-	Redacted []string `json:"redacted,omitempty"` // hidden from this reader
-	// Erased are fields whose value the store dropped (§19.4 erasure). The
-	// label is the exporter's: both erased and redacted fields are proven
-	// only by their commitments.
-	Erased []string `json:"erased,omitempty"`
+	Index uint64 `json:"index"`
+	Leaf  Hash   `json:"leaf"`
+	// Disclosed is true when every field of the event is revealed.
+	Disclosed bool `json:"disclosed"`
+	// Redacted and Erased are the hidden fields as the exporter labels them:
+	// hidden from this reader, or dropped by the store (§19.4 erasure). The
+	// labels are not authenticated; either way the field is proven only by
+	// its commitment.
+	Redacted []string `json:"redacted,omitempty"`
+	Erased   []string `json:"erased,omitempty"`
 }
 
 // Events is the number of events proven authentic.
@@ -135,8 +140,19 @@ func (r *Report) Events() int {
 	return n
 }
 
+// Disclosed reports whether every included event of the range reveals every field.
+func (r *Report) Disclosed() bool {
+	for _, w := range r.Windows {
+		if !w.Disclosed && !w.Tombstoned {
+			return false
+		}
+	}
+	return true
+}
+
 // Complete reports whether the export proves completeness of the whole
 // range: every window is complete or tombstoned (its absence pre-explained).
+// It says nothing about hidden fields; see [Report.Disclosed].
 func (r *Report) Complete() bool {
 	for _, w := range r.Windows {
 		if !w.Complete && !w.Tombstoned {
@@ -299,9 +315,10 @@ func (v *verifier) window(ew *ExportWindow, want WindowID, first bool, prev Hash
 			return nil, fail(signatureKind(err), err)
 		}
 	}
-	if v.opts.MinRetention > 0 && seal.ExpiresAt.Before(want.End().Add(v.opts.MinRetention)) {
-		return nil, fail(ErrRetentionTooShort, fmt.Errorf("expires %s, policy floor %s after the window ends",
-			seal.ExpiresAt.Format(time.RFC3339), v.opts.MinRetention))
+	if v.opts.MinRetention > 0 {
+		if err := seal.checkRetention(v.opts.MinRetention); err != nil {
+			return nil, fail(ErrRetentionTooShort, err)
+		}
 	}
 	root := seal.Root()
 	wr := &WindowReport{Window: want, Root: root, LeafCount: seal.LeafCount, ExpiresAt: seal.ExpiresAt}
@@ -431,13 +448,12 @@ func (v *verifier) events(ew *ExportWindow, want WindowID, seal RootStatement, w
 	if ew.Whole && !all {
 		return fail(-1, "", ErrIncompleteWindow, fmt.Errorf("%d of %d events", len(ew.Events), seal.LeafCount))
 	}
-	wr.Complete = all
+	wr.Complete, wr.Disclosed = all, true
 	for j, ev := range ew.Events {
-		redacted := ev.Event.Redacted()
-		if len(redacted) > 0 {
-			wr.Complete = false
-		}
-		wr.Events = append(wr.Events, EventReport{Index: ev.Index, Leaf: leaves[j], Redacted: redacted, Erased: ev.Event.Erased()})
+		er := EventReport{Index: ev.Index, Leaf: leaves[j], Redacted: ev.Event.Redacted(), Erased: ev.Event.Erased()}
+		er.Disclosed = er.Redacted == nil && er.Erased == nil
+		wr.Disclosed = wr.Disclosed && er.Disclosed
+		wr.Events = append(wr.Events, er)
 	}
 	return nil
 }

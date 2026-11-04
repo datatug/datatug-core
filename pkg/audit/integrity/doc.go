@@ -46,8 +46,11 @@
 //     every included event's commitments, inclusion proof, canonical order
 //     and revealed location (window, Space, project). The [Report] says
 //     exactly what is proven: every included event is authentic; a window is
-//     complete only when every event is included and unredacted; hold
-//     coverage is independent only when the anchored hold set was supplied.
+//     complete when every event (leaf) is included, and disclosed when no
+//     included event hides a field. Hidden fields are listed as "redacted"
+//     or "erased" by the exporter's unauthenticated label, so neither label
+//     changes a verdict. Hold coverage is independent only when the anchored
+//     hold set was supplied.
 //     Failures are a [*VerifyError] naming the first broken window, matching
 //     one sentinel error per tamper class (see errors.go).
 //   - Pseudonyms. [NewActorRef] makes random pseudonymous actor ids;
@@ -66,7 +69,8 @@
 //     event and its Erased commitments.
 //   - Sealer task (Cloud Tasks, sealing service account): for each unsealed
 //     window that is [WindowID.Closed], in order, read its stored events, call
-//     [OrderLeaves], [Seal] with the previous root and the retention expiry,
+//     [OrderLeaves], [Seal] with the previous root and the retention expiry
+//     (at least [RetentionFloor] after the window ends),
 //     [Sign] the [RootStatement] with the KMS-backed [Signer] (one signature
 //     per window) and write it to the anchor bucket. Setting expireAt on the
 //     events is a separate write (see the spec note on Firestore access). A

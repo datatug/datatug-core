@@ -29,11 +29,11 @@ func TestVerifyFullExport(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rep.ChainStart != ChainGenesis || len(rep.Windows) != 3 || rep.Events() != 8 || !rep.Complete() {
+	if rep.ChainStart != ChainGenesis || len(rep.Windows) != 3 || rep.Events() != 8 || !rep.Complete() || !rep.Disclosed() {
 		t.Fatalf("report %+v", rep)
 	}
 	for i, w := range rep.Windows {
-		if !w.Complete || w.Root != ws[i].stmt.Root() || !w.Window.Equal(ws[i].id) || w.ExpiresAt.IsZero() || w.Tombstoned {
+		if !w.Complete || !w.Disclosed || w.Root != ws[i].stmt.Root() || !w.Window.Equal(ws[i].id) || w.ExpiresAt.IsZero() || w.Tombstoned {
 			t.Fatalf("window %d: %+v", i, w)
 		}
 	}
@@ -58,8 +58,12 @@ func TestVerifyFilteredAndRedactedExportProvesAuthenticityOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rep.Windows[0].Complete || rep.Windows[1].Complete || rep.Complete() {
-		t.Fatal("completeness must not be claimed for filtered or redacted windows")
+	if rep.Windows[0].Complete || rep.Complete() {
+		t.Fatal("completeness must not be claimed for a filtered window")
+	}
+	w1 := rep.Windows[1]
+	if !w1.Complete || w1.Disclosed || w1.Events[2].Disclosed || !w1.Events[1].Disclosed || rep.Disclosed() {
+		t.Fatalf("a whole window with a redacted field is complete but not disclosed: %+v", w1)
 	}
 	if rep.Events() != 5 || len(rep.Windows[1].Events[2].Redacted) != 2 || rep.Holds != HoldsFromExportOnly {
 		t.Fatalf("report %+v", rep)

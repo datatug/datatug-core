@@ -84,15 +84,34 @@ type RootStatement struct {
 	ExpiresAt  time.Time `json:"expiresAt"` // the window's events expire (TTL) at this time
 }
 
+// RetentionFloor is the shortest retention a Space may configure (permission
+// model §19.4: a 90-day floor). [Seal] refuses anything shorter, so a
+// misconfigured sealer fails before it signs; verifiers pass it as
+// [VerifyOptions.MinRetention].
+const RetentionFloor = 90 * 24 * time.Hour
+
 // Seal builds the root statement of window w over leaves in canonical order
 // ([OrderLeaves]), chained to prev (the previous window's
-// [RootStatement.Root], or zero) and expiring at expiresAt.
+// [RootStatement.Root], or zero) and expiring at expiresAt, which must be at
+// least [RetentionFloor] after the window ends ([ErrRetentionTooShort]).
 func Seal(w WindowID, prev Hash, leaves []Hash, expiresAt time.Time) (RootStatement, error) {
 	s := RootStatement{Window: w, PrevRoot: prev, MerkleRoot: MerkleRoot(leaves), LeafCount: uint64(len(leaves)), ExpiresAt: expiresAt}
 	if err := s.validate(); err != nil {
 		return RootStatement{}, err
 	}
+	if err := s.checkRetention(RetentionFloor); err != nil {
+		return RootStatement{}, err
+	}
 	return s, nil
+}
+
+// checkRetention fails when the seal expires earlier than min after the window ends.
+func (s RootStatement) checkRetention(min time.Duration) error {
+	if s.ExpiresAt.Before(s.Window.End().Add(min)) {
+		return fmt.Errorf("%w: expires %s, floor %s after the window ends",
+			ErrRetentionTooShort, s.ExpiresAt.Format(time.RFC3339), min)
+	}
+	return nil
 }
 
 // Root is the window root: a hash over the window identity, the previous

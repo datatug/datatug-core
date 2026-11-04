@@ -48,7 +48,7 @@ func TestWindowValidate(t *testing.T) {
 			}
 		})
 	}
-	if _, err := Seal(WindowID{}, Hash{}, nil, t0.Add(time.Hour)); !errors.Is(err, ErrInvalidWindow) {
+	if _, err := Seal(WindowID{}, Hash{}, nil, t0.Add(2*RetentionFloor)); !errors.Is(err, ErrInvalidWindow) {
 		t.Fatalf("Seal: want ErrInvalidWindow, got %v", err)
 	}
 }
@@ -56,7 +56,7 @@ func TestWindowValidate(t *testing.T) {
 func TestSealRootBindsEverything(t *testing.T) {
 	w := WindowFor(testSpace, testProject, t0)
 	leaves := leavesN(3)
-	s, err := Seal(w, Hash{1}, leaves, t0.Add(time.Hour))
+	s, err := Seal(w, Hash{1}, leaves, t0.Add(2*RetentionFloor))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,13 @@ func TestSealRootBindsEverything(t *testing.T) {
 	if _, err := Seal(w, Hash{}, nil, time.Time{}); !errors.Is(err, ErrInvalidStatement) {
 		t.Fatalf("Seal without expiry: %v", err)
 	}
-	empty, _ := Seal(w, Hash{}, nil, t0.Add(time.Hour))
+	if _, err := Seal(w, Hash{}, nil, w.End().Add(RetentionFloor-time.Nanosecond)); !errors.Is(err, ErrRetentionTooShort) {
+		t.Fatalf("Seal below the retention floor: %v", err)
+	}
+	if _, err := Seal(w, Hash{}, nil, w.End().Add(RetentionFloor)); err != nil {
+		t.Fatalf("Seal at the retention floor: %v", err)
+	}
+	empty, _ := Seal(w, Hash{}, nil, t0.Add(2*RetentionFloor))
 	if empty.LeafCount != 0 || empty.MerkleRoot != MerkleRoot(nil) {
 		t.Fatal("empty window seal")
 	}

@@ -91,8 +91,10 @@ type DisclosedEvent struct {
 
 // DisclosedField is one committed field. Salt is nil when the field is not
 // revealed; Value is then empty. Erased marks a field whose value the store
-// dropped ([StoredEvent.Erase]) as opposed to one hidden from this reader;
-// it is the exporter's label and only ever set on an unrevealed field.
+// dropped ([StoredEvent.Erase]) as opposed to one hidden from this reader.
+// The label is the exporter's and is not authenticated: nothing signs it, so
+// the verifier treats an erased field like any hidden one. It is only valid on
+// an unrevealed field other than "id" and "at".
 type DisclosedField struct {
 	Name       string `json:"name"`
 	Commitment Hash   `json:"commitment"`
@@ -206,6 +208,9 @@ func (d DisclosedEvent) decode() (Event, error) {
 			return Event{}, &FieldError{Field: f.Name, Err: fmt.Errorf("%w: position %d must be %q", ErrMalformedEvent, i, spec.name)}
 		}
 		if !f.Revealed() {
+			if f.Erased && orderKey(f.Name) {
+				return Event{}, &FieldError{Field: f.Name, Err: fmt.Errorf("%w: %q can never be erased", ErrMalformedEvent, f.Name)}
+			}
 			if len(f.Value) != 0 {
 				return Event{}, &FieldError{Field: f.Name, Err: fmt.Errorf("%w: redacted field carries a value", ErrMalformedEvent)}
 			}

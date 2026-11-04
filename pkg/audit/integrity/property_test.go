@@ -7,16 +7,15 @@ import (
 )
 
 // randomExport seals a random chain and exports a random subset with random
-// redactions. It returns the export and whether each window must be reported
-// complete.
-func randomExport(t *testing.T, f *fixture) (*Export, []sealed, []bool) {
+// redactions. It returns the export and the verdict each window must get.
+func randomExport(t *testing.T, f *fixture) (*Export, []sealed, []verdict) {
 	counts := make([]int, 1+f.rng.IntN(5))
 	for i := range counts {
 		counts[i] = f.rng.IntN(13)
 	}
 	ws := f.sealChain(t0.Add(WindowDuration*time.Duration(f.rng.IntN(1000))), Hash{}, counts...)
 	exp := fullExport(t, ws)
-	complete := make([]bool, len(ws))
+	want := make([]verdict, len(ws))
 	for wi := range exp.Windows {
 		ew := &exp.Windows[wi]
 		all := f.rng.IntN(3) != 0
@@ -41,22 +40,24 @@ func randomExport(t *testing.T, f *fixture) (*Export, []sealed, []bool) {
 				redacted = true
 			}
 		}
-		complete[wi] = len(ew.Events) == len(ws[wi].events) && !redacted
+		want[wi] = verdict{complete: len(ew.Events) == len(ws[wi].events), disclosed: !redacted}
 	}
-	return exp, ws, complete
+	return exp, ws, want
 }
+
+type verdict struct{ complete, disclosed bool }
 
 func TestPropertyRandomExportsVerify(t *testing.T) {
 	f := newFixture(t, 0xA0D17)
 	for iter := range 300 {
-		exp, ws, complete := randomExport(t, f)
+		exp, ws, want := randomExport(t, f)
 		rep, err := VerifyExport(exp, f.opts())
 		if err != nil {
 			t.Fatalf("iter %d: %v", iter, err)
 		}
 		for i, w := range rep.Windows {
-			if w.Complete != complete[i] || w.Root != ws[i].stmt.Root() || len(w.Events) != len(exp.Windows[i].Events) {
-				t.Fatalf("iter %d window %d: %+v, want complete=%v", iter, i, w, complete[i])
+			if w.Complete != want[i].complete || w.Disclosed != want[i].disclosed || w.Root != ws[i].stmt.Root() || len(w.Events) != len(exp.Windows[i].Events) {
+				t.Fatalf("iter %d window %d: %+v, want %+v", iter, i, w, want[i])
 			}
 		}
 	}

@@ -72,7 +72,8 @@ func TestErasureKeepsVerification(t *testing.T) {
 		t.Fatal(err)
 	}
 	ev1 := rep.Windows[0].Events[1]
-	if rep.Windows[0].Root != root || ev1.Redacted != nil || !slices.Equal(ev1.Erased, []string{"reason"}) || !rep.Windows[0].Complete {
+	if rep.Windows[0].Root != root || ev1.Redacted != nil || !slices.Equal(ev1.Erased, []string{"reason"}) ||
+		ev1.Disclosed || !rep.Windows[0].Complete || rep.Windows[0].Disclosed {
 		t.Fatalf("report %+v", rep.Windows[0])
 	}
 	b, _ := json.Marshal(after)
@@ -240,5 +241,40 @@ func TestForgedStoredCommitment(t *testing.T) {
 	ws[0].events[1].Erased = map[string]Hash{"kind": {1}}
 	if _, err := VerifyExport(fullExport(t, ws), f.opts()); !errors.Is(err, ErrInclusionProof) {
 		t.Fatalf("want ErrInclusionProof, got %v", err)
+	}
+}
+
+// The Erased label is the exporter's and unauthenticated: relabelling
+// redactions as erasures changes no verdict. Labelling "id" or "at" erased is
+// malformed, because the store can never erase them.
+func TestMislabelledRedactionGainsNothing(t *testing.T) {
+	f := newFixture(t, 64)
+	ws := f.sealChain(t0, Hash{}, 3)
+	hideAll := func(protected bool) *Export {
+		exp := fullExport(t, ws)
+		for j := range exp.Windows[0].Events {
+			d := &exp.Windows[0].Events[j].Event
+			for i, fl := range d.Fields {
+				if protected || !orderKey(fl.Name) {
+					d.Fields[i] = DisclosedField{Name: fl.Name, Commitment: fl.Commitment, Erased: true}
+				}
+			}
+		}
+		return exp
+	}
+	_, err := VerifyExport(hideAll(true), f.opts())
+	var ve *VerifyError
+	if !errors.Is(err, ErrMalformedEvent) || !errors.As(err, &ve) || ve.Field != "id" {
+		t.Fatalf("want malformed id, got %v", err)
+	}
+	rep, err := VerifyExport(hideAll(false), f.opts())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !rep.Complete() || rep.Disclosed() || rep.Windows[0].Disclosed || rep.Windows[0].Events[0].Disclosed {
+		t.Fatalf("all leaves present, nothing disclosed: %+v", rep.Windows[0])
+	}
+	if n := len(rep.Windows[0].Events[0].Erased); n != len(FieldNames())-2 {
+		t.Fatalf("labels listed: %d", n)
 	}
 }
