@@ -24,8 +24,11 @@ type Plan struct {
 	Masked map[string]ColumnLabel
 }
 
-// AskText is the hint attached to a masked column.
+// AskText is the hint attached to a masked revealable column.
 const AskText = "Masked by a Meaning Graph sensitivity label. Ask your user for an elevated approval that names this field; do not retry the read."
+
+// NeverText is the hint attached to a masked non-revealable column.
+const NeverText = "Masked by a Meaning Graph sensitivity label and never revealed: no approval opens a non-revealable field. Work without it; do not retry the read."
 
 // NewPlan returns the masking plan of one table: every protected column is
 // masked unless revealed names it and it is revealable. Revealed holds column
@@ -65,12 +68,23 @@ func (p Plan) IsMasked(column string) (ColumnLabel, bool) {
 	return ColumnLabel{}, false
 }
 
-// BareName strips qualification and identifier quotes from a column reference.
+// BareName strips qualification and identifier quotes from a column
+// reference. A quoted last segment keeps its dots ("e.mail", [e.mail]).
 func BareName(reference string) string {
+	reference = strings.TrimSpace(reference)
+	if n := len(reference); n >= 2 {
+		closing := reference[n-1]
+		opening := map[byte]byte{'"': '"', '`': '`', ']': '[', '\'': '\''}[closing]
+		if opening != 0 {
+			if i := strings.LastIndexByte(reference[:n-1], opening); i >= 0 {
+				return reference[i+1 : n-1]
+			}
+		}
+	}
 	if i := strings.LastIndex(reference, "."); i >= 0 {
 		reference = reference[i+1:]
 	}
-	return strings.Trim(reference, "\"`[]' ")
+	return reference
 }
 
 // Protection returns the wire protection of a masked column.
@@ -79,7 +93,11 @@ func (p Plan) Protection(column string) *Protection {
 	if !ok {
 		return nil
 	}
-	return &Protection{Class: l.Class, Kind: l.Kind, State: "masked", Revealable: l.Revealable(), Origin: string(l.Origin), Ask: AskText}
+	ask := AskText
+	if !l.Revealable() {
+		ask = NeverText
+	}
+	return &Protection{Class: l.Class, Kind: l.Kind, State: "masked", Revealable: l.Revealable(), Origin: string(l.Origin), Ask: ask}
 }
 
 // Columns lists masked column names, sorted.
@@ -145,7 +163,7 @@ func AnyProtected(doc Document, source string, tables map[string][]Column) bool 
 // An empty tables map refuses too: a boundary that could not enumerate the
 // source's columns cannot show that the source is unlabelled.
 func RawRefusal(doc Document, source string, tables map[string][]Column, agent bool) error {
-	if agent && (len(tables) == 0 || AnyProtected(doc, source, tables)) {
+	if agent && (len(tables) == 0 || anyEmpty(tables) || AnyProtected(doc, source, tables)) {
 		return errorf(CodeRawRefused, "source %s has protected columns; agents read it with table reads or TugQL, which mask", source)
 	}
 	return nil
@@ -154,6 +172,16 @@ func RawRefusal(doc Document, source string, tables map[string][]Column, agent b
 func containsFold(list []string, v string) bool {
 	for _, x := range list {
 		if strings.EqualFold(x, v) {
+			return true
+		}
+	}
+	return false
+}
+
+// anyEmpty reports a table whose columns the boundary could not enumerate.
+func anyEmpty(tables map[string][]Column) bool {
+	for _, columns := range tables {
+		if len(columns) == 0 {
 			return true
 		}
 	}
