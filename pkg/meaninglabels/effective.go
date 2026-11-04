@@ -34,25 +34,25 @@ func (c ColumnLabel) Protected() bool {
 }
 
 // Revealable reports whether an elevated approval may reveal the column.
+// secret is never revealable, whatever the flag says.
 func (c ColumnLabel) Revealable() bool {
-	return c.Protected() && !c.NonRevealable
+	return c.Protected() && !c.NonRevealable && c.Class != ClassSecret
 }
 
-// TableMatches reports whether a label's table names the table being read.
-// Names compare ignoring case; a label table without a schema matches the
-// table's last segment, so "customers" also covers "public.customers". Both
-// rules only ever widen what is masked.
+// TableMatches reports whether a label's table names the table being read,
+// for protecting entries. Names compare ignoring case, segment by segment
+// from the end, over the shorter of the two: "customers" covers
+// "public.customers", and "dbo.Customers" covers "Customers" and
+// "Northwind.dbo.Customers". These rules only ever widen what is masked.
 func TableMatches(labelTable, table string) bool {
-	if strings.EqualFold(labelTable, table) {
-		return true
+	a, b := strings.Split(labelTable, "."), strings.Split(table, ".")
+	n := min(len(a), len(b))
+	for i := 1; i <= n; i++ {
+		if !strings.EqualFold(a[len(a)-i], b[len(b)-i]) {
+			return false
+		}
 	}
-	if strings.Contains(labelTable, ".") {
-		return false
-	}
-	if i := strings.LastIndex(table, "."); i >= 0 {
-		return strings.EqualFold(labelTable, table[i+1:])
-	}
-	return false
+	return true
 }
 
 func (t Target) matches(source, table string) bool {
@@ -88,7 +88,8 @@ func effectiveColumn(doc Document, source, table string, column Column) ColumnLa
 			return
 		}
 		nonRevealable := best.NonRevealable || c.NonRevealable
-		if c.Class.Rank() > best.Class.Rank() {
+		// A tie goes to the label that says what the value is.
+		if c.Class.Rank() > best.Class.Rank() || (c.Class == best.Class && best.Kind == "" && c.Kind != "") {
 			*best = c
 		}
 		best.NonRevealable = nonRevealable
@@ -149,25 +150,30 @@ func (d Document) dismissed(t Target, class Class) bool {
 	return false
 }
 
-// Reviewed reports whether an owner labelled the object (table-level, none
-// included) or any of its columns. An unreviewed view or other non-table
-// object is masked entirely for agents.
+// Reviewed reports whether an owner labelled the object itself (a table-level
+// label, none included), matching exactly. An unreviewed view or other
+// non-table object is masked entirely, for every subject.
 func Reviewed(doc Document, source, table string) bool {
 	for _, l := range doc.Labels {
-		if l.Origin == OriginOwner && l.Target.Source == source && l.Target.Table == table {
+		if l.Origin == OriginOwner && l.Target.Kind() == TargetTable && l.Target.Source == source && l.Target.Table == table {
 			return true
 		}
 	}
 	return false
 }
 
-// MaskAllUnreviewed marks every column of an unreviewed non-table object as
-// protected pii, revealable, so an agent sees no value until an owner reviews it.
-func MaskAllUnreviewed(labels []ColumnLabel) []ColumnLabel {
-	out := append([]ColumnLabel{}, labels...)
+// EffectiveObject is Effective for an object of any kind: a view or other
+// non-table object (view true, including an object whose kind is unknown)
+// that no owner reviewed has every column masked. Class policies apply.
+func EffectiveObject(doc Document, source, table string, view bool, columns []Column) []ColumnLabel {
+	out := Effective(doc, source, table, columns)
+	if !view || Reviewed(doc, source, table) {
+		return out
+	}
 	for i := range out {
 		if !out[i].Protected() {
-			out[i] = ColumnLabel{Column: out[i].Column, Class: ClassPII, Origin: FromUnreviewedObject, State: StatePending}
+			out[i] = ColumnLabel{Column: out[i].Column, Class: ClassPII, Origin: FromUnreviewedObject, State: StatePending,
+				NonRevealable: doc.classNonRevealable(source, ClassPII)}
 		}
 	}
 	return out

@@ -80,6 +80,7 @@ func TestTargets(t *testing.T) {
 		t.Fatal("string")
 	}
 	if !TableMatches("customers", "public.customers") || !TableMatches("Public.Customers", "public.customers") ||
+		!TableMatches("dbo.Customers", "Customers") || !TableMatches("dbo.Customers", "Northwind.dbo.Customers") ||
 		TableMatches("sales.customers", "public.customers") || TableMatches("customers", "orders") {
 		t.Fatal("table matches")
 	}
@@ -87,7 +88,7 @@ func TestTargets(t *testing.T) {
 
 func TestDocumentValidation(t *testing.T) {
 	d := NewDocument()
-	if d.Validate() != nil {
+	if d.Validate() != nil || d.Revision != "" {
 		t.Fatal("new document invalid")
 	}
 	bad := func(mut func(*Document), code string) {
@@ -125,7 +126,8 @@ func TestDocumentValidation(t *testing.T) {
 	x := NewDocument()
 	x.Revision = "stale"
 	wantCode(t, x.Validate(), CodeInvalidDocument)
-	if (Document{}).ComputeRevision() != (Document{Labels: []Label{}}).ComputeRevision() {
+	p := []ClassPolicy{{Source: "nw", Class: ClassPII, NonRevealable: true}}
+	if (Document{ClassPolicies: p}).ComputeRevision() != (Document{Labels: []Label{}, ClassPolicies: p}).ComputeRevision() || (Document{}).ComputeRevision() != "" {
 		t.Fatal("nil and empty labels must hash equally")
 	}
 }
@@ -158,15 +160,15 @@ func TestOwnerSetConfirmDismissClear(t *testing.T) {
 		t.Fatal("table pii does not loosen")
 	}
 	// confirm a read-time suggestion
-	_, _, err = Apply(d, Change{Action: ActionConfirm, Target: col("users", "email")}, owner, t0)
+	_, _, err = Apply(d, Change{Action: ActionConfirm, Target: col("users", "email"), Reason: "r"}, owner, t0)
 	wantCode(t, err, CodeSuggestionNotPending)
-	_, _, err = Apply(d, Change{Action: ActionConfirm, Target: col("users", "email"), Class: ClassPII, Kind: "card-number"}, owner, t0)
+	_, _, err = Apply(d, Change{Action: ActionConfirm, Target: col("users", "email"), Class: ClassPII, Kind: "card-number", Reason: "r"}, owner, t0)
 	wantCode(t, err, CodeKindClassMismatch)
 	d, ev = mustApply(t, d, Change{Action: ActionConfirm, Target: col("users", "email"), Class: ClassPII, Kind: "email", Reason: "yes"}, owner)
 	if ev.Type != "meaning.label.confirmed" || ev.After.Origin != OriginOwner || ev.After.Reason != "yes" {
 		t.Fatalf("confirm: %+v", ev)
 	}
-	d, _ = mustApply(t, d, Change{Action: ActionConfirm, Target: col("users", "pwd"), Class: ClassSecret}, owner)
+	d, _ = mustApply(t, d, Change{Action: ActionConfirm, Target: col("users", "pwd"), Class: ClassSecret, Reason: "r"}, owner)
 	// dismiss a read-time suggestion
 	_, _, err = Apply(d, Change{Action: ActionDismiss, Target: col("w", "address"), Reason: "r"}, owner, t0)
 	wantCode(t, err, CodeSuggestionNotPending)
@@ -223,7 +225,7 @@ func TestAgentOnlyProposes(t *testing.T) {
 	if len(d.Labels) != 2 {
 		t.Fatalf("owner label and proposal coexist: %+v", d.Labels)
 	}
-	d, ev = mustApply(t, d, Change{Action: ActionConfirm, Target: col("u", "code")}, owner)
+	d, ev = mustApply(t, d, Change{Action: ActionConfirm, Target: col("u", "code"), Reason: "agreed"}, owner)
 	if len(d.Labels) != 1 || d.Labels[0].Class != ClassSecret || ev.Before.Class != ClassPII {
 		t.Fatalf("confirm proposal: %+v %+v", d.Labels, ev)
 	}
@@ -273,7 +275,7 @@ func TestPrecedence(t *testing.T) {
 	if got["nickname"].Class != ClassPII || got["nickname"].Origin != FromTable {
 		t.Fatalf("future column: %+v", got["nickname"])
 	}
-	if got["ssn"].Kind != "national-id" && got["ssn"].Class != ClassPII {
+	if got["ssn"].Kind != "national-id" || got["ssn"].Class != ClassPII || got["ssn"].Origin != FromSuggested {
 		t.Fatalf("ssn: %+v", got["ssn"])
 	}
 	// table none suppresses nothing
@@ -334,27 +336,35 @@ func TestLooseningMatchesExactly(t *testing.T) {
 		ExactTarget(Target{Source: "nw", Table: "sales.customers"}, tables) != nil {
 		t.Fatal("exact targets refused")
 	}
-	for c, want := range map[Change]bool{
-		{Action: ActionDismiss}: true, {Action: ActionClear}: true,
-		{Action: ActionSet, Target: col("t", "c"), Class: ClassSecret}: true, {Action: ActionSet, Target: tbl("t"), Class: ClassNone}: true,
-		{Action: ActionSet, Target: tbl("t"), Class: ClassPII}: false, {Action: ActionClassMark}: true,
-		{Action: ActionClassMark, NonRevealable: true}: false, {Action: ActionPropose}: false,
-	} {
-		if Loosening(c) != want {
-			t.Fatalf("Loosening(%+v) != %v", c, want)
-		}
+	if CheckLooseningTarget(d, Target{Source: "nw", Table: "sales.customers", Column: "contact_name"}, nil) != nil {
+		t.Fatal("a stored target may be loosened as written")
 	}
+	if CheckLooseningTarget(d, col("w", "address"), nil) != nil {
+		t.Fatal("a stored dismissal may be cleared as written")
+	}
+	wantCode(t, CheckLooseningTarget(d, col("customers", "contact_name"), tables), CodeTargetAmbiguous)
 }
 
 func TestViewsAndTighten(t *testing.T) {
 	d := NewDocument()
-	labels := Effective(d, "nw", "v_contacts", cols("contact", "email"))
 	if Reviewed(d, "nw", "v_contacts") {
 		t.Fatal("unreviewed")
 	}
-	masked := byColumn(MaskAllUnreviewed(labels))
-	if masked["contact"].Origin != FromUnreviewedObject || masked["email"].Origin != FromSuggested {
+	masked := byColumn(EffectiveObject(d, "nw", "v_contacts", true, cols("contact", "email")))
+	if masked["contact"].Origin != FromUnreviewedObject || masked["email"].Origin != FromSuggested || masked["contact"].NonRevealable {
 		t.Fatalf("view: %+v", masked)
+	}
+	if l := byColumn(EffectiveObject(d, "nw", "t", false, cols("contact")))["contact"]; l.Protected() {
+		t.Fatalf("a table is not masked whole: %+v", l)
+	}
+	// a column label on a view does not mark it reviewed
+	d, _ = mustApply(t, d, Change{Action: ActionSet, Target: col("v_contacts", "email"), Class: ClassSecret, Reason: "r"}, owner)
+	if Reviewed(d, "nw", "v_contacts") {
+		t.Fatal("column label must not review the view")
+	}
+	d, _ = mustApply(t, d, Change{Action: ActionClassMark, Target: Target{Source: "nw"}, Class: ClassPII, NonRevealable: true, Reason: "r"}, owner)
+	if l := byColumn(EffectiveObject(d, "nw", "v_contacts", true, cols("contact")))["contact"]; !l.NonRevealable {
+		t.Fatalf("class policy applies to an unreviewed view: %+v", l)
 	}
 	d, _ = mustApply(t, d, Change{Action: ActionSet, Target: tbl("v_contacts"), Class: ClassNone, Reason: "reviewed"}, owner)
 	if !Reviewed(d, "nw", "v_contacts") || Reviewed(d, "nw", "V_Contacts") {
@@ -390,7 +400,22 @@ func TestSuggest(t *testing.T) {
 			t.Errorf("%s: want %s, got %q (%v)", name, rule, r.ID, ok)
 		}
 	}
-	for _, name := range []string{"company", "token_count", "email_verified", "password_changed_at", "CompanyName", "id", "pandemic"} {
+	for name, rule := range map[string]string{
+		"created_by_email": "pii-email", "updated_by_ip": "pii-ip-address", "email_on_file": "pii-email", "phone_at_signup": "pii-phone",
+		"name_on_card": "", "phonenumber": "pii-phone", "bank_account": "financial-bank-account", "signing_key": "secret-api-key",
+		"encryption_key": "secret-api-key", "credentials": "secret-password", "salt": "secret-password-hash", "pin": "secret-password",
+		"drivers_license": "pii-national-id", "card_holder_name": "pii-person-name", "session_id": "secret-session-id", "national_id": "pii-national-id",
+	} {
+		r, ok := SuggestColumn(name, "varchar")
+		if rule == "" {
+			continue
+		}
+		if !ok || r.ID != rule {
+			t.Errorf("%s: want %s, got %q (%v)", name, rule, r.ID, ok)
+		}
+	}
+	for _, name := range []string{"company", "token_count", "email_verified", "password_changed_at", "CompanyName", "id", "pandemic",
+		"has_ssn", "is_email", "address_id", "billing_address_id", "mac_address", "phone_type"} {
 		if r, ok := SuggestColumn(name, "varchar"); ok {
 			t.Errorf("%s: unexpected %s", name, r.ID)
 		}
@@ -418,6 +443,15 @@ func TestMaskPlan(t *testing.T) {
 		{Column: "name"},
 	}
 	plan := NewPlan(labels, []string{"card", "SECRET"})
+	for _, ref := range []string{`c.email`, `"Email"`, "[email]", "`EMAIL`", `c."Email"`} {
+		if _, ok := plan.IsMasked(ref); !ok {
+			t.Errorf("%s must be masked", ref)
+		}
+	}
+	twins := NewPlan([]ColumnLabel{{Column: "Email", Class: ClassPII}, {Column: "email", Class: ClassPII}}, nil)
+	if len(twins.Columns()) != 2 {
+		t.Fatalf("case twins must both be masked: %v", twins.Columns())
+	}
 	if plan.Empty() || len(plan.Columns()) != 2 || plan.Columns()[0] != "Email" {
 		t.Fatalf("plan: %+v", plan.Columns())
 	}
@@ -441,6 +475,7 @@ func TestMaskPlan(t *testing.T) {
 	wantCode(t, CheckReveal(labels, []string{"card"}, true), CodeRevealNotForAgent)
 	wantCode(t, CheckReveal(labels, []string{"secret"}, false), CodeFieldNonRevealable)
 	d := NewDocument()
+	wantCode(t, RawRefusal(d, "nw", nil, true), CodeRawRefused)
 	tables := map[string][]Column{"orders": cols("id", "total")}
 	if AnyProtected(d, "nw", tables) || RawRefusal(d, "nw", tables, true) != nil {
 		t.Fatal("unlabelled source")
@@ -491,6 +526,8 @@ func TestStore(t *testing.T) {
 	wantCode(t, err, CodeInvalidDocument)
 	_, err = Decode([]byte(`{"format":"datatug-labels/v1","revision":"x"}`))
 	wantCode(t, err, CodeInvalidDocument)
+	_, err = Decode([]byte(`{"format":"datatug-labels/v1","labels":[],"future":1}`))
+	wantCode(t, err, CodeInvalidDocument)
 	// a corrupt stored document surfaces on load and on save
 	if err := db.RunReadwriteTransaction(ctx, func(ctx context.Context, tx dal.ReadwriteTransaction) error {
 		return tx.Set(ctx, record.NewRecordWithData(Key(project), &stored{Content: []byte("{")}))
@@ -529,5 +566,50 @@ func TestClearKeepsOtherDismissals(t *testing.T) {
 	d, _ = mustApply(t, d, Change{Action: ActionClear, Target: col("w", "address"), Reason: "r"}, owner)
 	if len(d.Dismissed) != 1 || d.Dismissed[0].Target.Column != "phone" {
 		t.Fatalf("dismissals: %+v", d.Dismissed)
+	}
+}
+
+func TestDowngradesAreLoosening(t *testing.T) {
+	d := NewDocument()
+	d, _ = mustApply(t, d, Change{Action: ActionSet, Target: col("users", "api_key"), Class: ClassFinancial, NonRevealable: true, Reason: "r"}, owner)
+	_, ev := mustApply(t, d, Change{Action: ActionConfirm, Target: col("users", "api_key"), Class: ClassPII, Reason: "r"}, owner)
+	if !ev.Loosens {
+		t.Fatal("confirm to a weaker class loosens")
+	}
+	d, ev = mustApply(t, d, Change{Action: ActionConfirm, Target: col("users", "api_key"), Class: ClassFinancial, Reason: "r"}, owner)
+	if !ev.After.NonRevealable {
+		t.Fatal("confirm keeps the owner's non-revealable mark")
+	}
+	_, ev = mustApply(t, d, Change{Action: ActionConfirm, Target: col("users", "token"), Class: ClassSecret, Reason: "r"}, owner)
+	if ev.Loosens {
+		t.Fatal("confirming secret on a column never loosens")
+	}
+	_, _, err := Apply(d, Change{Action: ActionConfirm, Target: col("users", "x"), Class: ClassPII}, owner, t0)
+	wantCode(t, err, CodeReasonRequired)
+	d, ev = mustApply(t, d, Change{Action: ActionSet, Target: tbl("vault"), Class: ClassSecret, Reason: "r"}, owner)
+	if ev.Loosens {
+		t.Fatal("a secret table label tightens")
+	}
+	_, ev = mustApply(t, d, Change{Action: ActionSet, Target: tbl("vault"), Class: ClassPII, Reason: "r"}, owner)
+	if !ev.Loosens {
+		t.Fatal("secret table to pii loosens")
+	}
+	_, ev = mustApply(t, d, Change{Action: ActionSet, Target: tbl("open"), Class: ClassNone, Reason: "r"}, owner)
+	if !ev.Loosens {
+		t.Fatal("a none table label is a review, treated as loosening")
+	}
+	_, ev = mustApply(t, d, Change{Action: ActionSet, Target: col("users", "notes"), Class: ClassPII, Reason: "r"}, owner)
+	if !ev.Loosens {
+		t.Fatal("an owner column label below secret may hide a suggestion")
+	}
+	_, _, err = Apply(d, Change{Action: ActionClassMark, Target: Target{Source: "nw", Table: "x"}, Class: ClassPII, Reason: "r"}, owner, t0)
+	wantCode(t, err, CodeInvalidDocument)
+	if (ColumnLabel{Class: ClassSecret}).Revealable() {
+		t.Fatal("secret is never revealable")
+	}
+	empty, _ := mustApply(t, NewDocument(), Change{Action: ActionSet, Target: tbl("a"), Class: ClassPII, Reason: "r"}, owner)
+	empty, _ = mustApply(t, empty, Change{Action: ActionClear, Target: tbl("a"), Reason: "r"}, owner)
+	if empty.Revision != "" {
+		t.Fatal("an emptied document has revision \"\"")
 	}
 }

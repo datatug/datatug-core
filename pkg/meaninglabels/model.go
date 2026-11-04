@@ -248,11 +248,10 @@ type Document struct {
 	ClassPolicies []ClassPolicy `json:"classPolicies,omitempty"`
 }
 
-// NewDocument returns an empty document.
+// NewDocument returns an empty document. An empty document has revision "",
+// the same as a project that has no document yet.
 func NewDocument() Document {
-	d := Document{Format: Format, Labels: []Label{}}
-	d.Revision = d.ComputeRevision()
-	return d
+	return Document{Format: Format, Labels: []Label{}}
 }
 
 // Validate checks the whole document, including that each target has at most
@@ -293,8 +292,12 @@ func (d Document) Validate() error {
 	return nil
 }
 
-// ComputeRevision is the sha256 of the document's content without its revision.
+// ComputeRevision is the sha256 of the document's content without its
+// revision, or "" for a document with no content.
 func (d Document) ComputeRevision() string {
+	if len(d.Labels) == 0 && len(d.Dismissed) == 0 && len(d.ClassPolicies) == 0 {
+		return ""
+	}
 	d.Revision = ""
 	if d.Labels == nil {
 		d.Labels = []Label{}

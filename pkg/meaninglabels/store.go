@@ -1,6 +1,7 @@
 package meaninglabels
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -109,7 +110,9 @@ func Decode(body []byte) (Document, error) {
 		return Document{}, errorf(CodeInvalidDocument, "the label document exceeds %d bytes", MaxDocumentBytes)
 	}
 	var doc Document
-	if err := json.Unmarshal(body, &doc); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&doc); err != nil {
 		return Document{}, errors.Join(errorf(CodeInvalidDocument, "the label document is not valid JSON"), err)
 	}
 	if doc.Labels == nil {

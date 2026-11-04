@@ -39,7 +39,7 @@ func NewPlan(labels []ColumnLabel, revealed []string) Plan {
 		if l.Revealable() && containsFold(revealed, l.Column) {
 			continue
 		}
-		plan.Masked[strings.ToLower(l.Column)] = l
+		plan.Masked[l.Column] = l
 	}
 	return plan
 }
@@ -49,10 +49,28 @@ func (p Plan) Empty() bool {
 	return len(p.Masked) == 0
 }
 
-// IsMasked reports whether a column is masked.
+// IsMasked reports whether a column is masked. The name is compared ignoring
+// case, and a qualified or quoted reference (c."Email", [Email]) is compared
+// by its last unquoted segment, so a gate never fails open on spelling.
 func (p Plan) IsMasked(column string) (ColumnLabel, bool) {
-	l, ok := p.Masked[strings.ToLower(column)]
-	return l, ok
+	name := BareName(column)
+	if l, ok := p.Masked[name]; ok {
+		return l, true
+	}
+	for masked, l := range p.Masked {
+		if strings.EqualFold(masked, name) {
+			return l, true
+		}
+	}
+	return ColumnLabel{}, false
+}
+
+// BareName strips qualification and identifier quotes from a column reference.
+func BareName(reference string) string {
+	if i := strings.LastIndex(reference, "."); i >= 0 {
+		reference = reference[i+1:]
+	}
+	return strings.Trim(reference, "\"`[]' ")
 }
 
 // Protection returns the wire protection of a masked column.
@@ -124,8 +142,10 @@ func AnyProtected(doc Document, source string, tables map[string][]Column) bool 
 
 // RawRefusal returns FIELD_PROTECTION_RAW_REFUSED for an agent on a source
 // with protected columns, and nil otherwise.
+// An empty tables map refuses too: a boundary that could not enumerate the
+// source's columns cannot show that the source is unlabelled.
 func RawRefusal(doc Document, source string, tables map[string][]Column, agent bool) error {
-	if agent && AnyProtected(doc, source, tables) {
+	if agent && (len(tables) == 0 || AnyProtected(doc, source, tables)) {
 		return errorf(CodeRawRefused, "source %s has protected columns; agents read it with table reads or TugQL, which mask", source)
 	}
 	return nil

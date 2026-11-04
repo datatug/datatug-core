@@ -1,6 +1,8 @@
 package meaninglabels
 
 import (
+	"sort"
+	"strings"
 	"time"
 )
 
@@ -56,14 +58,14 @@ func Apply(doc Document, change Change, actor Actor, at time.Time) (Document, Ev
 	if actor.Agent && change.Action != ActionPropose {
 		return doc, Event{}, errorf(CodeAgentNotAllowed, "an agent may only propose labels; %q needs the owner", change.Action)
 	}
-	if change.Action != ActionPropose && change.Action != ActionConfirm && change.Reason == "" {
+	if change.Action != ActionPropose && change.Reason == "" {
 		return doc, Event{}, errorf(CodeReasonRequired, "a label change needs a reason")
 	}
 	out := doc.clone()
 	out.Format = Format
 	event := Event{Actor: actor, Target: change.Target, Reason: change.Reason, At: at}
 	if change.Action == ActionClassMark {
-		return applyClassPolicy(out, change, event)
+		return applyClassPolicy(doc, out, change, event)
 	}
 	if err := change.Target.Validate(); err != nil {
 		return doc, Event{}, err
@@ -121,9 +123,7 @@ func (d *Document) set(change Change, actor Actor, at time.Time, event *Event) e
 	}
 	event.Type = "meaning.label.set"
 	event.After = &l
-	// An owner column label decides over suggestions, so any column label
-	// below the strictest class may hide one; treat it as loosening.
-	event.Loosens = loosens(event.Before, &l) || (change.Target.Kind() == TargetColumn && change.Class != ClassSecret)
+	event.Loosens = ownerLoosens(event.Before, &l)
 	return nil
 }
 
@@ -144,14 +144,13 @@ func (d *Document) confirm(change Change, actor Actor, at time.Time, event *Even
 	if owner >= 0 {
 		b := d.Labels[owner]
 		event.Before = &b
+		l.NonRevealable = l.NonRevealable || b.NonRevealable
 	}
-	l.State, l.Origin, l.By, l.At = StateConfirmed, OriginOwner, actor.ID, at
-	if change.Reason != "" {
-		l.Reason = change.Reason
-	}
+	l.State, l.Origin, l.By, l.At, l.Reason = StateConfirmed, OriginOwner, actor.ID, at, change.Reason
 	d.put(owner, l)
 	event.Type = "meaning.label.confirmed"
 	event.After = &l
+	event.Loosens = ownerLoosens(event.Before, &l)
 	return nil
 }
 
@@ -233,12 +232,12 @@ func (d *Document) propose(change Change, actor Actor, at time.Time, event *Even
 	return nil
 }
 
-func applyClassPolicy(out Document, change Change, event Event) (Document, Event, error) {
+func applyClassPolicy(doc, out Document, change Change, event Event) (Document, Event, error) {
 	if change.Target.Source == "" || change.Target.Table != "" || change.Target.Column != "" || !change.Class.Protected() {
-		return Document{}, Event{}, errorf(CodeInvalidDocument, "a class policy names only a source and a protected class")
+		return doc, Event{}, errorf(CodeInvalidDocument, "a class policy names only a source and a protected class")
 	}
 	if change.Class == ClassSecret && !change.NonRevealable {
-		return Document{}, Event{}, errorf(CodeSecretNonRevealable, "secret is always non-revealable")
+		return doc, Event{}, errorf(CodeSecretNonRevealable, "secret is always non-revealable")
 	}
 	event.Type = "meaning.class_policy.changed"
 	kept := []ClassPolicy{}
@@ -265,20 +264,45 @@ func (d *Document) put(i int, l Label) {
 	d.Labels = append(d.Labels, l)
 }
 
-func loosens(before, after *Label) bool {
-	if before == nil {
-		return false
+// ownerLoosens reports whether an owner label written over before can remove
+// or weaken protection. An owner column label decides over the column's
+// suggestion, so any column label below secret may hide a stricter one.
+func ownerLoosens(before, after *Label) bool {
+	if before != nil && (after.Class.Rank() < before.Class.Rank() || (before.NonRevealable && !after.NonRevealable)) {
+		return true
 	}
-	return after.Class.Rank() < before.Class.Rank() || (before.NonRevealable && !after.NonRevealable)
+	if after.Target.Kind() == TargetColumn {
+		return after.Class != ClassSecret
+	}
+	return after.Class == ClassNone
 }
 
-// ExactTarget checks that a loosening write names exactly one table the source
-// reports (schema-qualified, case-exact), and for a column target one of its
-// columns exactly. tables maps reported qualified table names to column names.
+// CheckLooseningTarget is the edge's check before it saves a change whose
+// event loosens: the target must be an entry already stored with exactly that
+// target, or exactly one table (and column) the source reports,
+// schema-qualified and case-exact. tables maps reported qualified table names
+// to their column names.
+func CheckLooseningTarget(doc Document, t Target, tables map[string][]string) error {
+	for _, l := range doc.Labels {
+		if l.Target == t {
+			return nil
+		}
+	}
+	for _, x := range doc.Dismissed {
+		if x.Target == t {
+			return nil
+		}
+	}
+	return ExactTarget(t, tables)
+}
+
+// ExactTarget checks that t names exactly one table the source reports
+// (schema-qualified, case-exact), and for a column target one of its columns
+// exactly. tables maps reported qualified table names to column names.
 func ExactTarget(t Target, tables map[string][]string) error {
 	columns, ok := tables[t.Table]
 	if !ok {
-		return errorf(CodeTargetAmbiguous, "%s does not name exactly one table the source reports; use the schema-qualified, case-exact name", t)
+		return errorf(CodeTargetAmbiguous, "%s does not name exactly one table the source reports; reported: %s", t, names(tables))
 	}
 	if t.Column == "" {
 		return nil
@@ -288,20 +312,14 @@ func ExactTarget(t Target, tables map[string][]string) error {
 			return nil
 		}
 	}
-	return errorf(CodeTargetAmbiguous, "%s does not name a column the source reports exactly", t)
+	return errorf(CodeTargetAmbiguous, "%s does not name a column the source reports exactly; reported: %s", t, strings.Join(columns, ", "))
 }
 
-// Loosening reports whether a change can remove or weaken protection, so the
-// edge must check its target with ExactTarget and require a step-up under a
-// control plane.
-func Loosening(c Change) bool {
-	switch c.Action {
-	case ActionDismiss, ActionClear:
-		return true
-	case ActionSet:
-		return c.Target.Kind() == TargetColumn || c.Class == ClassNone
-	case ActionClassMark:
-		return !c.NonRevealable
+func names(tables map[string][]string) string {
+	out := make([]string, 0, len(tables))
+	for name := range tables {
+		out = append(out, name)
 	}
-	return false
+	sort.Strings(out)
+	return strings.Join(out, ", ")
 }
