@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/dal-go/dalgo/access"
@@ -253,10 +255,21 @@ func ProjectExactRead(ctx context.Context, r Resolution, s *ExactReadSnapshot) (
 		}
 	}
 	r.ExactRead = &ExactReadPolicy{Version: 1, Subject: r.Subject, Connection: r.Connection, Baseline: baseline}
+	grants, err := projectExactGrants(s, evaluated, r, r.Grants)
+	if err != nil {
+		return Resolution{}, err
+	}
+	r.Grants = grants
+	return canonicalExactResolution(r)
+}
+
+// projectExactGrants keeps only active, positive, sealed-policy-allowed objects
+// of grants already bound to r's subject (and, for an agent, its agent user).
+func projectExactGrants(s *ExactReadSnapshot, evaluated context.Context, r Resolution, in []Grant) ([]Grant, error) {
 	grants := []Grant{}
-	for _, g := range r.Grants {
+	for _, g := range in {
 		if (len(g.Scope.Objects) > 0 && !exactGrantFeatures(g)) || g.ValidateMVP() != nil || g.Subject != r.Subject || g.Scope.Connection != r.Connection.ID {
-			return Resolution{}, fmt.Errorf("dataaccess: invalid exact grant")
+			return nil, fmt.Errorf("dataaccess: invalid exact grant")
 		}
 		if g.State != Approved || !g.ExpiresAt.After(r.ServerTime) || len(g.Scope.Objects) == 0 {
 			continue
@@ -264,11 +277,11 @@ func ProjectExactRead(ctx context.Context, r Resolution, s *ExactReadSnapshot) (
 		objects := []ObjectRef{}
 		for _, object := range g.Scope.Objects {
 			if !validExactObject(object) {
-				return Resolution{}, fmt.Errorf("dataaccess: malformed exact grant object")
+				return nil, fmt.Errorf("dataaccess: malformed exact grant object")
 			}
 			allow, err := s.allowed(evaluated, object)
 			if err != nil {
-				return Resolution{}, err
+				return nil, err
 			}
 			if allow {
 				objects = append(objects, object)
@@ -283,10 +296,11 @@ func ProjectExactRead(ctx context.Context, r Resolution, s *ExactReadSnapshot) (
 		g.CaseRef = nil
 		g.Decision = nil
 		g.PriorGrant = ""
+		g.Forwarded = nil
+		g.EffectiveAt = nil
 		grants = append(grants, g)
 	}
-	r.Grants = grants
-	return canonicalExactResolution(r)
+	return grants, nil
 }
 
 // ProjectAgentExactRead keeps User authentication/membership admission in the
@@ -323,6 +337,57 @@ func ProjectAgentExactRead(ctx context.Context, user Resolution, agent Subject, 
 	projected.Subject = agent
 	projected.ExactRead = &ExactReadPolicy{Version: 1, Subject: agent, Connection: projected.Connection, Baseline: baseline}
 	return projected, nil
+}
+
+// ProjectAgentResolution builds an agent's authority from its user's fresh
+// resolution and the agent's own approvals (Perimeter REQ:agent-access, D23,
+// D27). The agent keeps only grants it is the subject of, each bound to this
+// user; human grants never enter the agent's side. The user's own resolution
+// travels as AgentUser, so Core intersects the two at every authorization.
+// With a sealed exact snapshot, both sides are projected through it; without
+// one the user's resolution must not be exact-shaped.
+func ProjectAgentResolution(ctx context.Context, user Resolution, agent Subject, grants []Grant, s *ExactReadSnapshot) (Resolution, error) {
+	unavailable := fmt.Errorf("dataaccess: agent resolution unavailable")
+	if ctx == nil || agent.Kind != Agent || agent.Validate() != nil || user.Subject.Kind != User || user.Subject.Validate() != nil ||
+		agent.Realm != user.Subject.Realm || user.AgentUser != nil {
+		return Resolution{}, unavailable
+	}
+	for _, g := range grants {
+		if g.ValidateMVP() != nil || g.Subject != agent || g.AgentUser == nil || *g.AgentUser != user.Subject || g.Scope.Connection != user.Connection.ID {
+			return Resolution{}, unavailable
+		}
+	}
+	if s == nil {
+		if user.Protection.ReadPosture == ReadExact || user.ExactRead != nil {
+			return Resolution{}, unavailable
+		}
+		own := user
+		own.Grants = slices.Clone(user.Grants)
+		own.Protection.MaxDuration = maps.Clone(user.Protection.MaxDuration)
+		result := user
+		result.Subject = agent
+		result.Grants = slices.Clone(grants)
+		result.Protection.MaxDuration = maps.Clone(user.Protection.MaxDuration)
+		result.AgentUser = &own
+		return result, nil
+	}
+	evaluated, err := s.BindContext(exactAssessmentContext{Context: ctx}, agent)
+	if err != nil {
+		return Resolution{}, err
+	}
+	own, err := ProjectExactRead(ctx, user, s)
+	if err != nil {
+		return Resolution{}, err
+	}
+	result, err := ProjectAgentExactRead(ctx, user, agent, s)
+	if err != nil {
+		return Resolution{}, err
+	}
+	if result.Grants, err = projectExactGrants(s, evaluated, result, grants); err != nil {
+		return Resolution{}, err
+	}
+	result.AgentUser = &own
+	return canonicalExactResolution(result)
 }
 
 // RequestableObjects is intentionally disclosed configuration, separate from

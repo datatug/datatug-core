@@ -430,7 +430,7 @@ func TestTablePreviewAgentUsesBaselineAndNeverHumanGrants(t *testing.T) {
 			if mode == "agent-none" {
 				resolution.Protection.AgentRead = AgentNone
 			}
-			a, err := NewAuthority(subject, fixtureConnection(), fixedResolver(resolution))
+			a, err := NewAuthority(subject, fixtureConnection(), fixedResolver(agentOf(resolution)))
 			require.NoError(t, err)
 			adapter := &previewAdapter{reader: &previewReader{rs: previewRecordset(t, []string{"id"}, []any{int64(1)})}}
 			span := newPreviewSpan(adapter)

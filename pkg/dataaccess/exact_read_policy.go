@@ -76,7 +76,7 @@ func canonicalExactResolution(r Resolution) (Resolution, error) {
 	r.ExactRead = &copy
 	grants := make([]Grant, len(r.Grants))
 	for i, g := range r.Grants {
-		if g.ValidateMVP() != nil || !exactGrantFeatures(g) || len(g.Scope.Objects) == 0 || g.Subject != r.Subject || r.Subject.Kind == Agent || g.Scope.Connection != r.Connection.ID || g.Reason != "read authority" || g.CaseRef != nil || g.Decision != nil || g.PriorGrant != "" {
+		if g.ValidateMVP() != nil || !exactGrantFeatures(g) || len(g.Scope.Objects) == 0 || g.Subject != r.Subject || !exactAgentGrantBound(r, g) || g.Scope.Connection != r.Connection.ID || g.Reason != "read authority" || g.CaseRef != nil || g.Decision != nil || g.PriorGrant != "" || g.Forwarded != nil || g.EffectiveAt != nil {
 			return Resolution{}, fmt.Errorf("dataaccess: invalid exact grant projection")
 		}
 		g.Scope.Objects, err = canonicalExactObjects(g.Scope.Objects)
@@ -88,7 +88,23 @@ func canonicalExactResolution(r Resolution) (Resolution, error) {
 		grants[i] = g
 	}
 	r.Grants = grants
+	if r.AgentUser != nil {
+		user, err := canonicalExactResolution(*r.AgentUser)
+		if err != nil {
+			return Resolution{}, err
+		}
+		r.AgentUser = &user
+	}
 	return r, nil
+}
+
+// exactAgentGrantBound admits an agent's own projected grant only when bound to
+// the agent user of the same resolution; a human grant never reaches an agent.
+func exactAgentGrantBound(r Resolution, g Grant) bool {
+	if r.Subject.Kind != Agent {
+		return g.AgentUser == nil
+	}
+	return r.AgentUser != nil && g.AgentUser != nil && *g.AgentUser == r.AgentUser.Subject
 }
 
 type exactReadProfileKey struct{}

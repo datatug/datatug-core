@@ -32,6 +32,18 @@ func fixtureResolution() Resolution {
 	return Resolution{Subject: fixtureSubject(), Connection: connection, ServerTime: now, ValidUntil: now.Add(time.Minute),
 		Protection: ConnectionProtection{ID: connection.ID, Fingerprint: connection.Fingerprint, ReadOnly: true, ReadPosture: ReadAll, AgentRead: AgentInherit, Revision: 1}}
 }
+
+// agentOf gives an agent resolution its user's resolution: the same connection
+// and protection, the user's subject and the given user grants.
+func agentOf(r Resolution, userGrants ...Grant) Resolution {
+	user := r
+	user.Subject = fixtureSubject()
+	user.Subject.Realm = r.Subject.Realm
+	user.Grants = append([]Grant{}, userGrants...)
+	user.AgentUser = nil
+	r.AgentUser = &user
+	return r
+}
 func fixedResolver(resolution Resolution) Resolver {
 	return func(context.Context, ResolveRequest) (Resolution, error) { return resolution, nil }
 }

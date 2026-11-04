@@ -54,6 +54,41 @@ func newOperationReadPolicy(resolution Resolution, started time.Time, now func()
 	return p
 }
 
+// intersect returns the agent ∩ user policy (Perimeter REQ:agent-access): each
+// table is readable until the earlier of the two sides' deadlines for it, where
+// a side's deadline is the later of its connection-wide and per-table authority.
+// The units are tables because MVP grants carry no record or field scope; when
+// record and field units arrive (DAS L3, Perimeter step 12), they are
+// intersected here too, per row and per field, never unioned across sides.
+func (p *operationReadPolicy) intersect(user *operationReadPolicy) *operationReadPolicy {
+	out := &operationReadPolicy{objects: make(map[ObjectRef]time.Time), ceiling: earlier(p.ceiling, user.ceiling),
+		evaluatedAt: p.evaluatedAt, exact: p.exact || user.exact, now: p.now, subject: p.subject}
+	out.connection = earlier(p.connection, user.connection)
+	for _, side := range []map[ObjectRef]time.Time{p.objects, user.objects} {
+		for object := range side {
+			until := earlier(later(p.connection, p.objects[object]), later(user.connection, user.objects[object]))
+			if out.connection.Before(until) {
+				out.objects[object] = until
+			}
+		}
+	}
+	return out
+}
+
+func earlier(a, b time.Time) time.Time {
+	if b.Before(a) {
+		return b
+	}
+	return a
+}
+
+func later(a, b time.Time) time.Time {
+	if a.Before(b) {
+		return b
+	}
+	return a
+}
+
 func (*operationReadPolicy) Name() string { return "datatug-core-read-composition" }
 
 // plan inspects Table metadata before Kind: qualified structured sources retain
