@@ -432,3 +432,75 @@ func TestPolicyIntersectionPerTable(t *testing.T) {
 	require.Empty(t, agent.intersect(none).objects)
 	require.True(t, agent.intersect(none).connection.IsZero())
 }
+
+func TestCoversUserAccess(t *testing.T) {
+	now := time.Now()
+	order := ObjectRef{"sales", "Order"}
+	all := fixtureResolution()
+	ok, err := Covers(all, GrantScope{Connection: "conn"})
+	require.NoError(t, err)
+	require.True(t, ok)
+	none := fixtureResolution()
+	none.Protection.ReadPosture = ReadNone
+	ok, err = Covers(none, GrantScope{Connection: "conn", Objects: []ObjectRef{order}})
+	require.NoError(t, err)
+	require.False(t, ok)
+	ok, err = Covers(none, GrantScope{Connection: "conn"})
+	require.NoError(t, err)
+	require.False(t, ok)
+	none.Grants = []Grant{exactReadGrant(now, order)}
+	ok, err = Covers(none, GrantScope{Connection: "conn", Objects: []ObjectRef{order}})
+	require.NoError(t, err)
+	require.True(t, ok)
+	ok, err = Covers(none, GrantScope{Connection: "conn", Objects: []ObjectRef{order, {"sales", "Customer"}}})
+	require.NoError(t, err)
+	require.False(t, ok)
+	exact := exactProjected(t, exactFixtureDocument())
+	ok, err = Covers(exact, GrantScope{Connection: "conn", Objects: []ObjectRef{{"sales", "Customer"}}})
+	require.NoError(t, err)
+	require.True(t, ok)
+	for name, r := range map[string]func() (Resolution, GrantScope){
+		"invalid subject": func() (Resolution, GrantScope) {
+			r := fixtureResolution()
+			r.Subject.ID = ""
+			return r, GrantScope{Connection: "conn"}
+		},
+		"stale": func() (Resolution, GrantScope) {
+			r := fixtureResolution()
+			r.ValidUntil = r.ServerTime
+			return r, GrantScope{Connection: "conn"}
+		},
+		"no server time": func() (Resolution, GrantScope) {
+			r := fixtureResolution()
+			r.ServerTime = time.Time{}
+			return r, GrantScope{Connection: "conn"}
+		},
+		"other connection": func() (Resolution, GrantScope) { return fixtureResolution(), GrantScope{Connection: "x"} },
+		"invalid grant": func() (Resolution, GrantScope) {
+			r := fixtureResolution()
+			g := fixtureGrant(now)
+			g.Revision = 0
+			r.Grants = []Grant{g}
+			return r, GrantScope{Connection: "conn"}
+		},
+		"foreign grant": func() (Resolution, GrantScope) {
+			r := fixtureResolution()
+			r.Grants = []Grant{agentGrant(now)}
+			return r, GrantScope{Connection: "conn"}
+		},
+		"grant on other connection": func() (Resolution, GrantScope) {
+			r := fixtureResolution()
+			g := fixtureGrant(now)
+			g.Scope.Connection = "x"
+			r.Grants = []Grant{g}
+			return r, GrantScope{Connection: "conn"}
+		},
+		"unprojected exact": func() (Resolution, GrantScope) { return exactRawResolution(), GrantScope{Connection: "conn"} },
+	} {
+		t.Run(name, func(t *testing.T) {
+			res, scope := r()
+			_, err := Covers(res, scope)
+			require.Error(t, err)
+		})
+	}
+}

@@ -208,3 +208,34 @@ func (*operationReadPolicy) InspectionPure() bool { return true }
 func canonicalReadIdentity(resource access.Resource, table access.TableName) bool {
 	return resource.Kind() != access.PathResource || resource.String() == access.CollectionResourceFor(nil, table.Name).String()
 }
+
+// Covers reports whether r, as of its own ServerTime, lets its subject read
+// every object of scope, or the whole connection for a connection-wide scope.
+// Hosts use it for decisions about an agent (Perimeter REQ:agent-asks-its-user:
+// the user's access path, and whether an own-agent approval is dormant). It
+// never authorizes a read; execution still goes through Authority.
+func Covers(r Resolution, scope GrantScope) (bool, error) {
+	if r.Subject.Validate() != nil || r.ServerTime.IsZero() || !r.ValidUntil.After(r.ServerTime) || scope.Connection != r.Connection.ID {
+		return false, fmt.Errorf("dataaccess: coverage unavailable")
+	}
+	for _, grant := range r.Grants {
+		if grant.ValidateMVP() != nil || grant.Subject != r.Subject || grant.Scope.Connection != r.Connection.ID {
+			return false, fmt.Errorf("dataaccess: coverage unavailable")
+		}
+	}
+	canonicalResolution, err := canonicalExactResolution(r)
+	if err != nil {
+		return false, err
+	}
+	at := r.ServerTime
+	p := newOperationReadPolicy(canonicalResolution, at, func() time.Time { return at })
+	if len(scope.Objects) == 0 {
+		return at.Before(p.connection), nil
+	}
+	for _, object := range scope.Objects {
+		if !at.Before(later(p.connection, p.objects[object])) {
+			return false, nil
+		}
+	}
+	return true, nil
+}
