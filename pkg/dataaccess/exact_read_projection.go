@@ -298,6 +298,7 @@ func projectExactGrants(s *ExactReadSnapshot, evaluated context.Context, r Resol
 		g.PriorGrant = ""
 		g.Forwarded = nil
 		g.EffectiveAt = nil
+		g.AgentUser = clonePointer(g.AgentUser)
 		grants = append(grants, g)
 	}
 	return grants, nil

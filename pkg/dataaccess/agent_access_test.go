@@ -181,6 +181,7 @@ func TestAgentGrantValidation(t *testing.T) {
 		"human grant own-agent decision":   func(g *Grant) { *g = fixtureGrant(now); g.Decision.ForOwnAgent = true },
 		"human grant dormant":              func(g *Grant) { *g = fixtureGrant(now); g.Decision.Dormant = true },
 		"human grant declined by user":     func(g *Grant) { *g = fixtureGrant(now); g.Decision.ByAgentUser = true },
+		"human grant decided by an agent":  func(g *Grant) { *g = fixtureGrant(now); g.Decision.By = agentSubject() },
 		"agent user on human subject":      func(g *Grant) { g.Subject, g.RequestedBy = user, user },
 		"agent user invalid":               func(g *Grant) { g.AgentUser = &Subject{Realm: "sneat", Kind: User} },
 		"agent user is a service":          func(g *Grant) { g.AgentUser = &Subject{Realm: "sneat", Kind: Service, ID: "svc"} },
@@ -440,69 +441,94 @@ func TestCoversUserAccess(t *testing.T) {
 	now := time.Now()
 	order := ObjectRef{"sales", "Order"}
 	all := fixtureResolution()
-	ok, err := Covers(all, GrantScope{Connection: "conn"})
+	ok, err := Covers(all, GrantScope{Connection: "conn", Requires: []string{}})
 	require.NoError(t, err)
 	require.True(t, ok)
 	none := fixtureResolution()
 	none.Protection.ReadPosture = ReadNone
-	ok, err = Covers(none, GrantScope{Connection: "conn", Objects: []ObjectRef{order}})
+	ok, err = Covers(none, GrantScope{Connection: "conn", Objects: []ObjectRef{order}, Requires: []string{ObjectsExact}})
 	require.NoError(t, err)
 	require.False(t, ok)
-	ok, err = Covers(none, GrantScope{Connection: "conn"})
+	ok, err = Covers(none, GrantScope{Connection: "conn", Requires: []string{}})
 	require.NoError(t, err)
 	require.False(t, ok)
 	none.Grants = []Grant{exactReadGrant(now, order)}
-	ok, err = Covers(none, GrantScope{Connection: "conn", Objects: []ObjectRef{order}})
+	ok, err = Covers(none, GrantScope{Connection: "conn", Objects: []ObjectRef{order}, Requires: []string{ObjectsExact}})
 	require.NoError(t, err)
 	require.True(t, ok)
-	ok, err = Covers(none, GrantScope{Connection: "conn", Objects: []ObjectRef{order, {"sales", "Customer"}}})
+	ok, err = Covers(none, GrantScope{Connection: "conn", Objects: []ObjectRef{order, {"sales", "Customer"}}, Requires: []string{ObjectsExact}})
 	require.NoError(t, err)
 	require.False(t, ok)
 	exact := exactProjected(t, exactFixtureDocument())
-	ok, err = Covers(exact, GrantScope{Connection: "conn", Objects: []ObjectRef{{"sales", "Customer"}}})
+	ok, err = Covers(exact, GrantScope{Connection: "conn", Objects: []ObjectRef{{"sales", "Customer"}}, Requires: []string{ObjectsExact}})
 	require.NoError(t, err)
 	require.True(t, ok)
-	for name, r := range map[string]func() (Resolution, GrantScope){
-		"invalid subject": func() (Resolution, GrantScope) {
-			r := fixtureResolution()
-			r.Subject.ID = ""
-			return r, GrantScope{Connection: "conn"}
+	notCovered := map[string]func() Resolution{
+		"stale":                  func() Resolution { r := fixtureResolution(); r.ValidUntil = r.ServerTime; return r },
+		"no server time":         func() Resolution { r := fixtureResolution(); r.ServerTime = time.Time{}; return r },
+		"mandatory fine-grained": func() Resolution { r := fixtureResolution(); r.Protection.MandatoryFineGrained = true; return r },
+		"unknown posture":        func() Resolution { r := fixtureResolution(); r.Protection.ReadPosture = "x"; return r },
+		"protection mismatch":    func() Resolution { r := fixtureResolution(); r.Protection.ID = "x"; return r },
+		"exact not read-only": func() Resolution {
+			r := exactProjected(t, exactFixtureDocument())
+			r.Protection.ReadOnly = false
+			return r
 		},
-		"stale": func() (Resolution, GrantScope) {
-			r := fixtureResolution()
-			r.ValidUntil = r.ServerTime
-			return r, GrantScope{Connection: "conn"}
-		},
-		"no server time": func() (Resolution, GrantScope) {
-			r := fixtureResolution()
-			r.ServerTime = time.Time{}
-			return r, GrantScope{Connection: "conn"}
-		},
-		"other connection": func() (Resolution, GrantScope) { return fixtureResolution(), GrantScope{Connection: "x"} },
-		"invalid grant": func() (Resolution, GrantScope) {
+		"invalid grant": func() Resolution {
 			r := fixtureResolution()
 			g := fixtureGrant(now)
 			g.Revision = 0
 			r.Grants = []Grant{g}
-			return r, GrantScope{Connection: "conn"}
+			return r
 		},
-		"foreign grant": func() (Resolution, GrantScope) {
-			r := fixtureResolution()
-			r.Grants = []Grant{agentGrant(now)}
-			return r, GrantScope{Connection: "conn"}
-		},
-		"grant on other connection": func() (Resolution, GrantScope) {
-			r := fixtureResolution()
-			g := fixtureGrant(now)
-			g.Scope.Connection = "x"
-			r.Grants = []Grant{g}
-			return r, GrantScope{Connection: "conn"}
-		},
-		"unprojected exact": func() (Resolution, GrantScope) { return exactRawResolution(), GrantScope{Connection: "conn"} },
-	} {
+		"unprojected exact": exactRawResolution,
+	}
+	for name, build := range notCovered {
 		t.Run(name, func(t *testing.T) {
-			res, scope := r()
-			_, err := Covers(res, scope)
+			ok, err := Covers(build(), GrantScope{Connection: "conn", Objects: []ObjectRef{{"sales", "Customer"}}, Requires: []string{ObjectsExact}})
+			require.NoError(t, err)
+			require.False(t, ok)
+		})
+	}
+	t.Run("connection-wide refused", func(t *testing.T) {
+		r := fixtureResolution()
+		r.Protection.MandatoryFineGrained = true
+		ok, err := Covers(r, GrantScope{Connection: "conn", Requires: []string{}})
+		require.NoError(t, err)
+		require.False(t, ok)
+	})
+	agent := agentOf(fixtureResolution())
+	agent.Subject = agentSubject()
+	errors := map[string]func() (Resolution, GrantScope){
+		"agent subject": func() (Resolution, GrantScope) { return agent, GrantScope{Connection: "conn", Requires: []string{}} },
+		"carries agent user": func() (Resolution, GrantScope) {
+			r := agentOf(fixtureResolution())
+			return r, GrantScope{Connection: "conn", Requires: []string{}}
+		},
+		"other connection": func() (Resolution, GrantScope) {
+			return fixtureResolution(), GrantScope{Connection: "x", Requires: []string{}}
+		},
+		"invalid scope": func() (Resolution, GrantScope) {
+			return fixtureResolution(), GrantScope{Connection: "conn", Objects: []ObjectRef{{"sales", "*"}}, Requires: []string{ObjectsExact}}
+		},
+		"unqueryable object": func() (Resolution, GrantScope) {
+			return fixtureResolution(), GrantScope{Connection: "conn", Objects: []ObjectRef{{"", "Customer"}}, Requires: []string{ObjectsExact}}
+		},
+		"invalid subject": func() (Resolution, GrantScope) {
+			r := fixtureResolution()
+			r.Subject.ID = ""
+			return r, GrantScope{Connection: "conn", Requires: []string{}}
+		},
+		"no authority": func() (Resolution, GrantScope) {
+			r := fixtureResolution()
+			r.Connection.Space = ""
+			return r, GrantScope{Connection: "conn", Requires: []string{}}
+		},
+	}
+	for name, build := range errors {
+		t.Run(name, func(t *testing.T) {
+			r, scope := build()
+			_, err := Covers(r, scope)
 			require.Error(t, err)
 		})
 	}

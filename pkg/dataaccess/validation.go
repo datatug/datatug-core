@@ -109,7 +109,7 @@ func (g Grant) validateAgent() error {
 	invalid := fmt.Errorf("dataaccess: invalid agent grant")
 	if g.AgentUser == nil {
 		if g.Subject.Kind == Agent || g.Forwarded != nil || g.EffectiveAt != nil ||
-			(g.Decision != nil && (g.Decision.ForOwnAgent || g.Decision.Dormant || g.Decision.ByAgentUser)) {
+			(g.Decision != nil && (g.Decision.By.Kind == Agent || g.Decision.ForOwnAgent || g.Decision.Dormant || g.Decision.ByAgentUser)) {
 			return invalid
 		}
 		return nil
@@ -124,7 +124,7 @@ func (g Grant) validateAgent() error {
 	if d := g.Decision; d != nil {
 		own := d.ForOwnAgent || d.Dormant || d.ByAgentUser
 		// An agent never decides, and its user's decision is always flagged.
-		if d.By.Kind == Agent || d.By == g.Subject || (d.By == user && !d.ForOwnAgent && !d.ByAgentUser) ||
+		if d.By.Kind == Agent || (d.By == user && !d.ForOwnAgent && !d.ByAgentUser) ||
 			(own && (d.By != user || d.Self)) || (d.Dormant && !d.ForOwnAgent) || (d.ForOwnAgent && d.ByAgentUser) ||
 			(d.ByAgentUser && g.State != Refused) || (d.ForOwnAgent && g.State == Refused) {
 			return invalid
