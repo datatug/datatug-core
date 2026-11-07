@@ -345,3 +345,28 @@ func TestSelector(t *testing.T) {
 		t.Error("unknown instance must be ErrTargetUnknown")
 	}
 }
+
+func TestUnscopedKeepsEveryRule(t *testing.T) {
+	out, err := Unscoped([]byte(factoriesYAML), access.YAMLCodec{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"never-factory-e", "no-production-orders", "factory-a-settings"} {
+		if !bytes.Contains(out, []byte(id)) {
+			t.Errorf("Unscoped dropped %s:\n%s", id, out)
+		}
+	}
+	if bytes.Contains(out, []byte("instance:")) {
+		t.Errorf("Unscoped kept a selector key:\n%s", out)
+	}
+	if _, err := access.DecodePolicy(bytes.NewReader(out), access.YAMLCodec{}); err != nil {
+		t.Errorf("DALgo refuses the unscoped view: %v", err)
+	}
+	plain := []byte(`{"scopes":[]}`)
+	if out, err := Unscoped(plain, access.JSONCodec{}); err != nil || &out[0] != &plain[0] {
+		t.Errorf("a selector-free document must be returned as is: %v", err)
+	}
+	if _, err := Unscoped([]byte("x"), nil); !errors.Is(err, ErrUnsupportedCodec) {
+		t.Errorf("Unscoped, unsupported codec: %v", err)
+	}
+}

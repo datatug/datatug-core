@@ -34,7 +34,7 @@ func Denies(err error) bool { return errors.Is(err, ErrTargetUnknown) || errors.
 // or when a rule names an environment and t's kind is not known, and
 // ErrNoRules when the projection leaves it no top-level scope.
 func Project(data []byte, codec access.Codec, t Target) ([]byte, error) {
-	p, err := newProjection(data, codec, t)
+	p, err := newProjection(data, codec, t, false)
 	if err != nil {
 		return nil, err
 	}
@@ -50,10 +50,25 @@ func Project(data []byte, codec access.Codec, t Target) ([]byte, error) {
 	return p.encode()
 }
 
+// Unscoped returns the document with every selector key removed and every
+// rule kept, so DALgo can check a selector document's rules when it is
+// loaded. It extends every selector rule to every instance: it must never
+// decide a read. A document with no selector is returned unchanged.
+func Unscoped(data []byte, codec access.Codec) ([]byte, error) {
+	p, err := newProjection(data, codec, Target{}, true)
+	if err != nil {
+		return nil, err
+	}
+	if !p.scoped {
+		return data, nil
+	}
+	return p.encode()
+}
+
 // Scoped reports whether any rule of the document names a selector. It
 // refuses a document whose selectors cannot be applied.
 func Scoped(data []byte, codec access.Codec) (bool, error) {
-	p, err := newProjection(data, codec, Target{})
+	p, err := newProjection(data, codec, Target{}, false)
 	if err != nil {
 		return false, err
 	}
@@ -64,14 +79,15 @@ func Scoped(data []byte, codec access.Codec) (bool, error) {
 // target that is not known are discarded by Project.
 type projection struct {
 	target       Target
+	keepAll      bool
 	scoped       bool
 	environments bool
 	noRules      bool
 	encode       func() ([]byte, error)
 }
 
-func newProjection(data []byte, codec access.Codec, t Target) (*projection, error) {
-	p := &projection{target: t}
+func newProjection(data []byte, codec access.Codec, t Target, keepAll bool) (*projection, error) {
+	p := &projection{target: t, keepAll: keepAll}
 	var err error
 	switch codec.(type) {
 	case access.YAMLCodec, *access.YAMLCodec:
@@ -98,7 +114,7 @@ func (p *projection) keep(s Selector) (bool, error) {
 	p.scoped = true
 	p.environments = p.environments || s.Environment != ""
 	match, err := s.Matches(p.target)
-	return match && err == nil, nil
+	return p.keepAll || match && err == nil, nil
 }
 
 func duplicate(key string) error {
