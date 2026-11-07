@@ -56,6 +56,12 @@ func stepSchema(kind string) toolSchema {
 		"onUnavailable": enumSchema("block", "fail", "warn", "skip"),
 		"bindings":      arraySchema(refSchema("binding"), 0, 64),
 	}
+	if kind == "reconcile" {
+		// A reconcile step names a reconciliation profile and takes no inputs.
+		delete(properties, "bindings")
+		properties["profile"] = textSchema(128)
+		return objectSchema(properties, "id", "kind", "profile")
+	}
 	if kind == "query" {
 		properties["queryId"] = textSchema(512)
 		properties["validators"] = arraySchema(refSchema("validator"), 0, 32)
@@ -145,7 +151,7 @@ func buildProposalToolSchema() json.RawMessage {
 		"publishedValidator": objectSchema(toolSchema{
 			"id": textSchema(128), "title": textSchema(256), "version": toolSchema{"type": "integer"}, "validator": refSchema("validator"),
 		}, "id", "title", "validator"),
-		"step": toolSchema{"oneOf": []any{stepSchema("query"), stepSchema("check")}},
+		"step": toolSchema{"oneOf": []any{stepSchema("query"), stepSchema("check"), stepSchema("reconcile")}},
 		"check": objectSchema(toolSchema{
 			"id": textSchema(128), "title": textSchema(256), "description": toolSchema{"type": "string", "maxLength": 2048},
 			"version": toolSchema{"type": "integer"}, "inputs": nullableSchema(arraySchema(refSchema("input"), 0, 64)),
