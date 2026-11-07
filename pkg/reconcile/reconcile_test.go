@@ -373,6 +373,48 @@ func TestConsensusPresenceBlamesTheMinority(t *testing.T) {
 	assert.Equal(t, 1, result.Summary.WithUnexpected)
 }
 
+func TestConsensusPresenceWithFilteredInstancesBlamesNoOne(t *testing.T) {
+	filtered := func(id string) Source {
+		f := countries(t, id, country("FR", "France"))
+		f.Info.Limitations = []apicontract.Limitation{{Policy: "rows", RowsFiltered: true}}
+		return f
+	}
+	result, err := Reconcile([]Source{
+		countries(t, "a", country("FR", "France")),
+		filtered("b"), filtered("c"),
+		countries(t, "e", country("FR", "France"), country("XX", "Atlantis")),
+	}, Rules{Key: []string{"code"}})
+	require.NoError(t, err)
+	require.Len(t, result.Inconclusive, 1)
+	xx := result.Inconclusive[0]
+	assert.Empty(t, xx.Missing)
+	assert.Empty(t, xx.Extra)
+	assert.Equal(t, []string{"b", "c"}, xx.Inconclusive)
+	assert.Equal(t, StatusConsistent, instanceStatus(result)["e"], "e is not blamed when filtered instances could hold XX")
+	assert.Equal(t, StatusPartial, result.Status)
+
+	// A clear majority still decides even with one filtered instance.
+	result, err = Reconcile([]Source{
+		countries(t, "a", country("FR", "France")), countries(t, "b", country("FR", "France")), countries(t, "c", country("FR", "France")),
+		filtered("d"),
+		countries(t, "e", country("FR", "France"), country("XX", "Atlantis")),
+	}, Rules{Key: []string{"code"}})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"e"}, result.Unexpected[0].Extra)
+}
+
+func TestHiddenKeyDoesNotVoteOnKeyType(t *testing.T) {
+	cols := []apicontract.Column{{Name: "code", Type: "number"}, {Name: "name", Type: "string"}}
+	hiddenA := src(t, "ha", cols, []apicontract.TypedValue{num(1), str("x")})
+	hiddenA.Info.Limitations = []apicontract.Limitation{{Policy: "p", HiddenColumns: []string{"code"}}}
+	hiddenB := src(t, "hb", cols, []apicontract.TypedValue{num(1), str("x")})
+	hiddenB.Info.Limitations = []apicontract.Limitation{{Policy: "p", HiddenColumns: []string{"code"}}}
+	result, err := Reconcile([]Source{hiddenA, hiddenB, countries(t, "a", country("FR", "France")), countries(t, "b", country("FR", "France"))}, Rules{Key: []string{"code"}})
+	require.NoError(t, err)
+	assert.Equal(t, StatusConsistent, instanceStatus(result)["a"], "hidden keys do not outvote the readable string keys")
+	assert.Equal(t, 2, result.Summary.ComparedInstances)
+}
+
 func TestRecordCountedOnceInSummary(t *testing.T) {
 	// One record: missing in c (allowed by presence any) and a price difference
 	// (instance-specific) — one expected record, not two.

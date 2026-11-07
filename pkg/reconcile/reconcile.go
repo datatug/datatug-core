@@ -280,7 +280,7 @@ func (r *run) referenceKeyTypes() []string {
 	var best []string
 	bestCount := 0
 	for _, source := range r.sources {
-		if source.Unavailable != nil {
+		if source.Unavailable != nil || keyHidden(source, r.rules.Key) {
 			continue
 		}
 		types := columnTypes(source.Columns, r.rules.Key)
@@ -543,6 +543,7 @@ func (r *run) evaluatePresence(record *RecordDiscrepancy, rows alignedRows) pres
 		r.markExtra(record, holders, r.rules.Presence == PresenceSuperset || r.rules.Presence == PresenceAny, &out)
 		return out
 	}
+	filtered := 0
 	for _, plan := range r.active {
 		if _, ok := rows[plan.index]; ok {
 			continue
@@ -551,11 +552,17 @@ func (r *run) evaluatePresence(record *RecordDiscrepancy, rows alignedRows) pres
 			record.Inconclusive = append(record.Inconclusive, plan.id)
 			r.instances[plan.index].Inconclusive++
 			out.inconclusive = true
+			filtered++
 			continue
 		}
 		lackers = append(lackers, plan)
 	}
 	if len(lackers) == 0 {
+		return out
+	}
+	if r.rules.Mode == ModeConsensus && filtered > 0 && abs(len(holders)-len(lackers)) <= filtered {
+		// Instances whose rows were filtered could hold the record and swing
+		// the majority: blame no side.
 		return out
 	}
 	missingExpected := r.rules.Presence == PresenceAny || r.rules.Presence == PresenceSubset
@@ -812,8 +819,10 @@ func (r *run) driftByInstance() map[int][]string {
 		switch {
 		case !column.Compared:
 			blamed = holders
-		case len(lackers) == 0:
-			// Only hidden columns: already partial through the hidden set.
+		case len(lackers) == 0 || len(holders) == 0:
+			// Only hidden, or nobody visibly holds it: the hiding instances are
+			// already partial through their hidden set; lackers are not blamed
+			// for a column no readable instance shows.
 		case r.rules.Mode == ModeBaseline && missing[r.plans[r.baseline].id]:
 			blamed = holders
 		case r.rules.Mode == ModeBaseline || len(holders) > len(lackers):
@@ -830,6 +839,13 @@ func (r *run) driftByInstance() map[int][]string {
 	return out
 }
 
+func abs(n int) int {
+	if n < 0 {
+		return -n
+	}
+	return n
+}
+
 func groupHolding(groups []*group, index int) int {
 	for gi, g := range groups {
 		for _, member := range g.members {
@@ -839,6 +855,20 @@ func groupHolding(groups []*group, index int) int {
 		}
 	}
 	return -1
+}
+
+// keyHidden reports whether policy hides any key column of the source.
+func keyHidden(source Source, key []string) bool {
+	for _, limitation := range source.Info.Limitations {
+		for _, column := range limitation.HiddenColumns {
+			for _, name := range key {
+				if column == name {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // columnTypes returns the declared types of names, or nil if one is missing.
