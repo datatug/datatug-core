@@ -25,7 +25,7 @@ type RunRequest struct {
 // EvaluateCheck runs a preloaded, validated transitive Catalog. The caller
 // authorizes project/case access and supplies the secured saved-query runner.
 // It persists the returned run and case link in its own transaction.
-func EvaluateCheck(ctx context.Context, req RunRequest, catalog Catalog, runner QueryRunner, metadata ExecutionMetadata) (CheckRun, error) {
+func EvaluateCheck(ctx context.Context, req RunRequest, catalog Catalog, runner QueryRunner, metadata ExecutionMetadata, options ...Option) (CheckRun, error) {
 	if !catalog.sealed() || !validSlug(req.ID) || !validSlug(req.CheckID) || req.QueryID != "" || req.Environment == "" || runner == nil {
 		return CheckRun{}, ErrInvalid
 	}
@@ -49,7 +49,7 @@ func EvaluateCheck(ctx context.Context, req RunRequest, catalog Catalog, runner 
 	}
 	start := time.Now().UTC()
 	run := CheckRun{ID: req.ID, Kind: "check", CheckID: req.CheckID, Definition: root, CaseID: req.CaseID, Environment: req.Environment, InputNames: sortedKeys(req.Inputs), InputReference: inputReference, StartedAt: start, Actor: req.Actor}
-	e := newEngine(catalog, req.Environment, runner, metadata)
+	e := newEngine(catalog, req.Environment, runner, metadata, options...)
 	e.snapshot(&run, req.CheckID, "")
 	runCtx, cancel := context.WithTimeout(ctx, maxRunDuration)
 	defer cancel()

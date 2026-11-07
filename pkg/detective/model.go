@@ -9,6 +9,7 @@ import (
 
 	"github.com/datatug/datatug-core/pkg/apicontract"
 	"github.com/datatug/datatug-core/pkg/investigation"
+	"github.com/datatug/datatug-core/pkg/reconcile"
 )
 
 type Value = investigation.TypedValue
@@ -170,10 +171,13 @@ type QueryValidators struct {
 }
 
 type Step struct {
-	ID            string      `json:"id"`
-	Kind          string      `json:"kind"` // query | check
-	QueryID       string      `json:"queryId,omitempty"`
-	CheckID       string      `json:"checkId,omitempty"`
+	ID      string `json:"id"`
+	Kind    string `json:"kind"` // query | check | reconcile
+	QueryID string `json:"queryId,omitempty"`
+	CheckID string `json:"checkId,omitempty"`
+	// Profile names a reconciliation profile (reconciliations/<id>.json) for a
+	// reconcile step. The profile selects its own instances.
+	Profile       string      `json:"profile,omitempty"`
 	Bindings      []Binding   `json:"bindings,omitempty"`
 	Validators    []Validator `json:"validators,omitempty"`
 	OnUnavailable string      `json:"onUnavailable,omitempty"`
@@ -322,6 +326,8 @@ type StepResult struct {
 	ErrorCode         string                    `json:"errorCode,omitempty"`
 	DurationMs        int64                     `json:"durationMs,omitempty"`
 	CheckID           string                    `json:"checkId,omitempty"`
+	Profile           string                    `json:"profile,omitempty"`
+	Reconciliation    *reconcile.Result         `json:"reconciliation,omitempty"`
 	ExecutionStatus   string                    `json:"executionStatus"` // pending | running | completed | error | skipped
 	Outcome           string                    `json:"outcome"`         // pass | fail | unknown
 	EvidenceOutcome   string                    `json:"evidenceOutcome,omitempty"`

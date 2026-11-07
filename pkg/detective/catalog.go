@@ -145,6 +145,9 @@ func LoadCatalog(ctx context.Context, rootCheckID, rootQueryID string, reader Ca
 			if err := ctx.Err(); err != nil {
 				return err
 			}
+			if step.Kind == "reconcile" {
+				continue // the profile is loaded by the Reconciler at run time
+			}
 			if step.Kind == "check" {
 				if err := visitCheck(step.CheckID, depth+1); err != nil {
 					return err
