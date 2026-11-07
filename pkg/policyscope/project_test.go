@@ -370,3 +370,32 @@ func TestUnscopedKeepsEveryRule(t *testing.T) {
 		t.Errorf("Unscoped, unsupported codec: %v", err)
 	}
 }
+
+func TestMalformedKindIsUnknown(t *testing.T) {
+	// An environment file is not checked when it is loaded: a kind outside
+	// the closed set must not count as "not production".
+	for _, kind := range []datatug.EnvironmentKind{"Production", "prod"} {
+		target := Target{Environment: "factory-a-prod", Catalog: "factory", Kind: kind}
+		if _, err := Project([]byte(factoriesYAML), access.YAMLCodec{}, target); !errors.Is(err, ErrTargetUnknown) {
+			t.Errorf("kind %q: err = %v, want ErrTargetUnknown", kind, err)
+		}
+	}
+}
+
+func TestJSONKeysDifferingOnlyByCaseAreRefused(t *testing.T) {
+	doc := `{"scopes":[{"path":"/a","rules":[{"id":"r","effect":"allow","Effect":"deny","operations":["query"],"instance":"factory-a-prod/factory"}]}],"list":["x",{"k":1},[2]],"n":null}`
+	if _, err := Project([]byte(doc), access.JSONCodec{}, factoryA); !errors.Is(err, ErrInvalidSelector) || !strings.Contains(err.Error(), "differ only by case") {
+		t.Errorf("err = %v", err)
+	}
+	ok := `{"scopes":[{"path":"/a","rules":[{"id":"r","effect":"allow","operations":["query"],"instance":"factory-a-prod/factory","where":{"left":{"field":"x"},"right":{"value":"Effect"}}}]}],"list":["effect",{"k":1},[2]]}`
+	if _, err := Project([]byte(ok), access.JSONCodec{}, factoryA); err != nil {
+		t.Errorf("a string value equal to a key is no duplicate: %v", err)
+	}
+	plain := []byte(`{"scopes":[{"path":"/a","rules":[{"id":"r","effect":"allow","Effect":"deny","operations":["query"]}]}]}`)
+	if out, err := Project(plain, access.JSONCodec{}, factoryA); err != nil || string(out) != string(plain) {
+		t.Errorf("a selector-free document is not checked or changed: %v", err)
+	}
+	if foldedDuplicate([]byte(`{"a":`)) != "" {
+		t.Error("a truncated document has no duplicate")
+	}
+}

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/dal-go/dalgo/access"
 	"github.com/datatug/datatug-core/pkg/datatug"
@@ -300,6 +301,12 @@ func (p *projection) json(data []byte) error {
 			}
 		}
 	}
+	// Go's JSON decoder matches keys case-insensitively and the last one
+	// wins; re-encoding sorts keys, which could change which one wins. A
+	// document with no selector is never re-encoded, so it is not checked.
+	if key := foldedDuplicate(data); p.scoped && key != "" {
+		return fmt.Errorf("%w: keys %q differ only by case", ErrInvalidSelector, key)
+	}
 	p.encode = func() ([]byte, error) {
 		var out bytes.Buffer
 		encoder := json.NewEncoder(&out)
@@ -385,4 +392,47 @@ func (p *projection) jsonRule(item any) (bool, error) {
 		delete(rule, key)
 	}
 	return p.keep(s)
+}
+
+// foldedDuplicate returns a key that appears twice in one JSON object under
+// case folding, or "". data has already been decoded once.
+func foldedDuplicate(data []byte) string {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	var seen []map[string]bool
+	expectKey := []bool{}
+	for {
+		token, err := decoder.Token()
+		if err != nil {
+			return ""
+		}
+		switch v := token.(type) {
+		case json.Delim:
+			switch v {
+			case '{':
+				seen = append(seen, map[string]bool{})
+				expectKey = append(expectKey, true)
+				continue
+			case '[':
+				seen = append(seen, nil)
+				expectKey = append(expectKey, false)
+				continue
+			default:
+				seen, expectKey = seen[:len(seen)-1], expectKey[:len(expectKey)-1]
+			}
+		case string:
+			if top := len(seen) - 1; top >= 0 && seen[top] != nil && expectKey[top] {
+				folded := strings.ToLower(v)
+				if seen[top][folded] {
+					return v
+				}
+				seen[top][folded] = true
+				expectKey[top] = false
+				continue
+			}
+		}
+		// A value ends: the next string in an object is a key.
+		if top := len(expectKey) - 1; top >= 0 && seen[top] != nil {
+			expectKey[top] = true
+		}
+	}
 }

@@ -61,8 +61,10 @@ func (t Target) Instance() string {
 	return t.Environment + "/" + t.Catalog
 }
 
+// kindKnown is false for an empty kind, "unknown", and any value outside
+// the closed set (an environment file is not checked when it is loaded).
 func (t Target) kindKnown() bool {
-	return t.Kind != "" && t.Kind != datatug.EnvironmentKindUnknown
+	return t.Kind != "" && t.Kind != datatug.EnvironmentKindUnknown && t.Kind.Validate() == nil
 }
 
 // Selector is the selectors one rule names. The zero Selector names none.
