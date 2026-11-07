@@ -384,7 +384,7 @@ func TestMalformedKindIsUnknown(t *testing.T) {
 
 func TestJSONKeysDifferingOnlyByCaseAreRefused(t *testing.T) {
 	doc := `{"scopes":[{"path":"/a","rules":[{"id":"r","effect":"allow","Effect":"deny","operations":["query"],"instance":"factory-a-prod/factory"}]}],"list":["x",{"k":1},[2]],"n":null}`
-	if _, err := Project([]byte(doc), access.JSONCodec{}, factoryA); !errors.Is(err, ErrInvalidSelector) || !strings.Contains(err.Error(), "differ only by case") {
+	if _, err := Project([]byte(doc), access.JSONCodec{}, factoryA); !errors.Is(err, ErrInvalidSelector) || !strings.Contains(err.Error(), "differs from another only by case") {
 		t.Errorf("err = %v", err)
 	}
 	ok := `{"scopes":[{"path":"/a","rules":[{"id":"r","effect":"allow","operations":["query"],"instance":"factory-a-prod/factory","where":{"left":{"field":"x"},"right":{"value":"Effect"}}}]}],"list":["effect",{"k":1},[2]]}`
@@ -395,7 +395,14 @@ func TestJSONKeysDifferingOnlyByCaseAreRefused(t *testing.T) {
 	if out, err := Project(plain, access.JSONCodec{}, factoryA); err != nil || string(out) != string(plain) {
 		t.Errorf("a selector-free document is not checked or changed: %v", err)
 	}
-	if foldedDuplicate([]byte(`{"a":`)) != "" {
+	// "ſ" (U+017F) folds to "s" in Go's decoder, "K" (U+212A) to "k".
+	for _, key := range []string{"rule\u017f", "\u212aind"} {
+		doc := `{"scopes":[{"path":"/a","` + key + `":[{"id":"x","effect":"allow","operations":["query"]}],"rules":[{"id":"r","effect":"deny","operations":["query"],"instance":"factory-e-prod/factory"}]}]}`
+		if _, err := Project([]byte(doc), access.JSONCodec{}, factoryA); !errors.Is(err, ErrInvalidSelector) {
+			t.Errorf("%s: a non-ASCII key in a selector document must be refused: %v", key, err)
+		}
+	}
+	if ambiguousKey([]byte(`{"a":`)) != "" {
 		t.Error("a truncated document has no duplicate")
 	}
 }

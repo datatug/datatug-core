@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"unicode"
 
 	"github.com/dal-go/dalgo/access"
 	"github.com/datatug/datatug-core/pkg/datatug"
@@ -301,11 +302,12 @@ func (p *projection) json(data []byte) error {
 			}
 		}
 	}
-	// Go's JSON decoder matches keys case-insensitively and the last one
-	// wins; re-encoding sorts keys, which could change which one wins. A
-	// document with no selector is never re-encoded, so it is not checked.
-	if key := foldedDuplicate(data); p.scoped && key != "" {
-		return fmt.Errorf("%w: keys %q differ only by case", ErrInvalidSelector, key)
+	// Go's JSON decoder matches keys case-insensitively (with Unicode
+	// folding, so "ſ" matches "s") and the last one wins; re-encoding sorts
+	// keys, which could change which one wins. A document with no selector
+	// is never re-encoded, so it is not checked.
+	if key := ambiguousKey(data); p.scoped && key != "" {
+		return fmt.Errorf("%w: key %q is not ASCII or differs from another only by case", ErrInvalidSelector, key)
 	}
 	p.encode = func() ([]byte, error) {
 		var out bytes.Buffer
@@ -394,9 +396,10 @@ func (p *projection) jsonRule(item any) (bool, error) {
 	return p.keep(s)
 }
 
-// foldedDuplicate returns a key that appears twice in one JSON object under
-// case folding, or "". data has already been decoded once.
-func foldedDuplicate(data []byte) string {
+// ambiguousKey returns a key that is not ASCII, or that appears twice in one
+// JSON object under ASCII case folding, or "". data has already been decoded
+// once.
+func ambiguousKey(data []byte) string {
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	var seen []map[string]bool
 	expectKey := []bool{}
@@ -422,7 +425,7 @@ func foldedDuplicate(data []byte) string {
 		case string:
 			if top := len(seen) - 1; top >= 0 && seen[top] != nil && expectKey[top] {
 				folded := strings.ToLower(v)
-				if seen[top][folded] {
+				if seen[top][folded] || strings.ContainsFunc(v, func(r rune) bool { return r > unicode.MaxASCII }) {
 					return v
 				}
 				seen[top][folded] = true
