@@ -64,6 +64,7 @@ type run struct {
 	result    *Result
 	instances []*InstanceResult
 	byID      map[string]int
+	keyRef    []string // reference key column types, nil when unknown
 }
 
 // Reconcile compares sources under rules. It returns an error only for an
@@ -195,6 +196,7 @@ func (r *run) planSources() error {
 	if r.rules.Mode == ModeBaseline && r.baseline < 0 {
 		return fmt.Errorf("%w: baseline %q is not among the sources", ErrInvalidRules, r.rules.Baseline)
 	}
+	r.keyRef = r.referenceKeyTypes()
 	for i, source := range r.sources {
 		id := source.Instance.ID
 		plan := &sourcePlan{index: i, id: id, columns: map[string]int{}, types: map[string]string{}, hidden: map[string]bool{}}
@@ -253,32 +255,45 @@ func (r *run) keyProblem(plan *sourcePlan) string {
 			return fmt.Sprintf("key column %q is missing", name)
 		}
 	}
-	keyTypes := r.keyTypes()
-	if keyTypes == nil || plan.index == r.baseline {
+	if r.keyRef == nil || plan.index == r.baseline {
 		return ""
 	}
 	for i, name := range r.rules.Key {
-		if plan.types[name] != keyTypes[i] {
-			return fmt.Sprintf("key column %q has type %q, other instances use %q", name, plan.types[name], keyTypes[i])
+		if plan.types[name] != r.keyRef[i] {
+			return fmt.Sprintf("key column %q has type %q, other instances use %q", name, plan.types[name], r.keyRef[i])
 		}
 	}
 	return ""
 }
 
-// keyTypes returns the key column types of the reference instance (the
-// baseline, else the first instance whose key is complete), or nil.
-func (r *run) keyTypes() []string {
-	reference := r.baseline
-	if reference < 0 {
-		if len(r.active) == 0 {
+// referenceKeyTypes returns the key column types instances must share: the
+// baseline's in baseline mode, else the most common type tuple among readable
+// sources (ties go to the earliest source), or nil when none is known.
+func (r *run) referenceKeyTypes() []string {
+	if r.rules.Mode == ModeBaseline {
+		if r.sources[r.baseline].Unavailable != nil {
 			return nil
 		}
-		reference = r.active[0].index
+		return columnTypes(r.sources[r.baseline].Columns, r.rules.Key)
 	}
-	if r.sources[reference].Unavailable != nil {
-		return nil
+	counts := map[string]int{}
+	var best []string
+	bestCount := 0
+	for _, source := range r.sources {
+		if source.Unavailable != nil {
+			continue
+		}
+		types := columnTypes(source.Columns, r.rules.Key)
+		if types == nil {
+			continue
+		}
+		tuple := strings.Join(types, "\x00")
+		counts[tuple]++
+		if counts[tuple] > bestCount {
+			best, bestCount = types, counts[tuple]
+		}
 	}
-	return columnTypes(r.sources[reference].Columns, r.rules.Key)
+	return best
 }
 
 func (r *run) policyFor(column string) FieldPolicy {
@@ -440,19 +455,36 @@ func (r *run) evaluate(diff recordops.IDDiff[string]) {
 			break
 		}
 	}
-	record := RecordDiscrepancy{Key: make([]apicontract.TypedValue, len(r.rules.Key))}
-	for i, name := range r.rules.Key {
-		record.Key[i] = first[name]
-	}
 	summary := &r.result.Summary
 	summary.Records++
-
-	unexpected, expected, inconclusive := r.evaluatePresence(&record, rows)
-	if r.rules.Mode == ModeConsensus || rows[r.baseline] != nil {
-		u, e := r.evaluateFields(&record, rows)
-		unexpected = unexpected || u
-		expected = expected || e
+	record := RecordDiscrepancy{Ordinal: summary.Records}
+	if r.rules.Disclosure == DiscloseValues {
+		record.Key = make([]apicontract.TypedValue, len(r.rules.Key))
+		for i, name := range r.rules.Key {
+			record.Key[i] = first[name]
+		}
 	}
+
+	presence := r.evaluatePresence(&record, rows)
+	fieldsUnexpected, fieldsExpected := false, false
+	if r.rules.Mode == ModeConsensus || rows[r.baseline] != nil {
+		fieldsUnexpected, fieldsExpected = r.evaluateFields(&record, rows)
+	}
+	if presence.missing {
+		summary.MissingRecords++
+	}
+	if presence.extra {
+		summary.ExtraRecords++
+	}
+	if fieldsUnexpected {
+		summary.ConflictingRecords++
+	}
+	expected := presence.expected || fieldsExpected
+	if expected {
+		summary.ExpectedDifferences++
+	}
+	unexpected := presence.missing || presence.extra || fieldsUnexpected
+	inconclusive := presence.inconclusive
 
 	switch {
 	case unexpected:
@@ -477,76 +509,102 @@ func (r *run) keep(list *[]RecordDiscrepancy, record RecordDiscrepancy) {
 	r.result.Truncated = true
 }
 
-// evaluatePresence fills Present/Missing/Extra/Inconclusive and returns which
-// classes of difference the record carries.
-func (r *run) evaluatePresence(record *RecordDiscrepancy, rows alignedRows) (unexpected, expected, inconclusive bool) {
-	var absent []*sourcePlan
+// presenceOutcome says which classes of presence difference a record has:
+// unexpected missing, unexpected extra, expected, or inconclusive absence.
+type presenceOutcome struct {
+	missing, extra, expected, inconclusive bool
+}
+
+// evaluatePresence fills Present/Missing/Extra/Inconclusive. In baseline mode
+// the authority decides; in consensus mode the larger side does: absentees
+// are missing when most instances hold the record, holders are extra when
+// most lack it, and a tie is reported as no consensus with both sides named.
+func (r *run) evaluatePresence(record *RecordDiscrepancy, rows alignedRows) presenceOutcome {
+	var holders, lackers []*sourcePlan
 	for _, plan := range r.active {
 		if _, ok := rows[plan.index]; ok {
 			record.Present = append(record.Present, plan.id)
-		} else {
-			absent = append(absent, plan)
+			holders = append(holders, plan)
 		}
 	}
-	summary := &r.result.Summary
+	var out presenceOutcome
 	if r.rules.Mode == ModeBaseline && rows[r.baseline] == nil {
 		// The authority lacks the record: holders are extra, unless the
 		// authority's own rows were filtered by policy.
 		if r.plans[r.baseline].rowsFiltered {
-			for _, id := range record.Present {
-				record.Inconclusive = append(record.Inconclusive, id)
-				r.instance(id).Inconclusive++
+			for _, plan := range holders {
+				record.Inconclusive = append(record.Inconclusive, plan.id)
+				r.instances[plan.index].Inconclusive++
 			}
 			record.Present = nil
-			return false, false, true
+			out.inconclusive = true
+			return out
 		}
-		record.Extra = record.Present
-		record.ExtraExpected = r.rules.Presence == PresenceSuperset || r.rules.Presence == PresenceAny
-		for _, id := range record.Extra {
-			if record.ExtraExpected {
-				r.instance(id).Expected++
-			} else {
-				r.instance(id).Extra++
-			}
-		}
-		if record.ExtraExpected {
-			summary.ExpectedDifferences++
-			return false, true, false
-		}
-		summary.ExtraRecords++
-		return true, false, false
+		r.markExtra(record, holders, r.rules.Presence == PresenceSuperset || r.rules.Presence == PresenceAny, &out)
+		return out
 	}
-	if len(absent) == 0 {
-		return false, false, false
-	}
-	record.MissingExpected = r.rules.Presence == PresenceAny || r.rules.Presence == PresenceSubset
-	for _, plan := range absent {
+	for _, plan := range r.active {
+		if _, ok := rows[plan.index]; ok {
+			continue
+		}
 		if plan.rowsFiltered {
 			record.Inconclusive = append(record.Inconclusive, plan.id)
 			r.instances[plan.index].Inconclusive++
-			inconclusive = true
+			out.inconclusive = true
 			continue
 		}
+		lackers = append(lackers, plan)
+	}
+	if len(lackers) == 0 {
+		return out
+	}
+	missingExpected := r.rules.Presence == PresenceAny || r.rules.Presence == PresenceSubset
+	if r.rules.Mode == ModeBaseline || len(holders) > len(lackers) {
+		r.markMissing(record, lackers, missingExpected, &out)
+		return out
+	}
+	if len(holders) < len(lackers) {
+		r.markExtra(record, holders, r.rules.Presence == PresenceAny, &out)
+		return out
+	}
+	record.PresenceNoConsensus = true
+	r.markMissing(record, lackers, missingExpected, &out)
+	r.markExtra(record, holders, r.rules.Presence == PresenceAny, &out)
+	return out
+}
+
+func (r *run) markMissing(record *RecordDiscrepancy, plans []*sourcePlan, expected bool, out *presenceOutcome) {
+	record.MissingExpected = expected
+	for _, plan := range plans {
 		record.Missing = append(record.Missing, plan.id)
-		if record.MissingExpected {
+		if expected {
 			r.instances[plan.index].Expected++
 		} else {
 			r.instances[plan.index].Missing++
 		}
 	}
-	if len(record.Missing) == 0 {
-		return false, false, inconclusive
+	if expected {
+		out.expected = true
+	} else {
+		out.missing = true
 	}
-	if record.MissingExpected {
-		summary.ExpectedDifferences++
-		return false, true, inconclusive
-	}
-	summary.MissingRecords++
-	return true, false, inconclusive
 }
 
-func (r *run) instance(id string) *InstanceResult {
-	return r.instances[r.byID[id]]
+func (r *run) markExtra(record *RecordDiscrepancy, plans []*sourcePlan, expected bool, out *presenceOutcome) {
+	record.ExtraExpected = expected
+	for _, plan := range plans {
+		record.Extra = append(record.Extra, plan.id)
+		if expected {
+			r.instances[plan.index].Expected++
+		} else {
+			r.instances[plan.index].Extra++
+		}
+	}
+	if expected {
+		out.expected = true
+	} else {
+		out.extra = true
+	}
 }
 
 func (r *run) evaluateFields(record *RecordDiscrepancy, rows alignedRows) (unexpected, expected bool) {
@@ -568,11 +626,6 @@ func (r *run) evaluateFields(record *RecordDiscrepancy, rows alignedRows) (unexp
 		for _, index := range deviating {
 			target[index] = true
 		}
-	}
-	if unexpected {
-		r.result.Summary.ConflictingRecords++
-	} else if expected {
-		r.result.Summary.ExpectedDifferences++
 	}
 	for index := range deviatingUnexpected {
 		r.instances[index].Conflicts++
@@ -623,7 +676,9 @@ func (r *run) compareField(column columnPlan, rows alignedRows) (FieldDifference
 		if len(groups[i].members) != len(groups[j].members) {
 			return len(groups[i].members) > len(groups[j].members)
 		}
-		return groups[i].identity < groups[j].identity
+		// Equal-size groups are ordered by instance, never by value: the order
+		// of values would disclose their relative order in groups-only results.
+		return groups[i].members[0] < groups[j].members[0]
 	})
 	difference := FieldDifference{Column: column.name, Policy: column.policy, Expected: column.policy == FieldInstanceSpecific}
 	reference := -1 // index into groups of the group others deviate from
@@ -682,6 +737,7 @@ func (r *run) finish() {
 	snapshot := true
 	compared := len(r.active) >= 2 && (r.rules.Mode == ModeConsensus || r.plans[r.baseline].available)
 	anyPartial, anyInconclusive := false, !compared
+	drift := r.driftByInstance()
 	for i, instance := range r.instances {
 		plan := r.plans[i]
 		snapshot = snapshot && r.sources[i].Snapshot
@@ -691,12 +747,13 @@ func (r *run) finish() {
 			anyInconclusive = true
 		case instance.Missing+instance.Extra+instance.Conflicts > 0:
 			instance.Status = StatusDiscrepancies
-		case plan.rowsFiltered || len(plan.hidden) > 0 || instance.Inconclusive > 0:
+		case plan.rowsFiltered || len(plan.hidden) > 0 || instance.Inconclusive > 0 || len(drift[i]) > 0:
 			instance.Status = StatusPartial
 			anyPartial = true
 		default:
 			instance.Status = StatusConsistent
 		}
+		instance.DriftColumns = drift[i]
 		result.Instances = append(result.Instances, *instance)
 	}
 	switch {
@@ -724,6 +781,53 @@ func (r *run) finish() {
 			result.Caveats = append(result.Caveats, fmt.Sprintf("column %q has conflicting types across instances and was not compared", column.Column))
 		}
 	}
+}
+
+// driftByInstance attributes each drifting column (Result.Columns) to the
+// instances it leaves not fully compared: every holder of a column with
+// conflicting types; otherwise, in baseline mode, the side that differs from
+// the baseline; in consensus mode, the smaller side (both on a tie).
+func (r *run) driftByInstance() map[int][]string {
+	out := map[int][]string{}
+	add := func(index int, column string) { out[index] = append(out[index], column) }
+	for _, column := range r.result.Columns {
+		missing := map[string]bool{}
+		for _, id := range column.MissingIn {
+			missing[id] = true
+		}
+		hidden := map[string]bool{}
+		for _, id := range column.HiddenIn {
+			hidden[id] = true
+		}
+		var holders, lackers []int
+		for _, plan := range r.active {
+			switch {
+			case missing[plan.id]:
+				lackers = append(lackers, plan.index)
+			case !hidden[plan.id]:
+				holders = append(holders, plan.index)
+			}
+		}
+		var blamed []int
+		switch {
+		case !column.Compared:
+			blamed = holders
+		case len(lackers) == 0:
+			// Only hidden columns: already partial through the hidden set.
+		case r.rules.Mode == ModeBaseline && missing[r.plans[r.baseline].id]:
+			blamed = holders
+		case r.rules.Mode == ModeBaseline || len(holders) > len(lackers):
+			blamed = lackers
+		case len(holders) < len(lackers):
+			blamed = holders
+		default:
+			blamed = append(holders, lackers...)
+		}
+		for _, index := range blamed {
+			add(index, column.Column)
+		}
+	}
+	return out
 }
 
 func groupHolding(groups []*group, index int) int {

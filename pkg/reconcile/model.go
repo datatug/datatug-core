@@ -103,8 +103,8 @@ type ValueDisclosure string
 const (
 	// DiscloseValues includes post-policy visible values in value groups.
 	DiscloseValues ValueDisclosure = "values"
-	// DiscloseGroupsOnly reports only which instances agree, never values or
-	// hashes of values. Use it when results leave the trust boundary (for
+	// DiscloseGroupsOnly reports only which instances agree, never values,
+	// hashes of values or record keys (records are identified by ordinal). Use it when results leave the trust boundary (for
 	// example to an AI service).
 	DiscloseGroupsOnly ValueDisclosure = "groups-only"
 )
@@ -169,6 +169,9 @@ type InstanceResult struct {
 	RowCount      int          `json:"rowCount"`
 	RowsFiltered  bool         `json:"rowsFiltered,omitempty"`
 	HiddenColumns []string     `json:"hiddenColumns,omitempty"`
+	// DriftColumns lists columns this instance could not be fully compared on
+	// because of schema drift (see Result.Columns).
+	DriftColumns []string `json:"driftColumns,omitempty"`
 	// Counts are per (record, instance) attributions.
 	Missing      int `json:"missing"`
 	Extra        int `json:"extra"`
@@ -207,7 +210,10 @@ type Summary struct {
 
 // RecordDiscrepancy is one logical record that is not consistent everywhere.
 type RecordDiscrepancy struct {
-	Key []apicontract.TypedValue `json:"key"`
+	// Ordinal is the record's 1-based position in key order. It identifies
+	// the record in groups-only results, where Key is omitted.
+	Ordinal int                      `json:"ordinal"`
+	Key     []apicontract.TypedValue `json:"key,omitempty"`
 	// Present lists instances holding the record.
 	Present []string `json:"present"`
 	// Missing lists instances lacking the record; MissingExpected says
@@ -217,6 +223,9 @@ type RecordDiscrepancy struct {
 	// Extra lists instances holding a record the baseline lacks.
 	Extra         []string `json:"extra,omitempty"`
 	ExtraExpected bool     `json:"extraExpected,omitempty"`
+	// PresenceNoConsensus: in consensus mode, as many instances hold the
+	// record as lack it; both sides are listed and neither is presumed right.
+	PresenceNoConsensus bool `json:"presenceNoConsensus,omitempty"`
 	// Inconclusive lists instances whose absence cannot be judged because
 	// policy filtered their rows.
 	Inconclusive []string          `json:"inconclusive,omitempty"`

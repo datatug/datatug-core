@@ -285,6 +285,14 @@ func TestSchemaDrift(t *testing.T) {
 	assert.Equal(t, map[string]string{"a": "string", "wide": "string", "typed": "number"}, result.Columns[1].Types)
 	assert.Contains(t, result.Caveats, `column "name" has conflicting types across instances and was not compared`)
 	assert.Equal(t, 1, result.Summary.Consistent)
+	// Drift never passes as consistent: the lone holder of iso3 and every
+	// holder of the conflicting name column are not fully compared.
+	assert.Equal(t, StatusPartial, result.Status)
+	drift := map[string][]string{}
+	for _, instance := range result.Instances {
+		drift[instance.Instance.ID] = instance.DriftColumns
+	}
+	assert.Equal(t, map[string][]string{"a": {"name"}, "wide": {"iso3", "name"}, "typed": {"name"}}, drift)
 
 	// In baseline mode a column the baseline lacks is reported, not judged.
 	result, err = Reconcile([]Source{
@@ -293,20 +301,122 @@ func TestSchemaDrift(t *testing.T) {
 		src(t, "y", extraColumn.Columns, []apicontract.TypedValue{str("FR"), str("France"), str("FRX")}),
 	}, Rules{Key: []string{"code"}, Baseline: "hq"})
 	require.NoError(t, err)
-	assert.Equal(t, StatusConsistent, result.Status)
+	assert.Equal(t, StatusPartial, result.Status, "candidates' iso3 values could not be judged against the baseline")
 	assert.Equal(t, []string{"hq"}, result.Columns[0].MissingIn)
+	assert.Equal(t, []string{"iso3"}, result.Instances[1].DriftColumns)
+	assert.Empty(t, result.Instances[0].DriftColumns)
+
+	// The baseline holds a column a candidate lacks: the candidate drifts.
+	result, err = Reconcile([]Source{
+		src(t, "hq", extraColumn.Columns, []apicontract.TypedValue{str("FR"), str("France"), str("FRA")}),
+		countries(t, "x", country("FR", "France")),
+	}, Rules{Key: []string{"code"}, Baseline: "hq"})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"iso3"}, result.Instances[1].DriftColumns)
+
+	// Consensus with as many holders as lackers blames both sides.
+	result, err = Reconcile([]Source{countries(t, "a", country("FR", "France")), src(t, "b", extraColumn.Columns, []apicontract.TypedValue{str("FR"), str("France"), str("FRA")})}, Rules{Key: []string{"code"}})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"iso3"}, result.Instances[0].DriftColumns)
+	assert.Equal(t, []string{"iso3"}, result.Instances[1].DriftColumns)
+
+	// The majority holds the column: only the lacker drifts.
+	result, err = Reconcile([]Source{countries(t, "a", country("FR", "France")), extraColumn, src(t, "w2", extraColumn.Columns, []apicontract.TypedValue{str("FR"), str("France"), str("FRA")})}, Rules{Key: []string{"code"}})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"iso3"}, result.Instances[0].DriftColumns)
+	assert.Empty(t, result.Instances[1].DriftColumns)
+
+	// A hidden-only column is partial through the hidden set, not as drift.
+	hidden := countries(t, "h", country("FR", "France"))
+	hidden.Info.Limitations = []apicontract.Limitation{{Policy: "pii", HiddenColumns: []string{"name"}}}
+	result, err = Reconcile([]Source{countries(t, "a", country("FR", "France")), hidden}, Rules{Key: []string{"code"}})
+	require.NoError(t, err)
+	assert.Empty(t, result.Instances[1].DriftColumns)
 }
 
-func TestGroupsOnlyDisclosureOmitsValues(t *testing.T) {
+func TestConsensusPresenceBlamesTheMinority(t *testing.T) {
+	sources := []Source{
+		countries(t, "a", standard()...), countries(t, "b", standard()...), countries(t, "c", standard()...), countries(t, "d", standard()...),
+		countries(t, "e", append(standard(), country("XX", "Atlantis"))...),
+	}
+	result, err := Reconcile(sources, Rules{Key: []string{"code"}})
+	require.NoError(t, err)
+	require.Len(t, result.Unexpected, 1)
+	assert.Equal(t, []string{"e"}, result.Unexpected[0].Extra)
+	assert.Empty(t, result.Unexpected[0].Missing)
+	assert.Equal(t, 1, result.Summary.ExtraRecords)
+	assert.Equal(t, 0, result.Summary.MissingRecords)
+	statuses := instanceStatus(result)
+	assert.Equal(t, StatusDiscrepancies, statuses["e"])
+	for _, id := range []string{"a", "b", "c", "d"} {
+		assert.Equal(t, StatusConsistent, statuses[id], id)
+	}
+
+	// Presence any: the outlier's extra record is expected.
+	result, err = Reconcile([]Source{countries(t, "a", standard()...), countries(t, "b", standard()...), countries(t, "e", append(standard(), country("XX", "Atlantis"))...)}, Rules{Key: []string{"code"}, Presence: PresenceAny})
+	require.NoError(t, err)
+	assert.True(t, result.Expected[0].ExtraExpected)
+	assert.Equal(t, StatusConsistent, result.Status)
+
+	// A tie names both sides and presumes neither right.
+	result, err = Reconcile([]Source{
+		countries(t, "a", country("FR", "France"), country("IE", "Ireland")), countries(t, "b", country("FR", "France"), country("IE", "Ireland")),
+		countries(t, "c", country("FR", "France")), countries(t, "d", country("FR", "France")),
+	}, Rules{Key: []string{"code"}})
+	require.NoError(t, err)
+	ie := result.Unexpected[0]
+	assert.True(t, ie.PresenceNoConsensus)
+	assert.Equal(t, []string{"c", "d"}, ie.Missing)
+	assert.Equal(t, []string{"a", "b"}, ie.Extra)
+	assert.Equal(t, 1, result.Summary.MissingRecords)
+	assert.Equal(t, 1, result.Summary.ExtraRecords)
+	assert.Equal(t, 1, result.Summary.WithUnexpected)
+}
+
+func TestRecordCountedOnceInSummary(t *testing.T) {
+	// One record: missing in c (allowed by presence any) and a price difference
+	// (instance-specific) — one expected record, not two.
+	cols := []apicontract.Column{{Name: "sku", Type: "string"}, {Name: "price", Type: "number"}}
+	row := func(price float64) []apicontract.TypedValue { return []apicontract.TypedValue{str("P1"), num(price)} }
+	result, err := Reconcile([]Source{src(t, "a", cols, row(1)), src(t, "b", cols, row(2)), src(t, "c", cols)}, Rules{
+		Key: []string{"sku"}, Presence: PresenceAny, Fields: map[string]FieldPolicy{"price": FieldInstanceSpecific},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 1, result.Summary.Records)
+	assert.Equal(t, 1, result.Summary.ExpectedDifferences)
+	assert.Equal(t, 1, result.Summary.WithExpectedOnly)
+}
+
+func TestMajorityKeyType(t *testing.T) {
+	numericKey := src(t, "odd", []apicontract.Column{{Name: "code", Type: "number"}, {Name: "name", Type: "string"}}, []apicontract.TypedValue{num(1), str("France")})
+	result, err := Reconcile([]Source{numericKey, countries(t, "a", country("FR", "France")), countries(t, "b", country("FR", "France"))}, Rules{Key: []string{"code"}})
+	require.NoError(t, err)
+	statuses := instanceStatus(result)
+	assert.Equal(t, StatusInconclusive, statuses["odd"], "the odd first instance does not set the key type")
+	assert.Equal(t, StatusConsistent, statuses["a"])
+	assert.Equal(t, 2, result.Summary.ComparedInstances)
+}
+
+func TestGroupsOnlyDisclosureOmitsValuesAndKeys(t *testing.T) {
 	result, err := Reconcile([]Source{
-		countries(t, "a", country("IE", "Ireland")),
-		countries(t, "b", country("IE", "Ireland")),
-		countries(t, "c", country("IE", "Eire")),
+		countries(t, "a", country("FR", "France"), country("IE", "Ireland")),
+		countries(t, "b", country("FR", "France"), country("IE", "Ireland")),
+		countries(t, "c", country("FR", "France"), country("IE", "Eire")),
 	}, Rules{Key: []string{"code"}, Disclosure: DiscloseGroupsOnly})
 	require.NoError(t, err)
-	for _, group := range result.Unexpected[0].Fields[0].Groups {
+	record := result.Unexpected[0]
+	assert.Nil(t, record.Key, "groups-only never discloses keys")
+	assert.Equal(t, 2, record.Ordinal)
+	for _, group := range record.Fields[0].Groups {
 		assert.Nil(t, group.Value)
 	}
+
+	// Equal-size groups are ordered by instance, not by value.
+	result, err = Reconcile([]Source{countries(t, "a", country("IE", "Ireland")), countries(t, "b", country("IE", "Eire"))}, Rules{Key: []string{"code"}, Disclosure: DiscloseGroupsOnly})
+	require.NoError(t, err)
+	groups := result.Unexpected[0].Fields[0].Groups
+	assert.Equal(t, []string{"a"}, groups[0].Instances)
+	assert.Equal(t, []string{"b"}, groups[1].Instances)
 }
 
 func TestLimitTruncatesDetailButNotCounts(t *testing.T) {
