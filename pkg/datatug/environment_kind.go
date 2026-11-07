@@ -3,8 +3,9 @@ package datatug
 import "fmt"
 
 // EnvironmentKind is the closed set of environment kinds from the semantic
-// discovery spec. Kind changes nothing in access policy: policies keep
-// selecting environments by id.
+// discovery spec. A local access-policy rule may select it with
+// `environment: <kind>` (pkg/policyscope); a rule without that selector is
+// unaffected by kind.
 type EnvironmentKind string
 
 const (
