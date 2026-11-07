@@ -15,7 +15,7 @@ type environmentJSON Environment
 // Keep this list aligned with Environment and its embedded JSON fields. The
 // schema-alignment test makes adding a typed field without updating it fail.
 var environmentJSONFields = [...]string{
-	"id", "title", "folder", "tags", "userIds", "access", "dbServers", "editionConnections",
+	"id", "title", "folder", "tags", "userIds", "access", "dbServers", "editionConnections", "kind",
 }
 
 func environmentJSONField(key string) string {

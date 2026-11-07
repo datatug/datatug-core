@@ -32,6 +32,9 @@ type Environment struct {
 	ProjectItem
 	DbServers          EnvDbServers `json:"dbServers"`
 	EditionConnections []string     `json:"editionConnections,omitempty"`
+	// Kind is the environment kind (production, test, …), an independent
+	// dimension from the environment's id and from tenants. Empty = unknown.
+	Kind EnvironmentKind `json:"kind,omitempty"`
 	// Retained only for JSON round trips; never read as execution or access configuration.
 	jsonMetadata map[string]any
 }
@@ -47,7 +50,7 @@ func (v Environment) Validate() error {
 	if err := uniqueConnectionIDs(v.EditionConnections); err != nil {
 		return err
 	}
-	return nil
+	return v.Kind.Validate()
 }
 
 // ProjEnvBrief hold env brief in project summary

@@ -50,10 +50,19 @@ func validateCheck(c Check) error {
 	}
 	stepIDs := map[string]bool{}
 	for _, s := range c.Steps {
-		if !validSlug(s.ID) || stepIDs[s.ID] || !oneOf(s.Kind, "query", "check") {
+		if !validSlug(s.ID) || stepIDs[s.ID] || !oneOf(s.Kind, "query", "check", "reconcile") {
 			return ErrInvalid
 		}
 		stepIDs[s.ID] = true
+		if s.Kind == "reconcile" {
+			if !validSlug(s.Profile) || s.QueryID != "" || s.CheckID != "" || len(s.Validators) > 0 || len(s.Bindings) > 0 || !validPolicy(s.OnUnavailable) {
+				return ErrInvalid
+			}
+			continue
+		}
+		if s.Profile != "" {
+			return ErrInvalid
+		}
 		if s.Kind == "query" {
 			if s.QueryID == "" || s.CheckID != "" {
 				return ErrInvalid
@@ -272,6 +281,9 @@ func validateGraph(graph map[string]Check, catalog map[string]PublishedValidator
 		c := graph[id]
 		visiting[id] = true
 		for _, s := range c.Steps {
+			if s.Kind == "reconcile" {
+				continue // no bindings, validators or child checks
+			}
 			if s.Kind == "check" {
 				child, ok := graph[s.CheckID]
 				if !ok {
@@ -371,11 +383,15 @@ type engine struct {
 	queries         int
 	cache           map[string]StepResult
 	metadata        ExecutionMetadata
+	reconciler      Reconciler
 }
 
-func newEngine(catalog Catalog, environment string, runner QueryRunner, metadata ExecutionMetadata) engine {
+func newEngine(catalog Catalog, environment string, runner QueryRunner, metadata ExecutionMetadata, options ...Option) engine {
 	e := engine{checks: map[string]Check{}, validators: map[string]PublishedValidator{}, queryValidators: map[string]QueryValidators{}, runner: runner, environment: environment, cache: map[string]StepResult{}}
 	e.metadata = metadata
+	for _, option := range options {
+		option(&e)
+	}
 	for _, c := range catalog.Checks {
 		e.checks[c.ID] = c
 	}
@@ -429,9 +445,10 @@ func (e *engine) snapshot(run *CheckRun, rootCheck, rootQuery string) {
 			run.Dependencies = append(run.Dependencies, check)
 		}
 		for _, step := range check.Steps {
-			if step.Kind == "check" {
+			switch step.Kind {
+			case "check":
 				visitCheck(step.CheckID)
-			} else {
+			case "query":
 				visitQuery(step.QueryID, step.Validators)
 			}
 		}
@@ -529,7 +546,8 @@ func (e *engine) runCheck(ctx context.Context, id string, inputs map[string]Inpu
 	defer delete(visiting, id)
 	for i, step := range c.Steps {
 		var child StepResult
-		if step.Kind == "check" {
+		switch step.Kind {
+		case "check":
 			mapped, err := mapBindings(step.Bindings, inputs, nil, nil)
 			if err != nil {
 				child = StepResult{StepID: step.ID, Kind: "check", CheckID: step.CheckID, ExecutionStatus: "error", Outcome: "unknown", Message: "check input binding is unavailable"}
@@ -537,7 +555,9 @@ func (e *engine) runCheck(ctx context.Context, id string, inputs map[string]Inpu
 				child = e.runCheck(ctx, step.CheckID, mapped, depth+1, visiting)
 				child.StepID = step.ID
 			}
-		} else {
+		case "reconcile":
+			child = e.runReconcileStep(ctx, step)
+		default:
 			child = e.runQueryStep(ctx, step, inputs, depth, visiting)
 		}
 		if child.ExecutionStatus == "error" {

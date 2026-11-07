@@ -8,6 +8,9 @@ type DbCatalogBase struct {
 	Driver  string `json:"driver"`
 	Path    string `json:"path,omitempty"` // for SQLite
 	DbModel string `json:"dbModel"`
+	// Tenants labels the tenants (factories, regions, customers) whose data
+	// this catalog holds. A shared multi-tenant database lists several.
+	Tenants []string `json:"tenants,omitempty"`
 }
 
 // Validate returns error if not valid
@@ -20,6 +23,13 @@ func (v DbCatalogBase) Validate() error {
 	}
 	if v.Driver == "sqlite3" && v.Path == "" {
 		return validation.NewErrRecordIsMissingRequiredField("path")
+	}
+	seen := make(map[string]bool, len(v.Tenants))
+	for _, tenant := range v.Tenants {
+		if tenant == "" || seen[tenant] {
+			return validation.NewErrBadRecordFieldValue("tenants", "tenant labels must be non-empty and unique")
+		}
+		seen[tenant] = true
 	}
 	return nil
 }

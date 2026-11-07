@@ -80,6 +80,9 @@ func PreflightBindings(c Catalog, root string, inputs map[string]InputValue, que
 		}
 		deferred := len(unknown) > 0
 		for _, step := range check.Steps {
+			if step.Kind == "reconcile" {
+				continue // takes no inputs
+			}
 			mapped, pending, err := mapPartialBindings(step.Bindings, values, unknown)
 			if err != nil {
 				out.State = BindingMissingInput
