@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/datatug/datatug-core/pkg/apicontract"
+	"github.com/datatug/datatug-core/pkg/recordsetcompare"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -14,10 +15,10 @@ func num(v float64) apicontract.TypedValue { return apicontract.NewNumberValue(v
 
 var countryColumns = []apicontract.Column{{Name: "code", Type: "string"}, {Name: "name", Type: "string"}}
 
-// src builds a source from unordered rows; OrderRows orders them.
+// src builds a source from unordered rows; OrderRecordset orders them.
 func src(t *testing.T, id string, columns []apicontract.Column, rows ...[]apicontract.TypedValue) Source {
 	t.Helper()
-	ordered, err := OrderRows(apicontract.Recordset{Columns: columns, Rows: rows}, []string{columns[0].Name})
+	ordered, err := recordsetcompare.OrderRecordset(apicontract.Recordset{Columns: columns, Rows: rows}, []string{columns[0].Name})
 	require.NoError(t, err)
 	return Source{
 		Instance: Instance{ID: id, Tenant: id, Environment: "production"},
@@ -407,22 +408,4 @@ func TestMalformedSources(t *testing.T) {
 			assert.NotErrorIs(t, err, ErrInvalidRules)
 		})
 	}
-}
-
-func TestOrderRows(t *testing.T) {
-	rows, err := OrderRows(apicontract.Recordset{Columns: countryColumns, Rows: [][]apicontract.TypedValue{country("IE", "Ireland"), country("FR", "France")}}, []string{"code"})
-	require.NoError(t, err)
-	var codes []string
-	for row := range rows {
-		codes = append(codes, row[0].Str)
-		break // early stop is honoured
-	}
-	assert.Equal(t, []string{"FR"}, codes)
-
-	_, err = OrderRows(apicontract.Recordset{Columns: countryColumns}, []string{"nope"})
-	assert.Error(t, err)
-	_, err = OrderRows(apicontract.Recordset{Columns: countryColumns, Rows: [][]apicontract.TypedValue{{}}}, []string{"code"})
-	assert.Error(t, err)
-	_, err = OrderRows(apicontract.Recordset{Columns: countryColumns, Rows: [][]apicontract.TypedValue{{apicontract.NewNullValue(), str("x")}}}, []string{"code"})
-	assert.Error(t, err)
 }

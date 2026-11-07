@@ -16,13 +16,13 @@ package reconcile
 import (
 	"errors"
 	"fmt"
-	"iter"
 	"sort"
 	"strings"
 
 	"github.com/dal-go/dalgo/recordops"
 	"github.com/dal-go/record"
 	"github.com/datatug/datatug-core/pkg/apicontract"
+	"github.com/datatug/datatug-core/pkg/recordsetcompare"
 )
 
 const (
@@ -360,19 +360,9 @@ func (r *run) stream(plan *sourcePlan) recordops.RecordSeq[string] {
 				fail("%w", err)
 				return
 			}
-			if len(row) != len(source.Columns) {
-				fail("row %d has %d values, want %d", count, len(row), len(source.Columns))
+			if err := recordsetcompare.ValidateOrderedRow(row, source.Columns, count); err != nil {
+				fail("%w", err)
 				return
-			}
-			for index, value := range row {
-				if err := value.Validate(); err != nil {
-					fail("row %d column %d: %w", count, index, err)
-					return
-				}
-				if value.Type != apicontract.ValueTypeNull && string(value.Type) != source.Columns[index].Type {
-					fail("row %d column %d does not match declared column type", count, index)
-					return
-				}
 			}
 			key := make([]apicontract.TypedValue, len(r.rules.Key))
 			data := make(map[string]any, len(r.rules.Key)+len(r.columns))
@@ -770,49 +760,4 @@ func sortedKeys[V any](m map[string]V) []string {
 	}
 	sort.Strings(keys)
 	return keys
-}
-
-// OrderRows orders a materialized recordset by key for use as Source.Rows.
-// It holds the whole recordset in memory; prefer an ordered query for large
-// datasets.
-func OrderRows(recordset apicontract.Recordset, key []string) (iter.Seq2[[]apicontract.TypedValue, error], error) {
-	indexes := make([]int, len(key))
-	for i, name := range key {
-		indexes[i] = -1
-		for c, column := range recordset.Columns {
-			if column.Name == name {
-				indexes[i] = c
-			}
-		}
-		if indexes[i] < 0 {
-			return nil, fmt.Errorf("reconcile: key column %q is missing", name)
-		}
-	}
-	type keyed struct {
-		sortKey string
-		row     []apicontract.TypedValue
-	}
-	rows := make([]keyed, len(recordset.Rows))
-	for r, row := range recordset.Rows {
-		values := make([]apicontract.TypedValue, len(indexes))
-		for i, index := range indexes {
-			if index >= len(row) {
-				return nil, fmt.Errorf("reconcile: row %d is shorter than the column list", r)
-			}
-			values[i] = row[index]
-		}
-		sortKey, err := apicontract.TypedKeySortKey(values)
-		if err != nil {
-			return nil, fmt.Errorf("reconcile: row %d key: %w", r, err)
-		}
-		rows[r] = keyed{sortKey: sortKey, row: row}
-	}
-	sort.SliceStable(rows, func(i, j int) bool { return rows[i].sortKey < rows[j].sortKey })
-	return func(yield func([]apicontract.TypedValue, error) bool) {
-		for _, item := range rows {
-			if !yield(item.row, nil) {
-				return
-			}
-		}
-	}, nil
 }

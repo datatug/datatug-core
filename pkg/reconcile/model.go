@@ -36,8 +36,8 @@ type Unavailable struct {
 }
 
 // Source is one instance's post-policy recordset. Rows must be strictly
-// ordered by Rules.Key using apicontract.TypedKeySortKey (see OrderRows for
-// callers that hold a materialized recordset). Info.Limitations carries the
+// ordered by Rules.Key using apicontract.TypedKeySortKey (see
+// recordsetcompare.OrderRecordset for callers holding a materialized recordset). Info.Limitations carries the
 // access policy already applied by the caller: hidden columns are never
 // compared, and filtered rows make absences inconclusive.
 type Source struct {
