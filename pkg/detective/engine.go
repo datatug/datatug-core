@@ -445,9 +445,10 @@ func (e *engine) snapshot(run *CheckRun, rootCheck, rootQuery string) {
 			run.Dependencies = append(run.Dependencies, check)
 		}
 		for _, step := range check.Steps {
-			if step.Kind == "check" {
+			switch step.Kind {
+			case "check":
 				visitCheck(step.CheckID)
-			} else if step.Kind == "query" {
+			case "query":
 				visitQuery(step.QueryID, step.Validators)
 			}
 		}
@@ -545,7 +546,8 @@ func (e *engine) runCheck(ctx context.Context, id string, inputs map[string]Inpu
 	defer delete(visiting, id)
 	for i, step := range c.Steps {
 		var child StepResult
-		if step.Kind == "check" {
+		switch step.Kind {
+		case "check":
 			mapped, err := mapBindings(step.Bindings, inputs, nil, nil)
 			if err != nil {
 				child = StepResult{StepID: step.ID, Kind: "check", CheckID: step.CheckID, ExecutionStatus: "error", Outcome: "unknown", Message: "check input binding is unavailable"}
@@ -553,9 +555,9 @@ func (e *engine) runCheck(ctx context.Context, id string, inputs map[string]Inpu
 				child = e.runCheck(ctx, step.CheckID, mapped, depth+1, visiting)
 				child.StepID = step.ID
 			}
-		} else if step.Kind == "reconcile" {
+		case "reconcile":
 			child = e.runReconcileStep(ctx, step)
-		} else {
+		default:
 			child = e.runQueryStep(ctx, step, inputs, depth, visiting)
 		}
 		if child.ExecutionStatus == "error" {
