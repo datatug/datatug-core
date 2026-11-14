@@ -61,7 +61,8 @@ func NewDbServer(driver, hostWithOptionalPort, sep string) (dbServer ServerRef, 
 
 // GetID returns string key for the server. A server of a host-less driver
 // (sqlite3, ingitdb, openvaultdb, https-json, firestore) has the ID
-// "<driver>:", so one environment can list at most one server per such driver:
+// "<driver>:", and as an environment's server (EnvDbServer.GetID) the ID
+// "<driver>", so one environment can list at most one server per such driver:
 // EnvDbServers.Validate refuses a second one as a duplicate (for example two
 // Firestore databases). Name each database as a catalog of that one server.
 func (v ServerRef) GetID() string {
