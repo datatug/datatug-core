@@ -280,3 +280,15 @@ func TestServerRef_Validate_HostlessRefusalDoesNotEchoTheHost(t *testing.T) {
 		assert.Contains(t, err.Error(), "cannot be used with sqlite3, got: h")
 	}
 }
+
+// A host-less driver has one server ID per environment ("firestore:"), so a
+// second firestore server in one environment is a duplicate.
+func TestEnvDbServers_Validate_OneFirestoreServerPerEnvironment(t *testing.T) {
+	one := EnvDbServers{{ServerRef: ServerRef{Driver: "firestore"}}}
+	assert.NoError(t, one.Validate())
+	assert.Equal(t, "firestore:", one[0].GetID())
+	two := EnvDbServers{{ServerRef: ServerRef{Driver: "firestore"}}, {ServerRef: ServerRef{Driver: "firestore"}}}
+	if err := two.Validate(); assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "duplicate server ID")
+	}
+}
