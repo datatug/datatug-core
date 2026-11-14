@@ -59,7 +59,12 @@ func NewDbServer(driver, hostWithOptionalPort, sep string) (dbServer ServerRef, 
 	return
 }
 
-// GetID returns string key for the server
+// GetID returns string key for the server. A server of a host-less driver
+// (sqlite3, ingitdb, openvaultdb, https-json, firestore) has the ID
+// "<driver>:", and as an environment's server (EnvDbServer.GetID) the ID
+// "<driver>", so one environment can list at most one server per such driver:
+// EnvDbServers.Validate refuses a second one as a duplicate (for example two
+// Firestore databases). Name each database as a catalog of that one server.
 func (v ServerRef) GetID() string {
 	if v.Port == 0 {
 		return fmt.Sprintf("%v:%v", v.Driver, v.Host)
@@ -68,8 +73,10 @@ func (v ServerRef) GetID() string {
 }
 
 // Drivers whose servers are not addressed by host and port: file-based or
-// URL-based sources that take a path (or nothing) instead.
-var hostlessDrivers = []string{"sqlite3", "ingitdb", "openvaultdb", "https-json"}
+// URL-based sources that take a path (or nothing) instead. A firestore server is
+// a Google Cloud project, named with its credentials in the environment (a
+// connection descriptor's variable holding firestore://PROJECT[/DATABASE]).
+var hostlessDrivers = []string{"sqlite3", "ingitdb", "openvaultdb", "https-json", "firestore"}
 
 // Drivers for which host and port are both optional: a database server that a
 // project may record by its host, or by its driver alone when the connection URL
