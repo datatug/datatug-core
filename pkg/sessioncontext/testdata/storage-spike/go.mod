@@ -3,11 +3,11 @@ module github.com/datatug/datatug-core/pkg/sessioncontext/testdata/storage-spike
 go 1.27.0
 
 require (
-	github.com/dal-go/dalgo v0.96.0
+	github.com/dal-go/dalgo v0.102.4
 	github.com/dal-go/record v0.1.5
-	github.com/datatug/datatug-core v0.127.0
+	github.com/datatug/datatug-core v0.143.2
 	github.com/openvaultdb/openvaultdb-go v0.26.3
-	modernc.org/sqlite v1.61.0
+	modernc.org/sqlite v1.62.0
 )
 
 require (
@@ -33,7 +33,7 @@ require (
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-sql-driver/mysql v1.10.0 // indirect
-	github.com/gofrs/flock v0.13.1 // indirect
+	github.com/gofrs/flock v0.13.2 // indirect
 	github.com/google/go-github/v88 v88.0.0 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
@@ -57,7 +57,7 @@ require (
 	github.com/qri-io/jsonschema v0.2.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/strongo/random v0.0.3 // indirect
-	github.com/strongo/slice v0.3.14 // indirect
+	github.com/strongo/slice v0.3.15 // indirect
 	github.com/strongo/validation v0.0.17 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.70.0 // indirect
@@ -70,7 +70,7 @@ require (
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
-	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	google.golang.org/api v0.292.0 // indirect
@@ -80,7 +80,7 @@ require (
 	google.golang.org/grpc v1.83.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	modernc.org/libc v1.79.0 // indirect
+	modernc.org/libc v1.80.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
 )
@@ -92,4 +92,4 @@ replace github.com/datatug/datatug-core => ../../../../
 // list's minimum (v0.95.2, selected by datatug-core); this pin keeps the
 // fixture on the pre-rename DALgo API OVDB v0.25.6 actually compiles against.
 // Drop it when this fixture moves to an OVDB Go release built on tugql.
-replace github.com/dal-go/dalgo => github.com/dal-go/dalgo v0.96.0
+replace github.com/dal-go/dalgo => github.com/dal-go/dalgo v0.102.4
