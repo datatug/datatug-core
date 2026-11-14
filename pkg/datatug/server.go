@@ -68,8 +68,10 @@ func (v ServerRef) GetID() string {
 }
 
 // Drivers whose servers are not addressed by host and port: file-based or
-// URL-based sources that take a path (or nothing) instead.
-var hostlessDrivers = []string{"sqlite3", "ingitdb", "openvaultdb", "https-json"}
+// URL-based sources that take a path (or nothing) instead. A firestore server is
+// a Google Cloud project, named with its credentials in the environment (a
+// connection descriptor's variable holding firestore://PROJECT[/DATABASE]).
+var hostlessDrivers = []string{"sqlite3", "ingitdb", "openvaultdb", "https-json", "firestore"}
 
 // Drivers for which host and port are both optional: a database server that a
 // project may record by its host, or by its driver alone when the connection URL

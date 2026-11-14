@@ -222,6 +222,9 @@ func TestServerRef_Validate_Drivers(t *testing.T) {
 		{"https-json bare", ServerRef{Driver: "https-json"}, ""},
 		{"https-json with host", ServerRef{Driver: "https-json", Host: "h"}, "cannot be used with https-json"},
 		{"https-json with port", ServerRef{Driver: "https-json", Port: 1}, "cannot be used with https-json"},
+		{"firestore bare", ServerRef{Driver: "firestore"}, ""},
+		{"firestore with host", ServerRef{Driver: "firestore", Host: "my-project"}, "cannot be used with firestore"},
+		{"firestore with port", ServerRef{Driver: "firestore", Port: 8080}, "cannot be used with firestore"},
 		{"sqlite3 with host", ServerRef{Driver: "sqlite3", Host: "h"}, "cannot be used with sqlite3"},
 		{"sqlserver without host", ServerRef{Driver: "sqlserver"}, ""},
 		{"sqlserver with host", ServerRef{Driver: "sqlserver", Host: "h"}, ""},
@@ -255,7 +258,7 @@ func TestServerRef_Validate_Drivers(t *testing.T) {
 func TestServerRef_Validate_UnknownDriverNamesAcceptedDrivers(t *testing.T) {
 	err := ServerRef{Driver: "mongo", Host: "h"}.Validate()
 	if assert.Error(t, err) {
-		for _, d := range []string{"sqlite3", "sqlserver", "mysql", "oracle", "postgres", "couchdb", "postgrest", "libsql", "typesense", "ingitdb", "openvaultdb", "https-json"} {
+		for _, d := range []string{"sqlite3", "sqlserver", "mysql", "oracle", "postgres", "couchdb", "postgrest", "libsql", "typesense", "ingitdb", "openvaultdb", "https-json", "firestore"} {
 			assert.Contains(t, err.Error(), d)
 		}
 	}
@@ -265,7 +268,7 @@ func TestServerRef_Validate_UnknownDriverNamesAcceptedDrivers(t *testing.T) {
 // sqlite3 keeps its original text, which names the offending host.
 func TestServerRef_Validate_HostlessRefusalDoesNotEchoTheHost(t *testing.T) {
 	const pasted = "https://user:secret-token@example.com/db"
-	for _, driver := range []string{"ingitdb", "openvaultdb", "https-json"} {
+	for _, driver := range []string{"ingitdb", "openvaultdb", "https-json", "firestore"} {
 		err := ServerRef{Driver: driver, Host: pasted}.Validate()
 		if assert.Error(t, err, driver) {
 			assert.Contains(t, err.Error(), "cannot be used with "+driver, driver)
