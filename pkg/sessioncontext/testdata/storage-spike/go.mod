@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	github.com/dal-go/dalgo v0.102.4
 	github.com/dal-go/record v0.1.5
-	github.com/datatug/datatug-core v0.143.2
+	github.com/datatug/datatug-core v0.144.0
 	github.com/openvaultdb/openvaultdb-go v0.26.3
 	modernc.org/sqlite v1.62.0
 )
@@ -42,7 +42,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.23.0 // indirect
 	github.com/ingitdb/dalgo2ingitdb v0.7.3 // indirect
 	github.com/ingitdb/dalgo2ingitdb4github v0.2.3 // indirect
-	github.com/ingitdb/ingitdb-go/ingitdb v0.10.6 // indirect
+	github.com/ingitdb/ingitdb-go/ingitdb v0.11.1 // indirect
 	github.com/ingr-io/ingr-go v0.0.2 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
@@ -71,7 +71,7 @@ require (
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.50.0 // indirect
-	golang.org/x/text v0.40.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	google.golang.org/api v0.292.0 // indirect
 	google.golang.org/genproto v0.0.0-20260803160001-6ac0973c030d // indirect
