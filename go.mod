@@ -8,7 +8,7 @@ require (
 	github.com/dal-go/dalgo v0.102.4
 	github.com/dal-go/record v0.1.5
 	github.com/gofrs/flock v0.13.2
-	github.com/ingitdb/ingitdb-go/ingitdb v0.10.6
+	github.com/ingitdb/ingitdb-go/ingitdb v0.11.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/stretchr/testify v1.12.1
