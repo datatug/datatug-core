@@ -52,6 +52,27 @@ func TestGetSettings(t *testing.T) {
 			wantSettings: Settings{},
 		},
 		{
+			name: "empty file is empty settings",
+			openFile: func(name string) (io.ReadCloser, error) {
+				return io.NopCloser(bytes.NewReader(nil)), nil
+			},
+			wantSettings: Settings{},
+		},
+		{
+			name: "file with only comments is empty settings",
+			openFile: func(name string) (io.ReadCloser, error) {
+				return io.NopCloser(bytes.NewReader([]byte("# no projects yet\n\n"))), nil
+			},
+			wantSettings: Settings{},
+		},
+		{
+			name: "truncated document is still an error",
+			openFile: func(name string) (io.ReadCloser, error) {
+				return io.NopCloser(bytes.NewReader([]byte("projects:\n  - id: p1\n    path: [unterminated"))), nil
+			},
+			wantErr: errors.New("yaml parse error"),
+		},
+		{
 			name: "success",
 			openFile: func(name string) (io.ReadCloser, error) {
 				settings := Settings{

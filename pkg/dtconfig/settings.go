@@ -1,6 +1,7 @@
 package dtconfig
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -126,7 +127,12 @@ func GetSettings() (settings Settings, err error) {
 		}
 	}()
 	decoder := yaml.NewDecoder(f)
-	if err = decoder.Decode(&settings); err != nil {
+	if err = decoder.Decode(&settings); errors.Is(err, io.EOF) {
+		// A file with no YAML document (empty, blank or only comments) is a
+		// settings file with nothing set, not a broken one. A truncated or
+		// malformed document still fails to parse.
+		return Settings{}, nil
+	} else if err != nil {
 		return
 	}
 	//setDefault(&settings)

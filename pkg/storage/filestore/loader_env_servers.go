@@ -24,6 +24,9 @@ func loadEnvServers(dirPath string, env *datatug.Environment) error {
 			return err
 		}
 		for i, server := range servers {
+			if server.Driver == "firestore" {
+				continue // host-less: the file name is not a host (other host-less drivers keep their old loading)
+			}
 			if server.Host == "" {
 				server.Host = serverName
 			} else if server.Host != serverName {
