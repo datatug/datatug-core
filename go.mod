@@ -12,7 +12,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/stretchr/testify v1.12.1
-	github.com/strongo/aichat v0.15.6
+	github.com/strongo/aichat v0.15.7
 	github.com/strongo/slice v0.3.15
 	github.com/strongo/validation v0.0.18
 	go.uber.org/mock v0.6.0

@@ -61,6 +61,8 @@ github.com/strongo/aichat v0.15.3 h1:g/tdGDTsrwX2+krdpUyGBO3KnsYk87PSMeepXZBaGPs
 github.com/strongo/aichat v0.15.3/go.mod h1:x5NGnyj0TMozy+HiNhzMGfmmn7dBeqLptn4fZZbtqbo=
 github.com/strongo/aichat v0.15.6 h1:VRJES9v6WPmVIgnMOdTpa+WzKKiAPLfyDNXB5URc9sc=
 github.com/strongo/aichat v0.15.6/go.mod h1:aLzd42yS+rQSU396JM+VwcNAvHtGpP3lh+7yuyJuTvI=
+github.com/strongo/aichat v0.15.7 h1:Ms5ScwsGmwbTGkflbVo9ohkd9/3bhwN2jTvSOLzJn+s=
+github.com/strongo/aichat v0.15.7/go.mod h1:kTdPrzkn+Q20tuoWhA9RO3PfqjKrlqYOJ9Eu60XtwFI=
 github.com/strongo/random v0.0.3 h1:R4XNjyBvlqL5Mln0meQO9d/Wy1SSN8CpCJ8sKSkIifw=
 github.com/strongo/random v0.0.3/go.mod h1:V/TldevwaA3XYhJApc5kQUmpAVUZhoEcsdl5m1+emx4=
 github.com/strongo/slice v0.3.14 h1:eEBTkfLbEilgOixoB1coXAecTBMp77oq7d/QnVp1CRk=

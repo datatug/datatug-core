@@ -43,6 +43,11 @@ jobs:
     with:
       code_coverage: true
       min_test_coverage_percent: 100
+      allowed_imports: |
+        github.com/datatug/datatug-core/pkg/dataaccess github.com/dal-go/dalgo/adapters/dalgo2memory
+        github.com/datatug/datatug-core/pkg/meaninglabels github.com/dal-go/dalgo/adapters/dalgo2memory
+        github.com/datatug/datatug-core/pkg/sessioncontext github.com/dal-go/dalgo/adapters/dalgo2memory
+        github.com/datatug/datatug-core/pkg/storage/dalgostore github.com/dal-go/dalgo/adapters/dalgo2memory
 
   validate_wasm:
     needs: strongo_workflow
